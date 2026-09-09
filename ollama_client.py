@@ -9,9 +9,11 @@ import json
 import logging
 import re
 import time
+from enum import Enum
+from typing import Dict, Any, Optional, Tuple
 from config import (
     OLLAMA_BASE_URL, DEFAULT_MODEL, TIMEOUT_SECONDS,
-    OLLAMA_CONNECT_TIMEOUT, OLLAMA_READ_TIMEOUT,
+    OLLAMA_CONNECT_TIMEOUT, OLLAMA_READ_TIMEOUT, OLLAMA_MAX_RETRIES,
     OLLAMA_KEEP_ALIVE, OLLAMA_NUM_CTX,
     OLLAMA_CLASSIFIER_TEMPERATURE, OLLAMA_RESPONSE_TEMPERATURE,
     OLLAMA_TOP_P,
@@ -20,36 +22,209 @@ from config import (
 logger = logging.getLogger("ollama_client")
 
 
+class OllamaErrorKind(str, Enum):
+    SERVER_UNAVAILABLE = "OLLAMA_SERVER_UNAVAILABLE"
+    CONNECTION_TIMEOUT = "OLLAMA_CONNECTION_TIMEOUT"
+    READ_TIMEOUT = "OLLAMA_READ_TIMEOUT"
+    MODEL_NOT_INSTALLED = "OLLAMA_MODEL_NOT_INSTALLED"
+    INVALID_RESPONSE = "OLLAMA_INVALID_RESPONSE"
+    JSON_PARSE_FAILURE = "OLLAMA_JSON_PARSE_FAILURE"
+
+
+def classify_ollama_exception(exc: Exception) -> Tuple[OllamaErrorKind, str]:
+    """Categorize network or parsing exceptions into a specific OllamaErrorKind."""
+    if isinstance(exc, requests.exceptions.ConnectTimeout):
+        return OllamaErrorKind.CONNECTION_TIMEOUT, f"Connection timeout: {exc}"
+    elif isinstance(exc, requests.exceptions.ReadTimeout):
+        return OllamaErrorKind.READ_TIMEOUT, f"Read timeout: {exc}"
+    elif isinstance(exc, (requests.exceptions.ConnectionError, ConnectionRefusedError)):
+        return OllamaErrorKind.SERVER_UNAVAILABLE, f"Ollama server unavailable or connection refused: {exc}"
+    elif isinstance(exc, json.JSONDecodeError):
+        return OllamaErrorKind.JSON_PARSE_FAILURE, f"JSON decode failed: {exc}"
+    elif isinstance(exc, requests.exceptions.RequestException):
+        return OllamaErrorKind.SERVER_UNAVAILABLE, f"Network request error: {exc}"
+    return OllamaErrorKind.INVALID_RESPONSE, f"Unexpected error: {exc}"
+
+
+def is_model_installed(target_model: str, installed_models: list) -> bool:
+    """Check if target_model is installed in Ollama list (allowing exact match or tag match)."""
+    if not target_model:
+        return False
+    if target_model in installed_models:
+        return True
+    target_clean = target_model.split(":")[0].lower()
+    for m in installed_models:
+        if m == target_model or m.split(":")[0].lower() == target_clean:
+            return True
+    return False
+
+
 class OllamaClient:
     def __init__(self, base_url: str = OLLAMA_BASE_URL, default_model: str = DEFAULT_MODEL):
         self.base_url = base_url.rstrip("/")
         self.default_model = default_model
 
-    def check_health(self) -> dict:
-        """Checks if Ollama is running and retrieves list of installed models."""
+    def startup_health_check(self, target_model: Optional[str] = None, test_inference: bool = True) -> Dict[str, Any]:
+        """
+        Comprehensive startup health check that verifies:
+          1. Server connectivity (GET /api/tags)
+          2. Model availability (target_model in installed models)
+          3. Response validity (quick ping to POST /api/chat with num_predict=1)
+        """
+        model_name = target_model or self.default_model
+        start_time = time.time()
+
+        # ── 1. Server Connectivity Check ─────────────────────────────────
+        tags_endpoint = f"{self.base_url}/api/tags"
         try:
-            resp = requests.get(f"{self.base_url}/api/tags", timeout=1.5)
-            if resp.status_code == 200:
-                data = resp.json()
-                models = [m.get("name") for m in data.get("models", [])]
+            resp = requests.get(tags_endpoint, timeout=(OLLAMA_CONNECT_TIMEOUT, 5.0))
+            if resp.status_code != 200:
+                error_kind = OllamaErrorKind.INVALID_RESPONSE
+                msg = f"Server returned HTTP {resp.status_code}: {resp.text[:200]}"
+                logger.error(f"Ollama startup health check [{error_kind.value}]: {msg} at {tags_endpoint}")
+                return {
+                    "online": False,
+                    "server_connected": False,
+                    "model_available": False,
+                    "response_valid": False,
+                    "active_model": model_name,
+                    "models": [],
+                    "error_kind": error_kind.value,
+                    "message": msg,
+                    "base_url": self.base_url,
+                }
+            
+            data = resp.json()
+            models = [m.get("name") for m in data.get("models", [])]
+        except Exception as e:
+            error_kind, msg = classify_ollama_exception(e)
+            logger.error(f"Ollama startup health check [{error_kind.value}]: {msg} at {tags_endpoint}")
+            return {
+                "online": False,
+                "server_connected": False,
+                "model_available": False,
+                "response_valid": False,
+                "active_model": model_name,
+                "models": [],
+                "error_kind": error_kind.value,
+                "message": msg,
+                "base_url": self.base_url,
+            }
+
+        # ── 2. Model Availability Check ──────────────────────────────────
+        has_model = is_model_installed(model_name, models)
+        if not has_model:
+            error_kind = OllamaErrorKind.MODEL_NOT_INSTALLED
+            msg = f"Configured model '{model_name}' is not installed in Ollama. Available models: {models}"
+            logger.error(f"Ollama startup health check [{error_kind.value}]: {msg}")
+            return {
+                "online": True,
+                "server_connected": True,
+                "model_available": False,
+                "response_valid": False,
+                "active_model": model_name,
+                "models": models,
+                "error_kind": error_kind.value,
+                "message": msg,
+                "base_url": self.base_url,
+            }
+
+        # ── 3. Response Validity Check (Ping) ────────────────────────────
+        if test_inference:
+            chat_endpoint = f"{self.base_url}/api/chat"
+            ping_payload = {
+                "model": model_name,
+                "messages": [{"role": "user", "content": "ping"}],
+                "stream": False,
+                "options": {"num_predict": 1},
+            }
+            try:
+                ping_resp = requests.post(
+                    chat_endpoint,
+                    json=ping_payload,
+                    timeout=(OLLAMA_CONNECT_TIMEOUT, min(OLLAMA_READ_TIMEOUT, 15.0)),
+                )
+                if ping_resp.status_code == 200:
+                    try:
+                        ping_data = ping_resp.json()
+                        if "message" in ping_data:
+                            latency_ms = int((time.time() - start_time) * 1000)
+                            logger.info(
+                                f"Ollama startup health check PASSED: Server connected at {self.base_url}, "
+                                f"model '{model_name}' verified and responding ({latency_ms}ms)."
+                            )
+                            return {
+                                "online": True,
+                                "server_connected": True,
+                                "model_available": True,
+                                "response_valid": True,
+                                "active_model": model_name,
+                                "models": models,
+                                "latency_ms": latency_ms,
+                                "error_kind": None,
+                                "message": f"Ollama online with model {model_name}",
+                                "base_url": self.base_url,
+                            }
+                    except json.JSONDecodeError as jde:
+                        error_kind = OllamaErrorKind.JSON_PARSE_FAILURE
+                        msg = f"Ping response was not valid JSON: {jde}"
+                        logger.error(f"Ollama startup health check [{error_kind.value}]: {msg}")
+                        return {
+                            "online": True,
+                            "server_connected": True,
+                            "model_available": True,
+                            "response_valid": False,
+                            "active_model": model_name,
+                            "models": models,
+                            "error_kind": error_kind.value,
+                            "message": msg,
+                            "base_url": self.base_url,
+                        }
+
+                error_kind = OllamaErrorKind.INVALID_RESPONSE
+                msg = f"Ping failed with HTTP {ping_resp.status_code}: {ping_resp.text[:200]}"
+                logger.error(f"Ollama startup health check [{error_kind.value}]: {msg}")
                 return {
                     "online": True,
+                    "server_connected": True,
+                    "model_available": True,
+                    "response_valid": False,
+                    "active_model": model_name,
                     "models": models,
-                    "model_available": self.default_model in models,
-                    "active_model": self.default_model,
-                    "base_url": self.base_url
+                    "error_kind": error_kind.value,
+                    "message": msg,
+                    "base_url": self.base_url,
                 }
-        except Exception as e:
-            logger.warning(f"Ollama health check failed: {e}")
+            except Exception as e:
+                error_kind, msg = classify_ollama_exception(e)
+                logger.error(f"Ollama startup health check [{error_kind.value}] during ping: {msg}")
+                return {
+                    "online": True,
+                    "server_connected": True,
+                    "model_available": True,
+                    "response_valid": False,
+                    "active_model": model_name,
+                    "models": models,
+                    "error_kind": error_kind.value,
+                    "message": msg,
+                    "base_url": self.base_url,
+                }
 
         return {
-            "online": False,
-            "models": [],
-            "model_available": False,
-            "active_model": self.default_model,
+            "online": True,
+            "server_connected": True,
+            "model_available": True,
+            "response_valid": True,
+            "active_model": model_name,
+            "models": models,
+            "error_kind": None,
+            "message": f"Ollama online with model {model_name}",
             "base_url": self.base_url,
-            "message": "Ollama service offline. Rule-based simulation engine active."
         }
+
+    def check_health(self) -> dict:
+        """Checks if Ollama is running and retrieves list of installed models."""
+        return self.startup_health_check(test_inference=False)
 
     def generate(self, prompt: str, model: str = None, options: dict = None) -> dict:
         """
@@ -66,26 +241,42 @@ class OllamaClient:
             payload["options"] = options
 
         endpoint = f"{self.base_url}/api/generate"
+        last_error_kind = OllamaErrorKind.SERVER_UNAVAILABLE
+        last_error_msg = "Unknown error"
 
-        try:
-            # Use tuple (connect_timeout, read_timeout)
-            resp = requests.post(endpoint, json=payload, timeout=(1.5, TIMEOUT_SECONDS))
-            if resp.status_code == 200:
-                data = resp.json()
-                response_text = data.get("response", "").strip()
-                return {
-                    "success": True,
-                    "response": response_text,
-                    "source": "ollama",
-                    "model": target_model,
-                    "total_duration": data.get("total_duration", 0)
-                }
-            else:
-                logger.warning(f"Ollama returned HTTP {resp.status_code}: {resp.text}")
-        except requests.exceptions.RequestException as e:
-            logger.warning(f"Ollama connection error: {e}. Utilizing prompt-aligned simulator.")
+        for attempt in range(1 + OLLAMA_MAX_RETRIES):
+            try:
+                resp = requests.post(endpoint, json=payload, timeout=(OLLAMA_CONNECT_TIMEOUT, TIMEOUT_SECONDS))
+                if resp.status_code == 200:
+                    data = resp.json()
+                    response_text = data.get("response", "").strip()
+                    return {
+                        "success": True,
+                        "response": response_text,
+                        "source": "ollama",
+                        "model": target_model,
+                        "total_duration": data.get("total_duration", 0)
+                    }
+                elif resp.status_code == 404:
+                    last_error_kind = OllamaErrorKind.MODEL_NOT_INSTALLED
+                    last_error_msg = f"Model '{target_model}' not found (HTTP 404): {resp.text[:200]}"
+                    logger.warning(f"Ollama generate [{last_error_kind.value}] (attempt {attempt + 1}): {last_error_msg}")
+                    break
+                else:
+                    last_error_kind = OllamaErrorKind.INVALID_RESPONSE
+                    last_error_msg = f"HTTP {resp.status_code}: {resp.text[:200]}"
+                    logger.warning(f"Ollama generate [{last_error_kind.value}] (attempt {attempt + 1}): {last_error_msg}")
+            except Exception as e:
+                last_error_kind, last_error_msg = classify_ollama_exception(e)
+                logger.warning(f"Ollama generate [{last_error_kind.value}] (attempt {attempt + 1}): {last_error_msg}")
+                if last_error_kind in (OllamaErrorKind.SERVER_UNAVAILABLE, OllamaErrorKind.CONNECTION_TIMEOUT):
+                    break  # Do not spin retries if server is offline or unreachable
 
         # Fallback simulation if Ollama instance is not currently serving the request
+        logger.warning(
+            f"Ollama generate: utilizing prompt-aligned simulator. "
+            f"Reason: [{last_error_kind.value}] {last_error_msg}"
+        )
         simulated_response = self._simulate_assistant_response(prompt)
         return {
             "success": True,
@@ -93,29 +284,22 @@ class OllamaClient:
             "source": "simulation_engine",
             "model": f"{target_model} (simulation)",
             "fallback_used": True,
+            "error_kind": last_error_kind.value,
+            "fallback_reason": last_error_msg,
             "note": "Generated via local fallback simulator because Ollama service is not responding."
         }
 
     # ── New /api/chat Methods (Phase 3) ──────────────────────────────────
 
     def classify(self, messages: list, schema: dict, model: str = None,
-                 temperature: float = None, max_retries: int = 0) -> dict:
+                 temperature: float = None, max_retries: int = None) -> dict:
         """
         Sends a structured classification request to Ollama /api/chat.
         Uses 'format' parameter for constrained JSON output.
-
-        Returns:
-            {
-                "success": bool,
-                "result": dict,        # Parsed JSON from model
-                "source": str,         # "ollama" or "fallback"
-                "model": str,
-                "latency_ms": int,
-                "fallback_used": bool
-            }
         """
         target_model = model or self.default_model
         temp = temperature if temperature is not None else OLLAMA_CLASSIFIER_TEMPERATURE
+        retries = max_retries if max_retries is not None else OLLAMA_MAX_RETRIES
         payload = {
             "model": target_model,
             "messages": messages,
@@ -126,13 +310,15 @@ class OllamaClient:
                 "temperature": temp,
                 "top_p": OLLAMA_TOP_P,
                 "num_ctx": OLLAMA_NUM_CTX,
-                "num_predict": 300,
+                "num_predict": 1500,
             }
         }
 
         endpoint = f"{self.base_url}/api/chat"
+        last_error_kind = OllamaErrorKind.SERVER_UNAVAILABLE
+        last_error_msg = "Unknown error"
 
-        for attempt in range(1 + max_retries):
+        for attempt in range(1 + retries):
             try:
                 start = time.time()
                 resp = requests.post(
@@ -142,30 +328,51 @@ class OllamaClient:
                 latency_ms = int((time.time() - start) * 1000)
 
                 if resp.status_code == 200:
-                    data = resp.json()
+                    try:
+                        data = resp.json()
+                    except json.JSONDecodeError as jde:
+                        last_error_kind = OllamaErrorKind.JSON_PARSE_FAILURE
+                        last_error_msg = f"HTTP 200 but body decode failed: {jde}"
+                        logger.warning(f"Ollama classify [{last_error_kind.value}]: {last_error_msg}")
+                        break
+
                     content = data.get("message", {}).get("content", "")
                     try:
                         parsed = json.loads(content)
-                    except json.JSONDecodeError:
-                        logger.warning(f"Ollama classify returned non-JSON: {content[:200]}")
-                        parsed = {}
-
-                    return {
-                        "success": True,
-                        "result": parsed,
-                        "source": "ollama",
-                        "model": target_model,
-                        "latency_ms": latency_ms,
-                        "fallback_used": False,
-                    }
+                        return {
+                            "success": True,
+                            "result": parsed,
+                            "source": "ollama",
+                            "model": target_model,
+                            "latency_ms": latency_ms,
+                            "fallback_used": False,
+                        }
+                    except json.JSONDecodeError as jde:
+                        last_error_kind = OllamaErrorKind.JSON_PARSE_FAILURE
+                        last_error_msg = f"Model output is not valid JSON: {content[:200]} ({jde})"
+                        logger.warning(f"Ollama classify [{last_error_kind.value}]: {last_error_msg}")
+                        break
+                elif resp.status_code == 404:
+                    last_error_kind = OllamaErrorKind.MODEL_NOT_INSTALLED
+                    last_error_msg = f"Model '{target_model}' not found (HTTP 404)"
+                    logger.warning(f"Ollama classify [{last_error_kind.value}]: {last_error_msg}")
+                    break
                 else:
-                    logger.warning(f"Ollama classify HTTP {resp.status_code} (attempt {attempt + 1})")
+                    last_error_kind = OllamaErrorKind.INVALID_RESPONSE
+                    last_error_msg = f"HTTP {resp.status_code}: {resp.text[:200]}"
+                    logger.warning(f"Ollama classify [{last_error_kind.value}] (attempt {attempt + 1}): {last_error_msg}")
 
-            except requests.exceptions.RequestException as e:
-                logger.warning(f"Ollama classify error (attempt {attempt + 1}): {e}")
+            except Exception as e:
+                last_error_kind, last_error_msg = classify_ollama_exception(e)
+                logger.warning(f"Ollama classify [{last_error_kind.value}] (attempt {attempt + 1}): {last_error_msg}")
+                if last_error_kind in (OllamaErrorKind.SERVER_UNAVAILABLE, OllamaErrorKind.CONNECTION_TIMEOUT):
+                    break
 
         # All retries exhausted — return fallback
-        logger.info("Ollama classify: all retries exhausted, returning fallback.")
+        logger.warning(
+            f"Ollama classify: using fallback understanding engine. "
+            f"Reason: [{last_error_kind.value}] {last_error_msg}"
+        )
         return {
             "success": False,
             "result": {},
@@ -173,16 +380,19 @@ class OllamaClient:
             "model": target_model,
             "latency_ms": 0,
             "fallback_used": True,
+            "error_kind": last_error_kind.value,
+            "fallback_reason": last_error_msg,
         }
 
     def chat_completions(self, messages: list, model: str = None,
-                         temperature: float = None, top_p: float = None, max_retries: int = 1) -> dict:
+                         temperature: float = None, top_p: float = None, max_retries: int = None) -> dict:
         """
         Sends an OpenAI-compatible chat completion request to /v1/chat/completions.
         """
         target_model = model or self.default_model
         temp = temperature if temperature is not None else OLLAMA_RESPONSE_TEMPERATURE
         p_val = top_p if top_p is not None else OLLAMA_TOP_P
+        retries = max_retries if max_retries is not None else OLLAMA_MAX_RETRIES
         payload = {
             "model": target_model,
             "messages": messages,
@@ -192,8 +402,10 @@ class OllamaClient:
             "max_tokens": 450,
         }
         endpoint = f"{self.base_url}/v1/chat/completions"
+        last_error_kind = OllamaErrorKind.SERVER_UNAVAILABLE
+        last_error_msg = "Unknown error"
 
-        for attempt in range(1 + max_retries):
+        for attempt in range(1 + retries):
             try:
                 start = time.time()
                 resp = requests.post(
@@ -204,7 +416,14 @@ class OllamaClient:
                 latency_ms = int((time.time() - start) * 1000)
 
                 if resp.status_code == 200:
-                    data = resp.json()
+                    try:
+                        data = resp.json()
+                    except json.JSONDecodeError as jde:
+                        last_error_kind = OllamaErrorKind.JSON_PARSE_FAILURE
+                        last_error_msg = f"HTTP 200 but JSON decode failed: {jde}"
+                        logger.warning(f"Ollama v1 completions [{last_error_kind.value}]: {last_error_msg}")
+                        break
+
                     choices = data.get("choices", [])
                     content = ""
                     if choices:
@@ -218,11 +437,25 @@ class OllamaClient:
                         "latency_ms": latency_ms,
                         "fallback_used": False,
                     }
+                elif resp.status_code == 404:
+                    last_error_kind = OllamaErrorKind.MODEL_NOT_INSTALLED
+                    last_error_msg = f"Model '{target_model}' not found (HTTP 404)"
+                    logger.warning(f"Ollama v1 completions [{last_error_kind.value}]: {last_error_msg}")
+                    break
                 else:
-                    logger.warning(f"Ollama v1 chat completions HTTP {resp.status_code} (attempt {attempt + 1})")
-            except requests.exceptions.RequestException as e:
-                logger.warning(f"Ollama v1 error (attempt {attempt + 1}): {e}")
+                    last_error_kind = OllamaErrorKind.INVALID_RESPONSE
+                    last_error_msg = f"HTTP {resp.status_code}: {resp.text[:200]}"
+                    logger.warning(f"Ollama v1 completions [{last_error_kind.value}] (attempt {attempt + 1}): {last_error_msg}")
+            except Exception as e:
+                last_error_kind, last_error_msg = classify_ollama_exception(e)
+                logger.warning(f"Ollama v1 completions [{last_error_kind.value}] (attempt {attempt + 1}): {last_error_msg}")
+                if last_error_kind in (OllamaErrorKind.SERVER_UNAVAILABLE, OllamaErrorKind.CONNECTION_TIMEOUT):
+                    break
 
+        logger.warning(
+            f"Ollama v1 chat completions: fallback returned. "
+            f"Reason: [{last_error_kind.value}] {last_error_msg}"
+        )
         return {
             "success": False,
             "response": "",
@@ -230,17 +463,20 @@ class OllamaClient:
             "model": target_model,
             "latency_ms": 0,
             "fallback_used": True,
+            "error_kind": last_error_kind.value,
+            "fallback_reason": last_error_msg,
         }
 
     def compose(self, messages: list, model: str = None,
-                temperature: float = None, top_p: float = None, max_retries: int = 1) -> dict:
+                temperature: float = None, top_p: float = None, max_retries: int = None) -> dict:
         """
         Sends a natural language response generation request.
         First attempts the OpenAI-compatible /v1/chat/completions endpoint,
         falling back to native /api/chat if needed.
         """
+        retries = max_retries if max_retries is not None else OLLAMA_MAX_RETRIES
         # Try /v1/chat/completions first
-        v1_res = self.chat_completions(messages, model=model, temperature=temperature, top_p=top_p, max_retries=max_retries)
+        v1_res = self.chat_completions(messages, model=model, temperature=temperature, top_p=top_p, max_retries=retries)
         if v1_res.get("success") and v1_res.get("response"):
             return v1_res
 
@@ -256,13 +492,15 @@ class OllamaClient:
                 "temperature": temp,
                 "top_p": p_val,
                 "num_ctx": OLLAMA_NUM_CTX,
-                "num_predict": 450,
+                "num_predict": 2048,
             }
         }
 
         endpoint = f"{self.base_url}/api/chat"
+        last_error_kind = OllamaErrorKind.SERVER_UNAVAILABLE
+        last_error_msg = "Unknown error"
 
-        for attempt in range(1 + max_retries):
+        for attempt in range(1 + retries):
             try:
                 start = time.time()
                 resp = requests.post(
@@ -272,7 +510,14 @@ class OllamaClient:
                 latency_ms = int((time.time() - start) * 1000)
 
                 if resp.status_code == 200:
-                    data = resp.json()
+                    try:
+                        data = resp.json()
+                    except json.JSONDecodeError as jde:
+                        last_error_kind = OllamaErrorKind.JSON_PARSE_FAILURE
+                        last_error_msg = f"HTTP 200 but JSON decode failed: {jde}"
+                        logger.warning(f"Ollama compose [{last_error_kind.value}]: {last_error_msg}")
+                        break
+
                     content = data.get("message", {}).get("content", "").strip()
                     # Strip thinking tags if model emits them
                     content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
@@ -285,14 +530,27 @@ class OllamaClient:
                         "latency_ms": latency_ms,
                         "fallback_used": False,
                     }
+                elif resp.status_code == 404:
+                    last_error_kind = OllamaErrorKind.MODEL_NOT_INSTALLED
+                    last_error_msg = f"Model '{target_model}' not found (HTTP 404)"
+                    logger.warning(f"Ollama compose [{last_error_kind.value}]: {last_error_msg}")
+                    break
                 else:
-                    logger.warning(f"Ollama compose HTTP {resp.status_code} (attempt {attempt + 1})")
+                    last_error_kind = OllamaErrorKind.INVALID_RESPONSE
+                    last_error_msg = f"HTTP {resp.status_code}: {resp.text[:200]}"
+                    logger.warning(f"Ollama compose [{last_error_kind.value}] (attempt {attempt + 1}): {last_error_msg}")
 
-            except requests.exceptions.RequestException as e:
-                logger.warning(f"Ollama compose error (attempt {attempt + 1}): {e}")
+            except Exception as e:
+                last_error_kind, last_error_msg = classify_ollama_exception(e)
+                logger.warning(f"Ollama compose [{last_error_kind.value}] (attempt {attempt + 1}): {last_error_msg}")
+                if last_error_kind in (OllamaErrorKind.SERVER_UNAVAILABLE, OllamaErrorKind.CONNECTION_TIMEOUT):
+                    break
 
         # All retries exhausted
-        logger.info("Ollama compose: all retries exhausted, returning empty.")
+        logger.warning(
+            f"Ollama compose: all retries exhausted, returning empty/fallback. "
+            f"Reason: [{last_error_kind.value}] {last_error_msg}"
+        )
         return {
             "success": False,
             "response": "",
@@ -300,6 +558,8 @@ class OllamaClient:
             "model": target_model,
             "latency_ms": 0,
             "fallback_used": True,
+            "error_kind": last_error_kind.value,
+            "fallback_reason": last_error_msg,
         }
 
     def health(self) -> dict:
@@ -333,7 +593,14 @@ class OllamaClient:
         if re.search(r"\b(?:hi|hello|hey|good\s+morning|good\s+afternoon)\b", customer_msg) and len(customer_msg.split()) < 5:
             return "Hello! Welcome to Kepler Tech LLC. How can I assist you with your printing solutions or consumable needs today?"
 
-        # Product Comparisons (Section D Compliance)
+        # Product Comparisons & Superlatives (Section D Compliance)
+        if any(w in customer_msg for w in ["fastest", "faster", "highest speed"]):
+            if "citizen" in customer_msg:
+                return (
+                    "Among Citizen photo printers, the Citizen CY-02 is the fastest, producing a 4x6 inch photo print in 12.4 seconds, "
+                    "compared to the Citizen CX-02 at 13.8 seconds. Would you like more details on the CY-02 or CX-02?"
+                )
+
         if any(w in customer_msg for w in ["compare", "vs", "versus", "difference between"]):
             if ("t3100" in customer_msg and "t5100" in customer_msg) or ("24" in customer_msg and "36" in customer_msg and "plotter" in customer_msg):
                 return (

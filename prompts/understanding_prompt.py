@@ -137,11 +137,12 @@ Your job is to analyze the customer's latest message and return a structured JSO
 2. If the customer gives positive or negative feedback about the bot, intent = "positive_feedback" or "negative_feedback".
 3. If the customer expresses frustration (e.g., "you already asked me that", "stop repeating"), intent = "frustration".
 4. If the customer corrects a previous answer (e.g., "actually A0", "no scanner"), intent = "correction".
-5. If the customer asks about printers/scanners/products, or asks for recommendations (e.g., "recommend now", "show options", "what do you recommend", "suggest options"), intent = "product_discovery" and requested_action = "search_products".
+5. If the customer asks for a recommendation or consultative advice (e.g., "recommend now", "show options", "what do you recommend", "suggest options", "need a printer for CAD"), intent = "product_discovery" and requested_action = "search_products".
 6. If the customer asks about inks/cartridges/consumables for a specific printer, intent = "consumables_query".
-7. If the customer asks to compare products, intent = "product_comparison".
-8. If the customer asks about business hours/location/contact, intent = "business_information".
-9. If the customer reports a printer problem, intent = "troubleshooting".
+7. If the customer asks to compare products or asks superlative/comparative questions (e.g. "Which Citizen printer is the fastest?", "compare X and Y", "which is better", "fastest printer"), intent = "product_comparison" and requested_action = "compare_products".
+8. If the customer asks a direct attribute or specification question about a product (e.g. "what is the print speed of CX-02", "what size does T3100 print", "specs of SC-P900"), intent = "product_question" and requested_action = "show_product_specs".
+9. If the customer asks about business hours/location/contact, intent = "business_information".
+10. If the customer reports a printer problem, intent = "troubleshooting".
 10. If the message is a simple greeting, intent = "greeting".
 11. If the message is thanks or goodbye, intent = "conversation_ending".
 12. If the message is answering a pending question (like "A0", "yes", "around 60"), check the awaiting_field and classify appropriately.

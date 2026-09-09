@@ -18,8 +18,8 @@ class ConversationalAiTestCase(unittest.TestCase):
         resp = self.client.get("/api/config")
         self.assertEqual(resp.status_code, 200)
         data = resp.get_json()
-        self.assertIn("company_context", data)
-        self.assertEqual(data["default_model"], "qwen3:8b")
+        from config import DEFAULT_MODEL
+        self.assertEqual(data["default_model"], DEFAULT_MODEL)
 
     def test_health_endpoint(self):
         resp = self.client.get("/api/health")

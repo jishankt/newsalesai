@@ -38,14 +38,19 @@ class ResponseComposer:
         if not route_result.reply:
             return ""
 
+        if not route_result.needs_composition:
+            return route_result.reply
+
         # Certain routes or sources shouldn't be re-composed by LLM
         if (
             route_result.source.startswith("interceptor:")
             or route_result.source == "guardrail:price"
             or route_result.source == "guardrail:discount"
             or route_result.source == "route:qualification"
+            or route_result.source == "tool:compare_products"
             or active_route == RouteName.QUALIFICATION
             or active_route == RouteName.BUSINESS_INFO
+            or active_route == RouteName.COMPARISON
         ):
             return route_result.reply
 

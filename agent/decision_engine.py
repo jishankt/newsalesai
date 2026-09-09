@@ -105,15 +105,31 @@ def decide(understanding: LLMUnderstanding, state: ConversationState, raw_messag
             reason="Consumables query",
         )
 
-    # ── Product comparison ───────────────────────────────────────────────
-    if intent == Intent.PRODUCT_COMPARISON or any(w in msg_lower for w in ["compare", " vs ", " versus "]):
+    # ── PRIORITY 1: Product Comparison & Superlatives (Bypasses Qualification) ──
+    comparison_keywords = [
+        "compare", " vs ", " versus ", "which is better", "which is best",
+        "which is fastest", "which is faster", "fastest", "faster", "highest speed",
+        "quickest", "widest", "highest resolution", "largest width", "most compact",
+        "difference between", "which citizen", "which epson", "which printer is faster",
+        "which printer is fastest", "epson or citizen", "citizen or epson"
+    ]
+    if intent == Intent.PRODUCT_COMPARISON or any(w in msg_lower for w in comparison_keywords):
         return RouteDecision(
             route=RouteName.COMPARISON,
             tool="compare_products",
-            reason="Product comparison request",
+            reason="Product comparison or superlative spec query",
         )
 
-    # ── Specific model code directly requested ───────────────────────────
+    # ── PRIORITY 1b: Direct Product Attribute / Specification Questions ──
+    has_pronoun_ref = (
+        any(w in msg_lower.split() for w in ["it", "this", "its", "that"]) or
+        any(k in msg_lower for k in ["does it", "can it", "what size", "how fast", "specs", "specifications"])
+    )
+    is_direct_attr_query = any(w in msg_lower for w in [
+        "how fast", "what is the speed", "what speed", "print speed",
+        "what width", "how wide", "what resolution", "specs of", "specifications of"
+    ])
+
     if model_code:
         return RouteDecision(
             route=RouteName.PRODUCT,
@@ -122,20 +138,44 @@ def decide(understanding: LLMUnderstanding, state: ConversationState, raw_messag
             reason=f"Specific product requested: {model_code}",
         )
 
-    # ── Category Switch Detection ────────────────────────────────────────
+    if (state.active_product and has_pronoun_ref) or (state.active_product and is_direct_attr_query):
+        return RouteDecision(
+            route=RouteName.PRODUCT,
+            tool="get_product_specs",
+            tool_arguments={"product_identifier": state.active_product.get("name", "")},
+            reason="Question about active product via pronoun/reference",
+        )
+
+    if intent == Intent.PRODUCT_QUESTION:
+        args = {}
+        if state.active_product:
+            args["product_identifier"] = state.active_product.get("name", "")
+        return RouteDecision(
+            route=RouteName.PRODUCT,
+            tool="get_product_specs" if state.active_product else None,
+            tool_arguments=args,
+            reason="Direct product question",
+        )
+
+    # ── Category Switch Detection (Consultative Workflow) ─────────────────
     new_category = None
-    if any(k in msg_lower for k in ["photo booth", "dye-sub", "citizen cx", "citizen cy"]):
-        new_category = "photo_booth"
-    elif any(k in msg_lower for k in ["cad", "plotter", "blueprint", "architect", "engineering", "technical drawing"]):
-        new_category = "technical_cad"
-    elif any(k in msg_lower for k in ["photo fine art", "fine art", "gallery", "exhibition", "p900", "p700"]):
-        new_category = "photo_fine_art"
-    elif any(k in msg_lower for k in ["office printer", "workforce", "copier", "am-c4000"]):
-        new_category = "office_enterprise"
-    elif not any(neg in msg_lower for neg in ["no scanner", "without scanner", "not scanner", "don't need scanner", "dont need scanner"]) and any(k in msg_lower for k in ["document scanner", "sheetfed scanner", "flatbed scanner", "standalone scanner", "dedicated scanner"]):
-        new_category = "scanner"
-    elif not state.category and not any(neg in msg_lower for neg in ["no scanner", "without scanner", "not scanner", "don't need scanner", "dont need scanner"]) and any(k in msg_lower for k in ["scanner", "document scan", "scanning"]):
-        new_category = "scanner"
+    ent_cat = (understanding.entities.get("product_category") or "").strip().lower()
+    if ent_cat in ["technical_cad", "photo_fine_art", "photo_booth", "office_enterprise", "scanner", "consumable"]:
+        new_category = ent_cat
+
+    if not new_category:
+        if any(k in msg_lower for k in ["photo booth", "dye-sub", "citizen cx", "citizen cy", "instant photo"]):
+            new_category = "photo_booth"
+        elif any(k in msg_lower for k in ["photo fine art", "fine art", "gallery", "exhibition", "p900", "p700", "p5300", "p7500", "p9500"]):
+            new_category = "photo_fine_art"
+        elif any(k in msg_lower for k in ["cad", "plotter", "blueprint", "architect", "engineering", "technical drawing"]):
+            new_category = "technical_cad"
+        elif any(k in msg_lower for k in ["office printer", "workforce", "copier", "am-c4000", "am-c550", "office_enterprise", "business printer"]):
+            new_category = "office_enterprise"
+        elif not any(neg in msg_lower for neg in ["no scanner", "without scanner", "not scanner", "don't need scanner", "dont need scanner"]) and any(k in msg_lower for k in ["document scanner", "sheetfed scanner", "flatbed scanner", "standalone scanner", "dedicated scanner"]):
+            new_category = "scanner"
+        elif not state.category and not any(neg in msg_lower for neg in ["no scanner", "without scanner", "not scanner", "don't need scanner", "dont need scanner"]) and any(k in msg_lower for k in ["scanner", "document scan", "scanning"]):
+            new_category = "scanner"
 
     is_explicit_switch = "switch" in msg_lower or ("actually" in msg_lower and any(kw in msg_lower for kw in ["need", "want", "switch", "printer", "plotter", "booth", "photo", "cad", "office"]))
     if new_category and (not state.category or is_explicit_switch):
@@ -145,6 +185,13 @@ def decide(understanding: LLMUnderstanding, state: ConversationState, raw_messag
                 route=RouteName.QUALIFICATION,
                 reason=f"Category set/switched to {new_category}",
             )
+
+    # General photo printer query when category is not yet decided
+    if not state.category and any(k in msg_lower for k in ["photo printer", "photo printers", "photo printing", "photos", "photo", "pictures", "picture printer"]):
+        return RouteDecision(
+            route=RouteName.QUALIFICATION,
+            reason="Photo category qualification required",
+        )
 
     # ── Explicit recommendation request when minimum qualification is satisfied ──
     rec_keywords = ["recommend now", "recommend", "show options", "show recommendations",
@@ -218,32 +265,6 @@ def decide(understanding: LLMUnderstanding, state: ConversationState, raw_messag
         return RouteDecision(
             route=RouteName.SUPPORT,
             reason="Troubleshooting request",
-        )
-
-    # ── Pronoun reference to active product ──────────────────────────────
-
-    has_pronoun_ref = (
-        any(w in msg_lower.split() for w in ["it", "this", "its", "that"]) or
-        any(k in msg_lower for k in ["does it", "can it", "what size", "how fast", "specs", "specifications"])
-    )
-    if state.active_product and has_pronoun_ref:
-        return RouteDecision(
-            route=RouteName.PRODUCT,
-            tool="get_product_specs",
-            tool_arguments={"product_identifier": state.active_product.get("name", "")},
-            reason="Question about active product via pronoun/reference",
-        )
-
-    # ── Product question about active/referenced product ─────────────────
-    if intent == Intent.PRODUCT_QUESTION:
-        args = {}
-        if state.active_product:
-            args["product_identifier"] = state.active_product.get("name", "")
-        return RouteDecision(
-            route=RouteName.PRODUCT,
-            tool="get_product_specs" if state.active_product else None,
-            tool_arguments=args,
-            reason="Product question",
         )
 
     # ── Product discovery ────────────────────────────────────────────────

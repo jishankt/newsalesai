@@ -51,6 +51,15 @@ STATE_STORE = {}
 
 ollama_client = OllamaClient(base_url=OLLAMA_BASE_URL, default_model=DEFAULT_MODEL)
 
+# Run startup health check and log status banner
+startup_report = ollama_client.startup_health_check(test_inference=False)
+logger.info(
+    f"Ollama Startup Diagnostic: status={startup_report.get('status')} "
+    f"server_connected={startup_report.get('server_connected')} "
+    f"model_available={startup_report.get('model_available')} "
+    f"error_kind={startup_report.get('error_kind')}"
+)
+
 # Inject Ollama client into new orchestrator
 new_orchestrator.ollama_client = ollama_client
 new_orchestrator.llm_engine.client = ollama_client
@@ -88,7 +97,11 @@ def get_config():
 @app.route("/api/health", methods=["GET"])
 def health_check():
     """Returns status of Ollama connection and installed models."""
-    health_data = ollama_client.check_health()
+    deep_verify = request.args.get("verify", "false").lower() == "true"
+    if deep_verify:
+        health_data = ollama_client.startup_health_check(test_inference=True)
+    else:
+        health_data = ollama_client.check_health()
     return jsonify(health_data)
 
 

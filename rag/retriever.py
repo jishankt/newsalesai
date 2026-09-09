@@ -67,6 +67,12 @@ class RagRetriever:
                 for k in ["width", "speed", "ink_technology", "intended_usage", "comparison_highlights"]:
                     if k in extra and not prod.get(k):
                         prod[k] = extra[k]
+                if extra.get("print_speed") and not prod.get("speed"):
+                    prod["speed"] = extra["print_speed"]
+                if extra.get("print_sizes") and not prod.get("width"):
+                    prod["width"] = extra["print_sizes"]
+                if extra.get("technology") and not prod.get("ink_technology"):
+                    prod["ink_technology"] = extra["technology"]
 
             prod.setdefault("width", "")
             prod.setdefault("speed", "")

@@ -104,3 +104,41 @@ QUESTIONS_BY_FIELD: Dict[str, Dict[str, Any]] = {
         "pills": ["Standard Documents / Invoices", "Passports & IDs", "Large Format Drawings"]
     }
 }
+
+
+def get_question_for_field(field: str, category: str = None) -> Dict[str, Any]:
+    """Returns the question and suggestion chips tailored to the specific product category."""
+    if field == "print_size":
+        if category == "photo_booth":
+            return {
+                "question": "What photo print sizes do you primarily require?",
+                "pills": ["4x6\" Standard", "5x7\"", "6x8\" Strips"]
+            }
+        elif category == "photo_fine_art":
+            return {
+                "question": "What maximum print width do you require for photo & fine art?",
+                "pills": ["13-inch (A3+)", "17-inch (A2+)", "24-inch to 44-inch Production"]
+            }
+        elif category == "technical_cad":
+            return {
+                "question": "What maximum drawing size do you normally print?",
+                "pills": ["24-inch (A1)", "36-inch (A0)"]
+            }
+
+    if field == "daily_volume":
+        if category == "office_enterprise":
+            return {
+                "question": "Approximately how many pages do you print per day?",
+                "pills": ["Low (1-50 pages/day)", "Medium (50-200 pages/day)", "High Volume (200+ pages/day)"]
+            }
+        elif category == "technical_cad":
+            return {
+                "question": "Roughly how many drawings do you print per day?",
+                "pills": ["Low (1-10)", "Medium (10-50)", "High Volume (50+)"]
+            }
+
+    return QUESTIONS_BY_FIELD.get(field, {
+        "question": f"What are your requirements for {field.replace('_', ' ')}?",
+        "pills": []
+    })
+

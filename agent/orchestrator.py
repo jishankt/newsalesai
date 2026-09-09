@@ -107,9 +107,14 @@ class Orchestrator:
         logger.info(f"[{session_id[:8]}] Understanding: intent={understanding.intent.value} "
                      f"confidence={understanding.confidence:.2f} action={understanding.requested_action}")
 
-        # ── 3b. Apply customer name from entities ────────────────────────
+        # ── 3b. Apply customer name and category from entities ───────────
         if understanding.entities.get("customer_name") and not state.customer_name:
             state.customer_name = understanding.entities["customer_name"]
+
+        ent_cat = (understanding.entities.get("product_category") or "").strip().lower()
+        if ent_cat in ["technical_cad", "photo_fine_art", "photo_booth", "office_enterprise", "scanner", "consumable"]:
+            if not state.category or any(w in raw_message.lower() for w in ["switch", "actually", "instead", "change"]):
+                state.reset_category(ent_cat)
 
         # ── 4. Decision Engine ───────────────────────────────────────────
         decision = decide(understanding, state, raw_message=raw_message)
@@ -126,7 +131,7 @@ class Orchestrator:
         if handler:
             # Pass raw_message for routes that need it
             try:
-                if decision.route in (RouteName.PRODUCT, RouteName.BUSINESS_INFO, RouteName.QUALIFICATION, RouteName.CONSUMABLES):
+                if decision.route in (RouteName.PRODUCT, RouteName.BUSINESS_INFO, RouteName.QUALIFICATION, RouteName.CONSUMABLES, RouteName.COMPARISON):
                     route_result = handler.handle(understanding, state, raw_message=raw_message)
                 else:
                     route_result = handler.handle(understanding, state)
@@ -152,13 +157,16 @@ class Orchestrator:
             )
 
         # ── 6b. Natural Response Composition ─────────────────────────────
-        composed_reply = self.response_composer.compose_response(
-            customer_message=raw_message,
-            route_result=route_result,
-            state=state,
-            active_route=decision.route,
-            model_name=model_name,
-        )
+        if route_result.needs_composition:
+            composed_reply = self.response_composer.compose_response(
+                customer_message=raw_message,
+                route_result=route_result,
+                state=state,
+                active_route=decision.route,
+                model_name=model_name,
+            )
+        else:
+            composed_reply = route_result.reply
 
         # ── 7. Validate, Sanitize & Ground ──────────────────────────────
         val_result = validate_response(

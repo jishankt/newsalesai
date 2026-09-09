@@ -29,31 +29,53 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
 
     # ── 1. Dynamic Category Detection & Switching ────────────────────────
     detected_cat = None
-    if any(k in msg_lower for k in ["cad", "plotter", "blueprint", "architect", "engineering", "technical drawing", "technical & cad", "technical_cad"]):
-        detected_cat = "technical_cad"
-    elif any(k in msg_lower for k in ["photo booth", "dye-sub", "citizen cx", "citizen cy", "events", "photo_booth"]):
-        detected_cat = "photo_booth"
-    elif any(k in msg_lower for k in ["photo fine art", "fine art", "photo & fine art", "gallery", "exhibition", "p900", "p700", "p5300", "p7500", "p9500", "photo_fine_art", "photography"]):
-        detected_cat = "photo_fine_art"
-    elif any(k in msg_lower for k in ["office", "enterprise", "workforce", "copier", "am-c4000", "am-c550", "mfp", "office_enterprise", "business printer"]):
-        detected_cat = "office_enterprise"
-    elif not any(neg in msg_lower for neg in ["no scanner", "without scanner", "not scanner", "don't need scanner", "dont need scanner", "print only"]) and any(k in msg_lower for k in ["scanner", "document scan", "scanning", "document scanners"]):
-        detected_cat = "scanner"
-    elif any(k in msg_lower for k in ["ink", "cartridge", "toner", "ribbon", "consumable", "maintenance box"]):
-        detected_cat = "consumable"
-    elif any(k in msg_lower for k in ["want a printer", "buy a printer", "looking for a printer", "need a printer"]):
-        # Customer was in scanner and switched to general printer
-        if state.category == "scanner":
+    ent_cat = (entities.get("product_category") or "").strip().lower()
+    if ent_cat in ["technical_cad", "photo_fine_art", "photo_booth", "office_enterprise", "scanner", "consumable"]:
+        detected_cat = ent_cat
+
+    if not detected_cat:
+        if any(k in msg_lower for k in ["cad", "plotter", "blueprint", "architect", "engineering", "technical drawing", "technical & cad", "technical_cad"]):
             detected_cat = "technical_cad"
+        elif any(k in msg_lower for k in ["photo booth", "dye-sub", "citizen cx", "citizen cy", "events", "photo_booth"]):
+            detected_cat = "photo_booth"
+        elif any(k in msg_lower for k in ["photo fine art", "fine art", "photo & fine art", "gallery", "exhibition", "p900", "p700", "p5300", "p7500", "p9500", "photo_fine_art", "photography"]):
+            detected_cat = "photo_fine_art"
+        elif any(k in msg_lower for k in ["office", "enterprise", "workforce", "copier", "am-c4000", "am-c550", "mfp", "office_enterprise", "business printer"]):
+            detected_cat = "office_enterprise"
+        elif not any(neg in msg_lower for neg in ["no scanner", "without scanner", "not scanner", "don't need scanner", "dont need scanner", "print only"]) and any(k in msg_lower for k in ["scanner", "document scan", "scanning", "document scanners"]):
+            detected_cat = "scanner"
+        elif any(k in msg_lower for k in ["ink", "cartridge", "toner", "ribbon", "consumable", "maintenance box"]):
+            detected_cat = "consumable"
+        elif any(k in msg_lower for k in ["want a printer", "buy a printer", "looking for a printer", "need a printer"]):
+            # Customer was in scanner and switched to general printer
+            if state.category == "scanner":
+                detected_cat = "technical_cad"
+
+    # Distinguish general photo inquiry if category is not yet specified
+    if not detected_cat and (not state.category or state.awaiting_field in ("category", "photo_category")):
+        if any(k in msg_lower for k in ["photo printer", "photo printers", "photo printing", "photos", "photo", "pictures", "picture printer"]):
+            state.awaiting_field = "photo_category"
+            clarify_q = (
+                "We offer two distinct photo printer solutions: **Photo & Fine Art** (Epson SureColor wide-format printers for galleries and professional photography) "
+                "and **Photo Booth / Dye-Sub** (Citizen compact instant printers for events and kiosks). Which of these fits your requirements?"
+            )
+            state.save_pending_question(clarify_q, "photo_category")
+            return RouteResult(
+                reply=clarify_q,
+                suggested_chips=["Photo Booth / Dye-Sub", "Photo & Fine Art"],
+                source="route:qualification",
+            )
 
     if detected_cat:
         # Switch category if not set or if customer explicitly changes category
         if not state.category or state.category != detected_cat:
-            if state.category is None or any(kw in msg_lower for kw in ["actually", "instead", "switch", "want a printer", "buy a printer", "need a printer", "want a scanner", "looking for"]):
+            if state.category is None or any(kw in msg_lower for kw in ["actually", "instead", "switch", "want a printer", "buy a printer", "need a printer", "want a scanner", "looking for", "photo"]):
                 state.reset_category(detected_cat)
                 logger.info(f"Category switched to: {detected_cat}")
             elif not state.category:
                 state.reset_category(detected_cat)
+        if state.awaiting_field in ("category", "photo_category"):
+            state.awaiting_field = None
 
     # ── 2. Extract Verified Requirements ─────────────────────────────────
     extracted = requirement_extractor.extract_and_validate(raw_message, state)

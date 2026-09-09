@@ -5,7 +5,7 @@ Never asks for already known fields.
 """
 from typing import Optional, Dict, Any
 from domain.conversation_state import ConversationState
-from conversation.requirement_schema import REQUIREMENT_SCHEMAS, QUESTIONS_BY_FIELD
+from conversation.requirement_schema import REQUIREMENT_SCHEMAS, QUESTIONS_BY_FIELD, get_question_for_field
 
 
 class NextQuestionEngine:
@@ -39,10 +39,7 @@ class NextQuestionEngine:
         for field in schema.get("critical", []):
             if field not in reqs or reqs[field] is None:
                 state.awaiting_field = field
-                q_info = QUESTIONS_BY_FIELD.get(field, {
-                    "question": f"What are your requirements for {field.replace('_', ' ')}?",
-                    "pills": []
-                })
+                q_info = get_question_for_field(field, cat)
                 return {
                     "field": field,
                     "question": q_info["question"],
@@ -53,10 +50,7 @@ class NextQuestionEngine:
         for field in schema.get("important", []):
             if field not in reqs or reqs[field] is None:
                 state.awaiting_field = field
-                q_info = QUESTIONS_BY_FIELD.get(field, {
-                    "question": f"What are your requirements for {field.replace('_', ' ')}?",
-                    "pills": []
-                })
+                q_info = get_question_for_field(field, cat)
                 return {
                     "field": field,
                     "question": q_info["question"],

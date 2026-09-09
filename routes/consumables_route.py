@@ -132,8 +132,20 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
 
     if is_ink_query and len(available_ink_colors) >= 2 and not extracted_color:
         state.awaiting_field = "ink_color"
+        ink_tech = ""
+        p_lower = printer_name.lower()
+        if "f100" in p_lower or "f500" in p_lower:
+            ink_tech = "UltraChrome DS (T49N) sublimation inks and maintenance box"
+        elif any(k in p_lower for k in ["t3100", "t5100", "t3400", "t5400"]):
+            ink_tech = "UltraChrome XD2 pigment inks and maintenance box"
+        elif "p700" in p_lower or "p900" in p_lower:
+            ink_tech = "UltraChrome PRO10 inks and maintenance box"
+        elif "p7500" in p_lower or "p9500" in p_lower:
+            ink_tech = "UltraChrome PRO12 inks and maintenance box"
+
+        prefix = f"The **{printer_name}** uses genuine {ink_tech}. " if ink_tech else ""
         return RouteResult(
-            reply=f"Which ink color do you need for the **{printer_name}**? (Black, Cyan, Magenta, Yellow, etc.)",
+            reply=f"{prefix}Which ink color do you need for the **{printer_name}**? (Black, Cyan, Magenta, Yellow, etc.)",
             suggested_chips=available_ink_colors[:5] + ["All Colors"],
             product_cards=product_cards,
             consumable_cards=all_consumables[:6],

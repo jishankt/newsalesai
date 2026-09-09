@@ -65,7 +65,9 @@ class LLMUnderstandingEngine:
         )
 
         if not result.get("success") or not result.get("result"):
-            logger.warning("LLM classify failed or returned empty — using fallback.")
+            err_kind = result.get("error_kind", "UNKNOWN")
+            reason = result.get("fallback_reason", "No result returned")
+            logger.warning(f"LLM classify failed [{err_kind}]: {reason} — utilizing rule-based fallback understanding engine.")
             return self._fallback(customer_message)
 
         raw = result["result"]
@@ -109,6 +111,19 @@ class LLMUnderstandingEngine:
             if any(k in msg_l for k in ["recommend now", "recommend", "show options", "give me options", "show another", "show another one"]):
                 return True
 
+        # Direct product comparisons & superlatives
+        if any(w in msg_l for w in [
+            "compare", " vs ", " versus ", "which is better", "which is best",
+            "fastest", "faster", "highest speed", "quickest", "widest",
+            "highest resolution", "largest width", "most compact", "difference between",
+            "which citizen", "which epson", "which printer is faster", "which printer is fastest"
+        ]):
+            return True
+
+        # Direct product attribute questions
+        if any(w in msg_l for w in ["how fast", "what is the speed", "what speed", "print speed", "what size can it", "what width", "how wide"]):
+            return True
+
         # Pronoun questions on active product
         if any(p in msg_l for p in ["does it", "can it", "what size can it", "what ink does it", "what ink does the", "why this one", "which is better"]):
             return True
@@ -116,10 +131,6 @@ class LLMUnderstandingEngine:
         # Specific model codes
         import re
         if re.search(r"\b(?:sc-?)?(?:[tpf]\d{3,4}[a-z]?|ds-?\d{3}[a-z]?|cx-?\d{2}|cy-?\d{2}|cz-?\d{2}|am-?c\d{3,4}|wf-?c\d{3,4}[a-z]?)\b", msg_l):
-            return True
-
-        # Product comparison
-        if any(w in msg_l for w in ["compare", " vs ", " versus "]):
             return True
 
         # Consumables / Inks / Colors
@@ -151,6 +162,30 @@ class LLMUnderstandingEngine:
         if any(w in msg_l for w in ["delivery", "shipping", "deliver", "ship", "address", "location", "dubai", "where are you", "office hours", "timings", "open", "contact", "phone", "email", "whatsapp", "companies", "what brands"]):
             intent = Intent.BUSINESS_INFORMATION
             action = "provide_business_info"
+
+        # Direct Comparisons & Superlatives (PRIORITY over discovery)
+        comp_keywords = [
+            "compare", " vs ", " versus ", "which is better", "which is best",
+            "fastest", "faster", "highest speed", "quickest", "widest",
+            "highest resolution", "largest width", "most compact", "difference between",
+            "which citizen", "which epson", "which printer is faster", "which printer is fastest",
+            "epson or citizen", "citizen or epson"
+        ]
+        if any(w in msg_l for w in comp_keywords):
+            intent = Intent.PRODUCT_COMPARISON
+            action = "compare_products"
+            if "citizen" in msg_l:
+                entities["brand"] = "Citizen"
+            if "epson" in msg_l:
+                entities["brand"] = "Epson"
+
+        # Direct Product Attribute Questions on active product or pronoun
+        elif any(w in msg_l for w in [
+            "does it", "can it", "what size", "how fast", "what is the speed", "what speed",
+            "print speed", "what width", "how wide", "specs", "specifications", "why this one"
+        ]):
+            intent = Intent.PRODUCT_QUESTION
+            action = "show_product_specs"
 
         # Sizes
         if "a0" in msg_l or "36-inch" in msg_l or "36\"" in msg_l:
@@ -202,17 +237,6 @@ class LLMUnderstandingEngine:
                 intent = Intent.REJECTION
                 action = "continue_qualification"
 
-        # Comparisons
-        if any(w in msg_l for w in ["compare", " vs ", " versus ", "which is better", "which is best", "epson or citizen", "citizen or epson"]):
-            intent = Intent.PRODUCT_COMPARISON
-            action = "compare_products"
-
-        # Pronoun question on product
-        elif any(w in msg_l for w in ["does it", "can it", "what size", "how fast", "specs", "why this one"]):
-            intent = Intent.PRODUCT_QUESTION
-            action = "show_product_specs"
-
-
         # Consumables / Colors
         if any(k in msg_l for k in [
             "consumable", "consumables", "ink", "inks", "cartridge", "cartridges",
@@ -221,7 +245,6 @@ class LLMUnderstandingEngine:
         ]):
             intent = Intent.CONSUMABLES_QUERY
             action = "show_consumables"
-
 
         # Discovery / Recommendations
         if intent == Intent.UNCLEAR and any(k in msg_l for k in ["recommend now", "recommend", "options", "printer", "plotter", "scanner", "cad"]):
@@ -233,7 +256,7 @@ class LLMUnderstandingEngine:
             confidence=0.90 if intent != Intent.UNCLEAR else 0.0,
             entities=entities,
             requested_action=action,
-            product_related=intent in (Intent.PRODUCT_DISCOVERY, Intent.PRODUCT_QUESTION, Intent.CONSUMABLES_QUERY),
+            product_related=intent in (Intent.PRODUCT_DISCOVERY, Intent.PRODUCT_QUESTION, Intent.PRODUCT_COMPARISON, Intent.CONSUMABLES_QUERY),
         )
 
 

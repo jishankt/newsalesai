@@ -26,6 +26,12 @@ class RequirementExtractor:
             extracted["print_size"] = "A3+"
         elif any(s in msg_lower for s in ["44-inch", "44\"", "44 inch", "large format production"]):
             extracted["print_size"] = "44-inch"
+        elif any(s in msg_lower for s in ["4x6", "4 x 6", "4*6", "6x4"]):
+            extracted["print_size"] = "4x6\""
+        elif any(s in msg_lower for s in ["6x8", "6 x 8", "6*8", "8x6"]):
+            extracted["print_size"] = "6x8\""
+        elif any(s in msg_lower for s in ["5x7", "5 x 7", "5*7", "7x5"]):
+            extracted["print_size"] = "5x7\""
 
         # ── 2. Scanner Requirement Extraction ────────────────────────────────
         if any(neg in msg_lower for neg in [
