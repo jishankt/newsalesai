@@ -392,7 +392,11 @@ class Orchestrator:
             "about the", "show me", "view details", "look up", "want printer", "i want",
             "show printer", "printer", "details"
         ])
-        if mentioned_products and (is_detail_query or len(normalized_msg.split()) <= 6):
+        if (
+            mentioned_products
+            and not (state.awaiting_field == "printer_model" or state.requested_ink_color)
+            and (is_detail_query or len(normalized_msg.split()) <= 6)
+        ):
             # Answer directly without forcing a new qualification flow
             target_prod = mentioned_products[0]
             reply_text, cards = build_model_detail_response(target_prod)
@@ -449,8 +453,8 @@ class Orchestrator:
 
         has_ink_keyword = bool(re.search(r"\b(?:inks?|cartridges?|toners?|ribbons?|maintenance\s+(?:box|tank)(?:es|s)?)\b", normalized_msg.lower()))
 
-        # If user explicitly states they want a printer or mentions an approved printer without asking for ink, break out of awaiting_field
-        if state.awaiting_field == "printer_model" and (is_printer_search or (mentioned_products and not has_ink_keyword)):
+        # If user explicitly states they want a printer, break out of awaiting_field
+        if state.awaiting_field == "printer_model" and is_printer_search:
             state.awaiting_field = None
             state.requested_ink_color = None
 
@@ -458,7 +462,6 @@ class Orchestrator:
             state.awaiting_field == "printer_model"
             and not is_printer_search
             and not has_negated_ink
-            and not mentioned_products
         ) or (
             state.requested_ink_color
             and not is_printer_search

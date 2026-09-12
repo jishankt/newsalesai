@@ -194,10 +194,10 @@ class TestProductionHardeningPass(unittest.TestCase):
         """Returns 200 'ready' when catalogue, persistence, and Ollama are healthy."""
         with patch.object(self.client.application, "test_client"):
             res = self.client.get("/health/ready")
-            # In live local environment with 41 catalogue & Ollama
+            # In live local environment with 42 catalogue & Ollama
             data = json.loads(res.data)
-            self.assertEqual(data["catalog_count"], 41)
-            self.assertEqual(data["catalogue_count"], 41)
+            self.assertEqual(data["catalog_count"], 42)
+            self.assertEqual(data["catalogue_count"], 42)
             self.assertTrue(data["catalogue_ok"])
             self.assertTrue(data["persistence_ok"])
 
