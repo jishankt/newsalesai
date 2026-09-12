@@ -26,12 +26,12 @@ CATEGORY_REQUIREMENT_SCHEMAS: Dict[str, Dict[str, List[str]]] = {
     "office_printer": {
         "mandatory": [
             "paper_size",
-            "colour_mode",
-            "functions",
             "daily_volume",
         ],
         "optional": [
             "product_line",
+            "colour_mode",
+            "functions",
             "fax_required",
             "duplex_required",
             "finishing_required",
