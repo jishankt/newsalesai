@@ -65,7 +65,7 @@ def normalize_category(raw_text: str, current_category: Optional[str] = None) ->
         "professional photo", "portrait photo", "portrait printing", "production photo",
         "sc-p", "p700", "p900", "p5300", "p6500", "p7500", "p8500", "p9500", "p20500"
     ]) or ("photo" in text_l and any(k in text_l for k in ["desktop", "gallery", "portrait", "fine art", "commercial", "poster", "posters", "production"])) or (
-        bool(re.search(r"\b(?:large\s+format|wide\s+format)\b", text_l)) and current_category in ("citizen_photo", "office_printer")
+        bool(re.search(r"\b(?:large\s+format|wide\s+format)\b", text_l)) and not bool(re.search(r"\b(?:a3|office|workforce|copier)\b", text_l)) and current_category in ("citizen_photo", "office_printer")
     ):
         return "photography_large_format"
 
@@ -91,7 +91,11 @@ def extract_deterministic_requirements(text: str, category: Optional[str] = None
     reqs: Dict[str, Any] = {}
     corrections: Dict[str, Any] = {}
 
-    is_correction = any(w in text_l for w in ["actually", "instead", "changed my mind", "correction", "i meant", "no scanner needed"])
+    is_correction = any(w in text_l for w in [
+        "actually", "instead", "changed my mind", "correction", "i meant", "no scanner needed",
+        "sorry", "apologies", "my bad", "my mistake", "make that", "change to", "update to",
+        "switch to", "rather", "incorrect", "wrong"
+    ]) or bool(re.search(r"\b(?:sorry|apologies|my bad)\b", text_l))
 
     # ── 1. Scanner & Function Normalization ────────────────────────────────
     # Check explicit negation first!
@@ -149,24 +153,38 @@ def extract_deterministic_requirements(text: str, category: Optional[str] = None
         reqs["paper_size"] = "44-inch"
         if is_correction:
             corrections["print_width"] = 44
+            corrections["paper_size"] = "44-inch"
     # 64-inch
     elif re.search(r"\b(?:64[\s-]*(?:inch|in|\")|64inch)\b", text_l):
         reqs["print_width"] = 64
         reqs["paper_size"] = "64-inch"
+        if is_correction:
+            corrections["print_width"] = 64
+            corrections["paper_size"] = "64-inch"
     # 13-inch (A3+)
     elif re.search(r"\b(?:13[\s-]*(?:inch|in|\")|13inch|a3\+)", text_l):
         reqs["print_width"] = 13
         reqs["paper_size"] = "a3+"
+        if is_correction:
+            corrections["print_width"] = 13
+            corrections["paper_size"] = "a3+"
     # 17-inch (A2+)
     elif re.search(r"\b(?:17[\s-]*(?:inch|in|\")|17inch|a2\+)", text_l):
         reqs["print_width"] = 17
         reqs["paper_size"] = "a2"
+        if is_correction:
+            corrections["print_width"] = 17
+            corrections["paper_size"] = "a2"
     # A3
     elif re.search(r"\b(?:a3|tabloid|ledger)\b", text_l):
         reqs["paper_size"] = "a3"
+        if is_correction:
+            corrections["paper_size"] = "a3"
     # A4
     elif re.search(r"\b(?:a4|standard\s*a4)\b", text_l):
         reqs["paper_size"] = "a4"
+        if is_correction:
+            corrections["paper_size"] = "a4"
 
     # Photo sizes (Citizen / Photo)
     photo_sizes = []
@@ -255,8 +273,12 @@ def extract_deterministic_requirements(text: str, category: Optional[str] = None
     # ── 4. Colour Mode ───────────────────────────────────────────────────
     if any(k in text_l for k in ["monochrome", "mono", "black and white", "b&w", "black & white"]):
         reqs["colour_mode"] = "monochrome"
+        if is_correction:
+            corrections["colour_mode"] = "monochrome"
     elif any(k in text_l for k in ["colour", "color", "full colour", "full color"]):
         reqs["colour_mode"] = "colour"
+        if is_correction:
+            corrections["colour_mode"] = "colour"
     else:
         # Default for the 41 catalog products is colour (all 41 approved catalogue entries are colour printers)
         if category == "office_printer" and not is_correction and not reqs.get("colour_mode"):

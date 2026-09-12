@@ -172,6 +172,10 @@ class Orchestrator:
                 logger.info(f"[{session_id[:8]}] Category updated to: {detected_category}")
                 state.reset_category(detected_category)
 
+        # Track previous state for natural conversational feedback
+        prev_requirements = dict(state.requirements)
+        had_cards = bool(state.displayed_product_ids) or state.results_loaded or state.stage == "recommending"
+
         # ── 5. Deterministic Requirement Extraction & Normalization ───────
         det_reqs, det_corrections = extract_deterministic_requirements(normalized_msg, state.category)
 
@@ -193,6 +197,20 @@ class Orchestrator:
 
         state.update_requirements(det_reqs, det_corrections)
         logger.info(f"[{session_id[:8]}] Current requirements: {state.requirements}")
+
+        is_correction_turn = bool(det_corrections) or any(
+            w in normalized_msg.lower() for w in [
+                "sorry", "apologies", "my bad", "my mistake", "actually", "instead", 
+                "changed my mind", "correction", "i meant", "make that", "switch to", "update to"
+            ]
+        )
+        volume_updated = (
+            "daily_volume" in det_reqs or "daily_volume" in det_corrections
+        ) and (
+            is_correction_turn
+            or (had_cards and prev_requirements.get("daily_volume") != state.requirements.get("daily_volume"))
+            or (prev_requirements.get("daily_volume") is not None and prev_requirements.get("daily_volume") != state.requirements.get("daily_volume"))
+        )
 
         # Clear awaiting field if answered
         if state.awaiting_field and state.awaiting_field in state.requirements:
@@ -295,6 +313,7 @@ class Orchestrator:
                 suggested_chips=["View Technical Specifications", "Compatible Ribbons & Media"],
                 nlp_result=nlp_result,
                 state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
                 subcategory="citizen_8_inch",
                 recommendation_audit=audit,
             )
@@ -724,12 +743,64 @@ class Orchestrator:
             state.displayed_product_ids = [c["id"] for c in valid_cards]
             state.results_loaded = True
             product_cards = valid_cards
-            if subcategory == "a3_workforce_pro_multifunction":
+            vol = state.requirements.get("daily_volume")
+            if volume_updated and vol:
+                try:
+                    vol_int = int(vol)
+                    monthly_approx = vol_int * 25
+                except (ValueError, TypeError):
+                    vol_int = 0
+                    monthly_approx = 0
+
+                if subcategory == "a4_colour_multifunction":
+                    if vol_int >= 150:
+                        reply_text = (
+                            f"Understood, I've updated your daily volume to {vol_int} pages per day (~{monthly_approx:,} pages/month). "
+                            "For this high-volume workload, our WorkForce Enterprise line-head models (**AM-C400** at 40 ppm and **AM-C550** at 55 ppm) "
+                            "are ranked first for speed and heavy duty cycles, alongside our WorkForce Pro departmental options:"
+                        )
+                    else:
+                        reply_text = (
+                            f"Understood, I've updated your daily volume to {vol_int} pages per day (~{monthly_approx:,} pages/month). "
+                            "Here are our recommended A4 colour multifunction printers, led by our compact WorkForce Pro departmental models:"
+                        )
+                elif subcategory == "a3_workforce_pro_multifunction":
+                    reply_text = f"Understood, I've updated your daily volume to {vol_int} pages per day. Here are the matching A3 WorkForce Pro multifunction printers:"
+                elif subcategory == "a3_enterprise_multifunction" or state.requirements.get("paper_size") == "a3":
+                    if vol_int >= 150:
+                        reply_text = (
+                            f"Understood, I've updated your daily volume to {vol_int} pages per day (~{monthly_approx:,} pages/month). "
+                            "For this heavy workload, our WorkForce Enterprise line-head models (**AM-C4000**, **AM-C5000**, **AM-C6000**) are prioritized:"
+                        )
+                    else:
+                        reply_text = (
+                            f"Understood, I've updated your daily volume to {vol_int} pages per day (~{monthly_approx:,} pages/month). "
+                            "Here are our recommended A3 multifunction models:"
+                        )
+                else:
+                    reply_text = (
+                        f"Understood, I've updated your daily volume to {vol_int} prints per day. "
+                        "Here are the updated matching printers ranked for your workload:"
+                    )
+            elif is_correction_turn and had_cards:
+                reply_text = f"Understood, I've updated your requirements. Here are the {len(valid_cards)} matching catalogue printers:"
+            elif subcategory == "a4_colour_multifunction":
+                try:
+                    v_int = int(vol) if vol else 0
+                except (ValueError, TypeError):
+                    v_int = 0
+                if v_int >= 150:
+                    reply_text = (
+                        f"I found {len(valid_cards)} A4 colour multifunction printers matching your requirements. "
+                        f"For your workload of {v_int} pages/day (~{v_int * 25:,} pages/month), our high-speed WorkForce Enterprise line-head models "
+                        "(**AM-C400** and **AM-C550**) are ranked first:"
+                    )
+                else:
+                    reply_text = f"I found {len(valid_cards)} A4 colour multifunction printer{'s' if len(valid_cards) != 1 else ''} matching your requirements."
+            elif subcategory == "a3_workforce_pro_multifunction":
                 reply_text = f"I found {len(valid_cards)} A3 WorkForce Pro multifunction printer{'s' if len(valid_cards) != 1 else ''} matching your requirements."
             elif subcategory == "a3_enterprise_multifunction":
                 reply_text = f"I found {len(valid_cards)} A3 WorkForce Enterprise multifunction printer{'s' if len(valid_cards) != 1 else ''} matching your requirements."
-            elif subcategory == "a4_colour_multifunction":
-                reply_text = f"I found {len(valid_cards)} A4 colour multifunction printer{'s' if len(valid_cards) != 1 else ''} matching your requirements."
             elif state.requirements.get("paper_size") == "a3":
                 reply_text = f"I found {len(valid_cards)} A3 multifunction printer{'s' if len(valid_cards) != 1 else ''} matching your requirements:"
             else:

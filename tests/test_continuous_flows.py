@@ -53,7 +53,7 @@ class TestContinuousFlows(unittest.TestCase):
         self.assertNotIn("epson-sc-t5100", card_ids)
 
     def test_flow_2_cad_24_inch_print_only(self):
-        """Vague -> CAD -> 24-inch -> print only -> volume -> SC-T3100, SC-T3700E/D/DE."""
+        """Vague -> CAD -> 24-inch (scanner skipped as all 24-inch CAD are print-only) -> volume -> SC-T3100, SC-T3700E/D/DE."""
         state = ConversationState(session_id="flow-2-cad-24-print")
 
         # Turn 1
@@ -65,21 +65,16 @@ class TestContinuousFlows(unittest.TestCase):
         self.assertEqual(state.category, "technical_large_format")
         self.assertEqual(state.awaiting_field, "print_width")
 
-        # Turn 3: 24-inch (A1)
+        # Turn 3: 24-inch (A1) -> scanner is skipped automatically
         r3 = orchestrator.process_turn("24-inch (A1)", state=state)
         self.assertEqual(state.requirements.get("print_width"), 24)
-        self.assertEqual(state.awaiting_field, "scanner_required")
-
-        # Turn 4: No, Print Only
-        r4 = orchestrator.process_turn("No, Print Only", state=state)
-        self.assertIs(state.requirements.get("scanner_required"), False)
         self.assertEqual(state.awaiting_field, "daily_volume")
 
-        # Turn 5: 10
-        r5 = orchestrator.process_turn("10", state=state)
+        # Turn 4: 10
+        r4 = orchestrator.process_turn("10", state=state)
         self.assertTrue(state.qualification_complete)
-        self.assertEqual(r5.get("subcategory"), "technical_24_print_only")
-        card_ids = [c["id"] for c in r5.get("cards", [])]
+        self.assertEqual(r4.get("subcategory"), "technical_24_print_only")
+        card_ids = [c["id"] for c in r4.get("cards", [])]
         self.assertIn("epson-sc-t3100", card_ids)
         self.assertIn("epson-sc-t3700d", card_ids)
 
@@ -99,7 +94,7 @@ class TestContinuousFlows(unittest.TestCase):
         self.assertIn("epson-sc-t7700d", card_ids)
 
     def test_flow_4_office_a4_colour_multifunction(self):
-        """Vague -> Office -> A4 -> Colour -> Multifunction -> volume -> A4 Colour MFP."""
+        """Vague -> Office -> A4 -> (colour & multifunction auto-satisfied) -> volume -> A4 Colour MFP."""
         state = ConversationState(session_id="flow-4-office-a4-mfp")
 
         # Turn 1
@@ -111,58 +106,72 @@ class TestContinuousFlows(unittest.TestCase):
         self.assertEqual(state.category, "office_printer")
         self.assertEqual(state.awaiting_field, "paper_size")
 
-        # Turn 3: A4 -> colour_mode is auto-defaulted to colour, next question is functions
+        # Turn 3: A4 -> colour_mode & functions are auto-satisfied (all 10 office are colour MFP)
         r3 = orchestrator.process_turn("A4 Standard", state=state)
         self.assertEqual(state.requirements.get("paper_size"), "a4")
-        self.assertEqual(state.awaiting_field, "functions")
-
-        # Turn 4: Multifunction
-        r4 = orchestrator.process_turn("Multifunction (Print/Scan/Copy)", state=state)
-        self.assertIn("scan", state.requirements.get("functions", []))
         self.assertEqual(state.awaiting_field, "daily_volume")
 
-        # Turn 5: 150
-        r5 = orchestrator.process_turn("150", state=state)
+        # Turn 4: 150
+        r4 = orchestrator.process_turn("150", state=state)
         self.assertTrue(state.qualification_complete)
-        self.assertEqual(r5.get("subcategory"), "a4_colour_multifunction")
-        card_ids = [c["id"] for c in r5.get("cards", [])]
+        self.assertEqual(r4.get("subcategory"), "a4_colour_multifunction")
+        card_ids = [c["id"] for c in r4.get("cards", [])]
         self.assertIn("epson-wf-c5890-dwf", card_ids)
         self.assertIn("epson-am-c400", card_ids)
 
     def test_flow_5_office_a3_workforce_pro(self):
-        """Vague -> Office -> A3 -> Colour -> Multifunction -> Low/Mid volume -> WF-C878R/C879R."""
+        """Vague -> Office -> A3 -> Low/Mid volume (80) -> WF-C878R/C879R."""
         state = ConversationState(session_id="flow-5-office-a3-wfpro")
 
         r1 = orchestrator.process_turn("I need a printer", state=state)
         r2 = orchestrator.process_turn("Office Enterprise Documents", state=state)
         r3 = orchestrator.process_turn("A3 Large Format", state=state)
-        r4 = orchestrator.process_turn("Colour Printing", state=state)
-        r5 = orchestrator.process_turn("Multifunction (Print/Scan/Copy)", state=state)
-        r6 = orchestrator.process_turn("80", state=state)
+        self.assertEqual(state.awaiting_field, "daily_volume")
+        r4 = orchestrator.process_turn("80", state=state)
 
         self.assertTrue(state.qualification_complete)
-        self.assertEqual(r6.get("subcategory"), "a3_workforce_pro_multifunction")
-        card_ids = [c["id"] for c in r6.get("cards", [])]
+        self.assertEqual(r4.get("subcategory"), "a3_workforce_pro_multifunction")
+        card_ids = [c["id"] for c in r4.get("cards", [])]
         self.assertIn("epson-wf-c878r-dwf", card_ids)
         self.assertIn("epson-wf-c879r-dwf", card_ids)
 
     def test_flow_6_office_a3_enterprise(self):
-        """Vague -> Office -> A3 -> Colour -> Multifunction -> High volume (500) -> AM-C4000/C5000/C6000."""
+        """Vague -> Office -> A3 -> High volume (500) -> AM-C4000/C5000/C6000."""
         state = ConversationState(session_id="flow-6-office-a3-enterprise")
 
         r1 = orchestrator.process_turn("I need a printer", state=state)
         r2 = orchestrator.process_turn("Office Enterprise Documents", state=state)
         r3 = orchestrator.process_turn("A3 Large Format", state=state)
-        r4 = orchestrator.process_turn("Colour Printing", state=state)
-        r5 = orchestrator.process_turn("Multifunction (Print/Scan/Copy)", state=state)
-        r6 = orchestrator.process_turn("500", state=state)
+        self.assertEqual(state.awaiting_field, "daily_volume")
+        r4 = orchestrator.process_turn("500", state=state)
 
         self.assertTrue(state.qualification_complete)
-        self.assertEqual(r6.get("subcategory"), "a3_enterprise_multifunction")
-        card_ids = [c["id"] for c in r6.get("cards", [])]
+        self.assertEqual(r4.get("subcategory"), "a3_enterprise_multifunction")
+        card_ids = [c["id"] for c in r4.get("cards", [])]
         self.assertIn("epson-am-c4000", card_ids)
         self.assertIn("epson-am-c5000", card_ids)
         self.assertIn("epson-am-c6000", card_ids)
+
+    def test_flow_correction_sorry_its_200(self):
+        """Office A4 -> initial volume 50 (WorkForce Pro ranked first) -> 'sorry its 200' -> WorkForce Enterprise AM-C550/C400 ranked first."""
+        state = ConversationState(session_id="flow-correction-200")
+
+        r1 = orchestrator.process_turn("I need an A4 colour printer for office", state=state)
+        r2 = orchestrator.process_turn("50", state=state)
+        self.assertTrue(state.qualification_complete)
+        card_ids_r2 = [c["id"] for c in r2.get("cards", [])]
+        # At 50 pages/day, WorkForce Pro models are prioritized
+        self.assertIn(card_ids_r2[0], ["epson-wf-c5890-dwf", "epson-em-c800"])
+
+        # Customer corrects/updates volume: "sorry its 200"
+        r3 = orchestrator.process_turn("sorry its 200", state=state)
+        self.assertTrue(state.qualification_complete)
+        self.assertIn("updated your daily volume to 200", r3["message"].lower())
+        self.assertIn("am-c400", r3["message"].lower())
+        card_ids_r3 = [c["id"] for c in r3.get("cards", [])]
+        # At 200 pages/day, WorkForce Enterprise line-head models (AM-C550 and AM-C400) MUST be ranked ahead of WorkForce Pro
+        self.assertEqual(card_ids_r3[0], "epson-am-c550")
+        self.assertEqual(card_ids_r3[1], "epson-am-c400")
 
     def test_flow_7_photo_13_inch_desktop(self):
         """Vague -> Photo -> 13-inch -> volume -> SC-P700."""

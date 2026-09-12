@@ -56,10 +56,7 @@ def resolve_subcategory(category: str, requirements: Dict[str, Any]) -> Optional
         if width == 24:
             if scanner_req is True:
                 return "technical_24_multifunction"
-            elif scanner_req is False:
-                return "technical_24_print_only"
-            # When scanner requirement is unanswered, return None so qualification asks
-            return None
+            return "technical_24_print_only"
 
         # 36-inch
         if width == 36:

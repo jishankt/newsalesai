@@ -311,11 +311,31 @@ class CatalogueFilter:
             # Volume match
             daily_vol = requirements.get("daily_volume")
             if daily_vol:
-                monthly_est = int(daily_vol) * 30
-                p_min = p.get("recommended_monthly_min") or 0
-                p_max = p.get("recommended_monthly_max") or 100000
-                if p_min <= monthly_est <= p_max:
-                    s += 5
+                try:
+                    vol_int = int(daily_vol)
+                    monthly_est = vol_int * 25
+                    p_min = p.get("recommended_monthly_min") or 0
+                    p_max = p.get("recommended_monthly_max") or 100000
+                    if p_min <= monthly_est <= p_max:
+                        s += 5
+
+                    # Office workload ranking
+                    line = p.get("product_line")
+                    if vol_int >= 150:
+                        # Heavy / enterprise daily volume (>= 150 pages/day)
+                        if line == "workforce_enterprise":
+                            s += 15
+                            if "550" in p.get("id", "") or "6000" in p.get("id", "") or "5000" in p.get("id", ""):
+                                s += 5
+                        elif line == "workforce_pro":
+                            if monthly_est >= p_max:
+                                s -= 5
+                    elif vol_int < 100:
+                        # Moderate / lower volume (< 100 pages/day)
+                        if line == "workforce_pro":
+                            s += 10
+                except (ValueError, TypeError):
+                    pass
             return s
 
         return sorted(products, key=score, reverse=True)
