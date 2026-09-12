@@ -25,8 +25,8 @@ class NextQuestionEngine:
                     "importance": "critical",
                     "chips": ["A1 (24-inch)", "A0 (36-inch)", "44-inch"]
                 }
-            # 2. Scanner required
-            if reqs.get("scan_required") is None and reqs.get("scanner_required") is None:
+            # 2. Scanner required (all 24-inch models in catalogue are dedicated print-only)
+            if reqs.get("print_width") != 24 and reqs.get("scan_required") is None and reqs.get("scanner_required") is None:
                 return {
                     "field": "scan_required",
                     "question": "Do you need an integrated scanner for copying and scanning, or is print-only sufficient?",

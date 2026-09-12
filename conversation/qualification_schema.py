@@ -152,6 +152,9 @@ def get_missing_mandatory_fields(category: str, requirements: Dict[str, Any]) ->
     mandatory = get_mandatory_fields(category)
     missing = []
     for f in mandatory:
+        # For technical CAD: all 24-inch models in catalogue are dedicated print-only
+        if category == "technical_large_format" and f == "scanner_required" and requirements.get("print_width") == 24:
+            continue
         val = requirements.get(f)
         if val is None or val == "" or val == []:
             missing.append(f)
