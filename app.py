@@ -369,6 +369,7 @@ def chat():
         "product_cards": product_cards,
         "consumable_cards": consumable_cards,
         "recommendation_audit": orchestrator_res.get("recommendation_audit"),
+        "comparison_data": orchestrator_res.get("comparison_data") or {},
         "nlp": {
             "raw_input": raw_message,
             "normalized_input": normalized_msg,

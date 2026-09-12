@@ -367,7 +367,10 @@ class Orchestrator:
             or any(w in normalized_msg.lower() for w in ["compare", " vs ", " versus ", "difference between"])
         )
         if is_comparison_query and len(mentioned_products) >= 2:
-            reply_text, cards = build_approved_comparison_response(mentioned_products)
+            reply_text, cards, comparison_data = build_approved_comparison_response(
+                mentioned_products,
+                customer_requirements=dict(state.requirements) if state.requirements else None,
+            )
             state.stage = "comparing"
             state.last_assistant_response = reply_text
             state.increment_turn()
@@ -380,6 +383,7 @@ class Orchestrator:
                 nlp_result=nlp_result,
                 state=state,
                 latency_ms=int((time.time() - start_time) * 1000),
+                comparison_data=comparison_data,
             )
 
         # 6b. Exact Model Detail Inquiry (For one of the 41 approved products)
@@ -790,6 +794,7 @@ class Orchestrator:
         latency_ms: int,
         subcategory: Optional[str] = None,
         recommendation_audit: Optional[Dict[str, Any]] = None,
+        comparison_data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Formats the standardized JSON response."""
         res_type = "product_list" if product_cards else ("no_exact_match" if "no_match" in source else "message")
@@ -862,6 +867,7 @@ class Orchestrator:
             "retrieved_items": retrieved_items,
             "retrieved_sources": retrieved_sources,
             "recommendation_audit": recommendation_audit,
+            "comparison_data": comparison_data or {},
             "latency_ms": latency_ms,
         }
 

@@ -2,8 +2,9 @@
 Fail-Closed Catalogue Validator.
 Enforces:
 1. card['id'] in approved_catalogue_ids (asserts no website-only models appear in cards)
-2. Validates every product mentioned in natural-language text against the 41 approved catalogue entries.
-3. Replaces or strips unapproved model mentions (e.g., SC-F100, SC-F500, unapproved competitor brands).
+2. Validates every product mentioned in natural-language text against the 42 approved catalogue entries.
+3. Replaces or strips unapproved model mentions (e.g., SC-F500, unapproved competitor brands).
+   NOTE: SC-F100 is now an approved catalogue entry and must NOT be listed here.
 """
 import re
 import logging
@@ -13,7 +14,7 @@ from catalog.catalogue_loader import catalogue_loader
 logger = logging.getLogger("validation:catalogue")
 
 UNAPPROVED_MODELS = [
-    "sc-f100", "sc-f500", "f100", "f500",
+    "sc-f500", "f500",
     "canon", "hp", "brother", "xerox", "ricoh",
     "designjet", "imageprograf", "surelab", "d1000", "d500",
     "wf-m", "et-", "l3150", "l805"

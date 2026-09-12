@@ -253,7 +253,8 @@ document.addEventListener('DOMContentLoaded', () => {
           data.retrieved_sources || [],
           data.product_cards || [],
           data.consumable_cards || [],
-          activeAgent
+          activeAgent,
+          data.comparison_data || null
         );
       } else {
         appendMessage('bot', "I apologize, but I encountered an issue processing your message. Could you try asking again?", "System Alert", [], null, null, [], [], [], DEFAULT_AGENT);
@@ -270,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Append a message bubble to the container
-  function appendMessage(sender, text, meta = '', chips = [], nlpData = null, groundingData = null, ragSources = [], productCards = [], consumableCards = [], activeAgent = null) {
+  function appendMessage(sender, text, meta = '', chips = [], nlpData = null, groundingData = null, ragSources = [], productCards = [], consumableCards = [], activeAgent = null, comparisonData = null) {
     const row = document.createElement('div');
     row.className = `message-row ${sender}`;
 
@@ -436,6 +437,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
       cardsContainer.appendChild(grid);
       contentWrapper.appendChild(cardsContainer);
+    }
+
+    // Comparison table / mobile cards
+    if (sender === 'bot' && comparisonData && comparisonData.criteria && comparisonData.criteria.length > 0) {
+      const compHeader = document.createElement('div');
+      compHeader.className = 'consumables-header-row';
+      const compTitle = document.createElement('div');
+      compTitle.className = 'consumables-section-title';
+      compTitle.innerHTML = '<span>📊 Side-by-Side Comparison</span>';
+      compHeader.appendChild(compTitle);
+      contentWrapper.appendChild(compHeader);
+
+      if (typeof renderComparison === 'function') {
+        renderComparison(comparisonData, contentWrapper);
+      }
     }
 
     // Compatible Consumables Deck
