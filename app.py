@@ -100,7 +100,14 @@ def index():
     return render_template("landing.html")
 
 
+@app.route("/favicon.ico")
+def favicon():
+    """Returns 204 No Content for browser favicon requests to avoid 404 noise."""
+    return "", 204
+
+
 @app.route("/chat")
+@app.route("/chat/")
 @app.route("/chat-widget")
 def chat_widget():
     """Serves the embedded chat widget interface for the modal."""
@@ -414,6 +421,32 @@ def get_leads():
         "success": True,
         "count": len(leads),
         "leads": leads
+    })
+
+
+@app.route("/api/compare", methods=["POST"])
+def api_compare():
+    """Direct API endpoint for comparing approved catalogue products."""
+    data = request.get_json(silent=True) or {}
+    product_ids = data.get("product_ids") or []
+    if not product_ids or not isinstance(product_ids, list):
+        return jsonify({"error": "product_ids list required"}), 400
+
+    from catalog.catalogue_resolver import resolve_product_model
+    from catalog.comparison_engine import build_comparison
+    resolved_prods = []
+    for pid in product_ids:
+        p = resolve_product_model(str(pid))
+        if p:
+            resolved_prods.append(p)
+
+    if len(resolved_prods) < 2:
+        return jsonify({"error": "At least two approved catalogue products must be resolved"}), 400
+
+    comparison_data = build_comparison(resolved_prods)
+    return jsonify({
+        "success": True,
+        "comparison_data": comparison_data
     })
 
 

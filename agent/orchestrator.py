@@ -295,8 +295,44 @@ class Orchestrator:
                 suggested_chips=["View Technical Specifications", "Compatible Ribbons & Media"],
                 nlp_result=nlp_result,
                 state=state,
-                latency_ms=int((time.time() - start_time) * 1000),
                 subcategory="citizen_8_inch",
+                recommendation_audit=audit,
+            )
+
+        # Check for 64-inch hard constraint matching Epson SureColor SC-P20500
+        is_64_inch_query = bool(re.search(r"\b(?:64[\s-]*(?:inch|in|\")|64inch)\b", normalized_msg.lower()))
+        if is_64_inch_query:
+            state.category = "photography_large_format"
+            state.requirements["print_width"] = 64
+            state.requirements["paper_size"] = "64-inch"
+            state.qualification_complete = True
+            state.subcategory = "photo_64_production"
+            p20500 = catalogue_loader.get_by_id("epson-sc-p20500")
+            card = catalogue_filter._format_card(p20500, "photo_64_production", state.requirements)
+            reply_text = "The **Epson SureColor SC-P20500** is the only 64-inch large format production printer in our official catalogue, engineered for high-throughput fine art, commercial photography, and signage with 1.6-litre ink packs."
+            audit = {
+                "collected_requirements": dict(state.requirements),
+                "missing_requirements": [],
+                "hard_constraints": ["64-inch"],
+                "eligible_products": ["epson-sc-p20500"],
+                "rejected_products_with_reason": {},
+                "ranking_factors": ["Exact 64-inch production width match"],
+                "selected_product": "epson-sc-p20500",
+                "evidence_ids": ["epson-sc-p20500"],
+                "unsupported_claims": [],
+            }
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="recommendation:catalogue_list",
+                product_cards=[card],
+                consumable_cards=[],
+                suggested_chips=["View Technical Specifications", "Compatible Consumables", "Request Official Quote"],
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+                subcategory="photo_64_production",
                 recommendation_audit=audit,
             )
 
@@ -306,6 +342,25 @@ class Orchestrator:
         ):
             reply_text = "The **Citizen CX-02W** is our only verified match supporting 8x12-inch output. Would you be willing to adjust your size requirement to consider 6-inch alternatives such as the CX-02 or CY-02?"
             chips_to_return = ["Adjust size to 6-inch (CX-02 / CY-02)", "Keep 8x12 requirement (CX-02W)"]
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="clarification:single_match_alternative",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=chips_to_return,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # Check if user asks for another option / alternative to 64-inch single match
+        if any(w in normalized_msg.lower() for w in ["another one", "another option", "other option", "different one", "alternative"]) and (
+            state.requirements.get("print_width") == 64 or state.active_product_id == "epson-sc-p20500"
+        ):
+            reply_text = "The **Epson SureColor SC-P20500** is our only verified match supporting 64-inch output. Would you be willing to adjust your size requirement to consider 44-inch alternatives such as the SC-P9500 or SC-P8500D?"
+            chips_to_return = ["Adjust size to 44-inch (SC-P9500 / SC-P8500D)", "Keep 64-inch requirement (SC-P20500)"]
             state.last_assistant_response = reply_text
             state.increment_turn()
             return self._build_response(
@@ -537,21 +592,18 @@ class Orchestrator:
             )
 
         # 6d. Company Information / Business Hours / Location
-        is_product_query = bool(re.search(
-            r"\b(?:printers?|plotters?|mfp|copiers?|print(?:ing)?|scanners?|scan(?:ning)?|cartridges?|toners?|inks?|a[34]|cad|photo|catalog(?:ue)?|models?)\b",
-            normalized_msg.lower()
-        )) or any(k in normalized_msg.lower() for k in ["show me", "need a", "looking for", "pages"])
+        has_biz_keywords = any(w in normalized_msg.lower() for w in [
+            "location", "address", "opening hours", "business hours", "working hours",
+            "contact number", "phone number", "email address", "where are you",
+            "office location", "office address", "your office", "where is your office",
+            "do you deliver", "delivery", "shipping", "warranty", "support email"
+        ])
         is_business_info = (
-            not is_product_query
-            and (
-                understanding.intent == Intent.BUSINESS_INFORMATION
-                or any(w in normalized_msg.lower() for w in [
-                    "location", "address", "opening hours", "business hours", "working hours",
-                    "contact number", "phone number", "email address", "where are you",
-                    "office location", "office address", "your office"
-                ])
-            )
-        )
+            understanding.intent == Intent.BUSINESS_INFORMATION
+            or has_biz_keywords
+        ) and not any(k in normalized_msg.lower() for k in [
+            "compare", "recommend", "which printer is better", "which model", "suitable printer"
+        ])
         if is_business_info:
             reply_text = (
                 "**Kepler Tech LLC — Dubai Headquarters**\n\n"
@@ -568,6 +620,31 @@ class Orchestrator:
                 product_cards=[],
                 consumable_cards=[],
                 suggested_chips=chips_to_return,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # 6e. Social / Greeting / Frustration / Customer Introduction
+        is_frustrated = understanding.intent in (Intent.FRUSTRATION, Intent.NEGATIVE_FEEDBACK) or any(
+            w in normalized_msg.lower() for w in [
+                "you already asked", "stop repeating", "stop asking", "i told you already", "i already told you"
+            ]
+        )
+        is_social_intent = understanding.intent in (
+            Intent.CUSTOMER_INTRODUCTION, Intent.POSITIVE_FEEDBACK, Intent.SMALL_TALK
+        )
+        if is_frustrated or is_social_intent:
+            from routes.social_route import handle as handle_social
+            soc_res = handle_social(understanding, state)
+            state.last_assistant_response = soc_res.reply
+            state.increment_turn()
+            return self._build_response(
+                reply=soc_res.reply,
+                source=soc_res.source or "route:social",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=soc_res.suggested_chips or [],
                 nlp_result=nlp_result,
                 state=state,
                 latency_ms=int((time.time() - start_time) * 1000),

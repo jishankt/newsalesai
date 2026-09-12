@@ -20,11 +20,34 @@ def normalize_category(raw_text: str, current_category: Optional[str] = None) ->
     """Deterministically identifies or switches product category."""
     text_l = (raw_text or "").lower()
 
+    # 0. Explicit size/model based overrides
+    # 64-inch is exclusively Photography Large Format (Epson SC-P20500)
+    if bool(re.search(r"\b(?:64[\s-]*(?:inch|in|\")|64inch)\b", text_l)):
+        return "photography_large_format"
+
+    # 13-inch (A3+) and 17-inch (A2+) are exclusively Photography Large Format
+    if any(k in text_l for k in [
+        "13-inch", "13 inch", "13in", "13\"", "13inch",
+        "17-inch", "17 inch", "17in", "17\"", "17inch",
+        "a2+ printer", "a2 plus printer", "a3+ photo", "a2+ photo"
+    ]):
+        return "photography_large_format"
+
     # 1. Citizen photo check (Citizen brand is exclusively photo printers)
     if any(k in text_l for k in [
         "citizen", "photo booth", "photobooth", "event photo", "event photos",
-        "dye sub", "dyesub", "dye-sub", "dye-sublimation", "cz-01", "cx-02", "cy-02", "cx-02w"
+        "cz-01", "cx-02", "cy-02", "cx-02w"
     ]):
+        return "citizen_photo"
+
+    # Dye-sublimation desktop (SC-F100) - merchandise, textiles, mugs, promotional
+    if any(k in text_l for k in ["f100", "sc-f100", "sc f100"]) or (
+        any(k in text_l for k in ["sublimation", "dye-sub", "dye sub"])
+        and any(k in text_l for k in ["textile", "mug", "fabric", "merchandise", "apparel", "t-shirt", "promotional", "desktop sublimation"])
+    ):
+        return "dye_sublimation"
+
+    if any(k in text_l for k in ["dye sub", "dyesub", "dye-sub", "dye-sublimation"]):
         return "citizen_photo"
 
     # 2. Technical / CAD check
@@ -41,7 +64,9 @@ def normalize_category(raw_text: str, current_category: Optional[str] = None) ->
         "photography", "photograph", "photographs", "photographer",
         "professional photo", "portrait photo", "portrait printing", "production photo",
         "sc-p", "p700", "p900", "p5300", "p6500", "p7500", "p8500", "p9500", "p20500"
-    ]) or ("photo" in text_l and any(k in text_l for k in ["desktop", "gallery", "portrait", "fine art", "commercial", "poster", "posters", "production"])):
+    ]) or ("photo" in text_l and any(k in text_l for k in ["desktop", "gallery", "portrait", "fine art", "commercial", "poster", "posters", "production"])) or (
+        bool(re.search(r"\b(?:large\s+format|wide\s+format)\b", text_l)) and current_category in ("citizen_photo", "office_printer")
+    ):
         return "photography_large_format"
 
     # 4. Office Printer check
