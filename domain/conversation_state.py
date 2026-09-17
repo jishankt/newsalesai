@@ -48,6 +48,8 @@ class ConversationState:
     compared_product_ids: List[str] = field(default_factory=list)
     active_printer_for_consumables: Optional[str] = None
     requested_ink_color: Optional[str] = None
+    active_consumable: Optional[Dict[str, Any]] = None
+    active_consumables: List[Dict[str, Any]] = field(default_factory=list)
 
     # ── Operational ──────────────────────────────────────────────────────
     awaiting_field: Optional[str] = None
@@ -92,6 +94,8 @@ class ConversationState:
             "compared_product_ids": self.compared_product_ids,
             "active_printer_for_consumables": self.active_printer_for_consumables,
             "requested_ink_color": self.requested_ink_color,
+            "active_consumable": self.active_consumable,
+            "active_consumables": self.active_consumables,
             "awaiting_field": self.awaiting_field,
             "unresolved_field_turns": self.unresolved_field_turns,
             "last_suggested_chips": self.last_suggested_chips,
@@ -133,6 +137,8 @@ class ConversationState:
             compared_product_ids=data.get("compared_product_ids", []),
             active_printer_for_consumables=data.get("active_printer_for_consumables"),
             requested_ink_color=data.get("requested_ink_color"),
+            active_consumable=data.get("active_consumable"),
+            active_consumables=data.get("active_consumables", []),
             awaiting_field=data.get("awaiting_field"),
             unresolved_field_turns=data.get("unresolved_field_turns", 0),
             last_suggested_chips=data.get("last_suggested_chips", []),

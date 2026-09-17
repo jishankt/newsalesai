@@ -131,19 +131,22 @@ def decide(understanding: LLMUnderstanding, state: ConversationState, raw_messag
             reason="Price or commercial terms requested; quote via official sales channel only",
         )
 
-    # Check for direct purchase intent on active product
+    # Check for direct purchase intent on active product or consumable
     is_purchase_intent = any(k in msg_lower for k in [
         "i want to buy this", "want to buy this", "how to buy this", "ready to buy", "ready to purchase",
-        "want to purchase this", "order this", "buy this", "place an order for this", "purchase this"
+        "want to purchase this", "order this", "buy this", "place an order for this", "purchase this",
+        "how can i buy this", "how can i buy", "how do i buy this", "how do i buy", "where can i buy this",
+        "where to buy", "where can i buy", "how can i order this", "how to order this", "how do i order this",
+        "can i buy this", "can i buy this online", "how to purchase this", "how can i purchase this"
     ]) or (
-        state.active_product is not None and any(k in msg_lower for k in [
-            "i want to buy", "want to buy", "ready to buy", "ready to order", "how to buy", "how can i buy", "buy now"
+        (state.active_product is not None or getattr(state, "active_consumable", None) is not None) and any(k in msg_lower for k in [
+            "i want to buy", "want to buy", "ready to buy", "ready to order", "how to buy", "how can i buy", "buy now", "order now"
         ])
     )
     if is_purchase_intent:
         return RouteDecision(
             route=RouteName.GUARDRAIL,
-            reason="Customer expressed purchase intent on product; routing to Sales & Quotation Specialist",
+            reason="Customer expressed purchase intent on product/consumable; routing to Sales & Quotation Specialist",
         )
 
     # Check for user complaint when bot was off-target

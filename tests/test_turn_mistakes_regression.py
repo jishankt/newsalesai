@@ -149,6 +149,47 @@ class TestSessionMistakesRegression(unittest.TestCase):
         # Must address model recommendation and propose CX-02
         self.assertIn("CX-02", reply)
 
+    def test_how_can_i_buy_this_consumable(self):
+        """When a consumable is active and user asks 'how can i buy this', bot must return purchase instructions for that consumable, not recommend a printer."""
+        state = ConversationState(session_id="test_buy_consumable")
+        r1 = self.orchestrator.process_turn("c13t49n400", session_id="test_buy_consumable", state=state)
+        self.assertTrue(len(r1.get("consumable_cards", [])) >= 1)
+
+        r2 = self.orchestrator.process_turn("how can i buy this", session_id="test_buy_consumable", state=state)
+        reply = r2["reply"]
+        self.assertEqual(r2.get("source"), "route:purchase:consumable")
+        self.assertIn("Epson Dye Sublimation Yellow Ink", reply)
+        self.assertIn("https://www.keplertechllc.com/product/c13t49n400-epson-dye-sublimation-yellow-ink/", reply)
+        self.assertIn("sales@keplertech.ae", reply)
+        self.assertNotIn("matching catalogue printer", reply.lower())
+        self.assertEqual(len(r2.get("product_cards", [])), 0)
+        self.assertTrue(len(r2.get("consumable_cards", [])) >= 1)
+
+    def test_how_can_i_buy_this_hardware(self):
+        """When a printer is active and user asks 'how can i buy this', bot must return purchase instructions for the printer."""
+        state = ConversationState(session_id="test_buy_hw")
+        r1 = self.orchestrator.process_turn("tell me about epson sc-t3100", session_id="test_buy_hw", state=state)
+        self.assertTrue(len(r1.get("product_cards", [])) >= 1)
+
+        r2 = self.orchestrator.process_turn("how can i buy this", session_id="test_buy_hw", state=state)
+        reply = r2["reply"]
+        self.assertEqual(r2.get("source"), "route:purchase:hardware")
+        self.assertIn("Epson SureColor SC-T3100", reply)
+        self.assertIn("AED 3,880.00", reply)
+        self.assertIn("sales@keplertech.ae", reply)
+        self.assertTrue(len(r2.get("product_cards", [])) >= 1)
+
+    def test_how_much_is_this_consumable(self):
+        """When a consumable is active and user asks 'how much is this', bot must return the official consumable price."""
+        state = ConversationState(session_id="test_price_consumable")
+        self.orchestrator.process_turn("c13t49n400", session_id="test_price_consumable", state=state)
+
+        r2 = self.orchestrator.process_turn("how much is this", session_id="test_price_consumable", state=state)
+        reply = r2["reply"]
+        self.assertEqual(r2.get("source"), "route:consumable_price_inquiry")
+        self.assertIn("AED 110.00", reply)
+        self.assertIn("Epson Dye Sublimation Yellow Ink", reply)
+
 
 if __name__ == "__main__":
     unittest.main()

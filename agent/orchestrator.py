@@ -597,12 +597,73 @@ class Orchestrator:
                 latency_ms=int((time.time() - start_time) * 1000),
             )
 
-        # 6a-0. Real-time Product Price Inquiry Route
-        has_ink_in_msg = bool(re.search(
-            r"\b(?:inks?|cartridges?|toners?|ribbons?|consum[a-z]{3,6}s?|consub[a-z]{2,5}s?|media|paper|maintenance\s+(?:box|tank)(?:es|s)?)\b",
+        # 6a-00. Direct Purchase / Ordering Intent Route
+        is_purchase_query = bool(re.search(
+            r"\b(?:"
+            r"how\s+(?:can|do|should)\s+(?:i|we)\s+(?:buy|purchase|order|get|checkout)\b"
+            r"|how\s+to\s+(?:buy|purchase|order|get)\b"
+            r"|where\s+(?:can|do|should)\s+(?:i|we)\s+(?:buy|purchase|order|get)\b"
+            r"|where\s+to\s+(?:buy|purchase|order)\b"
+            r"|where\s+can\s+we\s+buy\b"
+            r"|(?:i\s+|we\s+)?(?:want|wish|need)\s+to\s+(?:buy|purchase|order|place\s+an?\s+order)\b"
+            r"|ready\s+to\s+(?:buy|purchase|order)\b"
+            r"|(?:can|could)\s+(?:i|we)\s+(?:buy|purchase|order)\b"
+            r"|(?:buy|purchase|order|place\s+an?\s+order\s+for)\s+(?:this|now|it|today|online)\b"
+            r"|buy\s+this\b"
+            r"|purchase\s+link\b"
+            r"|order\s+link\b"
+            r"|buying\s+link\b"
+            r"|how\s+can\s+i\s+buy\b"
+            r"|how\s+do\s+i\s+buy\b"
+            r"|how\s+to\s+buy\b"
+            r")",
             normalized_msg.lower()
         ))
-        if is_price_inquiry(normalized_msg) and not is_discount_inquiry(normalized_msg) and not has_ink_in_msg:
+        if is_purchase_query:
+            # Case 1: Active consumable or direct consumable SKU
+            active_c = getattr(state, "active_consumable", None)
+            if not active_c and direct_sku_prod:
+                res_sku = catalog_tool_executor.execute_tool("get_product_specs", {"product_identifier": direct_sku_code})
+                prod_data = res_sku.get("product", direct_sku_prod) if res_sku.get("success") else direct_sku_prod
+                active_c = catalog_tool_executor.format_card(prod_data, card_type="consumable")
+                state.active_consumable = active_c
+
+            if active_c and not (mentioned_products and not any(k in normalized_msg.lower() for k in ["this", "ink", "cartridge", "media", "ribbon", "paper"])):
+                c_name = active_c.get("title") or active_c.get("name") or "Consumable"
+                c_sku = active_c.get("sku") or ""
+                c_url = active_c.get("product_url") or active_c.get("website_url") or OFFICIAL_WEBSITE_URL
+                c_price = active_c.get("price_str") or (f"AED {active_c['price']:,.2f}" if active_c.get("price") else None)
+                c_vat = active_c.get("vat_note") or "(Excl. VAT)"
+
+                sku_label = f" (SKU: `{c_sku}`)" if c_sku else ""
+                price_mention = f" Official website price is **{c_price} {c_vat}**." if c_price else ""
+
+                reply_text = (
+                    f"You can purchase **{c_name}**{sku_label} directly through Kepler Tech LLC:{price_mention}\n\n"
+                    f"🛒 **1. Official Online Store:**\n"
+                    f"Order directly with verified pricing and secure online checkout on our website:\n"
+                    f"👉 [Buy {c_name} on Website]({c_url})\n\n"
+                    f"📞 **2. Direct Sales Desk & Bulk Quotations:**\n"
+                    f"For corporate purchase orders, tax invoices, or bulk deliveries across the UAE, contact our customer support team:\n"
+                    f"• **Email:** {OFFICIAL_SUPPORT_EMAIL}\n"
+                    f"• **Phone:** {OFFICIAL_SUPPORT_PHONE}\n"
+                    f"• **Location:** Kepler Tech LLC, Dubai, UAE"
+                )
+                chips_to_return = ["Order on Website", "Contact Sales Desk", "View Compatible Printers"]
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(
+                    reply=reply_text,
+                    source="route:purchase:consumable",
+                    product_cards=[],
+                    consumable_cards=[active_c],
+                    suggested_chips=chips_to_return,
+                    nlp_result=nlp_result,
+                    state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
+
+            # Case 2: Active or mentioned hardware product
             target_prod = None
             if mentioned_products:
                 target_prod = mentioned_products[0]
@@ -613,39 +674,159 @@ class Orchestrator:
 
             if target_prod:
                 from catalog.price_resolver import price_resolver
-                price_info = price_resolver.get_price_info(prod=target_prod)
-                reply_text = format_product_price_response(target_prod, price_info)
-                state.active_product = target_prod
-                state.active_product_id = target_prod.get("id")
                 from agent.tool_executor import catalog_tool_executor
+
+                p_name = target_prod.get("display_name") or target_prod.get("name") or "Product"
+                price_info = price_resolver.get_price_info(prod=target_prod)
+                p_url = price_info.get("url") or target_prod.get("website_url") or OFFICIAL_WEBSITE_URL
+                has_online_price = not price_info.get("is_request") and price_info.get("price")
                 card = catalog_tool_executor.format_card(target_prod, card_type="hardware")
 
+                if has_online_price:
+                    p_price = price_info.get("price_str") or f"AED {price_info['price']:,.2f}"
+                    p_vat = price_info.get("vat_note") or "(Excl. VAT)"
+                    reply_text = (
+                        f"You can order the **{p_name}** directly through Kepler Tech LLC (Official Website Price: **{p_price} {p_vat}**):\n\n"
+                        f"🛒 **1. Official Online Store:**\n"
+                        f"View full technical specifications and place your order online:\n"
+                        f"👉 [Buy {p_name} on Website]({p_url})\n\n"
+                        f"📞 **2. Commercial Sales, Delivery & Installation:**\n"
+                        f"For corporate financing, official quotation, or on-site delivery and installation in the UAE:\n"
+                        f"• **Email:** {OFFICIAL_SUPPORT_EMAIL}\n"
+                        f"• **Phone:** {OFFICIAL_SUPPORT_PHONE}\n"
+                        f"• **Location:** Kepler Tech LLC, Dubai, UAE"
+                    )
+                else:
+                    reply_text = (
+                        f"The **{p_name}** is an enterprise/production system supplied through Kepler Tech LLC's authorized commercial channel:\n\n"
+                        f"📞 **To Place an Order or Request an Official Quotation:**\n"
+                        f"Our sales engineering team handles commercial supply, warranty, and delivery across the UAE:\n"
+                        f"• **Email:** {OFFICIAL_SUPPORT_EMAIL}\n"
+                        f"• **Phone:** {OFFICIAL_SUPPORT_PHONE}\n"
+                        f"• **Website Details:** [View {p_name} on Website]({p_url})\n"
+                        f"• **Location:** Kepler Tech LLC, Dubai, UAE\n\n"
+                        f"Would you like us to prepare a commercial quotation or check consumable compatibility?"
+                    )
+                chips_to_return = ["Request Official Quote", "Contact Sales Desk", "Compatible Consumables"]
+                state.active_product = target_prod
+                state.active_product_id = target_prod.get("id")
                 state.last_assistant_response = reply_text
                 state.increment_turn()
                 return self._build_response(
                     reply=reply_text,
-                    source="route:product_price_inquiry",
+                    source="route:purchase:hardware",
                     product_cards=[card],
                     consumable_cards=[],
-                    suggested_chips=["View Technical Specifications", "Compatible Consumables", "Request Official Quote"],
+                    suggested_chips=chips_to_return,
                     nlp_result=nlp_result,
                     state=state,
                     latency_ms=int((time.time() - start_time) * 1000),
                 )
-            else:
-                reply_text = GENERAL_PRICE_DIRECT
+
+            # Case 3: General purchasing guidance
+            reply_text = (
+                f"You can purchase genuine printers, scanners, and original consumables directly from Kepler Tech LLC:\n\n"
+                f"🛒 **Official Website Store:**\n"
+                f"Browse our catalogue and purchase online at: {OFFICIAL_WEBSITE_URL}\n\n"
+                f"📞 **Sales Support & Commercial Quotations:**\n"
+                f"For corporate purchase orders, tax invoices, and product availability across the UAE:\n"
+                f"• **Email:** {OFFICIAL_SUPPORT_EMAIL}\n"
+                f"• **Phone:** {OFFICIAL_SUPPORT_PHONE}\n"
+                f"• **Location:** Kepler Tech LLC, Dubai, UAE\n\n"
+                f"Which printer model or consumable item are you looking to buy?"
+            )
+            chips_to_return = ["Large Format Plotters", "Photo Printers", "Office MFPs", "View Consumables"]
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="route:purchase:general",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=chips_to_return,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # 6a-0. Real-time Product Price Inquiry Route
+        has_ink_in_msg = bool(re.search(
+            r"\b(?:inks?|cartridges?|toners?|ribbons?|consum[a-z]{3,6}s?|consub[a-z]{2,5}s?|media|paper|maintenance\s+(?:box|tank)(?:es|s)?)\b",
+            normalized_msg.lower()
+        ))
+        if is_price_inquiry(normalized_msg) and not is_discount_inquiry(normalized_msg):
+            # If user has an active consumable and inquires about its price
+            active_c = getattr(state, "active_consumable", None)
+            if active_c and (has_ink_in_msg or not state.active_product or "this" in normalized_msg.lower()):
+                c_name = active_c.get("title") or active_c.get("name") or "Consumable"
+                c_sku = active_c.get("sku") or ""
+                c_url = active_c.get("product_url") or active_c.get("website_url") or OFFICIAL_WEBSITE_URL
+                c_price = active_c.get("price_str") or (f"AED {active_c['price']:,.2f}" if active_c.get("price") else "Price on Request")
+                c_vat = active_c.get("vat_note") or "(Excl. VAT)"
+                sku_str = f" (SKU: `{c_sku}`)" if c_sku else ""
+                reply_text = (
+                    f"The official price for **{c_name}**{sku_str} on our website is **{c_price} {c_vat}**.\n\n"
+                    f"You can view product details and purchase directly online at: {c_url}\n\n"
+                    f"For corporate purchase orders or bulk deliveries, contact our sales team at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}."
+                )
+                chips_to_return = ["Order on Website", "Contact Sales Desk", "Compatible Printers"]
                 state.last_assistant_response = reply_text
                 state.increment_turn()
                 return self._build_response(
                     reply=reply_text,
-                    source="route:general_price_inquiry",
+                    source="route:consumable_price_inquiry",
                     product_cards=[],
-                    consumable_cards=[],
-                    suggested_chips=["Technical CAD Plotters", "Photo Printers", "Office Enterprise MFPs", "View Consumables"],
+                    consumable_cards=[active_c],
+                    suggested_chips=chips_to_return,
                     nlp_result=nlp_result,
                     state=state,
                     latency_ms=int((time.time() - start_time) * 1000),
                 )
+
+            if not has_ink_in_msg:
+                target_prod = None
+                if mentioned_products:
+                    target_prod = mentioned_products[0]
+                elif state.active_product:
+                    target_prod = state.active_product
+                elif state.active_product_id:
+                    target_prod = catalogue_loader.get_by_id(state.active_product_id)
+
+                if target_prod:
+                    from catalog.price_resolver import price_resolver
+                    price_info = price_resolver.get_price_info(prod=target_prod)
+                    reply_text = format_product_price_response(target_prod, price_info)
+                    state.active_product = target_prod
+                    state.active_product_id = target_prod.get("id")
+                    from agent.tool_executor import catalog_tool_executor
+                    card = catalog_tool_executor.format_card(target_prod, card_type="hardware")
+
+                    state.last_assistant_response = reply_text
+                    state.increment_turn()
+                    return self._build_response(
+                        reply=reply_text,
+                        source="route:product_price_inquiry",
+                        product_cards=[card],
+                        consumable_cards=[],
+                        suggested_chips=["View Technical Specifications", "Compatible Consumables", "Request Official Quote"],
+                        nlp_result=nlp_result,
+                        state=state,
+                        latency_ms=int((time.time() - start_time) * 1000),
+                    )
+                else:
+                    reply_text = GENERAL_PRICE_DIRECT
+                    state.last_assistant_response = reply_text
+                    state.increment_turn()
+                    return self._build_response(
+                        reply=reply_text,
+                        source="route:general_price_inquiry",
+                        product_cards=[],
+                        consumable_cards=[],
+                        suggested_chips=["Technical CAD Plotters", "Photo Printers", "Office Enterprise MFPs", "View Consumables"],
+                        nlp_result=nlp_result,
+                        state=state,
+                        latency_ms=int((time.time() - start_time) * 1000),
+                    )
 
         # 6a. Comparison Query (Between 2+ Approved Catalogue Products)
         is_comparison_query = (
@@ -1494,6 +1675,12 @@ class Orchestrator:
     ) -> Dict[str, Any]:
         """Formats the standardized JSON response."""
         state.last_suggested_chips = list(suggested_chips or [])
+        if consumable_cards:
+            state.active_consumable = consumable_cards[0]
+            state.active_consumables = consumable_cards
+        if product_cards and not state.active_product:
+            state.active_product = product_cards[0]
+            state.active_product_id = product_cards[0].get("id")
         res_type = "product_list" if product_cards else ("no_exact_match" if "no_match" in source else "message")
 
         # Active agent metadata for backwards compatibility with tests & UI
@@ -1506,16 +1693,16 @@ class Orchestrator:
             agent_name = "Technical RAG & Comparison"
             agent_badge = "Tech & Comparison"
             agent_color = "#8b5cf6"
+        elif "purchase" in source or "order" in source or "lead" in source or "quote" in source:
+            agent_id = "sales_lead"
+            agent_name = "Sales & Lead Generation"
+            agent_badge = "Sales & Quotes"
+            agent_color = "#f59e0b"
         elif "product" in source or "catalogue" in source or "model_detail" in source or product_cards:
             agent_id = "product_specialist"
             agent_name = "Product & Catalog Specialist"
             agent_badge = "Product Specialist"
             agent_color = "#1877f2"
-        elif "lead" in source or "quote" in source:
-            agent_id = "sales_lead"
-            agent_name = "Sales & Lead Generation"
-            agent_badge = "Sales & Quotes"
-            agent_color = "#f59e0b"
 
         active_agent = {
             "id": agent_id,
