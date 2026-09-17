@@ -234,5 +234,10 @@
 
   // Expose globally
   global.renderComparison = renderComparison;
+  global.renderInlineComparison = function (data) {
+    const tempDiv = document.createElement('div');
+    renderComparison(data, tempDiv);
+    return tempDiv.innerHTML;
+  };
 
 })(window);

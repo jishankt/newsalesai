@@ -34,18 +34,13 @@ class TestContinuousFlows(unittest.TestCase):
         self.assertEqual(state.awaiting_field, "scanner_required")
         self.assertIn("scanner", r3["message"].lower())
 
-        # Turn 4: Answer scanner -> Yes, with Scanner
+        # Turn 4: Answer scanner -> Yes, with Scanner (streamlined flow resolves immediately)
         r4 = orchestrator.process_turn("Yes, with Scanner", state=state)
         self.assertIs(state.requirements.get("scanner_required"), True)
-        self.assertEqual(state.awaiting_field, "daily_volume")
-        self.assertIn("daily", r4["message"].lower())
-
-        # Turn 5: Answer daily volume -> 20 to 30
-        r5 = orchestrator.process_turn("20 to 30", state=state)
         self.assertTrue(state.qualification_complete)
-        self.assertEqual(r5.get("type"), "product_list")
-        self.assertEqual(r5.get("subcategory"), "technical_36_multifunction")
-        cards = r5.get("cards", [])
+        self.assertEqual(r4.get("type"), "product_list")
+        self.assertEqual(r4.get("subcategory"), "technical_36_multifunction")
+        cards = r4.get("cards", [])
         self.assertTrue(len(cards) > 0)
         card_ids = [c["id"] for c in cards]
         self.assertIn("epson-sc-t5100m", card_ids)
@@ -53,7 +48,7 @@ class TestContinuousFlows(unittest.TestCase):
         self.assertNotIn("epson-sc-t5100", card_ids)
 
     def test_flow_2_cad_24_inch_print_only(self):
-        """Vague -> CAD -> 24-inch (scanner skipped as all 24-inch CAD are print-only) -> volume -> SC-T3100, SC-T3700E/D/DE."""
+        """Vague -> CAD -> 24-inch -> completes qualification immediately (all 24-inch CAD models are print-only) -> SC-T3100, SC-T3700E/D/DE."""
         state = ConversationState(session_id="flow-2-cad-24-print")
 
         # Turn 1
@@ -65,32 +60,27 @@ class TestContinuousFlows(unittest.TestCase):
         self.assertEqual(state.category, "technical_large_format")
         self.assertEqual(state.awaiting_field, "print_width")
 
-        # Turn 3: 24-inch (A1) -> scanner is skipped automatically
+        # Turn 3: 24-inch (A1) -> completes qualification
         r3 = orchestrator.process_turn("24-inch (A1)", state=state)
         self.assertEqual(state.requirements.get("print_width"), 24)
-        self.assertEqual(state.awaiting_field, "daily_volume")
-
-        # Turn 4: 10
-        r4 = orchestrator.process_turn("10", state=state)
         self.assertTrue(state.qualification_complete)
-        self.assertEqual(r4.get("subcategory"), "technical_24_print_only")
-        card_ids = [c["id"] for c in r4.get("cards", [])]
+        self.assertEqual(r3.get("subcategory"), "technical_24_print_only")
+        card_ids = [c["id"] for c in r3.get("cards", [])]
         self.assertIn("epson-sc-t3100", card_ids)
         self.assertIn("epson-sc-t3700d", card_ids)
 
     def test_flow_3_cad_44_inch_print_only(self):
-        """Vague -> CAD -> 44-inch -> print only -> volume -> SC-T7700D."""
+        """Vague -> CAD -> 44-inch -> print only -> SC-T7700D."""
         state = ConversationState(session_id="flow-3-cad-44-print")
 
         r1 = orchestrator.process_turn("I need a printer", state=state)
         r2 = orchestrator.process_turn("CAD Drawings", state=state)
         r3 = orchestrator.process_turn("44-inch Wide", state=state)
         r4 = orchestrator.process_turn("No, Print Only", state=state)
-        r5 = orchestrator.process_turn("25", state=state)
 
         self.assertTrue(state.qualification_complete)
-        self.assertEqual(r5.get("subcategory"), "technical_44_print_only")
-        card_ids = [c["id"] for c in r5.get("cards", [])]
+        self.assertEqual(r4.get("subcategory"), "technical_44_print_only")
+        card_ids = [c["id"] for c in r4.get("cards", [])]
         self.assertIn("epson-sc-t7700d", card_ids)
 
     def test_flow_4_office_a4_colour_multifunction(self):
@@ -173,57 +163,71 @@ class TestContinuousFlows(unittest.TestCase):
         self.assertEqual(card_ids_r3[0], "epson-am-c550")
         self.assertEqual(card_ids_r3[1], "epson-am-c400")
 
-    def test_flow_7_photo_13_inch_desktop(self):
-        """Vague -> Photo -> 13-inch -> volume -> SC-P700."""
-        state = ConversationState(session_id="flow-7-photo-13")
+    def test_flow_7_photo_compact_epson(self):
+        """Vague -> Photo -> Compact -> Epson -> SC-P700, SC-P900, SC-P5300."""
+        state = ConversationState(session_id="flow-7-photo-compact-epson")
 
         r1 = orchestrator.process_turn("I need a printer", state=state)
         self.assertEqual(state.awaiting_field, "category")
 
         r2 = orchestrator.process_turn("Professional Photographs", state=state)
         self.assertEqual(state.category, "photography_large_format")
-        self.assertEqual(state.awaiting_field, "print_width")
+        self.assertEqual(state.awaiting_field, "photo_form_factor")
 
-        r3 = orchestrator.process_turn("13-inch (A3+)", state=state)
-        self.assertEqual(state.requirements.get("print_width"), 13)
-        self.assertEqual(state.awaiting_field, "daily_volume")
+        r3 = orchestrator.process_turn("Compact (Desktop / Portable)", state=state)
+        self.assertEqual(state.awaiting_field, "photo_brand")
 
-        r4 = orchestrator.process_turn("10", state=state)
+        r4 = orchestrator.process_turn("Epson Desktop (Fine Art / A3+ / A2+)", state=state)
         self.assertTrue(state.qualification_complete)
-        self.assertEqual(r4.get("subcategory"), "photo_13_desktop")
+        self.assertEqual(r4.get("subcategory"), "photo_compact_epson")
         card_ids = [c["id"] for c in r4.get("cards", [])]
-        self.assertEqual(card_ids, ["epson-sc-p700"])
-
-    def test_flow_8_photo_17_inch_desktop(self):
-        """Vague -> Photo -> 17-inch -> volume -> SC-P900 (grouped config)."""
-        state = ConversationState(session_id="flow-8-photo-17")
-
-        r1 = orchestrator.process_turn("I need a printer", state=state)
-        r2 = orchestrator.process_turn("Professional Photographs", state=state)
-        r3 = orchestrator.process_turn("17-inch (A2+)", state=state)
-        r4 = orchestrator.process_turn("20", state=state)
-
-        self.assertTrue(state.qualification_complete)
-        self.assertEqual(r4.get("subcategory"), "photo_17_desktop")
-        card_ids = [c["id"] for c in r4.get("cards", [])]
+        self.assertIn("epson-sc-p700", card_ids)
         self.assertIn("epson-sc-p900", card_ids)
-        p900 = next(c for c in r4["cards"] if c["id"] == "epson-sc-p900")
-        self.assertTrue(len(p900.get("available_configurations", [])) >= 1)
+        self.assertIn("epson-sc-p5300", card_ids)
 
-    def test_flow_9_photo_44_inch_fine_art(self):
-        """Vague -> Photo -> 44-inch -> volume -> SC-P8500D, SC-P9500."""
-        state = ConversationState(session_id="flow-9-photo-44")
+    def test_flow_8_photo_compact_citizen(self):
+        """Vague -> Photo -> Compact -> Citizen -> CZ-01, CX-02, CY-02, CX-02W."""
+        state = ConversationState(session_id="flow-8-photo-compact-citizen")
 
         r1 = orchestrator.process_turn("I need a printer", state=state)
-        r2 = orchestrator.process_turn("Professional Photographs", state=state)
-        r3 = orchestrator.process_turn("44-inch Fine Art", state=state)
-        r4 = orchestrator.process_turn("15", state=state)
+        self.assertEqual(state.awaiting_field, "category")
 
+        r2 = orchestrator.process_turn("Professional Photographs", state=state)
+        self.assertEqual(state.category, "photography_large_format")
+        self.assertEqual(state.awaiting_field, "photo_form_factor")
+
+        r3 = orchestrator.process_turn("Compact (Desktop / Portable)", state=state)
+        self.assertEqual(state.awaiting_field, "photo_brand")
+
+        r4 = orchestrator.process_turn("Citizen (Photo Booth / Events)", state=state)
         self.assertTrue(state.qualification_complete)
-        self.assertEqual(r4.get("subcategory"), "photo_44_professional")
+        self.assertEqual(r4.get("subcategory"), "citizen_photo")
         card_ids = [c["id"] for c in r4.get("cards", [])]
+        self.assertEqual(len(card_ids), 4)
+        self.assertIn("citizen-cx-02", card_ids)
+        self.assertIn("citizen-cz-01", card_ids)
+
+    def test_flow_9_photo_large_format_send_all(self):
+        """Vague -> Photo -> Large Format -> All 10 Epson large-format models returned immediately."""
+        state = ConversationState(session_id="flow-9-photo-large")
+
+        r1 = orchestrator.process_turn("I need a printer", state=state)
+        self.assertEqual(state.awaiting_field, "category")
+
+        r2 = orchestrator.process_turn("Professional Photographs", state=state)
+        self.assertEqual(state.category, "photography_large_format")
+        self.assertEqual(state.awaiting_field, "photo_form_factor")
+
+        r3 = orchestrator.process_turn("Large Format (24″ to 64″)", state=state)
+        self.assertTrue(state.qualification_complete)
+        self.assertEqual(r3.get("subcategory"), "photo_large_format")
+        card_ids = [c["id"] for c in r3.get("cards", [])]
+        self.assertTrue(len(card_ids) >= 8)
+        self.assertIn("epson-sc-p6500e", card_ids)
+        self.assertIn("epson-sc-p7500", card_ids)
         self.assertIn("epson-sc-p8500d", card_ids)
         self.assertIn("epson-sc-p9500", card_ids)
+        self.assertIn("epson-sc-p20500", card_ids)
 
     def test_flow_10_citizen_photo_6_inch(self):
         """Vague -> Citizen Event -> 4x6 & 6x8 -> volume -> CX-02, CY-02, CZ-01."""
@@ -234,11 +238,11 @@ class TestContinuousFlows(unittest.TestCase):
 
         r2 = orchestrator.process_turn("Event Photos (Photo Booth)", state=state)
         self.assertEqual(state.category, "citizen_photo")
-        self.assertEqual(state.awaiting_field, "print_sizes")
+        self.assertTrue(state.qualification_complete)
+        self.assertEqual(len(r2.get("cards", [])), 4)
 
         r3 = orchestrator.process_turn("Standard 4x6 & 6x8", state=state)
         self.assertIn("4x6", state.requirements.get("print_sizes", []))
-        self.assertEqual(state.awaiting_field, "daily_volume")
 
         r4 = orchestrator.process_turn("300 prints", state=state)
         self.assertTrue(state.qualification_complete)
@@ -307,6 +311,83 @@ class TestContinuousFlows(unittest.TestCase):
         self.assertEqual(r.get("source"), "route:model_detail")
         self.assertEqual(len(r.get("product_cards", [])), 1)
         self.assertEqual(r["product_cards"][0]["id"], "epson-wf-c5890-dwf")
+
+
+    def test_flow_photo_bare_13_and_17(self):
+        """Typing bare '13' or '17' directly answers photo printer width without repeating question."""
+        # Test bare 13 -> SC-P700
+        state13 = ConversationState(session_id="bare-13-test")
+        r1 = orchestrator.process_turn("i need a photo printer", state=state13)
+        self.assertIn("compact", r1.get("reply", "").lower())
+        r2 = orchestrator.process_turn("13", state=state13)
+        card_ids_13 = [c["id"] for c in r2.get("product_cards", [])]
+        self.assertEqual(card_ids_13, ["epson-sc-p700"])
+
+        # Test bare 17 -> SC-P900 & SC-P5300
+        state17 = ConversationState(session_id="bare-17-test")
+        orchestrator.process_turn("i need a photo printer", state=state17)
+        r4 = orchestrator.process_turn("17", state=state17)
+        card_ids_17 = [c["id"] for c in r4.get("product_cards", [])]
+        self.assertIn("epson-sc-p900", card_ids_17)
+        self.assertIn("epson-sc-p5300", card_ids_17)
+
+    def test_flow_photo_bare_large(self):
+        """Typing bare 'large' answers photo printer form factor and returns all 8 large-format photo models."""
+        state = ConversationState(session_id="bare-large-test")
+        orchestrator.process_turn("i need a photo printer", state=state)
+        res = orchestrator.process_turn("large", state=state)
+        card_ids = [c["id"] for c in res.get("product_cards", [])]
+        self.assertTrue(len(card_ids) >= 8)
+        self.assertIn("epson-sc-p6500e", card_ids)
+    def test_flow_cad_bare_24(self):
+        """Typing bare '24' completes qualification directly since all 24-inch CAD models are print-only."""
+        state_24 = ConversationState(session_id="cad-24-test")
+        orchestrator.process_turn("I need a CAD printer", state=state_24)
+        r2 = orchestrator.process_turn("24", state=state_24)
+        self.assertTrue(state_24.qualification_complete)
+        card_ids = [c["id"] for c in r2.get("cards", []) or r2.get("product_cards", [])]
+        self.assertIn("epson-sc-t3100", card_ids)
+        self.assertIn("epson-sc-t3700d", card_ids)
+
+    def test_flow_model_switch_and_media_consumables_isolation(self):
+        """User compares Citizen, asks for media for cy02, then asks for SC-P700, then ink.
+        Must isolate consumables to SC-P700 and not bleed Citizen CY-02."""
+        state = ConversationState(session_id="model-switch-consumables-test")
+
+        # Turn 1: Compare Citizen models
+        r1 = orchestrator.process_turn("Compare Citizen CX-02 and Citizen CY-02", state=state)
+        self.assertEqual(r1.get("source"), "route:comparison")
+
+        # Turn 2: Media for cy02 -> must route to consumables, not hardware specs
+        r2 = orchestrator.process_turn("media for cy02?", state=state)
+        self.assertEqual(r2.get("source"), "route:consumables")
+        self.assertIn("CY-02", r2.get("reply", ""))
+        self.assertIn("CY-MS46", r2.get("reply", ""))
+        self.assertEqual(len(r2.get("consumable_cards", [])), 2)
+
+        # Turn 3: User inquires about SC-P700
+        r3 = orchestrator.process_turn("i need scp700", state=state)
+        self.assertEqual(r3.get("source"), "route:model_detail")
+        self.assertEqual(state.active_product_id, "epson-sc-p700")
+
+        # Turn 4: User asks for ink -> MUST return SC-P700 UltraChrome Pro10 inks, NOT Citizen
+        r4 = orchestrator.process_turn("ink?", state=state)
+        self.assertEqual(r4.get("source"), "route:consumables")
+        self.assertIn("SC-P700", r4.get("reply", ""))
+        self.assertNotIn("CY-02", r4.get("reply", ""))
+        card_skus = [c.get("sku") for c in r4.get("consumable_cards", [])]
+        self.assertIn("C13T46S100", card_skus)
+
+    def test_flow_em_c800_consumables_typo_query(self):
+        """User inquiry 'check the consubales for em c800' must return genuine EM-C800R inks."""
+        state = ConversationState(session_id="test-flow-em-c800")
+        res = orchestrator.process_turn("check the consubales for em c800", state=state)
+        self.assertEqual(res.get("source"), "route:consumables")
+        self.assertIn("EM-C800", res.get("reply", ""))
+        self.assertIn("C13T11N140", res.get("reply", ""))
+        card_skus = [c.get("sku") for c in res.get("consumable_cards", [])]
+        self.assertIn("C13T11N140", card_skus)
+        self.assertIn("C12C938211", card_skus)
 
 
 if __name__ == "__main__":

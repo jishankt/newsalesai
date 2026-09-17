@@ -30,6 +30,26 @@ def find_mentioned_catalogue_products(text: str) -> List[Dict[str, Any]]:
         pid = p["id"]
         fam = p.get("model_family", "").lower()
         disp = p.get("display_name", "").lower()
+        cfg = p.get("configuration")
+
+        # Guard variant matching: non-standard configurations (Roll Adapter, Spectro)
+        # require explicit mention of the variant keyword in the text
+        if cfg == "Roll Adapter" or "-roll" in pid:
+            if not bool(re.search(r"\b(?:roll|panoramic)\b", text_lower)):
+                continue
+        elif cfg == "Spectro" or "-spectro" in pid:
+            if not bool(re.search(r"\b(?:spectro|spectrophotometer)\b", text_lower)):
+                continue
+        elif cfg == "Standard":
+            # If the user explicitly asked for the variant only (e.g. "p900 with roll adapter"),
+            # skip the base standard model unless they also mentioned "standard" or "without"
+            fam_short = fam.replace("sc-", "")
+            fam_in_text = bool(re.search(rf"\b{re.escape(fam)}\b", text_lower)) or bool(re.search(rf"\b{re.escape(fam_short)}\b", text_lower))
+            if fam_in_text:
+                if fam == "sc-p900" and bool(re.search(r"\b(?:with\s+roll|roll\s+adapter|with\s+the\s+roll)\b", text_lower)) and not bool(re.search(r"\b(?:without|standard|sheet)\b", text_lower)):
+                    continue
+                if fam in ("sc-p7500", "sc-p9500") and bool(re.search(r"\b(?:spectro|spectrophotometer)\b", text_lower)) and not bool(re.search(r"\b(?:without|standard)\b", text_lower)):
+                    continue
 
         patterns = [
             re.escape(pid),
@@ -98,6 +118,37 @@ def build_model_detail_response(product: Dict[str, Any]) -> Tuple[str, List[Dict
     reply += f"\n*(Verified from official catalogue: {product.get('source_catalogue')})*"
 
     return reply, [card]
+
+
+def build_p900_family_detail_response() -> Tuple[str, List[Dict[str, Any]]]:
+    """Builds verified description, specs, and cards for both Epson SC-P900 configurations (with and without roll adapter)."""
+    from catalog.catalogue_filter import catalogue_filter
+    from catalog.catalogue_loader import catalogue_loader
+
+    p_std = catalogue_loader.get_by_id("epson-sc-p900")
+    p_roll = catalogue_loader.get_by_id("epson-sc-p900-roll")
+
+    cards = []
+    if p_std:
+        cards.append(catalogue_filter._format_card(p_std, p_std.get("subcategory"), {}))
+    if p_roll:
+        cards.append(catalogue_filter._format_card(p_roll, p_roll.get("subcategory"), {}))
+
+    reply = (
+        "Here are the verified specifications for the **Epson SureColor SC-P900** from our official Photography And Fine Art catalogue.\n\n"
+        "The SC-P900 is available in two configurations (both shown below):\n"
+        "• **Standard Configuration (without Roll Adapter)**: Dedicated 17-inch desktop photo printer for sheet-media (A2+, A3+, A3, A4).\n"
+        "• **With Roll Adapter Configuration**: Includes the roll media unit for continuous paper and panoramic printing up to 17 inches.\n\n"
+        "• **Category:** Photography And Fine Art (Photo 17 Desktop)\n"
+        "• **Functions:** Print (Dedicated print-only)\n"
+        "• **Maximum Print Width:** 17 inches\n"
+        "• **Paper Formats:** 17-INCH, A2+, A3+, A3, A4\n"
+        "• **Configurations Available:** Standard (without roll adapter) and with Roll Adapter\n\n"
+        "*(Verified from official catalogue: LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf)*"
+    )
+
+    return reply, cards
+
 
 
 def build_approved_comparison_response(

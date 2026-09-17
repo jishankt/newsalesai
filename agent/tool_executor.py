@@ -46,8 +46,14 @@ class CatalogToolExecutor:
         from catalog.brochure_resolver import brochure_resolver
         from catalog.price_resolver import price_resolver
 
-        name = prod.get("name", "")
+        name = prod.get("display_name") or prod.get("name") or prod.get("model") or "Product"
         sku = prod.get("sku", "VERIFIED-KEPLER")
+        
+        # Clean redundant leading SKU from title if present
+        clean_title = name
+        if card_type == "consumable" and sku and name.upper().startswith(str(sku).upper()):
+            clean_title = re.sub(r"^" + re.escape(str(sku)) + r"\s*", "", name, flags=re.IGNORECASE).strip() or name
+
         image_url = prod.get("image_url") or prod.get("image")
         if not image_url and prod.get("images"):
             image_url = prod["images"][0]
@@ -86,13 +92,14 @@ class CatalogToolExecutor:
         return {
             "id": prod.get("_id") or prod.get("sku") or prod.get("id"),
             "name": name,
-            "title": name,
+            "title": clean_title,
             "sku": sku,
             "price": price_val,
             "price_formatted": price_formatted,
             "price_str": price_formatted,
             "vat_note": vat_note,
             "currency": "AED",
+            "is_request": price_info.get("is_request", price_val is None),
             "image": image_url,
             "image_url": image_url,
             "url": product_url,
@@ -132,7 +139,7 @@ class CatalogToolExecutor:
         elif tool_name == "get_compatible_consumables":
             return self._get_compatible_consumables(
                 printer_identifier=arguments.get("printer_identifier", ""),
-                limit=arguments.get("limit", 6)
+                limit=arguments.get("limit", 25)
             )
         elif tool_name == "compare_products":
             return self._compare_products(
@@ -225,7 +232,7 @@ class CatalogToolExecutor:
             )
         }
 
-    def _get_compatible_consumables(self, printer_identifier: str, limit: int = 6) -> Dict[str, Any]:
+    def _get_compatible_consumables(self, printer_identifier: str, limit: int = 25) -> Dict[str, Any]:
         """Finds genuine consumables dynamically linked to a printer model."""
         target_printer = None
         q_raw = printer_identifier.strip()
@@ -338,13 +345,19 @@ class CatalogToolExecutor:
             raw_skus = target_printer["consumables"]
             mbox_skus = [s for s in raw_skus if any(s.upper().startswith(pfx) for pfx in ["C12C", "C13S", "C13T671"])]
             ink_skus = [s for s in raw_skus if s not in mbox_skus]
-            ordered_skus = (mbox_skus[:1] + ink_skus) if mbox_skus else raw_skus
+            ordered_skus = (mbox_skus + ink_skus) if mbox_skus else raw_skus
 
             for c_sku in ordered_skus:
                 c_sku_up = str(c_sku).upper()
                 if c_sku_up in self.sku_map and c_sku_up not in seen:
                     item = self.sku_map[c_sku_up]
                     item_name_l = item.get("name", "").lower()
+                    item_cat_l = str(item.get("category", "")).lower()
+                    # Strictly skip hardware printers, plotters, and scanners
+                    if any(hw in item_cat_l for hw in ["printer", "scanner", "plotter"]):
+                        continue
+                    if not any(cons_kw in item_name_l for cons_kw in ["ink", "cartridge", "tank", "box", "ribbon", "media", "paper", "pack", "bottle", "maintenance", "cleaning", "pen", "bag"]):
+                        continue
                     item_brand = "citizen" if "citizen" in item_name_l else ("epson" if "epson" in item_name_l else None)
                     if not target_brand or not item_brand or target_brand == item_brand:
                         seen.add(c_sku_up)
@@ -364,7 +377,15 @@ class CatalogToolExecutor:
                 if sku_up in seen:
                     continue
 
+                p_cat_l = str(p.get("category", "")).lower()
                 p_name_l = p.get("name", "").lower()
+
+                # Strictly exclude hardware printers, scanners, and plotters
+                if any(hw in p_cat_l for hw in ["printer", "scanner", "plotter"]):
+                    continue
+                if any(hw in p_name_l for hw in ["printer", "scanner", "plotter"]):
+                    continue
+
                 p_item_brand = "citizen" if "citizen" in p_name_l else ("epson" if "epson" in p_name_l else None)
                 if target_brand and p_item_brand and target_brand != p_item_brand:
                     continue
@@ -373,7 +394,7 @@ class CatalogToolExecutor:
                 p_desc_norm = re.sub(r"[\s\-_\u200b]", "", p.get("description", "").lower())
                 p_tags_norm = re.sub(r"[\s\-_\u200b]", "", " ".join(p.get("tags", [])).lower())
 
-                is_cons = any(k in p_name_norm or k in p_desc_norm for k in ["ink", "cartridge", "tank", "maintenance", "ribbon", "media", "paper"])
+                is_cons = any(k in p_name_l for k in ["ink", "cartridge", "tank", "box", "maintenance", "ribbon", "media", "paper", "bottle", "pack"])
                 if is_cons and any(t in p_name_norm or t in p_desc_norm or t in p_tags_norm for t in tokens):
                     seen.add(sku_up)
                     consumable_items.append(p)

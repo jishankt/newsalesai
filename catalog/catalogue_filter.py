@@ -27,16 +27,19 @@ SUBCATEGORY_LABELS = {
     "technical_36_print_only": ("Technical Large Format", "36-inch Print-Only"),
     "technical_36_multifunction": ("Technical Large Format", "36-inch Multifunction"),
     "technical_44_print_only": ("Technical Large Format", "44-inch Print-Only"),
-    "technical_44_multifunction": ("Technical Large Format", "44-inch Multifunction"),
+    "photo_large_format": ("Photography & Fine Art", "Large-Format Photo & Fine Art Printers (24″ to 64″)"),
+    "photo_compact_epson": ("Photography & Fine Art", "Desktop Fine Art Photo Printers (13″ & 17″)"),
     "photo_13_desktop": ("Photography & Fine Art", "13-inch Desktop Photo"),
     "photo_17_desktop": ("Photography & Fine Art", "17-inch Desktop Photo"),
     "photo_24_professional": ("Photography & Fine Art", "24-inch Professional Photo"),
     "photo_44_professional": ("Photography & Fine Art", "44-inch Professional Photo"),
     "photo_64_production": ("Photography & Fine Art", "64-inch Production Photo"),
+    "citizen_photo": ("Citizen Photo", "Citizen Photo Booth & Event Printers"),
     "citizen_4_inch": ("Citizen Photo", "4-inch Compact Photo"),
     "citizen_6_inch": ("Citizen Photo", "6-inch Event Photo"),
     "citizen_8_inch": ("Citizen Photo", "8-inch Wide Event Photo"),
     "dye_sublimation_desktop": ("Dye Sublimation", "Desktop Dye-Sub Printer"),
+    "dye_sublimation_24_inch": ("Dye Sublimation", "24\" Wide-Format Dye-Sublimation Roll Printer"),
 }
 
 # Explicit configuration relationship groupings: (model_family, base_id, variant_id, variant_trigger_key)
@@ -105,16 +108,26 @@ class CatalogueFilter:
                 if p.get("main_category") == cat_l
                 or p.get("catalogue") == cat_l
                 or (cat_l in ("office_printer", "business_a4", "business_a3") and p.get("catalogue") in ("business_a4", "business_a3"))
-                or (cat_l in ("photography_large_format", "photography_and_fine_art") and p.get("catalogue") == "photography_and_fine_art")
+                or (cat_l in ("photography_large_format", "photography_and_fine_art", "photo_printer", "photo", "fine_art") and (
+                    p.get("catalogue") == "photography_and_fine_art" or (subcategory in ("citizen_photo", "citizen_4_inch", "citizen_6_inch", "citizen_8_inch") and p.get("catalogue") == "citizen_photo")
+                ))
                 or (cat_l in ("technical_large_format", "technical_cad") and p.get("catalogue") == "technical_large_format")
                 or (cat_l in ("citizen_photo", "citizen") and p.get("catalogue") == "citizen_photo")
+                or (cat_l in ("dye_sublimation", "sublimation") and p.get("catalogue") == "dye_sublimation")
             ]
         else:
             cat_filtered = valid_products
 
         # 5. Subcategory filter
         if subcategory:
-            filtered = [p for p in cat_filtered if p.get("subcategory") == subcategory]
+            if subcategory == "photo_large_format":
+                filtered = [p for p in cat_filtered if p.get("catalogue") == "photography_and_fine_art" and p.get("max_width_inches", 0) >= 24]
+            elif subcategory == "photo_compact_epson":
+                filtered = [p for p in cat_filtered if p.get("catalogue") == "photography_and_fine_art" and p.get("max_width_inches", 0) < 24]
+            elif subcategory == "citizen_photo":
+                filtered = [p for p in valid_products if p.get("catalogue") == "citizen_photo"]
+            else:
+                filtered = [p for p in cat_filtered if p.get("subcategory") == subcategory]
         else:
             filtered = cat_filtered
 
@@ -128,12 +141,26 @@ class CatalogueFilter:
 
             # Print Width / Paper Size Gate
             req_width = requirements.get("print_width")
+            if subcategory == "photo_large_format" and requirements.get("photo_form_factor") == "large" and not requirements.get("exact_width_requested"):
+                req_width = None
+            elif subcategory == "photo_compact_epson" and requirements.get("photo_form_factor") == "compact" and not requirements.get("exact_width_requested"):
+                req_width = None
             if req_width is None and isinstance(requirements.get("paper_size"), (int, float)):
                 req_width = float(requirements["paper_size"])
             elif req_width is None and str(requirements.get("paper_size", "")).lower() in ("a3+", "13-inch", "13"):
                 req_width = 13
             elif req_width is None and str(requirements.get("paper_size", "")).lower() in ("a2", "a2+", "17-inch", "17"):
                 req_width = 17
+            elif req_width is None and str(requirements.get("paper_size", "")).lower() in ("24", "24-inch", "24\""):
+                req_width = 24
+            elif req_width is None and str(requirements.get("paper_size", "")).lower() in ("36", "36-inch", "36\"", "a0"):
+                req_width = 36
+            elif req_width is None and str(requirements.get("paper_size", "")).lower() in ("44", "44-inch", "44\""):
+                req_width = 44
+            elif req_width is None and str(requirements.get("paper_size", "")).lower() in ("64", "64-inch", "64\""):
+                req_width = 64
+            elif req_width is None and str(requirements.get("paper_size", "")).lower() in ("a4", "desktop", "cut_sheet") and category == "dye_sublimation":
+                req_width = 8.5
 
             if req_width is not None and p.get("max_width_inches") is not None:
                 if p["max_width_inches"] != float(req_width):
@@ -197,6 +224,9 @@ class CatalogueFilter:
                 p_photo_sizes = [pps.lower().replace(" ", "") for pps in (p.get("supported_print_sizes") or [])]
                 for rps in req_photo_sizes:
                     rps_clean = str(rps).lower().replace(" ", "")
+                    if rps_clean in ("2x6", "6x2", "strip", "photostrip", "2x6strip", "2-inchstrip"):
+                        if p.get("id") in ("citizen-cx-02", "citizen-cy-02"):
+                            continue
                     if not any(rps_clean in pps for pps in p_photo_sizes):
                         is_match = False
                         reasons.append(f"does not support photo size {rps}")
@@ -227,12 +257,14 @@ class CatalogueFilter:
         if not candidates:
             distinct_blocking = list(dict.fromkeys(blocking_reasons))[:3]
             relaxation_q = self._build_relaxation_question(category, requirements, distinct_blocking)
+            relaxation_chips = self._build_relaxation_chips(category, requirements)
             no_match = {
                 "type": "no_exact_match",
                 "message": "I couldn’t find a catalogue printer matching all those requirements.",
                 "cards": [],
                 "blocking_requirements": distinct_blocking,
-                "relaxation_question": relaxation_q
+                "relaxation_question": relaxation_q,
+                "chips": relaxation_chips
             }
             return [], no_match
 
@@ -308,6 +340,9 @@ class CatalogueFilter:
             # Preferred spectro
             if requirements.get("spectro_required") and p.get("spectro"):
                 s += 10
+            # Preferred ribbon rewind / zero media loss (Citizen CX-02)
+            if (requirements.get("ribbon_rewind") or requirements.get("single_roll_multiformat") or requirements.get("no_media_loss")) and p.get("id") == "citizen-cx-02":
+                s += 25
             # Volume match
             daily_vol = requirements.get("daily_volume")
             if daily_vol:
@@ -398,6 +433,12 @@ class CatalogueFilter:
         if p.get("source_catalogue"):
             key_features.append("Official Kepler Tech Catalogue Certified")
 
+        from catalog.price_resolver import price_resolver
+        price_info = price_resolver.get_price_info(identifier=p.get("id"), prod=p)
+        price_val = price_info.get("price")
+        price_formatted = price_info.get("price_str", "Price on Request")
+        vat_note = price_info.get("vat_note", "(Excl. VAT)" if price_val else "")
+
         return {
             "id": p["id"],
             "model": p["display_name"],
@@ -410,10 +451,16 @@ class CatalogueFilter:
             "available_configurations": p.get("available_configurations", []),
             "match_reasons": match_reasons,
             "key_features": key_features,
+            "price": price_val,
+            "price_formatted": price_formatted,
+            "price_str": price_formatted,
+            "vat_note": vat_note,
+            "currency": price_info.get("currency", "AED"),
+            "is_request": price_info.get("is_request", price_val is None),
             "actions": [
                 "View details",
                 "Compare",
-                "Select"
+                "Lead"
             ]
         }
 
@@ -440,6 +487,25 @@ class CatalogueFilter:
             return "Would an A4 colour multifunction printer meet your requirements, or is A3 printing mandatory?"
 
         return "Would you be open to relaxing the size or multifunction requirement to view available catalogue options?"
+
+    def _build_relaxation_chips(self, category: str, requirements: Dict[str, Any]) -> List[str]:
+        """Provides helpful clickable suggestion chips for relaxation questions."""
+        if category == "technical_large_format":
+            if requirements.get("print_width") == 24 and requirements.get("scanner_required") is True:
+                return ["36-inch Multifunction (SC-T5100M)", "24-inch Print-Only"]
+            if requirements.get("print_width") == 44 and requirements.get("scanner_required") is True:
+                return ["36-inch Multifunction (SC-T5100M)", "44-inch Print-Only"]
+            return ["36-inch Multifunction", "Print-Only"]
+
+        if category == "citizen_photo":
+            return ["6-inch (CX-02)", "8-inch (CY-02)"]
+
+        if category == "office_printer":
+            if str(requirements.get("paper_size", "")).lower() == "a3" and requirements.get("scanner_required") is False:
+                return ["A3 Multifunction (WF-C878R)", "A4 Print-Only"]
+            return ["A4 Colour Multifunction", "A3 Multifunction"]
+
+        return []
 
 
 catalogue_filter = CatalogueFilter()

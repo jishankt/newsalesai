@@ -57,7 +57,26 @@ class PriceResolver:
                any(k in name_l for k in ["media", "paper", "ribbon", "cleaning pen", "ink pack", "maintenance box", "carry bag", "bag"]):
                 is_consumable = True
 
+        # Check website price fetcher for hardware printers first
+        if not is_consumable:
+            try:
+                from catalog.website_price_fetcher import website_price_fetcher
+                wp_info = website_price_fetcher.get_price(identifier=identifier, prod=prod)
+                if wp_info and (wp_info.get("price") or wp_info.get("is_cached")):
+                    return wp_info
+            except Exception as e:
+                logger.debug(f"WebsitePriceFetcher lookup failed: {e}")
+
         # Check against verified prices database
+        PRINTER_KEYS = [
+            "citizen-cx-02", "citizen-cy-02", "citizen-cz-01", "citizen-cx-02w",
+            "epson-t3100", "epson-t5100", "epson-am-c4000", "epson-am-c550",
+            "epson-sc-t3100", "epson-sc-t5100", "epson-sc-p700", "epson-sc-p900",
+            "epson-p700", "epson-p900", "epson-sc-f100", "epson-f100", "epson-sc-f500",
+            "epson-wf-c5890-dwf", "epson-wf-c5890", "epson-wf-c878r-dwf", "epson-wf-c878r",
+            "epson-wf-c879r-dwf", "epson-wf-c879r"
+        ]
+
         for c in candidates:
             c_norm = re.sub(r"[\s\-_]+", "", c.lower())
             
@@ -65,9 +84,17 @@ class PriceResolver:
             if c.lower() in self.prices:
                 item = self.prices[c.lower()]
                 # If item is consumable, don't match printer prices
-                if is_consumable and c.lower() in ["citizen-cx-02", "citizen-cy-02", "citizen-cz-01", "citizen-cx-02w", "epson-t3100", "epson-t5100", "epson-am-c4000", "epson-am-c550"]:
+                if is_consumable and c.lower() in PRINTER_KEYS:
                     continue
                 return self._build_info(item)
+
+            # 1b. Normalized exact key match (handles e.g. "cx2w812" -> "cx2w 812", "c13t47a100")
+            for pid, item in self.prices.items():
+                pid_norm = re.sub(r"[\s\-_]+", "", pid.lower())
+                if c_norm == pid_norm:
+                    if is_consumable and pid in PRINTER_KEYS:
+                        continue
+                    return self._build_info(item)
 
             # Consumables should never match hardware printer model patterns
             if is_consumable:
@@ -88,13 +115,15 @@ class PriceResolver:
                     return self._build_info(item)
                 elif pid == "citizen-cx-02w" and ("cx02w" in c_norm or "cx-02w" in c.lower()):
                     return self._build_info(item)
-                elif pid == "epson-p700" and "p700" in c_norm and "7000" not in c_norm and "7500" not in c_norm:
+                elif pid in ("epson-p700", "epson-sc-p700") and "p700" in c_norm and "7000" not in c_norm and "7500" not in c_norm:
                     return self._build_info(item)
-                elif pid == "epson-p900" and "p900" in c_norm and "9000" not in c_norm and "9500" not in c_norm:
+                elif pid in ("epson-p900-roll", "epson-sc-p900-roll") and "p900" in c_norm and "roll" in c_norm:
                     return self._build_info(item)
-                elif pid == "epson-t3100" and "t3100" in c_norm:
+                elif pid in ("epson-p900", "epson-sc-p900") and "p900" in c_norm and "9000" not in c_norm and "9500" not in c_norm and "roll" not in c_norm:
                     return self._build_info(item)
-                elif pid == "epson-t5100" and "t5100" in c_norm and "m" not in c_norm:
+                elif pid in ("epson-t3100", "epson-sc-t3100") and "t3100" in c_norm:
+                    return self._build_info(item)
+                elif pid in ("epson-t5100", "epson-sc-t5100") and "t5100" in c_norm and "m" not in c_norm:
                     return self._build_info(item)
                 elif pid == "epson-t5400m" and ("t5400" in c_norm or "t5100m" in c_norm):
                     return self._build_info(item)
@@ -104,9 +133,15 @@ class PriceResolver:
                     return self._build_info(item)
                 elif pid == "epson-am-c550" and "c550" in c_norm:
                     return self._build_info(item)
-                elif pid == "epson-sc-f100" and "f100" in c_norm:
+                elif pid in ("epson-sc-f100", "epson-f100") and "f100" in c_norm:
                     return self._build_info(item)
-                elif pid == "epson-sc-f500" and "f500" in c_norm:
+                elif pid in ("epson-sc-f500", "epson-f500") and "f500" in c_norm:
+                    return self._build_info(item)
+                elif pid in ("epson-wf-c5890-dwf", "epson-wf-c5890") and "c5890" in c_norm:
+                    return self._build_info(item)
+                elif pid in ("epson-wf-c878r-dwf", "epson-wf-c878r") and "c878" in c_norm:
+                    return self._build_info(item)
+                elif pid in ("epson-wf-c879r-dtwf", "epson-wf-c879r-dwf", "epson-wf-c879r") and "c879" in c_norm:
                     return self._build_info(item)
                 elif pid == "epson-p7500" and ("p7500" in c_norm or "p9500" in c_norm):
                     return self._build_info(item)

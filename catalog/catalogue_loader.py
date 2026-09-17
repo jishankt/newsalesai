@@ -39,7 +39,7 @@ APPROVED_PRODUCT_LINES = {
     "citizen",
 }
 
-EXPECTED_CATALOGUE_COUNT = 42
+EXPECTED_CATALOGUE_COUNT = 43
 
 
 class CatalogueIntegrityError(Exception):

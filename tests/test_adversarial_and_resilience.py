@@ -107,8 +107,8 @@ class TestAdversarialAndResilience(unittest.TestCase):
 
     def test_website_only_printer_rejected(self):
         """Inquiring about an unapproved website-only printer must be rejected with authorized catalogue phrasing."""
-        state = ConversationState(session_id="test-unapproved-f500")
-        res = orchestrator.process_turn("Can I buy the Epson SC-F500 sublimation printer?", "test-unapproved-f500", [], state)
+        state = ConversationState(session_id="test-unapproved-canon")
+        res = orchestrator.process_turn("Can I buy the Canon imagePROGRAF large format printer?", "test-unapproved-canon", [], state)
         self.assertEqual(res["product_cards"], [])
         self.assertIn("not present in our approved catalogue", res["reply"])
 

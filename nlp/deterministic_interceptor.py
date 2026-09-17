@@ -14,6 +14,8 @@ from typing import Optional
 from domain.conversation_types import InterceptResult
 from guardrails import (
     check_user_intent_for_pricing_or_discount,
+    is_discount_inquiry,
+    is_price_inquiry,
     PRICE_REFUSAL,
     DISCOUNT_REFUSAL,
 )
@@ -22,7 +24,7 @@ from guardrails import (
 # ── Patterns for deterministic interception ──────────────────────────────
 
 _GREETING_PATTERN = re.compile(
-    r"^(?:hi|hello|hey|good\s+(?:morning|afternoon|evening)|howdy|assalamu\s*alaikum|marhaba)[\s!.]*$",
+    r"^(?:hi+|hello+|helo+|hey+|hlo|hola|good\s+(?:morning|afternoon|evening)|howdy|assalamu\s*alaikum|marhaba)[\s!.]*$",
     re.IGNORECASE,
 )
 
@@ -37,12 +39,14 @@ _RESET_PATTERN = re.compile(
 )
 
 _INJECTION_PATTERNS = [
+    re.compile(r"<\s*script\b", re.IGNORECASE),
+    re.compile(r"alert\s*\(", re.IGNORECASE),
     re.compile(r"(?:ignore|disregard|forget)\s+(?:previous|earlier|all|prior|everything)\s*(?:instructions?|context|prompts?)?", re.IGNORECASE),
-    re.compile(r"(?:tell|show|output|reveal|print|repeat)\s+(?:me\s+)?(?:your\s+)?(?:system\s+prompt|developer\s+prompt|base\s+instructions?|initial\s+prompt|rules?)", re.IGNORECASE),
+    re.compile(r"(?:tell|show|output|reveal|print|repeat)\s+(?:me\s+)?(?:your\s+)?(?:system\s+prompt|developer\s+prompt|base\s+instructions?|initial\s+prompt|rules?|internal\s+prompt)", re.IGNORECASE),
     re.compile(r"what\s+(?:is|are)\s+your\s+(?:instructions?|rules?|system\s+prompt|developer\s+prompt|prompt)", re.IGNORECASE),
     re.compile(r"(?:act|pretend|behave)\s+as\s+(?:if|a|an|dan|developer|terminal)", re.IGNORECASE),
     re.compile(r"you\s+are\s+now\s+(?:a|an|the|dan|unrestricted|in\s+developer\s+mode)", re.IGNORECASE),
-    re.compile(r"\b(?:jailbreak|dan\s+mode|developer\s+mode|prompt\s+injection|override\s+(?:rules|system))\b", re.IGNORECASE),
+    re.compile(r"\b(?:jailbreak|dan\s+mode|developer\s+mode|prompt\s+injection|system\s+override|override\s+(?:rules|system))\b", re.IGNORECASE),
     re.compile(r"repeat\s+(?:the\s+)?(?:text\s+)?above", re.IGNORECASE),
 ]
 
@@ -99,19 +103,18 @@ def intercept(message: str, raw_message: Optional[str] = None) -> InterceptResul
             suggested_chips=[],
         )
 
-    # ── 2. Price / discount (reuse existing guardrails) ──────────────────
-    refusal = check_user_intent_for_pricing_or_discount(raw_message or text)
-    if refusal:
-        intent = "price_inquiry" if refusal == PRICE_REFUSAL else "discount_inquiry"
-        return InterceptResult(
-            matched=True,
-            intent=intent,
-            response=refusal,
-            should_continue=False,
-            suggested_chips=[],
-        )
+    # ── 4. Prompt injection / adversarial attempts (Security First) ──────
+    for pattern in _INJECTION_PATTERNS:
+        if pattern.search(text) or pattern.search(raw_message or ""):
+            return InterceptResult(
+                matched=True,
+                intent="out_of_scope",
+                response="I'm a product assistant for Kepler Tech LLC. I can help you find printers, scanners, and consumables. What would you like to explore?",
+                should_continue=False,
+                suggested_chips=[],
+            )
 
-    # ── 4. Explicitly unrelated out-of-scope questions ──────────────────
+    # ── 5. Explicitly unrelated out-of-scope questions ──────────────────
     for pattern in _UNRELATED_PATTERNS:
         if pattern.search(text):
             return InterceptResult(
@@ -122,16 +125,25 @@ def intercept(message: str, raw_message: Optional[str] = None) -> InterceptResul
                 suggested_chips=["Large Format Plotters", "Photo Printers", "Office MFPs", "Document Scanners"],
             )
 
-    # ── 5. Prompt injection / adversarial attempts ───────────────────────
-    for pattern in _INJECTION_PATTERNS:
-        if pattern.search(text):
-            return InterceptResult(
-                matched=True,
-                intent="out_of_scope",
-                response="I'm a product assistant for Kepler Tech LLC. I can help you find printers, scanners, and consumables. What would you like to explore?",
-                should_continue=False,
-                suggested_chips=[],
-            )
+    # ── 6. Price / discount handling ────────────────────────────────────
+    msg_to_check = raw_message or text
+    if is_discount_inquiry(msg_to_check):
+        return InterceptResult(
+            matched=True,
+            intent="discount_inquiry",
+            response=DISCOUNT_REFUSAL,
+            should_continue=False,
+            suggested_chips=["Large Format Plotters", "Photo Printers", "Office MFPs", "View Consumables"],
+        )
+
+    if is_price_inquiry(msg_to_check):
+        return InterceptResult(
+            matched=True,
+            intent="price_inquiry",
+            response="",
+            should_continue=True,
+            suggested_chips=[],
+        )
 
     # ── 6. Reset requests ────────────────────────────────────────────────
     if _RESET_PATTERN.match(text):

@@ -105,6 +105,27 @@ class LLMUnderstandingEngine:
         ]):
             return True
 
+        # Standard pill chips and qualification answers fast-path
+        known_chip_phrases = {
+            "i need a printer", "looking for a printer", "i want a printer", "i want to buy a printer",
+            "yes, with scanner", "no, print only", "yes with scanner", "no print only",
+            "with scanner", "no scanner", "print only", "printer only", "only print", "just print",
+            "technical cad plotters", "cad drawings", "cad", "technical",
+            "office enterprise documents", "office & business documents", "office & business documents (a3 / a4)", "business", "a3 or a4",
+            "professional photographs", "professional photography & fine art", "fine art", "photo printers (fine art & photo booth)",
+            "event photos (photo booth)", "photo booth",
+            "compact (desktop / portable)", "large format (24″ to 64″)", "compact", "large format", "large-format",
+            "epson desktop (fine art / a3+ / a2+)", "citizen (photo booth / events)", "epson desktop", "citizen photo",
+            "dye-sublimation (t-shirts & mugs)", "dye-sublimation", "t-shirt printing", "sublimation",
+            "24-inch (a1)", "36-inch (a0)", "44-inch wide", "24-inch", "36-inch", "44-inch",
+            "a4 standard", "a3 large format", "a4 desktop (sc-f100)", "24-inch roll (sc-f500)",
+            "t-shirts & apparel", "mugs & personalized gifts", "sportswear & soft signage",
+            "with roll adapter", "without roll adapter", "without roll adapter (standard)",
+            "with roll", "without roll", "i need with", "i need without"
+        }
+        if msg_l in known_chip_phrases:
+            return True
+
         # If user is speaking in full conversational sentences (more than 3 words) or correcting, always let LLM classify
         if len(words) > 3 or any(w in words for w in ["sorry", "actually", "instead", "think", "thought", "mean", "meant"]):
             return False
@@ -114,11 +135,11 @@ class LLMUnderstandingEngine:
             return True
 
         # Isolated Size answers
-        if msg_l in ["a0", "a1", "a2", "a3", "a4", "4x6", "6x8", "8x12", "24\"", "36\"", "44\"", "small", "large", "compact", "big", "smaller", "larger"]:
+        if msg_l in ["a0", "a1", "a2", "a3", "a4", "4x6", "6x8", "8x12", "24\"", "36\"", "44\"", "small", "large", "compact", "big", "smaller", "larger", "24", "36", "44"]:
             return True
 
-        # Pure isolated volume numbers (e.g. "60", "150", "10 pages")
-        if len(words) <= 2 and any(ch.isdigit() for ch in msg_l):
+        # Pure isolated volume numbers (e.g. "60", "150", "10 pages", "20 to 30")
+        if len(words) <= 4 and any(ch.isdigit() for ch in msg_l):
             return True
 
         return False
@@ -149,6 +170,39 @@ class LLMUnderstandingEngine:
             ])
         )
 
+        # Direct Consumable / Part Number SKU check (e.g. C13T11C340, C13S210057, CX2.4x6)
+        from rag.retriever import rag_retriever
+        sku_cand_matches = re.findall(r"\b(c1[123][a-z0-9]{5,9}|c13s\d+|c12c\d+|ifa\s*\d+|olm\s*\d+|cx2[a-z0-9.\-]+|cy[a-z0-9.\-]+|cx2w\s*812)\b", msg_l)
+        if not sku_cand_matches:
+            for tok in re.findall(r"\b[a-z0-9\.\-]{5,15}\b", msg_l):
+                if re.search(r"\d", tok) and tok not in ["epson", "citizen", "printer", "scanner", "plotter", "cartridge", "please"]:
+                    p_match = rag_retriever.get_by_sku(tok)
+                    if p_match:
+                        sku_cand_matches.append(tok)
+                        break
+
+        if sku_cand_matches:
+            cand_sku = sku_cand_matches[0].upper()
+            p_sku = rag_retriever.get_by_sku(cand_sku) or rag_retriever.get_by_name(cand_sku)
+            if p_sku:
+                cat = str(p_sku.get("category", "")).lower()
+                is_consumable_cat = any(ck in cat for ck in ["ink", "cartridge", "box", "tank", "media", "paper", "ribbon", "accessory"]) or p_sku.get("card_type") == "consumable"
+                if is_consumable_cat:
+                    logger.info(f"Fallback NLU: direct consumable SKU identified: {cand_sku}")
+                    entities["sku"] = cand_sku
+                    entities["model_code"] = cand_sku
+                    return LLMUnderstanding(
+                        intent=Intent.CONSUMABLES_QUERY,
+                        dialogue_act="questioning",
+                        product_related=True,
+                        confidence=0.98,
+                        sentiment="neutral",
+                        language="en",
+                        entities=entities,
+                        requested_action="show_consumables",
+                        tool_request={"name": "get_product_specs", "arguments": {"product_identifier": cand_sku}},
+                    )
+
         # Consumables check before superlative attribute check
         has_ink_kw = any(re.search(rf"\b{re.escape(k)}\b", msg_l) for k in [
             "consumable", "consumables", "ink", "inks", "cartridge", "cartridges",
@@ -158,7 +212,7 @@ class LLMUnderstandingEngine:
         ]) or "compatible with" in msg_l
         is_negating_ink = any(k in msg_l for k in ["not ink", "no ink", "dont want ink", "don't want ink", "printer only", "only printer"])
         is_printer_search = any(p in msg_l for p in ["printer", "printers", "plotter", "plotters", "show all", "show matching", "show every", "need a", "looking for"])
-        is_pure_consumable = has_ink_kw and not is_negating_ink and not is_printer_search and not any(rw in msg_l for rw in ["ribbon rewind", "rewind", "inkjet or dye sub", "use ink or ribbon"])
+        is_pure_consumable = (has_ink_kw or sku_cand_matches) and not is_negating_ink and not is_printer_search and not any(rw in msg_l for rw in ["ribbon rewind", "rewind", "inkjet or dye sub", "use ink or ribbon"])
 
         if is_pure_consumable:
             logger.info("Fallback NLU: classified as intent=consumables_query action=show_consumables")
@@ -245,7 +299,13 @@ class LLMUnderstandingEngine:
 
 
         # Brands & Categories
-        if any(c in msg_l for c in ["citizen", "cx-02", "cx02", "cz-01", "cz01", "cy-02", "cy02", "photo booth", "dye-sub"]):
+        if any(c in msg_l for c in ["sublimation", "dye-sub", "dye sub", "f100", "f500", "sc-f100", "sc-f500", "t-shirt", "t shirt", "mug", "merchandise", "textile"]):
+            entities["brand"] = "Epson"
+            entities["product_category"] = "dye_sublimation"
+            if intent == Intent.UNCLEAR:
+                intent = Intent.PRODUCT_DISCOVERY
+                action = "ask_qualification_question"
+        elif any(c in msg_l for c in ["citizen", "cx-02", "cx02", "cz-01", "cz01", "cy-02", "cy02", "photo booth"]):
             entities["brand"] = "Citizen"
             entities["product_category"] = "photo_booth"
             if intent == Intent.UNCLEAR:
@@ -253,7 +313,7 @@ class LLMUnderstandingEngine:
                 action = "ask_qualification_question"
         elif "epson" in msg_l:
             entities["brand"] = "Epson"
-        if any(c in msg_l for c in ["cad", "technical", "blueprint", "architect", "plotter"]):
+        if any(c in msg_l for c in ["cad", "technical", "blueprint", "architect", "plotter", "plottaer"]):
             entities["product_category"] = "technical_cad"
             if intent == Intent.UNCLEAR:
                 intent = Intent.PRODUCT_DISCOVERY
@@ -264,7 +324,7 @@ class LLMUnderstandingEngine:
             if intent == Intent.UNCLEAR:
                 intent = Intent.PRODUCT_DISCOVERY
                 action = "ask_qualification_question"
-        elif any(c in msg_l for c in ["office", "enterprise", "workforce", "copier", "am-c", "mfp"]):
+        elif any(c in msg_l for c in ["office", "enterprise", "workforce", "copier", "am-c", "mfp", "business", "a3 or a4", "a4 printer", "a3 printer"]):
             entities["product_category"] = "office_enterprise"
             if intent == Intent.UNCLEAR:
                 intent = Intent.PRODUCT_DISCOVERY
@@ -290,7 +350,7 @@ class LLMUnderstandingEngine:
             if intent == Intent.UNCLEAR:
                 intent = Intent.PRODUCT_DISCOVERY
                 action = "ask_qualification_question"
-        elif "a1" in msg_l or "24" in msg_l or "24\"" in msg_l:
+        elif not bool(re.search(r"\b24\b.*?\b64\b", msg_l)) and ("a1" in msg_l or "24" in msg_l or "24\"" in msg_l):
             entities["print_size"] = "A1"
             if intent == Intent.UNCLEAR:
                 intent = Intent.PRODUCT_DISCOVERY

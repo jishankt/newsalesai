@@ -137,15 +137,15 @@ class TestMultiAgentSystem(unittest.TestCase):
         self.assertEqual(t3["active_agent"]["id"], "technical_rag")
         self.assertEqual(t3["active_agent"]["theme_color"], "#8b5cf6")
 
-        # Turn 4: Price inquiry & contact submission -> Commercial Guardrail Policy (Receptionist + PRICE_REFUSAL)
+        # Turn 4: Discount inquiry & contact submission -> Commercial Guardrail Policy (Receptionist + DISCOUNT_REFUSAL)
         t4 = orchestrator.process_turn(
-            raw_message="How much is the T3100? My email is buyer@emiratesprint.ae",
+            raw_message="Can I get a discount on the T3100? My email is buyer@emiratesprint.ae",
             session_id="switching-test",
             history=[],
             state=state,
         )
         self.assertEqual(t4["active_agent"]["id"], "receptionist")
-        self.assertIn("Pricing, commercial discounts, and quotations are not provided", t4["reply"])
+        self.assertIn("official website", t4["reply"])
 
     def test_api_agents_and_leads_endpoints(self):
         """Verify /api/agents and /api/leads return valid JSON responses."""

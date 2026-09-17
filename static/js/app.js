@@ -229,6 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ollama_base_url: ollamaUrlInput.value.trim()
     };
 
+    let data;
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -239,7 +240,24 @@ document.addEventListener('DOMContentLoaded', () => {
       typingEl.remove();
 
       if (response.ok) {
-        const data = await response.json();
+        data = await response.json();
+      } else {
+        appendMessage('bot', "I apologize, but I encountered an issue processing your message. Could you try asking again?", "System Alert", [], null, null, [], [], [], DEFAULT_AGENT);
+        return;
+      }
+    } catch (err) {
+      typingEl.remove();
+      console.error('Network error during chat:', err);
+      appendMessage('bot', "I'm having trouble connecting to the backend right now. Please ensure the server is active.", "Offline", [], null, null, [], [], [], DEFAULT_AGENT);
+      return;
+    } finally {
+      isAwaitingReply = false;
+      sendBtn.disabled = false;
+      messageInput.focus();
+    }
+
+    if (data) {
+      try {
         const activeAgent = data.active_agent || DEFAULT_AGENT;
         updateActiveAgentUI(activeAgent);
         const sourceLabel = data.source === 'ollama' ? 'Ollama' : (data.source === 'rag_comparison_engine' ? 'RAG Comparison Engine' : (data.source === 'guardrail_rule' ? 'Commercial Guardrail' : 'Rule Engine'));
@@ -256,17 +274,9 @@ document.addEventListener('DOMContentLoaded', () => {
           activeAgent,
           data.comparison_data || null
         );
-      } else {
-        appendMessage('bot', "I apologize, but I encountered an issue processing your message. Could you try asking again?", "System Alert", [], null, null, [], [], [], DEFAULT_AGENT);
+      } catch (renderErr) {
+        console.error('Error rendering assistant reply:', renderErr);
       }
-    } catch (err) {
-      typingEl.remove();
-      console.error('Chat error:', err);
-      appendMessage('bot', "I'm having trouble connecting to the backend right now. Please ensure the server is active.", "Offline", [], null, null, [], [], [], DEFAULT_AGENT);
-    } finally {
-      isAwaitingReply = false;
-      sendBtn.disabled = false;
-      messageInput.focus();
     }
   }
 
@@ -308,11 +318,12 @@ document.addEventListener('DOMContentLoaded', () => {
       bubble.style.borderLeftColor = themeColor;
     }
     
-    // Format markdown bold, italic, line breaks, and [Options: ...] tags
+    // Format markdown bold, italic, line breaks, URLs, emails, and [Options: ...] tags
     let formattedText = (text || "")
       .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
       .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/g, '<a href="$2" target="_blank" style="color: #38bdf8; text-decoration: underline;">$1</a>')
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #1877f2; text-decoration: underline; font-weight: 500;">$1</a>')
+      .replace(/(^|[^">])(https?:\/\/[^\s<]+)/g, '$1<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #1877f2; text-decoration: underline; font-weight: 500;">$2</a>')
       .replace(/(?:\r\n|\r|\n)/g, '<br>');
 
     // Parse [Options: A | B | C] pills from assistant text
@@ -342,14 +353,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Step 10: Multi-Card Product Grid Rendering
     if (sender === 'bot' && productCards && productCards.length > 0) {
-      // Replace previous card container if new filtered results arrive
-      if (window.lastProductCardsContainer && window.lastProductCardsContainer.parentNode) {
-        window.lastProductCardsContainer.remove();
-      }
-
       const cardsContainer = document.createElement('div');
       cardsContainer.className = 'catalogue-cards-block';
-      window.lastProductCardsContainer = cardsContainer;
 
       const headerRow = document.createElement('div');
       headerRow.className = 'consumables-header-row';
@@ -382,6 +387,17 @@ document.addEventListener('DOMContentLoaded', () => {
           ? `<div class="card-configs-badge">⚙️ Configurations: ${p.available_configurations.join(', ')}</div>`
           : '';
 
+        // Product price row
+        let priceHtml = '';
+        if (p.price && Number(p.price) > 0 && !p.is_request) {
+          const formatted = p.price_formatted || ('AED ' + Number(p.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+          priceHtml = `<div class="card-price-row"><span class="card-price-val">${formatted}</span> <span class="card-price-vat">${p.vat_note || '(Excl. VAT)'}</span></div>`;
+        } else if (p.price_formatted && p.price_formatted !== 'Price on Request' && !p.is_request) {
+          priceHtml = `<div class="card-price-row"><span class="card-price-val">${p.price_formatted}</span> <span class="card-price-vat">${p.vat_note || '(Excl. VAT)'}</span></div>`;
+        } else {
+          priceHtml = `<div class="card-price-row"><span class="card-price-request">Price on Request</span></div>`;
+        }
+
         card.innerHTML = `
           <div class="card-img-wrap" title="Click to view image">
             <img src="${cardImg}" alt="${modelName}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='/static/images/printer-placeholder.svg';">
@@ -390,14 +406,15 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="card-cat-badge">${subcategoryLabel || categoryLabel}</span>
           </div>
           <div class="card-title" title="${modelName}">${modelName}</div>
+          ${priceHtml}
           ${configsHtml}
           ${reasonsHtml}
           <div class="card-actions-row">
             <a href="${cardUrl}" target="_blank" rel="noopener noreferrer" class="card-action-btn btn-view-details">
               View Details ↗
             </a>
-            <button type="button" class="card-action-btn btn-select-model" data-model="${modelName}">
-              Select
+            <button type="button" class="card-action-btn btn-lead-model btn-select-model" data-model="${modelName}">
+              Request Quote
             </button>
             <button type="button" class="btn-compare-check" data-model="${modelName}" data-id="${p.id}">
               <span class="compare-box">☐</span> Compare
@@ -405,13 +422,10 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         `;
 
-        // Select action
-        card.querySelector('.btn-select-model').addEventListener('click', () => {
-          if (!isAwaitingReply) {
-            const query = `Tell me more about the ${modelName}`;
-            messageInput.value = query;
-            sendMessage(query);
-          }
+        // Request Quote action
+        card.querySelector('.btn-lead-model').addEventListener('click', (e) => {
+          e.preventDefault();
+          sendMessage(`I would like to request an official quotation for ${modelName}`);
         });
 
         // Compare action
@@ -441,21 +455,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Comparison table / mobile cards
     if (sender === 'bot' && comparisonData && comparisonData.criteria && comparisonData.criteria.length > 0) {
-      const compHeader = document.createElement('div');
-      compHeader.className = 'consumables-header-row';
-      const compTitle = document.createElement('div');
-      compTitle.className = 'consumables-section-title';
-      compTitle.innerHTML = '<span>📊 Side-by-Side Comparison</span>';
-      compHeader.appendChild(compTitle);
-      contentWrapper.appendChild(compHeader);
-
-      if (typeof renderComparison === 'function') {
-        renderComparison(comparisonData, contentWrapper);
+      const compWrap = document.createElement('div');
+      compWrap.className = 'inline-comparison-wrapper';
+      if (typeof window.renderComparison === 'function') {
+        window.renderComparison(comparisonData, compWrap);
+      } else if (typeof window.renderInlineComparison === 'function') {
+        compWrap.innerHTML = window.renderInlineComparison(comparisonData);
       }
+      contentWrapper.appendChild(compWrap);
     }
 
     // Compatible Consumables Deck
-    if (sender === 'bot' && consumableCards && consumableCards.length > 0) {
+    if (consumableCards && consumableCards.length > 0 && sender === 'bot') {
       const headerRow = document.createElement('div');
       headerRow.className = 'consumables-header-row';
 
@@ -484,13 +495,14 @@ document.addEventListener('DOMContentLoaded', () => {
         cCard.className = 'consumable-card';
         const cImg = c.image_url || c.image || 'https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png';
         const cUrl = c.source_url || c.url || c.website_url || '#';
+        const cTitle = c.title || c.name;
         const cPriceStr = c.price_formatted || (c.price ? 'AED ' + Number(c.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '');
 
         cCard.innerHTML = `
           <div class="consumable-img-wrap" title="Click to enlarge">
             <img src="${cImg}" alt="${c.name}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png';">
           </div>
-          <div class="consumable-title" title="${c.name}">${c.name}</div>
+          <div class="consumable-title" title="${cTitle}">${cTitle}</div>
           <div class="consumable-sku">${c.sku}</div>
           ${cPriceStr ? `<div class="consumable-price-wrap"><span class="consumable-price-val">${cPriceStr}</span> <span class="card-price-vat">(Excl. VAT)</span></div>` : ''}
           <div class="consumable-actions" style="margin-top: auto; padding-top: 4px;">

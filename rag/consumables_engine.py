@@ -58,7 +58,7 @@ class ConsumablesEngine:
             cards = [c for c in res.get("product_cards", []) if c.get("card_type") == "hardware"]
         return cards
 
-    def get_printer_consumables(self, printer_query: str, consumable_filter: Optional[str] = None, limit: int = 6) -> List[Dict[str, Any]]:
+    def get_printer_consumables(self, printer_query: str, consumable_filter: Optional[str] = None, limit: int = 25) -> List[Dict[str, Any]]:
         """
         Dynamically finds genuine compatible consumables for a given printer or scanner
         using the catalog relationship graph.

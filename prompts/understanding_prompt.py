@@ -50,7 +50,7 @@ UNDERSTANDING_SCHEMA = {
                 "product_category": {
                     "type": "string",
                     "enum": ["technical_cad", "photo_fine_art", "photo_booth",
-                             "office_enterprise", "scanner", "consumable", ""]
+                             "office_enterprise", "dye_sublimation", "scanner", "consumable", ""]
                 },
                 "model_code": {"type": "string"},
                 "print_size": {"type": "string"},
@@ -138,7 +138,7 @@ Your job is to analyze the customer's latest message and return a structured JSO
 3. If the customer expresses frustration (e.g., "you already asked me that", "stop repeating"), intent = "frustration".
 4. If the customer corrects a previous answer (e.g., "actually A0", "no scanner"), intent = "correction".
 5. If the customer asks about printers/scanners/products, or asks for recommendations (e.g., "recommend now", "show options", "what do you recommend", "suggest options"), intent = "product_discovery" and requested_action = "search_products".
-6. If the customer asks about inks/cartridges/consumables for a specific printer, intent = "consumables_query".
+6. If the customer asks about inks/cartridges/consumables, or provides a specific part number / SKU (e.g., C13T11C340, C13S210057, CX2.4x6, C13T800100), intent = "consumables_query" and requested_action = "show_consumables".
 7. If the customer asks to compare products, difference between models, or asks superlative / comparative questions across models or brands (e.g., "Which Citizen printer is the fastest?", "Which is more portable?", "Which printer has the highest capacity?", "CX-02 vs CY-02"), intent = "product_comparison" and requested_action = "compare_products". Do NOT classify these as "product_discovery" or trigger qualification questions!
 8. If the customer asks about business hours/location/contact, intent = "business_information".
 9. If the customer reports a printer problem, intent = "troubleshooting".
@@ -150,14 +150,15 @@ Your job is to analyze the customer's latest message and return a structured JSO
 
 ## Entity Extraction
 - product_category rules:
-  * "technical_cad": CAD drawings, blueprints, architectural plans, technical plotters.
-  * "photo_fine_art": Photography, fine art, gallery prints, exhibition photo printers.
-  * "photo_booth": Photo booth, event printing, Citizen dye-sub printers.
-  * "office_enterprise": Office documents, business MFPs, copiers, high-speed document printing.
+  * "technical_cad": CAD drawings, blueprints, architectural plans, technical plotters (including "plottaer" / "cad").
+  * "photo_fine_art": Photography, fine art, gallery prints, exhibition photo printers ("fine art").
+  * "photo_booth": Photo booth, event photo printing, Citizen photo printers (4x6, 6x8).
+  * "office_enterprise": Office documents, business printers ("business"), A3 or A4 printers ("a3 or a4 printer"), MFPs, copiers.
+  * "dye_sublimation": Dye-sublimation printers (SC-F100, SC-F500), T-shirt printing ("t shirt printing"), mugs, merchandise, textile printing.
   * "scanner": ONLY when the customer specifically asks for a standalone document or flatbed scanner. Never use "scanner" if the customer asks for a printer!
   * "consumable": Genuine inks, cartridges, ribbons, maintenance tanks.
   * Empty string (""): When the customer asks generally for a printer without specifying the type (e.g., "I need a printer", "I want to buy a printer", "printers").
-- Extract model codes (e.g., T3100, P900, SC-F100, CX-02, DS-790WN)
+- Extract model codes (e.g., T3100, P900, SC-F100, SC-F500, CX-02, DS-790WN)
 - Extract print sizes (A0, A1, A3, 4x6)
 - Extract scanner preferences (yes/no)
 - Extract daily volumes (numbers)

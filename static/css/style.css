@@ -574,8 +574,40 @@ body {
   font-size: 0.85rem;
   font-weight: 700;
   color: #111827;
-  margin: 4px 0 6px;
+  margin: 4px 0 4px;
   line-height: 1.3;
+}
+
+.card-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin: 2px 0 6px;
+  flex-wrap: wrap;
+}
+
+.card-price-val {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #1d4ed8;
+  letter-spacing: -0.01em;
+}
+
+.card-price-vat {
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.card-price-request {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #b45309;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  padding: 2px 7px;
+  border-radius: 4px;
+  display: inline-block;
 }
 
 .card-reasons-list {
@@ -643,11 +675,13 @@ body {
   background: #166fe5;
 }
 
-.btn-select-model {
+.btn-select-model,
+.btn-lead-model {
   background: #10b981;
   color: #ffffff;
 }
-.btn-select-model:hover {
+.btn-select-model:hover,
+.btn-lead-model:hover {
   background: #059669;
 }
 

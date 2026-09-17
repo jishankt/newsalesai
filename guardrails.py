@@ -1,18 +1,28 @@
 """
 Commercial rules guardrail and response validator.
-Ensures zero price leaks, zero budget queries, zero discount promises,
-and strictly enforces standard refusal phrases.
+Directs discount and negotiation queries to the official website and customer support team.
+Allows verified official website prices to be communicated while strictly prohibiting
+unauthorized discount promises, price bargaining, or budget interrogation.
 """
 
 import re
+from typing import Optional, Dict, Any
 
-# Exact refusal templates defined in the system prompt
-# Strict zero discount, zero pricing and product-finding-only global policy
+OFFICIAL_SUPPORT_EMAIL = "sales@keplertech.ae"
+OFFICIAL_SUPPORT_PHONE = "+971 4 323 1008"
+OFFICIAL_WEBSITE_URL = "https://www.keplertechllc.com/"
+
 DISCOUNT_REFUSAL = (
-    "Pricing, commercial discounts, and quotations are not provided through this chat assistant. "
-    "I am here to help you identify the right equipment and verified technical specifications from our authorized catalogue."
+    "For pricing details, special discounts, bulk promotions, or commercial offers, please check our official website at "
+    f"{OFFICIAL_WEBSITE_URL} or contact our customer support team directly at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}.\n\n"
+    "I am here to help you with verified technical specifications, model recommendations, and consumable compatibility from our authorized catalogue."
 )
 PRICE_REFUSAL = DISCOUNT_REFUSAL
+
+GENERAL_PRICE_DIRECT = (
+    f"Official pricing for available models and genuine consumables is published on our website at {OFFICIAL_WEBSITE_URL}.\n\n"
+    f"For enterprise systems not listed for direct online checkout, please contact our customer support team directly at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}."
+)
 
 PRICE_USER_PATTERNS = [
     r"\b(?:how much|prices?|pricing|costs?|rates?|commercial rates?|quotations?|quotes?|charges?|fees?|expensive|cheap|affordable)\b",
@@ -22,23 +32,33 @@ PRICE_USER_PATTERNS = [
     r"\bwhat does it cost\b",
 ]
 
-# Intent detection regex patterns for discount and negotiation attempts
 DISCOUNT_USER_PATTERNS = [
-    r"\b(?:discount|discounts|discounting|offer|offers|bargain|bargaining|deal|deals|coupon|promo|rebate|concession)\b",
+    r"\b(?:discount|discounts|discounting|bargain|bargaining|coupon|promo|rebate|concession)\b",
     r"\b(?:negotiat\w*|negosition|negotiable)\b",
     r"\b(?:cheaper rate|cheaper price|cheaper|best price|special deal|lower the price|reduce the price|reduce price|price drop)\b",
     r"\b(?:can you give me a discount|any discount|give discount|give me discount|need discount|less price|more discount)\b",
     r"\b(?:can we negotiate|can i negotiate|price negotiation|negotiate price)\b",
     r"\b(?:give me (?:a )?better price|what is your lowest price|lowest price|minimum price)\b",
+    r"\b(?:special\s+offers?|promotional\s+offers?|discount\s+offers?|best\s+offers?|bulk\s+offers?|exclusive\s+offers?|any\s+offers?|make\s+an\s+offer)\b",
+    r"\b(?:good\s+deals?|special\s+deals?|best\s+deals?|any\s+deals?)\b",
+    r"\boffers?\s+(?:and|or)\s+discounts?\b",
+    r"\bdiscounts?\s+(?:and|or)\s+offers?\b",
+    r"\bhave\s+(?:any\s+|an\s+)?offers?\b",
+    r"\b(?:an|any)\s+offer\b",
 ]
 
-# Prohibited output patterns: model must never negotiate, promise discounts, or ask for budget
+DISCOUNT_EXCLUSION_PATTERNS = [
+    r"\bhow\s+(?:do\s+)?(?:you|we)\s+offer\b",
+    r"\b(?:what|which|models?|printers?|products?)\s+(?:do\s+)?(?:you|we)\s+offer\b",
+    r"\boffer\s+(?:against|instead|for\s+this)\b",
+    r"\bprinters?\s+you\s+offer\b",
+    r"\byou\s+offer\s+(?:against|a3|a4|citizen|epson|photo|printer)\b",
+]
+
 PROHIBITED_OUTPUT_PATTERNS = [
-    r"\b(?:hand you over|transfer you to a human|talk to a human|contact our sales rep|human agent|live agent|escalate)\b",
     r"\b(?:what is your budget|what's your budget|whats your budget|how much are you looking to spend)\b",
     r"\b(?:i can give you a discount|we can offer you a discount|i can lower the price|we can negotiate)\b",
 ]
-
 
 STATIC_SAFE_REFUSAL = (
     "I am unable to verify the requested product details against our official catalogue. "
@@ -72,95 +92,116 @@ def strip_negated_commercial(text: str) -> str:
     return cleaned.strip()
 
 
-def check_user_intent_for_pricing_or_discount(user_message: str):
-    """
-    Checks if the user message asks for discounts, bargaining, negotiations, or pricing.
-    Strictly enforces the product-finding-only global policy: zero prices, zero discounts,
-    zero quotations, zero sales contact.
-    """
+def is_discount_inquiry(user_message: str) -> bool:
+    """Checks if the user message asks for discounts, bargaining, or price negotiations."""
+    if not user_message:
+        return False
     clean_msg = strip_negated_commercial(user_message.lower().strip())
+    if any(re.search(p, clean_msg) for p in DISCOUNT_EXCLUSION_PATTERNS):
+        return False
+    return any(re.search(p, clean_msg) for p in DISCOUNT_USER_PATTERNS)
 
-    for pattern in DISCOUNT_USER_PATTERNS + PRICE_USER_PATTERNS:
-        if re.search(pattern, clean_msg):
-            return DISCOUNT_REFUSAL
 
+def is_price_inquiry(user_message: str) -> bool:
+    """Checks if the user message asks about product pricing or cost."""
+    if not user_message:
+        return False
+    clean_msg = strip_negated_commercial(user_message.lower().strip())
+    return any(re.search(p, clean_msg) for p in PRICE_USER_PATTERNS)
+
+
+def check_user_intent_for_pricing_or_discount(user_message: str) -> Optional[str]:
+    """
+    Checks if the user message asks for discounts, bargaining, or negotiations.
+    Discounts return DISCOUNT_REFUSAL.
+    Pure price inquiries without discount negotiation return None so they can be
+    handled dynamically with website prices or support referral.
+    """
+    if is_discount_inquiry(user_message):
+        return DISCOUNT_REFUSAL
     return None
+
+
+def format_product_price_response(prod: Dict[str, Any], price_info: Dict[str, Any]) -> str:
+    """Formats an official pricing response for a catalogue product."""
+    name = prod.get("display_name") or prod.get("name") or prod.get("model") or prod.get("title") or "Product"
+    url = price_info.get("url") or prod.get("website_url") or prod.get("product_url") or OFFICIAL_WEBSITE_URL
+
+    if not price_info.get("is_request") and price_info.get("price"):
+        price_str = price_info.get("price_str") or f"AED {price_info['price']:,.2f}"
+        vat = price_info.get("vat_note") or "(Excl. VAT)"
+        return (
+            f"The official price for the **{name}** on our website is **{price_str} {vat}**.\n\n"
+            f"You can view complete product specifications or purchase directly on our website at {url}.\n\n"
+            "Would you like details on compatible consumables or technical specifications?"
+        )
+    else:
+        return (
+            f"The **{name}** is an enterprise/large-format production system and its price is not listed for direct online checkout on our website.\n\n"
+            f"Please contact our customer support and sales team directly at **{OFFICIAL_SUPPORT_EMAIL}** or **{OFFICIAL_SUPPORT_PHONE}** to receive an official commercial quotation and check availability."
+        )
 
 
 def validate_and_sanitize_response(response_text: str, user_message: str) -> str:
     """
-    Validates model output against the strict commercial rules and output guidelines.
-    Guarantees no discounts, no negotiations, and no budget queries.
-    Never modifies text inside product URLs, model names, SKUs, or technical specifications.
+    Validates model output against strict commercial rules.
+    Guarantees zero unauthorized discount promises and no budget queries.
+    Preserves authorized Kepler Tech customer support contact details and official website URLs.
     """
     if not response_text:
         return "I am here to help. Could you tell me what type of product or service you're looking for?"
 
     text = response_text.strip()
 
-    # Remove unwanted internal reasoning blocks or markdown artifacts if model emits them
+    # Remove internal reasoning blocks or markdown artifacts if emitted
     text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
     text = re.sub(r"```[a-zA-Z]*\n?.*?\n?```", "", text, flags=re.DOTALL)
 
-    # Check if user asked for discount or negotiation (ignoring negated mentions)
+    # Check if user explicitly asked for discounts or negotiations
     clean_user_msg = strip_negated_commercial(user_message.lower().strip())
-    if any(re.search(p, clean_user_msg) for p in DISCOUNT_USER_PATTERNS + PRICE_USER_PATTERNS):
+    if is_discount_inquiry(clean_user_msg):
         return DISCOUNT_REFUSAL
 
-    # If user explicitly specified not to discuss price or discounts, scrub any commercial terms
+    # If user explicitly specified not to discuss price or discounts, scrub commercial terms
     if is_commercial_negated(user_message):
         text = re.sub(r"(?i)[^.!?\n]*\b(?:discount|discounts|pricing policy|zero-discount|quotation|quote|rate|rates|pricing)\b[^.!?\n]*[.!?]?", "", text)
 
-    # Check if the model inadvertently asked about budget
+    # Check if model asked about budget
     if re.search(r"\b(?:budget|how much are you willing to spend)\b", text, re.IGNORECASE):
-        # Replace budget inquiry with technical requirement query
         text = re.sub(
             r"(?i)[^.!?]*\bbudget\b[^.!?]*[.!?]?",
             "What specific features or volume requirements do you have?",
             text
         )
 
-    # Check if model inadvertently offered handover, sales representative, or lead capture
-    if re.search(r"\b(?:human|agent|representative|transfer|escalate|lead capture|handover|sales rep)\b", text, re.IGNORECASE):
-        text = re.sub(
-            r"(?i)[^.!?\n]*\b(?:transfer|human|escalat|representative|sales rep|handover)\b[^.!?\n]*[.!?]?",
-            "",
-            text
-        )
+    # Clean unauthorized handover patterns, but preserve authorized Kepler Tech support contacts
+    # Protect authorized contacts:
+    placeholders = {
+        "__KEPLER_EMAIL__": OFFICIAL_SUPPORT_EMAIL,
+        "__KEPLER_PHONE__": OFFICIAL_SUPPORT_PHONE,
+        "__KEPLER_WEB__": OFFICIAL_WEBSITE_URL,
+    }
+    for placeholder, val in placeholders.items():
+        text = text.replace(val, placeholder)
 
-    # Scrub contact information: remove raw email addresses and explicit phone number values.
-    # IMPORTANT: Do NOT remove legitimate product-feature sentences that happen to contain
-    # words like 'phone', 'mobile', 'WhatsApp printing', 'wireless', or 'AirPrint'.
-    # Only strip actual contact values or explicit handover statements.
-
-    # 1. Raw email addresses
+    # Scrub other arbitrary emails
     text = re.sub(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b", "", text)
 
-    # 2. Raw phone / WhatsApp numbers (digit strings that look like dial-in numbers).
-    #    Match international formats like +971 4 323 1008, +971-50-123-4567, etc.
-    #    Use a narrow pattern that requires a leading + or country-code prefix so that
-    #    model numbers (T5400M, 300x600 dpi, 13.8 kg) are never touched.
+    # Scrub other arbitrary phone numbers (international formats not matching placeholder)
     text = re.sub(
         r"(?<![\w.])\+\d{1,3}[\s\-]?\d{1,4}[\s\-]?\d{3,4}[\s\-]?\d{3,4}(?![\w])",
         "",
         text
     )
 
-    # 3. Explicit agent-handover or sales-contact sentences.
-    #    Only match when the sentence is clearly directing the user to a human rep,
-    #    NOT when describing a product feature (e.g. 'AirPrint', 'wireless printing').
-    #    The pattern anchors on action verbs ('call us', 'reach us', 'contact sales',
-    #    'email us') that unambiguously signal a handover statement.
-    text = re.sub(
-        r"(?i)[^.!?\n]*\b(?:call us|reach us at|contact (?:our )?sales|email us|sales@|tel:|whatsapp us)\b[^.!?\n]*[.!?]?",
-        "",
-        text
-    )
+    # Restore authorized contacts
+    for placeholder, val in placeholders.items():
+        text = text.replace(placeholder, val)
 
-    # Remove internal grounding/audit tags from user-facing responses
+    # Remove internal grounding/audit tags
     text = re.sub(r"\s*\[(?:VERIFIED|CONFLICT|INFERRED|CALCULATED)[^\]]*\]", "", text)
 
-    # Clean up excess horizontal whitespace while preserving clean paragraph and bullet newlines
+    # Clean whitespace
     lines = [re.sub(r"[ \t]+", " ", line).strip() for line in text.splitlines()]
     text = "\n".join(lines)
     text = re.sub(r"\n{3,}", "\n\n", text).strip()
@@ -168,4 +209,3 @@ def validate_and_sanitize_response(response_text: str, user_message: str) -> str
         return "Could you tell me a little more about the specific requirements you have in mind?"
 
     return text
-

@@ -4,123 +4,92 @@
 
 ---
 
-## Changelog
+## Documentation Links
+- 📖 **[Developer Guide & Architecture Overview (DEVELOPER.md)](DEVELOPER.md)**: In-depth technical architecture, module breakdown, conversational state machine, SKU resolver, and developer workflows.
 
-### v3.0 — 09 Sep 2026 *(Current)*
+---
 
-**Conversation Architecture**
-- Rebuilt the chatbot flow using a structured **9-step conversational state system** with full session persistence and optimistic concurrency control.
-- Implemented a **single canonical orchestrator pipeline** (`agent/orchestrator.py`) replacing all legacy duplicated logic.
-- Separated concerns into dedicated route handlers: Product Discovery, Consumables, Qualification, Comparison, Guardrail, and Help.
+## Key Features & Capabilities
 
-**AI Memory & Multi-Turn State**
-- Added persistent **conversation state** via `domain/state_store.py` — thread-safe in-memory store with 2-hour TTL, LRU eviction, and pluggable **Redis backend**.
-- State tracks: intent, sales stage, active product, selected requirements, history turns, and clarification queue — survives topic switches and mid-conversation corrections.
-- Added **HMAC-signed session tokens** for tamper-proof session identity.
-
-**Qualification Flow**
-- Enforced **one-question-at-a-time** discipline with priority-ranked requirement collection (`conversation/next_question_engine.py`).
-- Fixed multi-turn loops caused by un-cleared `awaiting_field` — system now correctly advances after each extracted requirement.
-- Added yes/no resolution to satisfy pending clarification fields without re-asking the same question.
-- Handles topic switching mid-qualification without losing prior context.
-
-**Zero-Hallucination Routing & Claim Validation**
-- Upgraded `validation/claim_validator.py` with **8 verification layers**:
-  - Print speed ↔ paper size pairing (speed-to-size rules per model)
-  - Product weight vs. package weight disambiguation
-  - URL slug verification (no invented product links)
-  - DPI resolution cross-check against verified specs
-  - Print speed validation against catalog evidence
-  - Max-width inch validation against catalog evidence
-  - Scanner capability — rejects scanner claims on print-only hardware
-  - `sanitize()` method for safe inline claim reversion
-- `validate_all()` now returns a structured `(is_valid, reason, violations[])` 3-tuple.
-
-**Product Recommendation & Eligibility**
-- Implemented strict eligibility gating (`recommendation/eligibility.py`): conflicting requirements (e.g., A0 size + integrated scanner) surface a grounded clarification instead of returning wrong cards.
-- Boosted product keyword matching in `rag/retriever.py` with explicit confidence thresholds (exact ≥ 0.95 / product ≥ 0.35 / unknown < 0.20).
-- Prevented paper media and software items from appearing in hardware product cards.
-
-**Security & Production Hardening**
-- **SSRF protection**: client-supplied `ollama_base_url` is silently ignored; Ollama URL is bound exclusively to `OLLAMA_BASE_URL` env var.
-- **Model allowlist**: unknown model names rejected with HTTP 400.
-- **CORS**: restricted to configured origins (`CORS_ORIGINS` env var).
-- **Payload limit**: configurable `MAX_REQUEST_BYTES` (default 64 KB) enforced at Flask level.
-- **Security headers**: `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Referrer-Policy` on all responses.
-- **Health probes**: `/health/live` (liveness) and `/health/ready` (readiness — verifies catalog + Ollama).
-- **ProxyFix** middleware for Cloudflare Tunnel / reverse-proxy deployments.
-- `.env.example` template with all configurable variables documented.
-
-**Chatbot Widget & Landing Page**
-- Built a responsive **floating chatbot widget** with modal-based full-screen mode.
-- Kepler-branded demo landing page (`/`) with product category quick pills.
-- `/chat` and `/chat-full` routes for embedded and standalone widget modes.
-
-**Catalog Verification**
-- Audited and verified **833 catalog items** with live product links, SKU badges, and authentic product images.
-- Verified price data (`data/verified_prices.json`), product descriptions (`data/verified_descriptions.json`), and brochure links (`data/verified_brochures.json`).
-- `catalog/product_spec_engine.py` for deterministic attribute-specific answers (speed, width, ink, scanner, full specs).
-
-**Testing — 100% Pass Rate**
-- **45 regression & orchestration tests** passing across 6 test suites:
-  - `test_app.py` — API endpoint and guardrail tests
-  - `test_consumables.py` — consumable matching and card output
-  - `test_nlp.py` — NLP normalization and intent extraction
-  - `test_rag.py` — RAG retrieval and confidence gating
-  - `tests/test_claim_validator.py` — 7 zero-hallucination claim tests
-  - `tests/test_architecture_single_orchestrator.py` — canonical orchestrator and state manager integrity
-  - `tests/test_security_hardening.py` — SSRF, allowlist, headers, health endpoints
-  - `tests/test_retrieval_and_eligibility.py` — RAG corpus join and strict eligibility
-  - `.github/workflows/ci.yml` — GitHub Actions CI on Python 3.11 & 3.12
+- **Deterministic-First Conversational Orchestrator**: Single canonical pipeline ([`agent/orchestrator.py`](agent/orchestrator.py)) strictly governing qualification schemas, catalog matching, anti-frustration guards, and model detail queries.
+- **Direct Part Number & SKU Resolver**: Instant recognition of genuine Epson consumables (`C13T...`, `C13S...`, `C12C...`) and Citizen photo media (`CX2.4x6`, `CX2.6X8`, `CX2W 812`, `CY-MS46`, etc.) returning verified product cards without unnecessary qualification loops.
+- **Dynamic Consumables & Accessories Engine**: Graph-based resolver connecting hardware printers to authorized inks, maintenance boxes, and paper rolls.
+- **Approved 43-Hardware Product Catalogue Scope**: Strict filtering across Technical CAD (T-Series), Photo & Fine Art (P-Series), WorkForce Enterprise/Pro Office (AM/WF-Series), Dye-Sublimation (SC-F100/F500), and Citizen Photo (CX/CY/CZ-Series).
+- **Zero-Hallucination & Fail-Closed Guardrails**: Attribute-specific validation preventing speculative claims, unapproved models, or invented product links.
+- **HMAC-Protected Multi-Turn State**: Thread-safe session state store with 2-hour TTL, LRU eviction, and optional Redis persistence.
 
 ---
 
 ## Quick Start
 
-### 1. Configure environment
+### 1. Environment Setup
 ```bash
+# Clone repository and enter directory
+cd /opt/salesai
+
+# Activate Python virtual environment
+source venv/bin/activate
+
+# Configure environment variables
 cp .env.example .env
-# Edit .env — set SECRET_KEY and confirm OLLAMA_BASE_URL
+# Edit .env to configure SECRET_KEY, PORT (default 5050), and OLLAMA_BASE_URL
 ```
 
-### 2. Run the server
+### 2. Running Locally
 ```bash
 python run.py
 ```
-Server starts at **http://localhost:5055**
+Server starts at **http://localhost:5050** (or configured `PORT`).
 
-### 3. Open the chat widget
-Visit `http://localhost:5055` — click the floating chat button or go to `/chat` for the full-screen interface.
-
-### 4. API — Chat endpoint
+### 3. Service Management (Systemd)
+The production service runs as a systemd user service:
 ```bash
-curl -X POST http://localhost:5055/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message": "I need a CAD plotter for A1 drawings.", "session_id": "demo-001"}'
+# Check service status
+systemctl --user status salesai.service
+
+# Restart service after code updates
+systemctl --user restart salesai.service
+
+# Stream live service logs
+journalctl --user -u salesai.service -f
 ```
 
-### 5. Health check
+### 4. API — Conversational Endpoint
 ```bash
-curl http://localhost:5055/health/live   # {"status": "alive"}
-curl http://localhost:5055/health/ready  # {"status": "ready", "catalog_count": 833, "ollama_ok": true}
+# Standard printer inquiry
+curl -X POST http://localhost:5050/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "I need a 36-inch CAD plotter with scanner.", "session_id": "demo-001"}'
+
+# Direct SKU inquiry
+curl -X POST http://localhost:5050/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "i need C13T11C340", "session_id": "demo-002"}'
+```
+
+### 5. Health & Readiness Probes
+```bash
+curl http://localhost:5050/health/live   # {"status": "alive"}
+curl http://localhost:5050/health/ready  # {"status": "ready", "catalog_count": 43, "catalogue_ok": true, "persistence_ok": true}
 ```
 
 ---
 
-## Architecture
+## Architecture Overview
 
 ```
 app.py  ──▶  agent/orchestrator.py  ──▶  agent/decision_engine.py
                      │                          │
-             routes/product_route.py     rag/retriever.py
-             routes/qualification_route.py    ↕
-             routes/consumables_route.py  catalog/repository.py
-             routes/comparison_route.py
-             routes/help_and_guardrail_route.py
+             nlp/llm_understanding.py    rag/consumables_engine.py
+                     │                          ↕
+             catalog/catalogue_resolver.py  rag/retriever.py
+             conversation/qualification_schema.py
+             validation/deterministic_validator.py
                      │
-             validation/claim_validator.py  (zero-hallucination)
-             domain/state_store.py          (HMAC session state)
+             domain/state_store.py  (Session State & HMAC Security)
 ```
+
+For complete technical specifications, see [**DEVELOPER.md**](DEVELOPER.md).
 
 ---
 
@@ -128,37 +97,41 @@ app.py  ──▶  agent/orchestrator.py  ──▶  agent/decision_engine.py
 
 | Variable | Default | Description |
 |---|---|---|
-| `PORT` | `5055` | Flask server port |
-| `SECRET_KEY` | *(must set)* | HMAC session signing key |
-| `OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | Ollama server URL |
-| `OLLAMA_MODEL` | `qwen2.5:32b` | Default LLM model |
+| `PORT` | `5050` | Flask server listening port |
+| `SECRET_KEY` | *(configured in .env)* | HMAC session signing secret |
+| `OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | Ollama LLM server address |
+| `DEFAULT_MODEL` | `qwen2.5:32b` | Primary LLM model for natural language understanding |
 | `ALLOWED_MODELS` | *(see .env.example)* | Comma-separated model allowlist |
-| `CORS_ORIGINS` | `localhost:5055` | Comma-separated allowed origins |
-| `MAX_REQUEST_BYTES` | `65536` | Max POST body size (bytes) |
-| `REDIS_URL` | *(optional)* | Redis URL for persistent state |
-
-See [`.env.example`](.env.example) for full reference.
+| `CORS_ORIGINS` | `localhost:5050` | Allowed CORS origins |
+| `MAX_REQUEST_BYTES` | `65536` | Maximum allowed request body size (64 KB) |
+| `REDIS_URL` | *(optional)* | Redis connection string for persistent session state |
 
 ---
 
-## Running Tests
+## Running Test Suites
 
 ```bash
-# Unit tests
-python -m unittest discover -s tests -p "test_*.py"
+# Run complete test suite via pytest
+pytest
 
-# Integration tests (requires running server + Ollama)
-python test_app.py
-python test_consumables.py
-python test_nlp.py
-python test_rag.py
+# Run direct SKU & consumable resolution tests
+pytest tests/test_direct_sku_resolution.py -v
+
+# Run comparison engine tests
+pytest tests/test_comparison_engine.py -v
+
+# Run adversarial and resilience test suite
+pytest tests/test_adversarial_and_resilience.py -v
+
+# Run architectural integrity test suite
+pytest tests/test_architecture_single_orchestrator.py -v
 ```
 
 ---
 
-## Contact
+## Contact & Support
 
 **Kepler Tech LLC** — Dubai, UAE
-- 📧 sales@keplertech.ae
+- 📧 sales@keplertech.ae | info@keplertech.ae
 - 📞 +971 4 323 1008 | +971 55 835 8586
 - 🌐 [www.keplertechllc.com](https://www.keplertechllc.com)

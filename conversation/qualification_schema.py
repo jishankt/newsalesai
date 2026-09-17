@@ -18,6 +18,7 @@ ALLOWED_PRODUCT_LINES = {
     "workforce_enterprise",
     "surecolor_t",
     "surecolor_p",
+    "surecolor_f",
     "citizen",
     "unspecified",
 }
@@ -41,12 +42,12 @@ CATEGORY_REQUIREMENT_SCHEMAS: Dict[str, Dict[str, List[str]]] = {
     },
     "technical_large_format": {
         "mandatory": [
-            "application",
             "print_width",
             "scanner_required",
-            "daily_volume",
         ],
         "optional": [
+            "application",
+            "daily_volume",
             "product_line",
             "dual_roll_required",
             "postscript_required",
@@ -56,10 +57,11 @@ CATEGORY_REQUIREMENT_SCHEMAS: Dict[str, Dict[str, List[str]]] = {
     },
     "photography_large_format": {
         "mandatory": [
-            "print_width",
-            "daily_volume",
+            "photo_form_factor",
         ],
         "optional": [
+            "photo_brand",
+            "print_width",
             "product_line",
             "application",
             "scanner_required",
@@ -71,17 +73,27 @@ CATEGORY_REQUIREMENT_SCHEMAS: Dict[str, Dict[str, List[str]]] = {
         ]
     },
     "citizen_photo": {
-        "mandatory": [
+        "mandatory": [],
+        "optional": [
             "print_sizes",
             "daily_volume",
-        ],
-        "optional": [
             "product_line",
             "usage_environment",
             "portability_required",
             "available_space",
             "finish_required",
             "unattended_operation",
+        ]
+    },
+    "dye_sublimation": {
+        "mandatory": [
+            "paper_size",
+            "daily_volume",
+        ],
+        "optional": [
+            "application",
+            "product_line",
+            "media_handling",
         ]
     }
 }
@@ -90,6 +102,15 @@ QUESTIONS_BY_FIELD: Dict[str, Dict[str, Any]] = {
     "product_line": {
         "question": "Which product line do you prefer—WorkForce Pro or WorkForce Enterprise?",
         "pills": ["WorkForce Pro", "WorkForce Enterprise", "Any / Either"]
+    },
+    # Sublimation printers
+    "sublimation_format": {
+        "question": "What format or print width do you require for sublimation—compact A4 desktop (for mugs, small gifts, and cut-sheet T-shirt transfers like the SC-F100) or 24-inch roll (for apparel, sportswear, and larger textiles like the SC-F500)?",
+        "pills": ["A4 Desktop (SC-F100)", "24-inch Roll (SC-F500)"]
+    },
+    "sublimation_application": {
+        "question": "What merchandise or apparel items will you be printing (e.g. T-shirts, mugs, phone cases, or sportswear)?",
+        "pills": ["T-Shirts & Apparel", "Mugs & Personalized Gifts", "Sportswear & Soft Signage"]
     },
     # Office printers
     "paper_size": {
@@ -123,7 +144,15 @@ QUESTIONS_BY_FIELD: Dict[str, Dict[str, Any]] = {
         "pills": ["Yes, with Scanner", "No, Print Only"]
     },
 
-    # Photography / Fine art
+    # Photography / Fine art & Photo printers
+    "photo_form_factor": {
+        "question": "Do you need a compact photo printer (desktop / portable) or a large-format photo & fine art printer (24-inch to 64-inch roll)?",
+        "pills": ["Compact (Desktop / Portable)", "Large Format (24″ to 64″)"]
+    },
+    "photo_brand": {
+        "question": "Which brand or printing application do you prefer—Epson desktop fine art (A3+/A2+ for professional photography) or Citizen instant dye-sub (for photo booths & events)?",
+        "pills": ["Epson Desktop (Fine Art / A3+ / A2+)", "Citizen (Photo Booth / Events)"]
+    },
     "photography_print_width": {
         "question": "What print width do you need—compact 13-inch (A3+), 17-inch (A2+), 24-inch, 44-inch, or 64-inch?",
         "pills": ["13-inch (A3+)", "17-inch (A2+)", "24-inch Professional", "44-inch Fine Art", "64-inch Production"]
@@ -149,12 +178,58 @@ def get_mandatory_fields(category: str) -> List[str]:
 
 def get_missing_mandatory_fields(category: str, requirements: Dict[str, Any]) -> List[str]:
     """Identifies which mandatory fields are still unanswered in requirements."""
+    if category in ("photography_large_format", "photo_printer", "photo"):
+        form_factor = requirements.get("photo_form_factor")
+        width = requirements.get("print_width")
+        
+        # Infer form factor if width or specific sizes/models are already specified
+        if width in (24, 44, 64):
+            form_factor = "large"
+            requirements["photo_form_factor"] = "large"
+        elif width in (13, 17) or requirements.get("print_sizes"):
+            form_factor = "compact"
+            requirements["photo_form_factor"] = "compact"
+
+        if not form_factor:
+            return ["photo_form_factor"]
+
+        if form_factor == "large":
+            # "if select large send all" -> immediately complete, no further questions required
+            return []
+
+        if form_factor == "compact":
+            brand = requirements.get("photo_brand") or requirements.get("brand")
+            if width in (13, 17):
+                brand = "epson"
+                requirements["photo_brand"] = "epson"
+            elif requirements.get("print_sizes"):
+                brand = "citizen"
+                requirements["photo_brand"] = "citizen"
+
+            if not brand:
+                return ["photo_brand"]
+            return []
+
+    if category == "technical_large_format":
+        width = requirements.get("print_width")
+
+        # 24-inch CAD printers (SC-T3100 series) have NO scanner/MFP variant.
+        # Skip the scanner question entirely and route directly to products.
+        if width == 24:
+            requirements["scanner_required"] = False
+            requirements.setdefault("functions", ["print"])
+
+        mandatory = get_mandatory_fields(category)
+        missing = []
+        for f in mandatory:
+            val = requirements.get(f)
+            if val is None or val == "" or val == []:
+                missing.append(f)
+        return missing
+
     mandatory = get_mandatory_fields(category)
     missing = []
     for f in mandatory:
-        # For technical CAD: all 24-inch models in catalogue are dedicated print-only
-        if category == "technical_large_format" and f == "scanner_required" and requirements.get("print_width") == 24:
-            continue
         val = requirements.get(f)
         if val is None or val == "" or val == []:
             missing.append(f)
@@ -169,7 +244,9 @@ def get_next_question(category: str, missing_fields: List[str]) -> Optional[Dict
     field_name = missing_fields[0]
     
     # Context-tailored questions
-    if field_name == "print_width" and category == "photography_large_format":
+    if field_name in ("paper_size", "print_width") and category == "dye_sublimation":
+        q_data = QUESTIONS_BY_FIELD["sublimation_format"]
+    elif field_name == "print_width" and category == "photography_large_format":
         q_data = QUESTIONS_BY_FIELD["photography_print_width"]
     elif field_name == "daily_volume":
         if category == "citizen_photo":
@@ -181,6 +258,11 @@ def get_next_question(category: str, missing_fields: List[str]) -> Optional[Dict
             q_data = {
                 "question": "Approximately how many drawings or plans do you print daily?",
                 "pills": ["Low (1–15 drawings)", "Medium (15–50 drawings)", "High Volume (50+ drawings)"]
+            }
+        elif category == "dye_sublimation":
+            q_data = {
+                "question": "Approximately how many items, prints, or transfers do you plan to produce per day?",
+                "pills": ["Low (under 30/day)", "Medium (30–100/day)", "High Volume (100+/day)"]
             }
         else:
             q_data = QUESTIONS_BY_FIELD["daily_volume"]

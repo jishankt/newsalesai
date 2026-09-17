@@ -15,31 +15,46 @@ class NextQuestionEngine:
         category = state.category
         reqs = state.requirements or {}
 
-        # Technical CAD / technical_large_format flow
-        if category in ("technical_cad", "technical_large_format"):
-            # 1. Print size / width
+        # Technical CAD legacy evaluation flow
+        if category == "technical_cad":
             if not reqs.get("print_size") and not reqs.get("print_width"):
                 return {
                     "field": "print_size",
-                    "question": "What is the maximum print width or paper format you require (e.g. A1/24\" or A0/36\")?",
+                    "question": "What is the maximum paper size you need to print (e.g., A0, A1)?",
                     "importance": "critical",
-                    "chips": ["A1 (24-inch)", "A0 (36-inch)", "44-inch"]
+                    "chips": ["A0 (36 inch)", "A1 (24 inch)", "A0+ / 44 inch"]
                 }
-            # 2. Scanner required (all 24-inch models in catalogue are dedicated print-only)
-            if reqs.get("print_width") != 24 and reqs.get("scan_required") is None and reqs.get("scanner_required") is None:
+            if reqs.get("scan_required") is None and reqs.get("scanner_required") is None:
                 return {
                     "field": "scan_required",
-                    "question": "Do you need an integrated scanner for copying and scanning, or is print-only sufficient?",
+                    "question": "Do you require scanning functionality (multifunction) or is print-only sufficient?",
                     "importance": "critical",
-                    "chips": ["Integrated Scanner", "Print Only"]
+                    "chips": ["Print Only", "Print + Scan (MFP)"]
                 }
-            # 3. Daily volume
             if reqs.get("daily_volume") is None:
                 return {
                     "field": "daily_volume",
-                    "question": "Approximately how many drawings or plans do you print daily?",
+                    "question": "Approximately how many drawings or posters will you print per day?",
                     "importance": "important",
-                    "chips": ["Under 20 drawings", "20–50 drawings", "50+ drawings"]
+                    "chips": ["Low (<10/day)", "Medium (10-50/day)", "High (>50/day)"]
+                }
+            return None
+
+        # Canonical Technical Large Format flow (streamlined: inches -> scanner, no volume)
+        if category == "technical_large_format":
+            if not reqs.get("print_width"):
+                return {
+                    "field": "print_width",
+                    "question": "What maximum roll width do you require—24-inch (A1), 36-inch (A0), or 44-inch?",
+                    "importance": "critical",
+                    "chips": ["24-inch (A1)", "36-inch (A0)", "44-inch Wide"]
+                }
+            if reqs.get("scanner_required") is None:
+                return {
+                    "field": "scanner_required",
+                    "question": "Do you need an integrated wide-format scanner for copying blueprints, or print-only?",
+                    "importance": "critical",
+                    "chips": ["Yes, with Scanner", "No, Print Only"]
                 }
             return None
 
@@ -61,21 +76,62 @@ class NextQuestionEngine:
                 }
             return None
 
-        # Citizen photo flow
+        # Citizen photo flow ("if its citizen give all the four")
         if category in ("citizen_photo", "photo_booth"):
-            if not reqs.get("print_sizes") and not reqs.get("print_size"):
+            return None
+
+        # Photography and Fine Art / Unified Photo flow
+        if category in ("photography_large_format", "photo_fine_art", "photography", "photo_printer"):
+            form_factor = reqs.get("photo_form_factor")
+            width = reqs.get("print_width")
+            if width in (24, 44, 64):
+                form_factor = "large"
+            elif width in (13, 17) or reqs.get("print_sizes"):
+                form_factor = "compact"
+
+            if not form_factor:
                 return {
-                    "field": "print_sizes",
-                    "question": "Which photo print dimensions do you need (e.g., 4×6″, 6×8″, or 8×10″/8×12″)?",
+                    "field": "photo_form_factor",
+                    "question": "Do you need a compact photo printer (desktop / portable) or a large-format photo & fine art printer (24-inch to 64-inch roll)?",
                     "importance": "critical",
-                    "chips": ["4x6 & 6x8", "4x4 / 4.5x8", "8x10 & 8x12"]
+                    "chips": ["Compact (Desktop / Portable)", "Large Format (24″ to 64″)"]
+                }
+
+            if form_factor == "large":
+                # "if select large send all" -> immediately complete
+                return None
+
+            if form_factor == "compact":
+                brand = reqs.get("photo_brand") or reqs.get("brand")
+                if width in (13, 17) or reqs.get("application") == "fine_art":
+                    brand = "epson"
+                elif reqs.get("print_sizes") or reqs.get("application") in ("photo_booth", "citizen_photo"):
+                    brand = "citizen"
+
+                if not brand:
+                    return {
+                        "field": "photo_brand",
+                        "question": "Which brand or printing application do you prefer—Epson desktop fine art (A3+/A2+ for professional photography) or Citizen instant dye-sub (for photo booths & events)?",
+                        "importance": "critical",
+                        "chips": ["Epson Desktop (Fine Art / A3+ / A2+)", "Citizen (Photo Booth / Events)"]
+                    }
+                return None
+
+        # Dye Sublimation flow (F100, F500, T-Shirts, Merchandise)
+        if category in ("dye_sublimation", "sublimation"):
+            if not reqs.get("paper_size") and not reqs.get("print_width") and not reqs.get("model"):
+                return {
+                    "field": "paper_size",
+                    "question": "What format or print width do you require—compact A4 desktop (for mugs, small gifts, and cut-sheet T-shirt transfers like the SC-F100) or 24-inch roll (for apparel, sportswear, and textiles like the SC-F500)?",
+                    "importance": "critical",
+                    "chips": ["A4 Desktop (SC-F100)", "24-inch Roll (SC-F500)"]
                 }
             if reqs.get("daily_volume") is None:
                 return {
                     "field": "daily_volume",
-                    "question": "Approximately how many photos do you expect to print per day or per event?",
+                    "question": "Approximately how many items or transfers do you plan to print daily?",
                     "importance": "important",
-                    "chips": ["Under 200 prints", "200–500 prints", "700+ prints"]
+                    "chips": ["Under 30 items", "30–100 items", "100+ items"]
                 }
             return None
 

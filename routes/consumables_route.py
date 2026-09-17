@@ -378,6 +378,23 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
                 matched_color_cards.append(c)
 
         if matched_color_cards:
+            # Distinguish exact requested color from modifier variants (e.g., "cyan" vs "light cyan")
+            filtered_cards = []
+            for c in matched_color_cards:
+                c_name_l = (c.get("name", "") + " " + c.get("description", "")).lower()
+                keep = True
+                for clr in extracted_colors:
+                    if clr == "cyan" and "light cyan" in c_name_l and "light" not in raw_lower:
+                        keep = False
+                    elif clr == "magenta" and ("light magenta" in c_name_l or "vivid light magenta" in c_name_l) and "light" not in raw_lower:
+                        keep = False
+                    elif clr == "gray" and ("light gray" in c_name_l or "dark gray" in c_name_l) and "light" not in raw_lower and "dark" not in raw_lower:
+                        keep = False
+                if keep:
+                    filtered_cards.append(c)
+            if filtered_cards:
+                matched_color_cards = filtered_cards
+
             colors_formatted = ", ".join([c.title() for c in extracted_colors[:-1]]) + (" and " if len(extracted_colors) > 1 else "") + extracted_colors[-1].title()
             plural = "inks" if len(extracted_colors) > 1 or len(matched_color_cards) > 1 else "ink"
             return RouteResult(

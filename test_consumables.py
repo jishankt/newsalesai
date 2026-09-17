@@ -127,7 +127,8 @@ class ConsumablesAndCardsTestCase(unittest.TestCase):
 
     def test_color_first_then_printer_model(self):
         """User asks for 'i want cyan ink' -> Assistant asks model -> User responds 'f100' -> Returns Cyan ink."""
-        sess_id = "test-cyan-first-session"
+        import uuid
+        sess_id = f"test-cyan-first-{uuid.uuid4().hex[:8]}"
         # Turn 1: Ask for cyan ink without printer model
         resp1 = self.client.post("/api/chat", json={
             "message": "i want cyan ink",
@@ -152,7 +153,8 @@ class ConsumablesAndCardsTestCase(unittest.TestCase):
 
     def test_ink_for_this_active_printer(self):
         """User views printer P900, then says 'i want cyan ink for this' -> directly returns Cyan ink for P900."""
-        sess_id = "test-ink-for-this-session"
+        import uuid
+        sess_id = f"test-ink-for-this-{uuid.uuid4().hex[:8]}"
         # Turn 1: Show P900 printer
         resp1 = self.client.post("/api/chat", json={
             "message": "p900 printer",

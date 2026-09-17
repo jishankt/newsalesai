@@ -19,9 +19,9 @@ class TestCatalogueScopeAndFilters(unittest.TestCase):
     def setUp(self):
         self.products = catalogue_loader.load_and_validate()
 
-    def test_catalogue_loader_exact_42_entries(self):
-        """Assert startup validation enforces exactly 42 active products."""
-        self.assertEqual(len(self.products), 42)
+    def test_catalogue_loader_exact_43_entries(self):
+        """Assert startup validation enforces exactly 43 active products."""
+        self.assertEqual(len(self.products), 43)
         # Unique IDs
         ids = [p["id"] for p in self.products]
         self.assertEqual(len(ids), len(set(ids)))
@@ -190,19 +190,19 @@ class TestCatalogueScopeAndFilters(unittest.TestCase):
         self.assertIn("epson-am-c6000", prod_ids)
 
     def test_case_13_unapproved_model_refusal(self):
-        """Unapproved / website-only models (e.g. SC-F500) are refused.
+        """Unapproved / website-only models (e.g. Canon imagePROGRAF, Epson EcoTank L805) are refused.
 
-        Note: SC-F100 is now an approved catalogue product.
-        SC-F500 is not in the catalogue and should be refused.
+        Note: SC-F100 and SC-F500 are approved sublimation catalogue products.
+        Unapproved brands and non-catalogue models must be refused.
         """
         state = ConversationState(session_id="unapproved-test")
-        res = orchestrator.process_turn("Do you have the Epson SureColor SC-F500?", state=state)
+        res = orchestrator.process_turn("Do you have the Canon imagePROGRAF large format printer?", state=state)
         # Validator check: Response text must not endorse unapproved models
         # and cards must not contain unapproved IDs
         cards = res.get("cards", [])
         for card in cards:
             self.assertIn(card["id"], catalogue_loader.approved_ids)
-        # Should inform the user that SC-F500 is not in Kepler's catalogue
+        # Should inform the user that the unapproved model is not in Kepler's catalogue
         msg = res["message"].lower()
         self.assertTrue("not part of" in msg or "not carry" in msg or "catalogue" in msg)
 
@@ -271,9 +271,9 @@ class TestCatalogueScopeAndFilters(unittest.TestCase):
         self.assertIn("epson-wf-c5890-dwf", card_ids)
 
     def test_volume_bare_number_response(self):
-        """Ensure bare number like '20 to 30' or '20' answers daily_volume question."""
+        """Ensure bare number like '20 to 30' or '20' answers daily_volume question for office printers."""
         state = ConversationState(session_id="volume-bare-test")
-        res1 = orchestrator.process_turn("36-inch CAD printer print only", state=state)
+        res1 = orchestrator.process_turn("A4 colour office printer", state=state)
         self.assertEqual(state.awaiting_field, "daily_volume")
         res2 = orchestrator.process_turn("20 to 30", state=state)
         self.assertEqual(state.requirements.get("daily_volume"), 25)

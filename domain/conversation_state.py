@@ -51,6 +51,8 @@ class ConversationState:
 
     # ── Operational ──────────────────────────────────────────────────────
     awaiting_field: Optional[str] = None
+    unresolved_field_turns: int = 0
+    last_suggested_chips: List[str] = field(default_factory=list)
     history_turns: List[Dict[str, Any]] = field(default_factory=list)
     turn_count: int = 0
     state_version: int = 3
@@ -91,6 +93,8 @@ class ConversationState:
             "active_printer_for_consumables": self.active_printer_for_consumables,
             "requested_ink_color": self.requested_ink_color,
             "awaiting_field": self.awaiting_field,
+            "unresolved_field_turns": self.unresolved_field_turns,
+            "last_suggested_chips": self.last_suggested_chips,
             "history_turns": self.history_turns,
             "turn_count": self.turn_count or len(self.history_turns),
             "state_version": self.state_version,
@@ -130,6 +134,8 @@ class ConversationState:
             active_printer_for_consumables=data.get("active_printer_for_consumables"),
             requested_ink_color=data.get("requested_ink_color"),
             awaiting_field=data.get("awaiting_field"),
+            unresolved_field_turns=data.get("unresolved_field_turns", 0),
+            last_suggested_chips=data.get("last_suggested_chips", []),
             history_turns=data.get("history_turns", []),
             turn_count=data.get("turn_count", 0),
             state_version=data.get("state_version", 3),

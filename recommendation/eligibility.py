@@ -85,6 +85,9 @@ class EligibilityEngine:
                     if target_pair1 in supported_sizes_lower or target_pair2 in supported_sizes_lower:
                         continue
                     
+                    if (target_pair1 in ("2x6", "6x2") or target_pair2 in ("2x6", "6x2")) and product.id in ("citizen-cx-02", "citizen-cy-02"):
+                        continue
+                    
                     # Width alone must NEVER prove dye-sub media compatibility
                     if is_dye_sub:
                         all_matched = False

@@ -170,26 +170,26 @@ class TestProductionReadiness(unittest.TestCase):
 
     # ── Requirement 6: Product-Finding-Only Global Policy ────────────────────
     def test_product_finding_only_global_policy(self):
-        """Pricing and discount queries return DISCOUNT_REFUSAL; zero sales contact or prices."""
-        price_queries = [
-            "What is the price of the Citizen CX-02?",
-            "How much does the CX-02 cost in AED?",
+        """Discount queries return DISCOUNT_REFUSAL with official website and support info."""
+        discount_queries = [
             "Can you give me a discount for volume?",
-            "What are your commercial rates?",
+            "What discount can you give me?",
+            "Can we negotiate the price?",
+            "Give me a better deal on this printer",
         ]
-        for q in price_queries:
+        for q in discount_queries:
             refusal = check_user_intent_for_pricing_or_discount(q)
             self.assertIsNotNone(refusal, f"Expected refusal for query: {q}")
             self.assertEqual(refusal, DISCOUNT_REFUSAL)
-            self.assertNotIn("@", refusal, "Refusal must not contain email address")
-            self.assertNotIn("+971", refusal, "Refusal must not contain phone number")
+            self.assertIn("keplertechllc.com", refusal)
+            self.assertIn("sales@keplertech.ae", refusal)
 
     def test_validate_and_sanitize_scrubs_contact_details(self):
-        """validate_and_sanitize_response scrubs email addresses and phone numbers."""
-        text_with_contact = "You can view the CX-02. Contact sales@keplertech.ae or call +971 4 323 1008."
+        """validate_and_sanitize_response scrubs unauthorized external emails and numbers while preserving Kepler Tech contacts."""
+        text_with_contact = "You can view the CX-02. Contact testuser@external.com or call +1 555 123 4567."
         sanitized = validate_and_sanitize_response(text_with_contact, "Tell me about CX-02")
-        self.assertNotIn("sales@keplertech.ae", sanitized)
-        self.assertNotIn("+971 4 323 1008", sanitized)
+        self.assertNotIn("testuser@external.com", sanitized)
+        self.assertNotIn("+1 555 123 4567", sanitized)
 
     # ── Requirement 7: State Persistence ────────────────────────────────────
     def test_conversation_state_persistence(self):
@@ -259,9 +259,10 @@ class TestProductionReadiness(unittest.TestCase):
             history=[],
             state=state,
         )
-        self.assertEqual(res["reply"], PRICE_REFUSAL)
-        self.assertEqual(res["source"], "guardrail:price_refusal")
-        self.assertEqual(res["active_agent"]["id"], "receptionist")
+        self.assertIn("3,880.00", res["reply"])
+        self.assertIn("AED", res["reply"])
+        self.assertEqual(res["source"], "route:product_price_inquiry")
+        self.assertEqual(res["active_agent"]["id"], "product_specialist")
 
     def test_discount_query_never_invokes_sales_lead_agent(self):
         """Discount and quote queries never invoke sales_lead_agent.handle_turn."""

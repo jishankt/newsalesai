@@ -29,7 +29,19 @@ from agent.response_composer import ResponseComposer
 from nlp.llm_understanding import LLMUnderstandingEngine
 from domain.conversation_types import Intent, LLMUnderstanding, RouteResult, RouteName
 from domain.conversation_state import ConversationState
-from guardrails import validate_and_sanitize_response, PRICE_REFUSAL, STATIC_SAFE_REFUSAL
+from guardrails import (
+    validate_and_sanitize_response,
+    PRICE_REFUSAL,
+    DISCOUNT_REFUSAL,
+    STATIC_SAFE_REFUSAL,
+    is_price_inquiry,
+    is_discount_inquiry,
+    format_product_price_response,
+    GENERAL_PRICE_DIRECT,
+    OFFICIAL_WEBSITE_URL,
+    OFFICIAL_SUPPORT_EMAIL,
+    OFFICIAL_SUPPORT_PHONE,
+)
 from ollama_client import OllamaClient
 
 from catalog.catalogue_loader import catalogue_loader
@@ -38,6 +50,7 @@ from catalog.catalogue_filter import catalogue_filter
 from catalog.catalogue_resolver import (
     find_mentioned_catalogue_products,
     build_model_detail_response,
+    build_p900_family_detail_response,
     build_approved_comparison_response,
 )
 from conversation.qualification_schema import (
@@ -49,6 +62,8 @@ from conversation.normalizer import (
     normalize_category,
     extract_deterministic_requirements,
 )
+from conversation.canonical_entity_normalizer import CanonicalEntityNormalizer
+from conversation.contextual_slot_resolver import ContextualSlotResolver
 from validation.catalogue_validator import (
     validate_product_cards,
     validate_and_sanitize_catalogue_text,
@@ -102,11 +117,16 @@ class Orchestrator:
 
         if intercept_result.matched and not intercept_result.should_continue:
             nlp_result["intent"] = intercept_result.intent or ""
-            source = "guardrail:price_refusal" if intercept_result.intent in ("price_inquiry", "discount_inquiry", "quote", "commercial") else f"interceptor:{intercept_result.intent}"
+            source = "guardrail:discount_refusal" if intercept_result.intent in ("discount_inquiry", "quote", "commercial") else f"interceptor:{intercept_result.intent}"
 
-            if intercept_result.intent in ("price_inquiry", "discount_inquiry", "quote", "commercial"):
-                reply_text = PRICE_REFUSAL
-                chips_to_return = []
+            if intercept_result.intent in ("discount_inquiry", "quote", "commercial"):
+                reply_text = DISCOUNT_REFUSAL
+                chips_to_return = [
+                    "Technical CAD Plotters",
+                    "Office Enterprise MFPs",
+                    "Photo & Fine Art",
+                    "View Consumables",
+                ]
             else:
                 reply_text = intercept_result.response
                 chips_to_return = intercept_result.suggested_chips or []
@@ -166,18 +186,35 @@ class Orchestrator:
                 state.requirements["printing_technology"] = "inkjet"
                 state.awaiting_field = None
 
-        if state.awaiting_field != "studio_technology_preference" and not state.requirements.get("printing_technology"):
-            detected_category = normalize_category(normalized_msg, state.category)
+        detected_category = normalize_category(normalized_msg, state.category)
+        is_hardware_switch = detected_category and detected_category not in (None, "consumable")
+
+        if (state.awaiting_field not in ("studio_technology_preference", "photo_brand") or is_hardware_switch) and not state.requirements.get("printing_technology"):
             if detected_category and state.category != detected_category:
                 logger.info(f"[{session_id[:8]}] Category updated to: {detected_category}")
                 state.reset_category(detected_category)
+                if state.awaiting_field == "printer_model":
+                    state.awaiting_field = None
 
         # Track previous state for natural conversational feedback
         prev_requirements = dict(state.requirements)
+        prev_awaiting_field = state.awaiting_field
         had_cards = bool(state.displayed_product_ids) or state.results_loaded or state.stage == "recommending"
+        prev_active_product = state.active_product
+        prev_active_product_id = state.active_product_id
 
-        # ── 5. Deterministic Requirement Extraction & Normalization ───────
-        det_reqs, det_corrections = extract_deterministic_requirements(normalized_msg, state.category)
+        # ── 5. Contextual Slot Resolution & Deterministic Extraction ─────
+        c_reqs, c_corrections = ContextualSlotResolver.resolve(
+            text=normalized_msg,
+            awaiting_field=state.awaiting_field,
+            category=state.category,
+            requirements=state.requirements,
+            active_chips=getattr(state, "last_suggested_chips", [])
+        )
+
+        det_reqs, det_corrections = extract_deterministic_requirements(normalized_msg, state.category, state.awaiting_field)
+        det_reqs.update(c_reqs)
+        det_corrections.update(c_corrections)
 
         # If user was specifically answering awaiting_field == "daily_volume", ensure number is captured
         if state.awaiting_field == "daily_volume" and "daily_volume" not in det_reqs:
@@ -188,6 +225,32 @@ class Orchestrator:
                 num_match = re.search(r"\b(\d+)\b", normalized_msg)
                 if num_match:
                     det_reqs["daily_volume"] = int(num_match.group(1))
+
+        # If user was specifically answering awaiting_field in ("scanner_required", "scan_required")
+        if state.awaiting_field in ("scanner_required", "scan_required") and "scanner_required" not in det_reqs:
+            msg_clean = normalized_msg.strip().lower()
+            if re.search(r"\b(?:yes|yeah|yep|yup|sure|definitely|absolutely|required|needed|include|including|with|with scanner|scanner|scan|mfp|copier|copy)\b", msg_clean):
+                det_reqs["scanner_required"] = True
+                det_reqs["functions"] = ["print", "scan", "copy"]
+            elif re.search(r"\b(?:no|nope|nah|not|negative|none|without|print\s*only|just\s*print|only\s*print)\b", msg_clean):
+                det_reqs["scanner_required"] = False
+                det_reqs["functions"] = ["print"]
+
+        # If user was answering a relaxation question
+        if state.awaiting_field == "relaxation":
+            msg_clean = normalized_msg.strip().lower()
+            # Note: 24-inch has no scanner variant — that case is handled upstream (qualification_schema)
+            # Only 44-inch can offer a relaxation to 36-inch + MFP
+            if state.requirements.get("print_width") == 44 and state.requirements.get("scanner_required") is True:
+                if re.search(r"\b(?:yes|yeah|yep|yup|sure|36|36-inch|36\"|t5100m|multifunction)\b", msg_clean):
+                    det_reqs["print_width"] = 36
+                    det_reqs["scanner_required"] = True
+                    det_corrections["print_width"] = 36
+                    state.awaiting_field = None
+                elif re.search(r"\b(?:no|nope|nah|44|44-inch|44\"|print\s*only|without\s*scanner)\b", msg_clean):
+                    det_reqs["scanner_required"] = False
+                    det_corrections["scanner_required"] = False
+                    state.awaiting_field = None
         
         # Merge LLM requirement updates if present and not overridden by deterministic rules
         if understanding.requirement_updates:
@@ -195,8 +258,27 @@ class Orchestrator:
                 if k not in det_reqs and v is not None and v != "":
                     det_reqs[k] = v
 
-        state.update_requirements(det_reqs, det_corrections)
+        # Dialogue Act Guard: If user is asking a capability question about an already active product,
+        # do not pollute search requirements or wipe active_product from state.
+        is_cap_query = CanonicalEntityNormalizer.is_capability_query(normalized_msg)
+        if is_cap_query and state.active_product:
+            logger.info(f"[{session_id[:8]}] Capability query detected for active product {state.active_product}; preserving requirements")
+        else:
+            state.update_requirements(det_reqs, det_corrections)
         logger.info(f"[{session_id[:8]}] Current requirements: {state.requirements}")
+
+        # ── Synchronise state.category from resolved requirements ────────────
+        # ContextualSlotResolver and deterministic extractors write category into
+        # det_reqs["category"], but state.category is a separate top-level attribute.
+        # Without this sync, `if not state.category:` on line ~787 fires again and
+        # asks the identical category question — causing the repetition loop.
+        resolved_cat = det_reqs.get("category")
+        if resolved_cat and resolved_cat != state.category:
+            logger.info(f"[{session_id[:8]}] Syncing state.category from det_reqs: {resolved_cat}")
+            state.reset_category(resolved_cat)
+            if state.awaiting_field == "category":
+                state.awaiting_field = None
+                state.unresolved_field_turns = 0
 
         is_correction_turn = bool(det_corrections) or any(
             w in normalized_msg.lower() for w in [
@@ -215,6 +297,8 @@ class Orchestrator:
         # Clear awaiting field if answered
         if state.awaiting_field and state.awaiting_field in state.requirements:
             state.awaiting_field = None
+            state.unresolved_field_turns = 0
+
 
         # ── 6. Preserve Existing System Behavior (Non-Qualification Routes) ─
 
@@ -393,13 +477,90 @@ class Orchestrator:
                 latency_ms=int((time.time() - start_time) * 1000),
             )
 
+        # Check for SC-P900 configuration selection follow-up
+        is_p900_active = (
+            state.active_product_id in ("epson-sc-p900", "epson-sc-p900-roll")
+            or (state.active_product and state.active_product.get("model_family") == "SC-P900")
+        )
+        if is_p900_active:
+            msg_clean = normalized_msg.lower().strip()
+            wants_roll = bool(re.search(r"\b(?:with\s+roll|roll\s+adapter|roll\s+unit|with\s+the\s+roll|i\s+need\s+with|with)\b", msg_clean)) and not bool(re.search(r"\bwithout\b", msg_clean))
+            wants_std = bool(re.search(r"\b(?:without\s+roll|without\s+roll\s+adapter|without\s+the\s+roll|no\s+roll|without|i\s+need\s+without|standard|sheet)\b", msg_clean))
+            if wants_roll or wants_std:
+                target_id = "epson-sc-p900-roll" if wants_roll else "epson-sc-p900"
+                target_prod = catalogue_loader.get_by_id(target_id)
+                if target_prod:
+                    reply_text, cards = build_model_detail_response(target_prod)
+                    state.active_product = target_prod
+                    state.active_product_id = target_prod["id"]
+                    state.last_assistant_response = reply_text
+                    state.increment_turn()
+                    return self._build_response(
+                        reply=reply_text,
+                        source="route:model_detail",
+                        product_cards=cards,
+                        consumable_cards=[],
+                        suggested_chips=["View Compatible Consumables", "Compare with Alternative"],
+                        nlp_result=nlp_result,
+                        state=state,
+                        latency_ms=int((time.time() - start_time) * 1000),
+                    )
+
+        # Check for direct consumable / part number SKU inquiry (e.g. C13T11C340, C13S210057, CX2.4x6)
+        from rag.retriever import rag_retriever
+        from agent.tool_executor import catalog_tool_executor
+        direct_sku_prod = None
+        direct_sku_code = None
+
+        sku_pattern_matches = re.findall(r"\b(c1[123][a-z0-9]{5,9}|c13s\d+|c12c\d+|ifa\s*\d+|olm\s*\d+|cx2[a-z0-9.\-]+|cy-(?:ms|02)[a-z0-9.\-]*|cz-(?:ms|01)[a-z0-9.\-]*|cx2w\s*812)\b", normalized_msg.lower())
+        for sm in sku_pattern_matches:
+            cand_p = rag_retriever.get_by_sku(sm)
+            if cand_p:
+                direct_sku_prod = cand_p
+                direct_sku_code = cand_p.get("sku") or sm.upper()
+                break
+
+        if not direct_sku_prod:
+            for tok in re.findall(r"\b[a-zA-Z0-9\.\-]{5,15}\b", normalized_msg):
+                if re.search(r"\d", tok) and tok.lower() not in ["epson", "citizen", "printer", "scanner", "plotter", "consumable", "cartridge", "please", "thanks"]:
+                    cand_p = rag_retriever.get_by_sku(tok)
+                    if cand_p:
+                        direct_sku_prod = cand_p
+                        direct_sku_code = cand_p.get("sku") or tok.upper()
+                        break
+
+        if direct_sku_prod:
+            cat = str(direct_sku_prod.get("category", "")).lower()
+            is_consumable = any(ck in cat for ck in ["ink", "cartridge", "box", "tank", "media", "paper", "ribbon", "accessory"]) or direct_sku_prod.get("card_type") == "consumable"
+            if is_consumable:
+                res_sku = catalog_tool_executor.execute_tool("get_product_specs", {"product_identifier": direct_sku_code})
+                prod_data = res_sku.get("product", direct_sku_prod) if res_sku.get("success") else direct_sku_prod
+                c_card = catalog_tool_executor.format_card(prod_data, card_type="consumable")
+                p_name = prod_data.get("name", direct_sku_code)
+                reply_text = f"Here is the verified genuine consumable for **{p_name}** (SKU: `{direct_sku_code}`):"
+                chips_to_return = ["Order Consumables", "View Compatible Printers", "Ask for Quote"]
+                state.active_printer_for_consumables = None
+                state.awaiting_field = None
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(
+                    reply=reply_text,
+                    source="route:consumables:direct_sku",
+                    product_cards=[],
+                    consumable_cards=[c_card],
+                    suggested_chips=chips_to_return,
+                    nlp_result=nlp_result,
+                    state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
+
         # Check for direct mentioned approved catalogue products
         mentioned_products = find_mentioned_catalogue_products(normalized_msg)
 
         # Fail-closed refusal for unapproved models (e.g. SC-F100, SC-F500, competitor brands, CX-02S)
         from validation.catalogue_validator import UNAPPROVED_MODELS
         unapproved_detected = [m for m in UNAPPROVED_MODELS if re.search(rf"\b{re.escape(m)}\b", normalized_msg.lower())]
-        unv_match = re.search(r"\b(cx-?02s|cx-?02-s|sc-?t3100x|epson\s*abc)\b", normalized_msg.lower())
+        unv_match = re.search(r"\b(cx-?02s|cx-?02-s|sc-?t3100x|epson\s*abc|dnprx1(?:hs)?|dnp[-\s]?rx1(?:hs)?|ds-?rx1(?:hs)?)\b", normalized_msg.lower())
         if not unapproved_detected and unv_match:
             unapproved_detected = [unv_match.group(1)]
 
@@ -413,13 +574,14 @@ class Orchestrator:
             reply_text = (
                 f"That model ({unapproved_names}) is not present in our approved catalogue. "
                 "As an authorized Kepler Tech distributor, we specialize in official Epson SureColor Technical (T-Series), Photo & Fine Art (P-Series), "
-                "WorkForce Enterprise Office printers, and Citizen Photo printers. "
+                "WorkForce Office printers, SureColor F-Series Sublimation printers (SC-F100, SC-F500), and Citizen Photo printers. "
                 "What type of printing application are you looking to support?"
             )
             chips_to_return = [
+                "Office & Business Documents",
                 "Technical CAD Plotters",
-                "Office Enterprise Documents",
-                "Professional Photographs",
+                "Professional Photo & Fine Art",
+                "Dye-Sublimation (T-Shirts & Mugs)",
                 "Event Photos (Photo Booth)",
             ]
             state.last_assistant_response = reply_text
@@ -435,16 +597,80 @@ class Orchestrator:
                 latency_ms=int((time.time() - start_time) * 1000),
             )
 
+        # 6a-0. Real-time Product Price Inquiry Route
+        has_ink_in_msg = bool(re.search(
+            r"\b(?:inks?|cartridges?|toners?|ribbons?|consum[a-z]{3,6}s?|consub[a-z]{2,5}s?|media|paper|maintenance\s+(?:box|tank)(?:es|s)?)\b",
+            normalized_msg.lower()
+        ))
+        if is_price_inquiry(normalized_msg) and not is_discount_inquiry(normalized_msg) and not has_ink_in_msg:
+            target_prod = None
+            if mentioned_products:
+                target_prod = mentioned_products[0]
+            elif state.active_product:
+                target_prod = state.active_product
+            elif state.active_product_id:
+                target_prod = catalogue_loader.get_by_id(state.active_product_id)
+
+            if target_prod:
+                from catalog.price_resolver import price_resolver
+                price_info = price_resolver.get_price_info(prod=target_prod)
+                reply_text = format_product_price_response(target_prod, price_info)
+                state.active_product = target_prod
+                state.active_product_id = target_prod.get("id")
+                from agent.tool_executor import catalog_tool_executor
+                card = catalog_tool_executor.format_card(target_prod, card_type="hardware")
+
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(
+                    reply=reply_text,
+                    source="route:product_price_inquiry",
+                    product_cards=[card],
+                    consumable_cards=[],
+                    suggested_chips=["View Technical Specifications", "Compatible Consumables", "Request Official Quote"],
+                    nlp_result=nlp_result,
+                    state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
+            else:
+                reply_text = GENERAL_PRICE_DIRECT
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(
+                    reply=reply_text,
+                    source="route:general_price_inquiry",
+                    product_cards=[],
+                    consumable_cards=[],
+                    suggested_chips=["Technical CAD Plotters", "Photo Printers", "Office Enterprise MFPs", "View Consumables"],
+                    nlp_result=nlp_result,
+                    state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
+
         # 6a. Comparison Query (Between 2+ Approved Catalogue Products)
         is_comparison_query = (
             understanding.intent == Intent.PRODUCT_COMPARISON
             or any(w in normalized_msg.lower() for w in ["compare", " vs ", " versus ", "difference between"])
         )
         if is_comparison_query and len(mentioned_products) >= 2:
-            reply_text, cards, comparison_data = build_approved_comparison_response(
-                mentioned_products,
-                customer_requirements=dict(state.requirements) if state.requirements else None,
-            )
+            # Ensure comparison only contains the distinct products explicitly requested by the user
+            comp_products = []
+            seen_families = set()
+            for p in mentioned_products:
+                fam = p.get("model_family") or p["id"]
+                if fam not in seen_families:
+                    seen_families.add(fam)
+                    comp_products.append(p)
+                else:
+                    # Only allow same family if text explicitly asked to compare variants
+                    if any(k in normalized_msg.lower() for k in ["roll", "spectro", "configuration", "configurations", "variant", "variants"]):
+                        comp_products.append(p)
+
+            if len(comp_products) >= 2:
+                reply_text, cards, comparison_data = build_approved_comparison_response(
+                    comp_products,
+                    customer_requirements=dict(state.requirements) if state.requirements else None,
+                )
             state.stage = "comparing"
             state.last_assistant_response = reply_text
             state.increment_turn()
@@ -460,22 +686,163 @@ class Orchestrator:
                 comparison_data=comparison_data,
             )
 
-        # 6b. Exact Model Detail Inquiry (For one of the 41 approved products)
+        # 6a-2. Specific Specification / Capability Query on Active Product (e.g., "print speed?", "CAN I PRINT 2X6 STRIP IN THIS PRINTER?", "resolution?")
+        current_active = state.active_product or prev_active_product or (mentioned_products[0] if mentioned_products else None)
+        current_active_id = state.active_product_id or prev_active_product_id or (current_active.get("id") if isinstance(current_active, dict) else None)
+        is_capability_query = (
+            current_active is not None
+            and (
+                CanonicalEntityNormalizer.is_capability_query(normalized_msg)
+                or bool(re.search(r"\b(?:can\s+(?:i|it|this\s+printer)|does\s+it|is\s+it\s+able\s+to|able\s+to)\s+(?:print|support|do|cut|handle)\b", normalized_msg.lower()))
+                or bool(re.search(r"\bcan\s+i\s+print\b", normalized_msg.lower()))
+                or bool(re.search(r"\bin\s+this\s+printer\b", normalized_msg.lower()))
+                or bool(re.search(r"\b(?:f100|f500|p900|cx-02|cx-02w)\s+can\s+print\b", normalized_msg.lower()))
+            )
+        )
+        is_spec_attr_query = (
+            current_active is not None
+            and not mentioned_products
+            and any(re.search(rf"\b{re.escape(term)}\b", normalized_msg.lower()) for term in [
+                "print speed", "speed", "ppm", "how fast", "resolution", "dpi", "dimensions",
+                "width", "max width", "paper size", "paper sizes", "functions", "duty cycle"
+            ])
+            and not any(w in normalized_msg.lower() for w in ["find", "recommend", "show all", "compare", "vs"])
+        )
+        if is_capability_query or is_spec_attr_query:
+            act_p = current_active
+            act_id = current_active_id or (act_p.get("id") if isinstance(act_p, dict) else None)
+            p_entry = catalogue_loader.get_by_id(act_id) or act_p
+            p_name = p_entry.get("display_name") or p_entry.get("name") or act_p.get("name")
+            if not state.category:
+                state.category = p_entry.get("main_category") or p_entry.get("catalogue") or "citizen_photo"
+            state.active_product = p_entry
+            state.active_product_id = act_id
+            prod_cards = []
+
+            # 2x6 / photo strip capability check
+            if re.search(r"\b(?:2x6|6x2|photo\s*strip|2-inch\s*strip|strips?)\b", normalized_msg.lower()):
+                if "cx-02w" in str(act_id).lower():
+                    cx02 = catalogue_loader.get_by_id("citizen-cx-02")
+                    if cx02:
+                        prod_cards = [catalogue_filter._format_card(cx02, "citizen_6_inch", state.requirements)]
+                        state.active_product = cx02
+                        state.active_product_id = "citizen-cx-02"
+                        state.active_printer_for_consumables = cx02.get("display_name")
+                    reply_text = (
+                        f"No, the **{p_name}** is an 8-inch wide photo printer designed specifically for 8x10 and 8x12 large prints, "
+                        "and does not support 2x6 photo booth strips.\n\n"
+                        "For 2x6 photo booth strips, we recommend the **Citizen CX-02** (6-inch model). "
+                        "The CX-02 features a built-in 2-inch multi-cut mode to produce 2x6 strips from 4x6 media, "
+                        "and includes a unique ribbon rewind function that eliminates media waste."
+                    )
+                elif "cx-02" in str(act_id).lower() or "cy-02" in str(act_id).lower():
+                    reply_text = (
+                        f"Yes! The **{p_name}** supports 2x6 (6x2) photo booth strips using its built-in 2-inch multi-cut feature."
+                    )
+                else:
+                    reply_text = f"The **{p_name}** does not support 2x6 photo strip cutting. For 2x6 photo booth strips, we recommend the **Citizen CX-02**."
+            # Paper size capability check (e.g. "does it print a3?", "can it print A3?", "F100 can print a3 size?")
+            elif re.search(r"\b(?:a3\+?|a2\+?|a1|a0|24[\s-]*(?:inch|in|\")|36[\s-]*(?:inch|in|\")|44[\s-]*(?:inch|in|\"))\b", normalized_msg.lower()):
+                req_size_match = re.search(r"\b(a3\+?|a2\+?|a1|a0|24|36|44)\b", normalized_msg.lower())
+                asked_size = req_size_match.group(1).upper() if req_size_match else "this size"
+                if "f100" in str(act_id).lower():
+                    f500 = catalogue_loader.get_by_id("epson-sc-f500")
+                    if f500:
+                        prod_cards = [catalogue_filter._format_card(f500, "dye_sublimation_24_inch", state.requirements)]
+                        state.active_product = f500
+                        state.active_product_id = "epson-sc-f500"
+                        state.active_printer_for_consumables = f500.get("display_name")
+                    reply_text = (
+                        f"No, the **{p_name}** is a compact A4 desktop sublimation printer that only supports cut sheets up to A4 / Letter (8.5 inches wide), "
+                        f"and does not support {asked_size} printing.\n\n"
+                        f"If you need to print {asked_size} or larger dye-sublimation transfers, we recommend the **Epson SureColor SC-F500** (24-inch roll printer). "
+                        "The SC-F500 supports both 24-inch roll media and an auto-sheet feeder for large apparel, sportswear, and merchandise."
+                    )
+                else:
+                    reply_text = f"The **{p_name}** has a maximum print width of {p_entry.get('max_width') or p_entry.get('print_width') or 'standard format'}."
+            elif any(w in normalized_msg.lower() for w in ["speed", "ppm", "how fast"]):
+                speed_str = None
+                for app in p_entry.get("applications", []):
+                    if "ppm" in app.lower():
+                        speed_str = app.replace("_", " ").title()
+                if not speed_str:
+                    speed_str = p_entry.get("speed") or p_entry.get("print_speed")
+                if not speed_str:
+                    if "am-c6000" in str(act_id).lower():
+                        speed_str = "60 pages per minute (ppm) in both black and colour"
+                    elif "am-c5000" in str(act_id).lower():
+                        speed_str = "50 pages per minute (ppm) in both black and colour"
+                    elif "am-c4000" in str(act_id).lower():
+                        speed_str = "40 pages per minute (ppm) in both black and colour"
+                    elif "c5890" in str(act_id).lower() or "c579" in str(act_id).lower():
+                        speed_str = "25 pages per minute (ppm)"
+                    else:
+                        speed_str = "High-speed professional output"
+
+                reply_text = f"The **{p_name}** features a verified print speed of **{speed_str}**."
+            else:
+                reply_text, _ = build_model_detail_response(p_entry)
+
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="route:product_spec_attribute",
+                product_cards=prod_cards,
+                consumable_cards=[],
+                suggested_chips=["View Technical Specifications", "Compatible Consumables", "Request Official Quote"],
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # 6b. Exact Model Detail Inquiry (For one of the 43 approved products)
+        has_negated_ink = bool(re.search(r"\b(?:not|no|don'?t\s+want)\s+ink\b", normalized_msg.lower()))
+        has_ink_keyword = not has_negated_ink and bool(re.search(
+            r"\b(?:inks?|cartridges?|toners?|ribbons?|consum[a-z]{3,6}s?|consub[a-z]{2,5}s?|media|paper|print\s+media|(?:(?<!with\s)(?<!dual\s)(?<!the\s)rolls?(?!\s+(?:adapter|unit|feed|printer)))|maintenance\s+(?:box|tank)(?:es|s)?)\b",
+            normalized_msg.lower()
+        ))
+        if has_negated_ink:
+            state.awaiting_field = None
+            state.requested_ink_color = None
+
         is_detail_query = any(w in normalized_msg.lower() for w in [
             "tell me about", "specs of", "specifications", "details of", "information on",
             "about the", "show me", "view details", "look up", "want printer", "i want",
-            "show printer", "printer", "details"
+            "show printer", "printer", "details", "i need", "need"
         ])
         if (
             mentioned_products
             and not (state.awaiting_field == "printer_model" or state.requested_ink_color)
+            and not has_ink_keyword
             and (is_detail_query or len(normalized_msg.split()) <= 6)
         ):
-            # Answer directly without forcing a new qualification flow
-            target_prod = mentioned_products[0]
-            reply_text, cards = build_model_detail_response(target_prod)
+            # Check if inquiry is for SC-P900 family
+            p900_in_mentioned = any(p["id"] in ("epson-sc-p900", "epson-sc-p900-roll") for p in mentioned_products)
+            if p900_in_mentioned:
+                has_std_explicit = bool(re.search(r"\b(?:without\s+roll|without\s+roll\s+adapter|without\s+the\s+roll|no\s+roll|without|standard|cut\s*sheet)\b", normalized_msg.lower()))
+                has_roll_explicit = not has_std_explicit and bool(re.search(r"\b(?:with\s+roll|roll\s+adapter|roll\s+unit|with\s+the\s+roll|roll)\b", normalized_msg.lower()))
+                if has_roll_explicit:
+                    target_prod = catalogue_loader.get_by_id("epson-sc-p900-roll")
+                    reply_text, cards = build_model_detail_response(target_prod)
+                    chips = ["View Compatible Consumables", "Compare with Alternative"]
+                elif has_std_explicit:
+                    target_prod = catalogue_loader.get_by_id("epson-sc-p900")
+                    reply_text, cards = build_model_detail_response(target_prod)
+                    chips = ["View Compatible Consumables", "Compare with Alternative"]
+                else:
+                    # User asked for P900 without specifying: send with and without roll adapter both!
+                    target_prod = catalogue_loader.get_by_id("epson-sc-p900")
+                    reply_text, cards = build_p900_family_detail_response()
+                    chips = ["With Roll Adapter", "Without Roll Adapter (Standard)", "View Compatible Consumables"]
+            else:
+                target_prod = mentioned_products[0]
+                reply_text, cards = build_model_detail_response(target_prod)
+                chips = ["View Compatible Consumables", "Compare with Alternative"]
+
             state.active_product = target_prod
             state.active_product_id = target_prod["id"]
+            state.active_printer_for_consumables = target_prod.get("display_name")
 
             # Fail-closed deterministic validation
             from validation.deterministic_validator import deterministic_validator
@@ -498,34 +865,76 @@ class Orchestrator:
             state.last_assistant_response = reply_text
             state.increment_turn()
             detail_c_cards = []
-            if bool(re.search(r"\b(?:inks?|consumables?|cartridges?)\b", normalized_msg.lower())):
-                detail_c_cards = consumables_engine.get_printer_consumables(target_prod.get("display_name", ""), limit=6)
+            if bool(re.search(r"\b(?:inks?|consumables?|cartridges?|media|paper|rolls?)\b", normalized_msg.lower())):
+                detail_c_cards = consumables_engine.get_printer_consumables(target_prod.get("display_name", ""), limit=25)
 
             return self._build_response(
                 reply=reply_text,
                 source="route:model_detail",
                 product_cards=cards,
                 consumable_cards=detail_c_cards,
-                suggested_chips=["View Compatible Consumables", "Compare with Alternative"],
+                suggested_chips=chips,
                 nlp_result=nlp_result,
                 state=state,
                 latency_ms=int((time.time() - start_time) * 1000),
             )
 
-        # 6c. Consumables Inquiry
+        # 6c. Consumables Inquiry & Media Inquiries
+        is_canvas_media_query = (
+            bool(re.search(r"\b(?:canvas|canvas\s+roll|canvas\s+media|canvas\s+paper)\b", normalized_msg.lower()))
+            and not any(w in normalized_msg.lower() for w in ["printer", "machine", "plotter", "hardware"])
+        )
+        if is_canvas_media_query:
+            state.awaiting_field = None
+            reply_text = (
+                "Yes, we supply official fine art canvas media rolls compatible with Epson UltraChrome pigment inks (for SureColor P-Series printers):\n\n"
+                "• **Epson Exhibition Canvas Matte** (Available in 17″, 24″, 36″, 44″, and 60″ rolls)\n"
+                "• **Epson Premium Canvas Satin** (Available in 13″, 17″, 24″, 44″, and 60″ rolls)\n"
+                "• **Innova Exhibition Matte Cotton Canvas** (IFA-54)\n"
+                "• **Korejet Pure Cotton Canvas Matte** (370–390 GSM)\n\n"
+                "These media rolls are specifically formulated for water-based pigment inks to achieve museum-grade archival quality and rich contrast. "
+                "Which roll width do you need, or which printer model will you be using?"
+            )
+            chips_to_return = ["24-inch Canvas", "44-inch Canvas", "Epson SC-P900 Inks", "View Photo Printers"]
+            return self._build_response(
+                reply=reply_text,
+                source="route:media_inquiry",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=chips_to_return,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
         has_negated_ink = bool(re.search(r"\b(?:not|no|don'?t\s+want)\s+ink\b", normalized_msg.lower()))
-        is_printer_search = has_negated_ink or any(k in normalized_msg.lower() for k in [
+        has_direct_printer_inquiry = bool(re.search(
+            r"\b(?:do\s+(?:you\s+)?have|have|sell|stock|price\s+of|buy|details\s+on)\s+(?:the\s+)?(?:sc[-\s]?)?(?:[tpf]\d{3,5}|cx[-\s]?02|cy[-\s]?02|cz[-\s]?01|am[-\s]?c\d{3,4}|wf[-\s]?c\d{3,5}|f100|f500)\b",
+            normalized_msg.lower()
+        )) or any(k in normalized_msg.lower() for k in ["how about printer", "what about printer", "the printer", "how bout"])
+
+        is_printer_search = has_negated_ink or has_direct_printer_inquiry or bool(re.search(
+            r"\b(?:need|want|looking\s+for|require)\s+(?:an?\s+)?(?:[\w-]+\s+){0,6}(?:printer|plotter|mfp|machine|device)\b",
+            normalized_msg.lower()
+        )) or any(k in normalized_msg.lower() for k in [
             "need a printer", "looking for a printer", "photo printer", "which printer",
             "show all matching models", "show matching", "show every matching", "show me all",
             "show all", "list every", "which model", "matching catalogue", "suitable printer",
             "want printer", "i want printer", "printer hardware", "show printer", "want a printer",
-            "looking for printer"
-        ])
+            "looking for printer", "which one will do", "which one can do", "which one does",
+            "which one supports", "which one is", "which one should i", "which machine",
+            "which device", "which one will print", "which photo printer"
+        ]) or bool(re.search(r"\bwhich\s+(?:one|printer|machine|model)\b", normalized_msg.lower()))
         if has_negated_ink:
             state.awaiting_field = None
             state.requested_ink_color = None
 
-        has_ink_keyword = bool(re.search(r"\b(?:inks?|cartridges?|toners?|ribbons?|maintenance\s+(?:box|tank)(?:es|s)?)\b", normalized_msg.lower()))
+        # Check if user mentioned an ink color
+        matched_ink_color = None
+        for c in ["photo black", "matte black", "light cyan", "light magenta", "vivid magenta", "cyan", "magenta", "yellow", "black", "gray", "grey", "violet", "orange", "green", "red"]:
+            if re.search(rf"\b{re.escape(c)}\b", normalized_msg.lower()):
+                matched_ink_color = c
+                break
 
         # If user explicitly states they want a printer, break out of awaiting_field
         if state.awaiting_field == "printer_model" and is_printer_search:
@@ -548,22 +957,22 @@ class Orchestrator:
                 understanding.intent == Intent.CONSUMABLES_QUERY
                 or is_answering_printer_model
                 or has_ink_keyword
+                or (matched_ink_color and (state.active_product is not None or state.active_printer_for_consumables is not None))
             )
         )
         if is_consumables_query:
-            # Extract requested ink color
-            for c in ["photo black", "matte black", "light cyan", "light magenta", "vivid magenta", "cyan", "magenta", "yellow", "black", "gray", "grey", "violet", "orange", "green", "red"]:
-                if re.search(rf"\b{re.escape(c)}\b", normalized_msg.lower()):
-                    state.requested_ink_color = c
-                    break
+            if matched_ink_color:
+                state.requested_ink_color = matched_ink_color
 
             p_name = ""
             if mentioned_products:
                 p_name = mentioned_products[0]["display_name"]
             elif state.active_product:
-                p_name = state.active_product.get("name") or state.active_product.get("display_name")
+                p_name = state.active_product.get("display_name") or state.active_product.get("name")
+            elif state.active_printer_for_consumables:
+                p_name = state.active_printer_for_consumables
             else:
-                m_match = re.search(r"\b(?:sc-?)?(?:[tpf]\d{3,5}(?:[a-z]{1,4})?|cx-?02w?|cy-?02|cz-?01|am-?c\d{3,4}|wf-?c\d{3,5}(?:[a-z]{1,4})?|em-?c\d{3,4}|f100|f500)\b", normalized_msg.lower())
+                m_match = re.search(r"\b(?:sc[-\s]?)?(?:[tpf]\d{3,5}(?:[a-z]{1,4})?|cx[-\s]?02w?|cy[-\s]?02|cz[-\s]?01|am[-\s]?c\d{3,4}|wf[-\s]?c\d{3,5}(?:[a-z]{1,4})?|em[-\s]?c\d{3,4}|f100|f500)\b", normalized_msg.lower())
                 if m_match:
                     p_name = m_match.group(0).upper()
                 elif is_answering_printer_model and len(normalized_msg.split()) <= 3:
@@ -571,12 +980,36 @@ class Orchestrator:
 
             c_cards = []
             prod_cards = []
+            reply_text = ""
             if p_name:
-                c_cards = consumables_engine.get_printer_consumables(p_name, limit=6)
-                if state.requested_ink_color:
-                    color_filtered = [card for card in c_cards if state.requested_ink_color.lower() in card.get("name", "").lower()]
+                state.active_printer_for_consumables = p_name
+                for cand in catalogue_loader.get_all():
+                    if p_name.lower() in cand.get("id", "").lower() or p_name.lower() in cand.get("display_name", "").lower():
+                        state.active_product = cand
+                        state.active_product_id = cand.get("id")
+                        break
+
+                c_cards = consumables_engine.get_printer_consumables(p_name, limit=25)
+                applied_color = state.requested_ink_color
+                if applied_color:
+                    app_low = applied_color.lower()
+                    color_filtered = [card for card in c_cards if app_low in card.get("name", "").lower() or app_low in card.get("title", "").lower()]
+                    # Exclude modifier variants if user asked for base color without modifier
+                    refined = []
+                    for card in color_filtered:
+                        c_text = (card.get("name", "") + " " + card.get("title", "")).lower()
+                        if app_low == "cyan" and "light cyan" in c_text and "light" not in normalized_msg.lower():
+                            continue
+                        if app_low == "magenta" and ("light magenta" in c_text or "vivid light magenta" in c_text) and "light" not in normalized_msg.lower():
+                            continue
+                        if app_low == "gray" and ("light gray" in c_text or "dark gray" in c_text) and "light" not in normalized_msg.lower() and "dark" not in normalized_msg.lower():
+                            continue
+                        refined.append(card)
+                    if refined:
+                        color_filtered = refined
                     if color_filtered:
                         c_cards = color_filtered
+                    state.requested_ink_color = None
                 state.awaiting_field = None
 
                 # If user also asked for the printer itself ("printer and its inks")
@@ -590,14 +1023,48 @@ class Orchestrator:
                     if p_match:
                         prod_cards = [catalogue_filter._format_card(p_match, p_match.get("subcategory"), state.requirements)]
 
+            if not c_cards and p_name and " " not in p_name.strip() and len(p_name.strip()) >= 4:
+                sku_cand = rag_retriever.get_by_sku(p_name.strip())
+                if sku_cand:
+                    cat = str(sku_cand.get("category", "")).lower()
+                    if any(ck in cat for ck in ["ink", "cartridge", "box", "tank", "media", "paper", "ribbon", "accessory"]) or sku_cand.get("card_type") == "consumable":
+                        res_sku = catalog_tool_executor.execute_tool("get_product_specs", {"product_identifier": sku_cand.get("sku")})
+                        prod_data = res_sku.get("product", sku_cand) if res_sku.get("success") else sku_cand
+                        c_cards = [catalog_tool_executor.format_card(prod_data, card_type="consumable")]
+                        state.awaiting_field = None
+                        reply_text = f"Here is the verified genuine consumable for **{prod_data.get('name', sku_cand.get('sku'))}** (SKU: `{sku_cand.get('sku')}`):"
+                        chips_to_return = ["Order Consumables", "View Compatible Printers", "Ask for Quote"]
+
             if c_cards:
-                color_label = f" {state.requested_ink_color.title()}" if state.requested_ink_color else ""
-                reply_text = f"Here are the verified{color_label} inks and media compatible with {p_name}:"
+                if not reply_text or "Here is the verified genuine consumable" not in reply_text:
+                    color_label = f" {applied_color.title()}" if 'applied_color' in locals() and applied_color else ""
+                    items_lines = []
+                    for card in c_cards:
+                        c_title = card.get("title") or card.get("name") or "Consumable Item"
+                        c_sku = card.get("sku")
+                        sku_text = f" (SKU: `{c_sku}`)" if c_sku else ""
+                        items_lines.append(f"• **{c_title}**{sku_text}")
+                    items_text = "\n".join(items_lines)
+                    reply_text = f"Here are the verified{color_label} inks and media compatible with {p_name}:\n\n{items_text}"
+                    if any(w in normalized_msg.lower() for w in ["cost", "price", "how much", "rate", "cost per print", "pricing", "quote"]):
+                        reply_text += (
+                            f"\n\nFor official consumable pricing, roll yields, and cost-per-print figures for **{p_name}**, "
+                            f"please check our website at {OFFICIAL_WEBSITE_URL} or contact our sales team directly at **{OFFICIAL_SUPPORT_EMAIL}** or **{OFFICIAL_SUPPORT_PHONE}**."
+                        )
                 chips_to_return = ["Order Consumables", "View Printer Specifications"]
             else:
-                state.awaiting_field = "printer_model"
-                reply_text = "Which printer or scanner model do you need consumables for?"
-                chips_to_return = ["Epson SC-T3100 Inks", "Citizen CX-02 Media", "Epson SC-P900 Inks"]
+                if p_name:
+                    state.awaiting_field = None
+                    reply_text = (
+                        f"We do not carry consumables or inks for the **{p_name}** as it is not part of our authorized product catalogue.\n\n"
+                        "As an authorized Kepler Tech distributor, we stock official inks and media for Epson SureColor (T-Series, P-Series, F-Series), "
+                        "WorkForce Office printers, and Citizen Photo printers."
+                    )
+                    chips_to_return = ["Epson SC-T3100 Inks", "Citizen CX-02 Media", "Epson SC-P900 Inks", "View Approved Printers"]
+                else:
+                    state.awaiting_field = "printer_model"
+                    reply_text = "Which printer or scanner model do you need consumables for?"
+                    chips_to_return = ["Epson SC-T3100 Inks", "Citizen CX-02 Media", "Epson SC-P900 Inks"]
 
             return self._build_response(
                 reply=reply_text,
@@ -673,11 +1140,12 @@ class Orchestrator:
 
         # 7a. If category is still unknown, prompt for category
         if not state.category:
-            reply_text = "What will you primarily print—technical CAD drawings, office enterprise documents, professional photographs, or event photos?"
+            reply_text = "What will you primarily print—technical CAD drawings, office & business documents, professional photographs, sublimation merchandise (mugs & T-shirts), or event photos?"
             chips_to_return = [
+                "Office & Business Documents (A3 / A4)",
                 "Technical CAD Plotters",
-                "Office Enterprise Documents",
-                "Professional Photographs",
+                "Professional Photography & Fine Art",
+                "Dye-Sublimation (T-Shirts & Mugs)",
                 "Event Photos (Photo Booth)",
             ]
             state.awaiting_field = "category"
@@ -702,11 +1170,68 @@ class Orchestrator:
         # If mandatory requirements are missing, ask strictly ONE question at a time
         if missing_mandatory:
             next_q = get_next_question(state.category, missing_mandatory)
-            state.awaiting_field = next_q["field"]
+            next_field = next_q["field"]
+
+            # Loop Prevention & Anti-Frustration Guard:
+            # Check if user tried to answer this exact awaiting field on the previous turn but it didn't resolve
+            if prev_awaiting_field == next_field:
+                state.unresolved_field_turns = getattr(state, "unresolved_field_turns", 0) + 1
+            else:
+                state.unresolved_field_turns = 0
+
+            state.awaiting_field = next_field
             state.stage = "qualifying"
             state.qualification_complete = False
-            reply_text = next_q["question"]
-            chips_to_return = next_q["pills"]
+            chips_to_return = list(next_q["pills"])
+
+            if state.unresolved_field_turns == 1:
+                # Turn 1 unresolved: Acknowledge and clarify specifically with the options
+                pill_opts = " or ".join(chips_to_return[:2])
+                reply_text = f"Just to confirm the best fit for your space—would you prefer {pill_opts}?"
+            elif state.unresolved_field_turns >= 2:
+                # Turn 2+ unresolved: BREAK LOOP!
+                # Do not trap user in question loop. Adopt safe standard default and proceed to catalogue models.
+                logger.info(f"Loop guard triggered for field '{next_field}' after {state.unresolved_field_turns} turns. Breaking out of loop.")
+                if next_field in ("scanner_required", "scan_required"):
+                    state.requirements["scanner_required"] = False
+                    state.requirements["functions"] = ["print"]
+                elif next_field == "photo_form_factor":
+                    state.requirements["photo_form_factor"] = "large"
+                elif next_field == "print_width":
+                    state.requirements["print_width"] = 24
+                    state.requirements["paper_size"] = "a1"
+                elif next_field == "daily_volume":
+                    state.requirements["daily_volume"] = 100
+                elif next_field == "paper_size":
+                    state.requirements["paper_size"] = "a4"
+                state.awaiting_field = None
+                state.unresolved_field_turns = 0
+                state.qualification_complete = True
+                state.stage = "recommending"
+
+                subcategory = resolve_subcategory(state.category, state.requirements)
+                state.subcategory = subcategory
+                cards, no_match = catalogue_filter.filter_and_rank(state.category, subcategory, state.requirements)
+                if not no_match and cards:
+                    valid_cards = validate_product_cards(cards)
+                    state.displayed_product_ids = [c["id"] for c in valid_cards]
+                    state.results_loaded = True
+                    reply_text = f"Based on your requirements, here are our top recommended {state.category.replace('_', ' ').title()} models (you can refine or compare anytime):"
+                    chips_to_return = ["Compare Matching Models", "View Detailed Specifications", "Filter by Requirements"]
+                    state.last_assistant_response = reply_text
+                    state.increment_turn()
+                    return self._build_response(
+                        reply=reply_text,
+                        source="recommendation:catalogue_list",
+                        product_cards=valid_cards,
+                        consumable_cards=[],
+                        suggested_chips=chips_to_return,
+                        nlp_result=nlp_result,
+                        state=state,
+                        latency_ms=int((time.time() - start_time) * 1000),
+                    )
+            else:
+                reply_text = next_q["question"]
 
             state.last_assistant_response = reply_text
             state.increment_turn()
@@ -735,14 +1260,26 @@ class Orchestrator:
         if no_match:
             reply_text = f"{no_match['message']} {no_match['relaxation_question']}"
             product_cards = []
-            chips_to_return = []
+            chips_to_return = no_match.get("chips", [])
             source = "recommendation:no_match"
+            state.awaiting_field = "relaxation"
         else:
             # Validate cards fail-closed (all IDs must belong to 41 approved catalogue entries)
             valid_cards = validate_product_cards(cards)
             state.displayed_product_ids = [c["id"] for c in valid_cards]
             state.results_loaded = True
             product_cards = valid_cards
+            if len(valid_cards) == 1:
+                p_full = catalogue_loader.get_by_id(valid_cards[0].get("id")) or valid_cards[0]
+                state.active_product = p_full
+                state.active_product_id = valid_cards[0].get("id")
+                state.active_printer_for_consumables = valid_cards[0].get("name") or p_full.get("display_name") or valid_cards[0].get("model")
+            elif len(valid_cards) > 1:
+                p_full = catalogue_loader.get_by_id(valid_cards[0].get("id")) or valid_cards[0]
+                state.active_product = p_full
+                state.active_product_id = valid_cards[0].get("id")
+                state.active_printer_for_consumables = None
+
             vol = state.requirements.get("daily_volume")
             if volume_updated and vol:
                 try:
@@ -801,6 +1338,14 @@ class Orchestrator:
                 reply_text = f"I found {len(valid_cards)} A3 WorkForce Pro multifunction printer{'s' if len(valid_cards) != 1 else ''} matching your requirements."
             elif subcategory == "a3_enterprise_multifunction":
                 reply_text = f"I found {len(valid_cards)} A3 WorkForce Enterprise multifunction printer{'s' if len(valid_cards) != 1 else ''} matching your requirements."
+            elif subcategory == "citizen_6_inch":
+                if state.requirements.get("ribbon_rewind") or any(s in state.requirements.get("print_sizes", []) for s in ["2x6", "6x2"]):
+                    reply_text = (
+                        f"I found {len(valid_cards)} Citizen photo printer{'s' if len(valid_cards) != 1 else ''} matching your requirements. "
+                        "The **Citizen CX-02** features a ribbon rewind function that prints 2x6 strips and multiple sizes (4x6 and 6x8) from a single roll without media loss:"
+                    )
+                else:
+                    reply_text = f"I found {len(valid_cards)} Citizen 6-inch photo printer{'s' if len(valid_cards) != 1 else ''} matching your requirements:"
             elif state.requirements.get("paper_size") == "a3":
                 reply_text = f"I found {len(valid_cards)} A3 multifunction printer{'s' if len(valid_cards) != 1 else ''} matching your requirements:"
             else:
@@ -948,6 +1493,7 @@ class Orchestrator:
         comparison_data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Formats the standardized JSON response."""
+        state.last_suggested_chips = list(suggested_chips or [])
         res_type = "product_list" if product_cards else ("no_exact_match" if "no_match" in source else "message")
 
         # Active agent metadata for backwards compatibility with tests & UI

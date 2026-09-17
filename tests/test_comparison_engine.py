@@ -316,6 +316,26 @@ class TestComparisonIntro(unittest.TestCase):
         intro = build_comparison_intro([p1, p2], data)
         self.assertIn("different application", intro.lower())
 
+    def test_no_extra_variant_added_to_comparison(self):
+        """Comparing P700 and P900 must return exactly those two products, not adding a 3rd roll adapter product."""
+        from catalog.catalogue_resolver import find_mentioned_catalogue_products
+        prods = find_mentioned_catalogue_products("compare sc-p700 and sc-p900")
+        self.assertEqual([p["id"] for p in prods], ["epson-sc-p700", "epson-sc-p900"])
+
+        prods_p7500 = find_mentioned_catalogue_products("compare p7500 and p9500")
+        self.assertEqual([p["id"] for p in prods_p7500], ["epson-sc-p7500", "epson-sc-p9500"])
+
+    def test_orchestrator_comparison_exact_product_count(self):
+        """Full orchestrator comparison turn returns exactly 2 cards for a 2-product comparison query."""
+        from agent.orchestrator import orchestrator
+        from domain.conversation_state import ConversationState
+
+        res = orchestrator.process_turn("compare sc-p700 and sc-p900", state=ConversationState(session_id="test-cmp-2prod"))
+        cards = res.get("cards", [])
+        self.assertEqual(len(cards), 2)
+        self.assertEqual([c["id"] for c in cards], ["epson-sc-p700", "epson-sc-p900"])
+
 
 if __name__ == "__main__":
     unittest.main()
+

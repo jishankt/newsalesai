@@ -18,16 +18,22 @@
     "url": "https://www.keplertechllc.com/product/citizen-cz-01-photo-printer/"
   },
   "citizen-cx-02w": {
-    "price": 4385.0,
+    "price": 6820.0,
     "currency": "AED",
-    "price_str": "AED 4,385.00",
+    "price_str": "AED 6,820.00",
     "url": "https://www.keplertechllc.com/product/citizen-cx-02w-large-photo-printer/"
   },
-  "epson-am-c4000": {
-    "price": 0.0,
+  "epson-wf-c5890-dwf": {
+    "price": 1656.0,
     "currency": "AED",
-    "price_str": "Price on Request",
-    "url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-am-c4000-printer/"
+    "price_str": "AED 1,656.00",
+    "url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c5890-dwf-printer/"
+  },
+  "epson-wf-c5890": {
+    "price": 1656.0,
+    "currency": "AED",
+    "price_str": "AED 1,656.00",
+    "url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c5890-dwf-printer/"
   },
   "epson-am-c550": {
     "price": 9000.0,
@@ -35,17 +41,131 @@
     "price_str": "AED 9,000.00",
     "url": "https://www.keplertechllc.com/product/epson-wf-am-c550-a4-multifunction-printer/"
   },
+  "epson-wf-c878r-dwf": {
+    "price": 6500.0,
+    "currency": "AED",
+    "price_str": "AED 6,500.00",
+    "url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c878r-dwf-multifunction-color-printer/"
+  },
+  "epson-wf-c878r": {
+    "price": 6500.0,
+    "currency": "AED",
+    "price_str": "AED 6,500.00",
+    "url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c878r-dwf-multifunction-color-printer/"
+  },
+  "epson-wf-c879r-dwf": {
+    "price": 7600.0,
+    "currency": "AED",
+    "price_str": "AED 7,600.00",
+    "url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c879r-dtwf-multifunction-printer/"
+  },
+  "epson-wf-c879r": {
+    "price": 7600.0,
+    "currency": "AED",
+    "price_str": "AED 7,600.00",
+    "url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c879r-dtwf-multifunction-printer/"
+  },
+  "epson-sc-t3100": {
+    "price": 3880.0,
+    "currency": "AED",
+    "price_str": "AED 3,880.00",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t3100-wireless-printer-with-stand/"
+  },
   "epson-t3100": {
     "price": 3880.0,
     "currency": "AED",
     "price_str": "AED 3,880.00",
     "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t3100-wireless-printer-with-stand/"
   },
+  "epson-sc-t5100": {
+    "price": 9700.0,
+    "currency": "AED",
+    "price_str": "AED 9,700.00",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100-large-format-printer/"
+  },
   "epson-t5100": {
     "price": 9700.0,
     "currency": "AED",
     "price_str": "AED 9,700.00",
     "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100-large-format-printer/"
+  },
+  "epson-sc-p700": {
+    "price": 3400.0,
+    "currency": "AED",
+    "price_str": "AED 3,400.00",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-p700-13-photo-printer/"
+  },
+  "epson-p700": {
+    "price": 3400.0,
+    "currency": "AED",
+    "price_str": "AED 3,400.00",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-p700-13-photo-printer/"
+  },
+  "epson-sc-p900": {
+    "price": 4880.0,
+    "currency": "AED",
+    "price_str": "AED 4,880.00",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-p900-17-inch-photo-printer/"
+  },
+  "epson-p900": {
+    "price": 4880.0,
+    "currency": "AED",
+    "price_str": "AED 4,880.00",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-p900-17-inch-photo-printer/"
+  },
+  "epson-sc-p900-roll": {
+    "price": 5320.0,
+    "currency": "AED",
+    "price_str": "AED 5,320.00",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-printer-with-roll-adapter/"
+  },
+  "epson-p900-roll": {
+    "price": 5320.0,
+    "currency": "AED",
+    "price_str": "AED 5,320.00",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-printer-with-roll-adapter/"
+  },
+  "epson-sc-f100": {
+    "price": 1950.0,
+    "currency": "AED",
+    "price_str": "AED 1,950.00",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-f100-printer/"
+  },
+  "epson-f100": {
+    "price": 1950.0,
+    "currency": "AED",
+    "price_str": "AED 1,950.00",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-f100-printer/"
+  },
+  "epson-sc-f500": {
+    "price": 0.0,
+    "currency": "AED",
+    "price_str": "Price on Request",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-f500-dye-sublimation-printer/"
+  },
+  "epson-am-c4000": {
+    "price": 0.0,
+    "currency": "AED",
+    "price_str": "Price on Request",
+    "url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-am-c4000-printer/"
+  },
+  "epson-am-c5000": {
+    "price": 0.0,
+    "currency": "AED",
+    "price_str": "Price on Request",
+    "url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-am-c5000-printer/"
+  },
+  "epson-am-c6000": {
+    "price": 0.0,
+    "currency": "AED",
+    "price_str": "Price on Request",
+    "url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-am-c6000-printer/"
+  },
+  "epson-wf-c21000-d4tw": {
+    "price": 0.0,
+    "currency": "AED",
+    "price_str": "Price on Request",
+    "url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-wf-c21000-multi-function-printer/"
   },
   "epson-t5400m": {
     "price": 0.0,
@@ -59,34 +179,160 @@
     "price_str": "Price on Request",
     "url": "https://www.keplertechllc.com/product/epson-sc-t5700d-technical-printer/"
   },
-  "epson-p700": {
-    "price": 3400.0,
-    "currency": "AED",
-    "price_str": "AED 3,400.00",
-    "url": "https://www.keplertechllc.com/product/epson-surecolor-p700-13-photo-printer/"
-  },
-  "epson-p900": {
-    "price": 5320.0,
-    "currency": "AED",
-    "price_str": "AED 5,320.00",
-    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-printer-with-roll-adapter/"
-  },
   "epson-p7500": {
     "price": 0.0,
     "currency": "AED",
     "price_str": "Price on Request",
     "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/"
   },
-  "epson-sc-f100": {
-    "price": 1950.0,
-    "currency": "AED",
-    "price_str": "AED 1,950.00",
-    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-f100-printer/"
-  },
-  "epson-sc-f500": {
+  "epson-p9500": {
     "price": 0.0,
     "currency": "AED",
     "price_str": "Price on Request",
-    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-f500-dye-sublimation-printer/"
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p9500-large-format-printer/"
+  },
+  "cx2w 812": {
+    "price": 975.0,
+    "currency": "AED",
+    "price_str": "AED 975.00",
+    "url": "https://www.keplertechllc.com/product/citizen-cx-02w-large-photo-printer/"
+  },
+  "cx2w-812": {
+    "price": 975.0,
+    "currency": "AED",
+    "price_str": "AED 975.00",
+    "url": "https://www.keplertechllc.com/product/citizen-cx-02w-large-photo-printer/"
+  },
+  "cy-ms46": {
+    "price": 625.0,
+    "currency": "AED",
+    "price_str": "AED 625.00",
+    "url": "https://www.keplertechllc.com/product/citizen-cy-02-photo-printer/"
+  },
+  "cy-ms68": {
+    "price": 685.0,
+    "currency": "AED",
+    "price_str": "AED 685.00",
+    "url": "https://www.keplertechllc.com/product/citizen-cy-02-photo-printer/"
+  },
+  "9797": {
+    "price": 490.0,
+    "currency": "AED",
+    "price_str": "AED 490.00",
+    "url": "https://www.keplertechllc.com/product/citizen-cx-02-photo-printer/"
+  },
+  "19048": {
+    "price": 500.0,
+    "currency": "AED",
+    "price_str": "AED 500.00",
+    "url": "https://www.keplertechllc.com/product/citizen-cx-02-photo-printer/"
+  },
+  "9795": {
+    "price": 500.0,
+    "currency": "AED",
+    "price_str": "AED 500.00",
+    "url": "https://www.keplertechllc.com/product/citizen-cx-02-photo-printer/"
+  },
+  "9790": {
+    "price": 190.0,
+    "currency": "AED",
+    "price_str": "AED 190.00",
+    "url": "https://www.keplertechllc.com/product/citizen-cx-02-photo-printer/"
+  },
+  "9781": {
+    "price": 325.0,
+    "currency": "AED",
+    "price_str": "AED 325.00",
+    "url": "https://www.keplertechllc.com/product/citizen-cx-02-photo-printer/"
+  },
+  "c12c935711": {
+    "price": 155.0,
+    "currency": "AED",
+    "price_str": "AED 155.00",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-printer-with-roll-adapter/"
+  },
+  "c13t05a400": {
+    "price": 695.0,
+    "currency": "AED",
+    "price_str": "AED 695.00",
+    "url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c878r-dwf-multifunction-color-printer/"
+  },
+  "c13t08h400": {
+    "price": 883.0,
+    "currency": "AED",
+    "price_str": "AED 883.00",
+    "url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-am-c4000-printer/"
+  },
+  "c13t01d100": {
+    "price": 690.0,
+    "currency": "AED",
+    "price_str": "AED 690.00",
+    "url": "https://www.keplertechllc.com/"
+  },
+  "c13t41f340": {
+    "price": 575.0,
+    "currency": "AED",
+    "price_str": "AED 575.00",
+    "url": "https://www.keplertechllc.com/"
+  },
+  "c13t47a100": {
+    "price": 198.0,
+    "currency": "AED",
+    "price_str": "AED 198.00",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-printer-with-roll-adapter/"
+  },
+  "c13t47a200": {
+    "price": 198.0,
+    "currency": "AED",
+    "price_str": "AED 198.00",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-printer-with-roll-adapter/"
+  },
+  "c13t47a300": {
+    "price": 198.0,
+    "currency": "AED",
+    "price_str": "AED 198.00",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-printer-with-roll-adapter/"
+  },
+  "c13t47a400": {
+    "price": 198.0,
+    "currency": "AED",
+    "price_str": "AED 198.00",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-printer-with-roll-adapter/"
+  },
+  "c13t47a500": {
+    "price": 198.0,
+    "currency": "AED",
+    "price_str": "AED 198.00",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-printer-with-roll-adapter/"
+  },
+  "c13t47a600": {
+    "price": 198.0,
+    "currency": "AED",
+    "price_str": "AED 198.00",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-printer-with-roll-adapter/"
+  },
+  "c13t47a700": {
+    "price": 198.0,
+    "currency": "AED",
+    "price_str": "AED 198.00",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-printer-with-roll-adapter/"
+  },
+  "c13t47a800": {
+    "price": 198.0,
+    "currency": "AED",
+    "price_str": "AED 198.00",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-printer-with-roll-adapter/"
+  },
+  "c13t47a900": {
+    "price": 198.0,
+    "currency": "AED",
+    "price_str": "AED 198.00",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-printer-with-roll-adapter/"
+  },
+  "c13t47ad00": {
+    "price": 198.0,
+    "currency": "AED",
+    "price_str": "AED 198.00",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-printer-with-roll-adapter/"
   }
 }

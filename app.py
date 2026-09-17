@@ -40,6 +40,7 @@ from rag.consumables_engine import consumables_engine
 from agents import list_agent_metadata
 from persistence import lead_repository, state_repository
 from security.rate_limiter import rate_limiter, get_client_ip
+from routes.admin_routes import admin_bp
 
 # Production Security Gate: refuse startup if SECRET_KEY is default/insecure in production
 validate_secret_key()
@@ -49,6 +50,9 @@ logger = logging.getLogger("conversational_ai")
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 CORS(app, resources={r"/api/*": {"origins": CORS_ORIGINS}})
+
+# Admin Dashboard Blueprint
+app.register_blueprint(admin_bp)
 
 # Security: enforce maximum request payload size
 app.config["MAX_CONTENT_LENGTH"] = MAX_REQUEST_BYTES
@@ -230,7 +234,7 @@ def get_consumables():
     c_type = request.args.get("type", "all").strip()
     if not printer_name:
         return jsonify({"consumables": []})
-    consumables = consumables_engine.get_printer_consumables(printer_name, consumable_filter=c_type, limit=6)
+    consumables = consumables_engine.get_printer_consumables(printer_name, consumable_filter=c_type, limit=25)
     return jsonify({
         "success": True,
         "printer": printer_name,

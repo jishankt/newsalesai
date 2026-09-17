@@ -125,7 +125,7 @@ class CatalogRepository:
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T3100-%E2%80%93-Wireless-Printer-With-Stand.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t3100-wireless-printer-with-stand/",
                 "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T3100-Printer-Datasheet.pdf",
-                "consumables": ["C13S210057", "C13T40D140", "C13T40D240", "C13T40D340", "C13T40D440"],
+                "consumables": ["C13S210057", "C13T40C140", "C13T40C240", "C13T40C340", "C13T40C440", "C13T40D140", "C13T40D240", "C13T40D340", "C13T40D440"],
                 "supported_print_sizes": ["a4", "a3", "a2", "a1", "24-inch"]
             },
             "epson-t5100": {
@@ -136,7 +136,7 @@ class CatalogRepository:
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T5100-Printer.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100-large-format-printer/",
                 "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T5100-Printer-datasheet.pdf",
-                "consumables": ["C13S210057", "C13T40D140", "C13T40D240", "C13T40D340", "C13T40D440"],
+                "consumables": ["C13S210057", "C13T40C140", "C13T40C240", "C13T40C340", "C13T40C440", "C13T40D140", "C13T40D240", "C13T40D340", "C13T40D440"],
                 "supported_print_sizes": ["a4", "a3", "a2", "a1", "a0", "36-inch"]
             },
             "epson-t5100m": {
@@ -147,7 +147,7 @@ class CatalogRepository:
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2026/01/SC-T5100M.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100m-plotter-printer/",
                 "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2026/01/Epson-SureColor-SC-T5100M-MFP-Brochure.pdf",
-                "consumables": ["C13S210057", "C13T40D140", "C13T40D240", "C13T40D340", "C13T40D440"],
+                "consumables": ["C13S210057", "C13T40C140", "C13T40C240", "C13T40C340", "C13T40C440", "C13T40D140", "C13T40D240", "C13T40D340", "C13T40D440"],
                 "supported_print_sizes": ["a4", "a3", "a2", "a1", "a0", "36-inch"]
             },
             "epson-t5400m": {
@@ -158,7 +158,7 @@ class CatalogRepository:
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2024/04/Epson-SC-T5400M-Printer.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-sc-t5400m-mfp-plotter-printer/",
                 "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2024/04/Epson-SC-T5400M-Printer-Datasheet.pdf",
-                "consumables": ["C13T699700", "C13T41F540", "C13T41F240", "C13T41F340", "C13T41F440"],
+                "consumables": ["C13T699700", "C13T41R240", "C13T41R340", "C13T41R440", "C13T41R540", "C13T41F240", "C13T41F340", "C13T41F440", "C13T41F540", "C13T41E240", "C13T41E340", "C13T41E440", "C13T41E540"],
                 "supported_print_sizes": ["a4", "a3", "a2", "a1", "a0", "36-inch"]
             },
             "epson-t5700d": {
@@ -169,7 +169,7 @@ class CatalogRepository:
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2024/01/SC-T5700DM-Printer.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-sc-t5700d-technical-printer/",
                 "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2024/01/Epson-Sure-Color-SC-T5700D-Printer-Datasheet.pdf",
-                "consumables": ["C13S210115", "C13T50U100", "C13T50U200", "C13T50U300", "C13T50U400"],
+                "consumables": ["C13S210115", "C13S210116", "C13T50M100", "C13T50M200", "C13T50M300", "C13T50M400", "C13T50M800", "C13T50MF00", "C13T50U100", "C13T50U200", "C13T50U300", "C13T50U400", "C13T50U80N", "C13T50UF00"],
                 "supported_print_sizes": ["a4", "a3", "a2", "a1", "a0", "36-inch"]
             },
             "epson-p700": {
@@ -180,7 +180,7 @@ class CatalogRepository:
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7000-Printer-1.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-surecolor-p700-13-photo-printer/",
                 "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-SureColor-SC-P700-13-Photo-Printer-Datasheet.pdf",
-                "consumables": ["C12C935711", "C13T46S100", "C13T46S200", "C13T46S300", "C13T46S400"],
+                "consumables": ["C12C935711", "C13T46S100", "C13T46S200", "C13T46S300", "C13T46S400", "C13T46S500", "C13T46S600", "C13T46S700", "C13T46S800", "C13T46S900", "C13T46SD00"],
                 "supported_print_sizes": ["a4", "a3", "a3+", "13-inch", "4x6", "5x7", "8x10"]
             },
             "epson-p900": {
@@ -191,7 +191,7 @@ class CatalogRepository:
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-P900-Printer-2.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-photo-printer/",
                 "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-SureColor-SC-P900-17-Photo-Printer-Datasheet.pdf",
-                "consumables": ["C12C935711", "C13T47A100", "C13T47A200", "C13T47A300", "C13T47A400"],
+                "consumables": ["C12C935711", "C13T47A100", "C13T47A800", "C13T47AD00", "C13T47A200", "C13T47A300", "C13T47A400", "C13T47A500", "C13T47A600", "C13T47A700", "C13T47A900"],
                 "supported_print_sizes": ["a4", "a3", "a3+", "a2", "17-inch", "4x6", "5x7", "8x10", "8x12"]
             },
             "epson-p7500": {
@@ -202,7 +202,7 @@ class CatalogRepository:
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
                 "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-SureColor-SC-P7500-Datasheet.pdf",
-                "consumables": ["C13T699700", "C13T44J140", "C13T44J240", "C13T44J340", "C13T44J440"],
+                "consumables": ["C13T699700", "C13T44J240", "C13T44Q240", "C13T44J740", "C13T44Q740", "C13T44JB40", "C13T44QB40", "C13T44J940", "C13T44J840", "C13T44JA40", "C13T44QA40", "C13T44JD40", "C13T44QD40", "C13T44J640", "C13T44J440", "C13T44Q440"],
                 "supported_print_sizes": ["a4", "a3", "a2", "a1", "24-inch"]
             },
             "epson-p9500": {
@@ -213,7 +213,7 @@ class CatalogRepository:
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p9500-large-format-printer/",
                 "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-SureColor-SC-P9500-Datasheet.pdf",
-                "consumables": ["C13T699700", "C13T44J140", "C13T44J240", "C13T44J340", "C13T44J440"],
+                "consumables": ["C13T699700", "C13T44J240", "C13T44Q240", "C13T44J740", "C13T44Q740", "C13T44JB40", "C13T44QB40", "C13T44J940", "C13T44J840", "C13T44JA40", "C13T44QA40", "C13T44JD40", "C13T44QD40", "C13T44J640", "C13T44J440", "C13T44Q440"],
                 "supported_print_sizes": ["a4", "a3", "a2", "a1", "a0", "44-inch"]
             },
             "citizen-cx-02": {
@@ -529,7 +529,7 @@ class CatalogRepository:
                 "image_url": "https://www.keplertechllc.com/wp-content/uploads/2026/04/epson-SC-F500.jpg.jpeg",
                 "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-f500-dye-sublimation-printer/",
                 "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2026/04/Epson-SureColor-SC-F500-Datasheet.pdf",
-                "consumables": ["C13T49N100", "C13T49N200", "C13T49N300", "C13T49N400", "C13S210055"],
+                "consumables": ["C13T49N100", "C13T49N200", "C13T49N300", "C13T49N400", "C13S210057"],
                 "supported_print_sizes": ["a4", "a3", "a2", "a1", "24-inch"]
             }
         }
@@ -555,7 +555,8 @@ class CatalogRepository:
                 if media_info.get("structured_specs"):
                     prod.structured_specs = media_info["structured_specs"]
                 if media_info.get("consumables"):
-                    prod.consumables = media_info["consumables"]
+                    existing_c = prod.consumables or []
+                    prod.consumables = list(dict.fromkeys(media_info["consumables"] + existing_c))
                 if media_info.get("supported_print_sizes"):
                     prod.supported_print_sizes = list(media_info["supported_print_sizes"])
                     if prod.verified:

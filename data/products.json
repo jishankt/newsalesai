@@ -4,7 +4,7 @@
     "sku": "C11CH13301A1",
     "row_id": "2933",
     "name": "Epson SureColor SC-P9500 Large Format Printer",
-    "price": 4500.0,
+    "price": null,
     "stock": 0,
     "description": "High-precision Epson SureColor SC-P9500 Large Format Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -44,7 +44,7 @@
     "sku": "C11CE20001A0",
     "row_id": "6089",
     "name": "Epson SureColor SC P20000 Large Format Printer",
-    "price": 4500.0,
+    "price": null,
     "stock": 10,
     "description": "High-precision Epson SureColor SC P20000 Large Format Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -312,9 +312,7 @@
     "category": "Photo Printer",
     "consumables": [
       "CX2.4x6",
-      "CX2.6X8",
-      "Citizen Pen",
-      "Citizen CX-02 Bag"
+      "CX2.6X8"
     ],
     "web_url": "https://www.keplertechllc.com/product/citizen-cx-02-photo-printer/",
     "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Citizen-CX-02-Photo-Printer-Dubai.webp"
@@ -324,7 +322,7 @@
     "sku": "C11CH86401BY",
     "row_id": "6219",
     "name": "Epson WorkForce Enterprise WF-C20600 D4TW Multi Function Printer",
-    "price": 8500.0,
+    "price": null,
     "stock": 10,
     "description": "High-precision Epson WorkForce Enterprise WF-C20600 D4TW Multi Function Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -1001,7 +999,7 @@
     "sku": "C11CH12301A1",
     "row_id": "6522",
     "name": "Epson SureColor SC-P7500 24'' Large Format Printer",
-    "price": 4500.0,
+    "price": null,
     "stock": 10,
     "description": "High-precision Epson SureColor SC-P7500 24'' Large Format Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -1015,11 +1013,22 @@
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
     "category": "Large Format Printer",
     "consumables": [
-      "C13T44Q140",
+      "C13T699700",
+      "C13T44J240",
       "C13T44Q240",
-      "C13T44Q340",
-      "C13T44Q440",
-      "C13T699700"
+      "C13T44J740",
+      "C13T44Q740",
+      "C13T44JB40",
+      "C13T44QB40",
+      "C13T44J940",
+      "C13T44J840",
+      "C13T44JA40",
+      "C13T44QA40",
+      "C13T44JD40",
+      "C13T44QD40",
+      "C13T44J640",
+      "C13T44J440",
+      "C13T44Q440"
     ],
     "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
     "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp"
@@ -1029,7 +1038,7 @@
     "sku": "C11CE40301A0",
     "row_id": "6529",
     "name": "Epson SureColor SC-P9000 44'' Large Format Printer",
-    "price": 4500.0,
+    "price": null,
     "stock": 0,
     "description": "High-precision Epson SureColor SC-P9000 44'' Large Format Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -1531,7 +1540,7 @@
     "sku": "C11CE39301A0",
     "row_id": "6676",
     "name": "Epson SureColor SC P7000 Large Format Printer",
-    "price": 1850.0,
+    "price": null,
     "stock": 10,
     "description": "High-precision Epson SureColor SC P7000 Large Format Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -1587,7 +1596,7 @@
     "sku": "C11CE41301A0",
     "row_id": "6721",
     "name": "Epson SureColor SC P6000 Large-Format Printer STD",
-    "price": 1850.0,
+    "price": null,
     "stock": 10,
     "description": "High-precision Epson SureColor SC P6000 Large-Format Printer STD engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -1800,7 +1809,7 @@
     "sku": "C11CF66001A4",
     "row_id": "6794",
     "name": "Epson SureColor SC P5000 17\" Large Format Printer STD",
-    "price": 1850.0,
+    "price": null,
     "stock": 10,
     "description": "High-precision Epson SureColor SC P5000 17\" Large Format Printer STD engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -1910,7 +1919,7 @@
     "sku": "C13T47A100",
     "row_id": "6846",
     "name": "C13T47A100 Epson Singlepack Photo Black UltraChrome Pro10 Ink",
-    "price": 220.0,
+    "price": 198.0,
     "stock": 0,
     "description": "Genuine OEM C13T47A100 Epson Singlepack Photo Black UltraChrome Pro10 Ink delivering vibrant, archival-grade prints with wide color gamut.",
     "tags": [
@@ -1931,7 +1940,7 @@
     "sku": "C13T47A200",
     "row_id": "6849",
     "name": "C13T47A200 Epson Singlepack Cyan UltraChrome Pro 10 Ink",
-    "price": 220.0,
+    "price": 198.0,
     "stock": 0,
     "description": "Genuine OEM C13T47A200 Epson Singlepack Cyan UltraChrome Pro 10 Ink delivering vibrant, archival-grade prints with wide color gamut.",
     "tags": [
@@ -1952,7 +1961,7 @@
     "sku": "C13T47A300",
     "row_id": "6852",
     "name": "C13T47A300 Epson Singlepack Vivid Magenta UltraChrome Pro10 Ink",
-    "price": 220.0,
+    "price": 198.0,
     "stock": 10,
     "description": "Genuine OEM C13T47A300 Epson Singlepack Vivid Magenta UltraChrome Pro10 Ink delivering vibrant, archival-grade prints with wide color gamut.",
     "tags": [
@@ -1972,7 +1981,7 @@
     "sku": "C13T47A500",
     "row_id": "6856",
     "name": "C13T47A500 Epson Singlepack Light Cyan UltraChrome Pro10 Ink",
-    "price": 220.0,
+    "price": 198.0,
     "stock": 10,
     "description": "Genuine OEM C13T47A500 Epson Singlepack Light Cyan UltraChrome Pro10 Ink delivering vibrant, archival-grade prints with wide color gamut.",
     "tags": [
@@ -1992,7 +2001,7 @@
     "sku": "C13T47A400",
     "row_id": "6859",
     "name": "C13T47A400 Epson Singlepack Yellow UltraChrome Pro10 Ink",
-    "price": 220.0,
+    "price": 198.0,
     "stock": 10,
     "description": "Genuine OEM C13T47A400 Epson Singlepack Yellow UltraChrome Pro10 Ink delivering vibrant, archival-grade prints with wide color gamut.",
     "tags": [
@@ -2012,7 +2021,7 @@
     "sku": "C13T47A600",
     "row_id": "6865",
     "name": "C13T47A600 Epson Singlepack Vivid Light Magenta UltraChrome Pro10 Ink 50ml",
-    "price": 220.0,
+    "price": 198.0,
     "stock": 10,
     "description": "Genuine OEM C13T47A600 Epson Singlepack Vivid Light Magenta UltraChrome Pro10 Ink 50ml delivering vibrant, archival-grade prints with wide color gamut.",
     "tags": [
@@ -2032,7 +2041,7 @@
     "sku": "C13T47A700",
     "row_id": "6870",
     "name": "C13T47A700 Epson Singlepack Gray UltraChrome Pro 10 Ink 50ml",
-    "price": 220.0,
+    "price": 198.0,
     "stock": 10,
     "description": "Genuine OEM C13T47A700 Epson Singlepack Gray UltraChrome Pro 10 Ink 50ml delivering vibrant, archival-grade prints with wide color gamut.",
     "tags": [
@@ -2052,7 +2061,7 @@
     "sku": "C13T47A800",
     "row_id": "6873",
     "name": "C13T47A800 Epson Singlepack Matte Black UltraChrome Pro10 Ink",
-    "price": 220.0,
+    "price": 198.0,
     "stock": 10,
     "description": "Genuine OEM C13T47A800 Epson Singlepack Matte Black UltraChrome Pro10 Ink delivering vibrant, archival-grade prints with wide color gamut.",
     "tags": [
@@ -2072,7 +2081,7 @@
     "sku": "C13T47A900",
     "row_id": "6876",
     "name": "C13T47A900 Epson Singlepack Light Gray UltraChrome Pro 10 Ink 50ml",
-    "price": 220.0,
+    "price": 198.0,
     "stock": 0,
     "description": "Genuine OEM C13T47A900 Epson Singlepack Light Gray UltraChrome Pro 10 Ink 50ml delivering vibrant, archival-grade prints with wide color gamut.",
     "tags": [
@@ -2093,7 +2102,7 @@
     "sku": "C13T47AD00",
     "row_id": "6879",
     "name": "C13T47AD00 Epson Singlepack Violet T47AD UltraChrome Pro10 Ink",
-    "price": 220.0,
+    "price": 198.0,
     "stock": 10,
     "description": "Genuine OEM C13T47AD00 Epson Singlepack Violet T47AD UltraChrome Pro10 Ink delivering vibrant, archival-grade prints with wide color gamut.",
     "tags": [
@@ -2113,7 +2122,7 @@
     "sku": "C12C935711",
     "row_id": "6883",
     "name": "Epson C12C935711 Maintenance Tank - SC-P700/SC-P900",
-    "price": 180.0,
+    "price": 155.0,
     "stock": 10,
     "description": "Genuine OEM Epson C12C935711 Maintenance Tank - SC-P700/SC-P900 designed for reliable printer maintenance and waste ink collection.",
     "tags": [
@@ -2126,12 +2135,17 @@
     "website_url": "https://www.keplertechllc.com/product/maintenance-tank-sc-p700-sc-p900-c12c935711/",
     "category": "Maintenance Box",
     "consumables": [
-      "C13T47A100",
-      "C13T47A200",
-      "C13T47A300",
-      "C13T47A400",
-      "C13T47AD00",
-      "C13T699700"
+      "C13T46S100",
+      "C13T46S200",
+      "C13T46S300",
+      "C13T46S400",
+      "C13T46S500",
+      "C13T46S600",
+      "C13T46S700",
+      "C13T46S800",
+      "C13T46S900",
+      "C13T46SD00",
+      "C12C935711"
     ],
     "web_url": "https://www.keplertechllc.com/product/maintenance-tank-sc-p700-sc-p900-c12c935711/",
     "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Maintenance-Tank-SC-P700SC-P900-C12C935711.webp"
@@ -2141,7 +2155,7 @@
     "sku": "C11CH37402DA",
     "row_id": "6886",
     "name": "Epson SureColor SC P900 Photo Printer",
-    "price": 1850.0,
+    "price": 4880.0,
     "stock": 10,
     "description": "High-precision Epson SureColor SC P900 Photo Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -2156,9 +2170,15 @@
     "category": "Printer",
     "consumables": [
       "C13T47A100",
+      "C13T47A800",
+      "C13T47AD00",
       "C13T47A200",
       "C13T47A300",
       "C13T47A400",
+      "C13T47A500",
+      "C13T47A600",
+      "C13T47A700",
+      "C13T47A900",
       "C12C935711"
     ],
     "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-photo-printer/",
@@ -2369,7 +2389,7 @@
     "sku": "C11CH38402DA",
     "row_id": "6943",
     "name": "Epson SureColor SC-P700 13\" Photo Printer",
-    "price": 1850.0,
+    "price": 3400.0,
     "stock": 10,
     "description": "High-precision Epson SureColor SC-P700 13\" Photo Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -2387,8 +2407,13 @@
       "C13T46S200",
       "C13T46S300",
       "C13T46S400",
+      "C13T46S500",
+      "C13T46S600",
+      "C13T46S700",
+      "C13T46S800",
+      "C13T46S900",
       "C13T46SD00",
-      "C13T699700"
+      "C12C935711"
     ],
     "web_url": "https://www.keplertechllc.com/product/epson-surecolor-p700-13-photo-printer/",
     "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/EPSON-P700-Printer-1.webp"
@@ -2412,9 +2437,7 @@
     "category": "Photo Printer",
     "consumables": [
       "CY-MS46",
-      "CY-MS68",
-      "Citizen Pen",
-      "CY02Bag"
+      "CY-MS68"
     ],
     "web_url": "https://www.keplertechllc.com/product/citizen-cy-02-photo-printer/",
     "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CY-02-Photo-Printer.webp"
@@ -2424,7 +2447,7 @@
     "sku": "CX-02W",
     "row_id": "7002",
     "name": "Citizen CX-02W 8\" Large Photo Printer",
-    "price": 3800.0,
+    "price": 6820.0,
     "stock": 10,
     "description": "Professional Citizen CX-02W 8\" Large Photo Printer renowned for compact design, high speed, and lab-quality photo output.",
     "tags": [
@@ -2437,8 +2460,7 @@
     "website_url": "https://www.keplertechllc.com/product/citizen-cx-02w-large-photo-printer/",
     "category": "Photo Printer",
     "consumables": [
-      "CX2W 812",
-      "Citizen Pen"
+      "CX2W 812"
     ],
     "web_url": "https://www.keplertechllc.com/product/citizen-cx-02w-large-photo-printer/",
     "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CX-02W-Photo-Printer.webp"
@@ -2462,9 +2484,7 @@
     "category": "Photo Printer",
     "consumables": [
       "CZ-MS46",
-      "CZ-MS458",
-      "Citizen Pen",
-      "CZ01 Carry Bag"
+      "CZ-MS458"
     ],
     "web_url": "https://www.keplertechllc.com/product/citizen-cz-01-photo-printer/",
     "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CZ-01-Photo-Printer.webp"
@@ -2493,7 +2513,7 @@
     "sku": "C11CH87401BY",
     "row_id": "7141",
     "name": "Epson WorkForce Enterprise WF-C20750 D4TW Multi Function Printer",
-    "price": 8500.0,
+    "price": null,
     "stock": 10,
     "description": "High-precision Epson WorkForce Enterprise WF-C20750 D4TW Multi Function Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -2752,7 +2772,7 @@
     "sku": "C11CH88401BY",
     "row_id": "7190",
     "name": "Epson WorkForce Enterprise WF-C21000 D4TW Multi Function Printer",
-    "price": 8500.0,
+    "price": null,
     "stock": 10,
     "description": "High-precision Epson WorkForce Enterprise WF-C21000 D4TW Multi Function Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -3016,7 +3036,7 @@
     "sku": "C11CG02201",
     "row_id": "7271",
     "name": "Epson WorkForce Pro WF-C5790 DWF Multifunction Color Printer",
-    "price": 8500.0,
+    "price": null,
     "stock": 10,
     "description": "High-precision Epson WorkForce Pro WF-C5790 DWF Multifunction Color Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -3043,7 +3063,7 @@
     "sku": "C13T01D100",
     "row_id": "7297",
     "name": "C13T01D100 Epson WorkForce Pro WF-C529R/C579R Black XXL Ink",
-    "price": 450.0,
+    "price": 690.0,
     "stock": 0,
     "description": "Genuine OEM C13T01D100 Epson WorkForce Pro WF-C529R/C579R Black XXL Ink delivering vibrant, archival-grade prints with wide color gamut.",
     "tags": [
@@ -3272,7 +3292,7 @@
     "sku": "C11CG79401BC",
     "row_id": "7324",
     "name": "Epson WorkForce Pro WF-C529R Business Printer",
-    "price": 8500.0,
+    "price": null,
     "stock": 0,
     "description": "High-precision Epson WorkForce Pro WF-C529R Business Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -3304,7 +3324,7 @@
     "sku": "C11CG77402BC",
     "row_id": "7348",
     "name": "Epson WorkForce Pro WF-C579R DTWF Multifunction Printer",
-    "price": 8500.0,
+    "price": null,
     "stock": 0,
     "description": "High-precision Epson WorkForce Pro WF-C579R DTWF Multifunction Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -3402,7 +3422,7 @@
     "sku": "C13T05A400",
     "row_id": "7384",
     "name": "C13T05A400 Epson WorkForce Pro WF-C87xR Yellow XL Ink",
-    "price": 220.0,
+    "price": 695.0,
     "stock": 0,
     "description": "Genuine OEM C13T05A400 Epson WorkForce Pro WF-C87xR Yellow XL Ink delivering vibrant, archival-grade prints with wide color gamut.",
     "tags": [
@@ -3561,7 +3581,7 @@
     "sku": "C11CH35402BC",
     "row_id": "7413",
     "name": "Epson WorkForce Pro WF-C879R DWF Multifunction Printer",
-    "price": 8500.0,
+    "price": 7600.0,
     "stock": 10,
     "description": "High-precision Epson WorkForce Pro WF-C879R DWF Multifunction Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -3579,6 +3599,10 @@
       "C13T05A200",
       "C13T05A300",
       "C13T05A400",
+      "C13T05B140",
+      "C13T05B240",
+      "C13T05B340",
+      "C13T05B440",
       "C13T671400"
     ],
     "web_url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c879r-d3twfc-multifunction-printer-copy/"
@@ -3588,7 +3612,7 @@
     "sku": "C11CH60402BY",
     "row_id": "7433",
     "name": "Epson WorkForce Pro WF-C878R DWF Multifunction Color Printer",
-    "price": 8500.0,
+    "price": 6500.0,
     "stock": 0,
     "description": "High-precision Epson WorkForce Pro WF-C878R DWF Multifunction Color Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -3679,7 +3703,7 @@
     "sku": "C11CG07402BY",
     "row_id": "7466",
     "name": "Epson WorkForce Pro WF-M5299 Monochrome Printer",
-    "price": 8500.0,
+    "price": null,
     "stock": 0,
     "description": "High-precision Epson WorkForce Pro WF-M5299 Monochrome Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -3705,7 +3729,7 @@
     "sku": "C11CG04402BY",
     "row_id": "7468",
     "name": "Epson WorkForce Pro WF-M5799 Multifunction Printer",
-    "price": 8500.0,
+    "price": null,
     "stock": 10,
     "description": "High-precision Epson WorkForce Pro WF-M5799 Multifunction Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -4050,7 +4074,7 @@
     "sku": "C13T41F340",
     "row_id": "7569",
     "name": "C13T41F340 Epson Singlepack Magenta UltraChrome XD2 Ink (350ml)",
-    "price": 220.0,
+    "price": 575.0,
     "stock": 10,
     "description": "Genuine OEM C13T41F340 Epson Singlepack Magenta UltraChrome XD2 Ink (350ml) delivering vibrant, archival-grade prints with wide color gamut.",
     "tags": [
@@ -4269,10 +4293,10 @@
     "_id": "C11CD66301A0",
     "sku": "C11CD66301A0",
     "row_id": "7606",
-    "name": "Epson SureColor SC-T3200 24\u2033 Printer (With Stand)",
+    "name": "Epson SureColor SC-T3200 24″ Printer (With Stand)",
     "price": 1850.0,
     "stock": 10,
-    "description": "High-precision Epson SureColor SC-T3200 24\u2033 Printer (With Stand) engineered for superior color accuracy, high-speed output, and professional production.",
+    "description": "High-precision Epson SureColor SC-T3200 24″ Printer (With Stand) engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
       "Printer",
       "Epson",
@@ -4291,7 +4315,7 @@
     "sku": "C11CD67301A0",
     "row_id": "7608",
     "name": "Epson SureColor SC-T5200 36\" Large Format Printer",
-    "price": 1850.0,
+    "price": null,
     "stock": 0,
     "description": "High-precision Epson SureColor SC-T5200 36\" Large Format Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -4330,7 +4354,7 @@
     "sku": "C11CD68301A0",
     "row_id": "7610",
     "name": "Epson SureColor SC-T7200 44'' Large Format Printer",
-    "price": 1850.0,
+    "price": null,
     "stock": 0,
     "description": "High-precision Epson SureColor SC-T7200 44'' Large Format Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -4369,7 +4393,7 @@
     "sku": "C11CD67301A2",
     "row_id": "7612",
     "name": "Epson SureColor SC-T5200 36'' MFP HDD Large Format Printer",
-    "price": 1850.0,
+    "price": null,
     "stock": 10,
     "description": "High-precision Epson SureColor SC-T5200 36'' MFP HDD Large Format Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -4389,10 +4413,10 @@
     "_id": "C11CD68301A1",
     "sku": "C11CD68301A1",
     "row_id": "7614",
-    "name": "Epson SureColor SC-T7200 44\u2033 MFP Large Format Printer",
-    "price": 1850.0,
+    "name": "Epson SureColor SC-T7200 44″ MFP Large Format Printer",
+    "price": null,
     "stock": 10,
-    "description": "High-precision Epson SureColor SC-T7200 44\u2033 MFP Large Format Printer engineered for superior color accuracy, high-speed output, and professional production.",
+    "description": "High-precision Epson SureColor SC-T7200 44″ MFP Large Format Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
       "Printer",
       "Epson",
@@ -4424,7 +4448,21 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T3100-%E2%80%93-Wireless-Printer-With-Stand.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t3100-wireless-printer-with-stand/",
     "category": "Printer",
-    "consumables": [],
+    "consumables": [
+      "C13T41E240",
+      "C13T41E340",
+      "C13T41E440",
+      "C13T41E540",
+      "C13T41F240",
+      "C13T41F340",
+      "C13T41F440",
+      "C13T41F540",
+      "C13T41R240",
+      "C13T41R340",
+      "C13T41R440",
+      "C13T41R540",
+      "C13T699700"
+    ],
     "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t3405-wireless-printer/",
     "image": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T3100-%E2%80%93-Wireless-Printer-With-Stand.webp"
   },
@@ -4433,7 +4471,7 @@
     "sku": "C11CJ56301A1",
     "row_id": "7687",
     "name": "Epson SureColor SC-T5405 36'' Wireless Printer",
-    "price": 1850.0,
+    "price": null,
     "stock": 0,
     "description": "High-precision Epson SureColor SC-T5405 36'' Wireless Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -6550,10 +6588,10 @@
     "_id": "C13S042372",
     "sku": "C13S042372",
     "row_id": "8073",
-    "name": "C13S042372 Epson ClearProof\u00ae Film 24\"x30.5M",
+    "name": "C13S042372 Epson ClearProof® Film 24\"x30.5M",
     "price": 320.0,
     "stock": 0,
-    "description": "Premium quality C13S042372 Epson ClearProof\u00ae Film 24\"x30.5M providing fine art texture and crisp photo reproduction.",
+    "description": "Premium quality C13S042372 Epson ClearProof® Film 24\"x30.5M providing fine art texture and crisp photo reproduction.",
     "tags": [
       "Media & Paper",
       "Epson",
@@ -6592,10 +6630,10 @@
     "_id": "C13S042377",
     "sku": "C13S042377",
     "row_id": "8082",
-    "name": "C13S042377 Epson MetallicProof\u00ae Film 24\"x30.5M",
+    "name": "C13S042377 Epson MetallicProof® Film 24\"x30.5M",
     "price": 320.0,
     "stock": 0,
-    "description": "Premium quality C13S042377 Epson MetallicProof\u00ae Film 24\"x30.5M providing fine art texture and crisp photo reproduction.",
+    "description": "Premium quality C13S042377 Epson MetallicProof® Film 24\"x30.5M providing fine art texture and crisp photo reproduction.",
     "tags": [
       "Media & Paper",
       "Epson",
@@ -6613,10 +6651,10 @@
     "_id": "C13S042408",
     "sku": "C13S042408",
     "row_id": "8085",
-    "name": "C13S042408 Epson ClearProof\u00ae Thin Film 24\"x30.5M",
+    "name": "C13S042408 Epson ClearProof® Thin Film 24\"x30.5M",
     "price": 320.0,
     "stock": 0,
-    "description": "Premium quality C13S042408 Epson ClearProof\u00ae Thin Film 24\"x30.5M providing fine art texture and crisp photo reproduction.",
+    "description": "Premium quality C13S042408 Epson ClearProof® Thin Film 24\"x30.5M providing fine art texture and crisp photo reproduction.",
     "tags": [
       "Media & Paper",
       "Epson",
@@ -7458,7 +7496,7 @@
     "sku": "C11CE40301A2",
     "row_id": "8440",
     "name": "Epson SC-P9000 Large Format Printer Spectro",
-    "price": 4500.0,
+    "price": null,
     "stock": 10,
     "description": "High-precision Epson SC-P9000 Large Format Printer Spectro engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -7485,7 +7523,7 @@
     "sku": "C11CE40301A1",
     "row_id": "8442",
     "name": "Epson SureColor SC-P9000 Printer Violet",
-    "price": 4500.0,
+    "price": null,
     "stock": 10,
     "description": "High-precision Epson SureColor SC-P9000 Printer Violet engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -7513,7 +7551,7 @@
     "sku": "C11CE40301A3",
     "row_id": "8444",
     "name": "Epson SC-P9000V Printer Violet Spectro",
-    "price": 4500.0,
+    "price": null,
     "stock": 10,
     "description": "High-precision Epson SC-P9000V Printer Violet Spectro engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -7539,7 +7577,7 @@
     "sku": "C11CH13301A3",
     "row_id": "8475",
     "name": "Epson SureColor SC-P9500 Large Format Printer Spectro",
-    "price": 4500.0,
+    "price": null,
     "stock": 0,
     "description": "High-precision Epson SureColor SC-P9500 Large Format Printer Spectro engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -7605,7 +7643,7 @@
     "sku": "C11CH12301A3",
     "row_id": "8520",
     "name": "Epson SureColor SC-P7500 24'' Printer Spectro",
-    "price": 4500.0,
+    "price": null,
     "stock": 0,
     "description": "High-precision Epson SureColor SC-P7500 24'' Printer Spectro engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -7645,7 +7683,7 @@
     "sku": "C11CE41301A2",
     "row_id": "8560",
     "name": "Epson SureColor P6000 24\" Large-Format Printer Spectro",
-    "price": 1850.0,
+    "price": null,
     "stock": 10,
     "description": "High-precision Epson SureColor P6000 24\" Large-Format Printer Spectro engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -7671,7 +7709,7 @@
     "sku": "C11CF66001A5",
     "row_id": "8574",
     "name": "Epson SureColor SC P5000 17\" Large Format Printer Violet",
-    "price": 1850.0,
+    "price": null,
     "stock": 10,
     "description": "High-precision Epson SureColor SC P5000 17\" Large Format Printer Violet engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -7697,7 +7735,7 @@
     "sku": "C11CF66001A6",
     "row_id": "8579",
     "name": "Epson SureColor SC P5000 17\" Large Format Printer STD Spectro",
-    "price": 1850.0,
+    "price": null,
     "stock": 10,
     "description": "High-precision Epson SureColor SC P5000 17\" Large Format Printer STD Spectro engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -7723,7 +7761,7 @@
     "sku": "C11CF66001A7",
     "row_id": "8584",
     "name": "Epson SureColor SC P5000 17\" Printer Violet Spectro",
-    "price": 1850.0,
+    "price": null,
     "stock": 10,
     "description": "High-precision Epson SureColor SC P5000 17\" Printer Violet Spectro engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -7748,10 +7786,10 @@
     "_id": "C11CD66301A1",
     "sku": "C11CD66301A1",
     "row_id": "8697",
-    "name": "Epson SureColor SC-T3200 24\u2033 Printer (Without Stand)",
+    "name": "Epson SureColor SC-T3200 24″ Printer (Without Stand)",
     "price": 1850.0,
     "stock": 10,
-    "description": "High-precision Epson SureColor SC-T3200 24\u2033 Printer (Without Stand) engineered for superior color accuracy, high-speed output, and professional production.",
+    "description": "High-precision Epson SureColor SC-T3200 24″ Printer (Without Stand) engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
       "Printer",
       "Epson",
@@ -7846,7 +7884,7 @@
     "sku": "C11CG77402BS",
     "row_id": "9012",
     "name": "Epson WorkForcePro WF-C579R D2TWF Multifunction Printer",
-    "price": 8500.0,
+    "price": null,
     "stock": 0,
     "description": "High-precision Epson WorkForcePro WF-C579R D2TWF Multifunction Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -7878,7 +7916,7 @@
     "sku": "C11CG77402BY",
     "row_id": "9020",
     "name": "Epson WorkForce Pro WF-C579R DWF Multifunction Printer",
-    "price": 8500.0,
+    "price": null,
     "stock": 0,
     "description": "High-precision Epson WorkForce Pro WF-C579R DWF Multifunction Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -7900,8 +7938,7 @@
       "C13T01D200",
       "C13T01D300",
       "C13T01D400",
-      "C13T671600",
-      "C11CG05201"
+      "C13T671600"
     ],
     "availability": "Out of Stock",
     "web_url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c579r-dtwf-multifunction-printer/",
@@ -7912,7 +7949,7 @@
     "sku": "C11CH35402BS",
     "row_id": "9031",
     "name": "Epson WorkForce Pro WF-C879R DTWFC Multifunction Printer",
-    "price": 8500.0,
+    "price": 7600.0,
     "stock": 0,
     "description": "High-precision Epson WorkForce Pro WF-C879R DTWFC Multifunction Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -7944,7 +7981,7 @@
     "sku": "C11CH35402BZ",
     "row_id": "9040",
     "name": "Epson WorkForce Pro WF-C879R D3TWFC Multifunction Printer",
-    "price": 8500.0,
+    "price": 7600.0,
     "stock": 0,
     "description": "High-precision Epson WorkForce Pro WF-C879R D3TWFC Multifunction Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -7976,7 +8013,7 @@
     "sku": "C11CH60402BC",
     "row_id": "9054",
     "name": "Epson WorkForce Pro WF-C878R DTWF Multifunction Printer",
-    "price": 8500.0,
+    "price": 6500.0,
     "stock": 10,
     "description": "High-precision Epson WorkForce Pro WF-C878R DTWF Multifunction Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -8004,7 +8041,7 @@
     "sku": "C11CH60402BZ",
     "row_id": "9059",
     "name": "Epson WorkForce Pro WF-C878R D3TWFC Multifunction Printer",
-    "price": 8500.0,
+    "price": 6500.0,
     "stock": 0,
     "description": "High-precision Epson WorkForce Pro WF-C878R D3TWFC Multifunction Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -9155,10 +9192,10 @@
     "_id": "IFA 23",
     "sku": "IFA 23",
     "row_id": "10370",
-    "name": "Innova IFA 23 D\u00e9cor Watercolour Art 245gsm",
+    "name": "Innova IFA 23 Décor Watercolour Art 245gsm",
     "price": 150.0,
     "stock": 10,
-    "description": "Authentic Innova IFA 23 D\u00e9cor Watercolour Art 245gsm for professional printing equipment.",
+    "description": "Authentic Innova IFA 23 Décor Watercolour Art 245gsm for professional printing equipment.",
     "tags": [
       "Accessory",
       "Innova",
@@ -9174,10 +9211,10 @@
     "_id": "IFA-23-1118x30",
     "sku": "IFA-23-1118x30",
     "row_id": "10372",
-    "name": "Innova IFA 23 D\u00e9cor Watercolour Art 245gsm - 44\"X30 M",
+    "name": "Innova IFA 23 Décor Watercolour Art 245gsm - 44\"X30 M",
     "price": 150.0,
     "stock": 10,
-    "description": "Authentic Innova IFA 23 D\u00e9cor Watercolour Art 245gsm - 44\"X30 M for professional printing equipment.",
+    "description": "Authentic Innova IFA 23 Décor Watercolour Art 245gsm - 44\"X30 M for professional printing equipment.",
     "tags": [
       "Accessory",
       "Innova",
@@ -9193,10 +9230,10 @@
     "_id": "IFA-23-610x30",
     "sku": "IFA-23-610x30",
     "row_id": "10376",
-    "name": "Innova IFA 23 D\u00e9cor Watercolour Art 245gsm - 24\"X30 M",
+    "name": "Innova IFA 23 Décor Watercolour Art 245gsm - 24\"X30 M",
     "price": 150.0,
     "stock": 10,
-    "description": "Authentic Innova IFA 23 D\u00e9cor Watercolour Art 245gsm - 24\"X30 M for professional printing equipment.",
+    "description": "Authentic Innova IFA 23 Décor Watercolour Art 245gsm - 24\"X30 M for professional printing equipment.",
     "tags": [
       "Accessory",
       "Innova",
@@ -10029,10 +10066,10 @@
     "_id": "IFA 24",
     "sku": "IFA 24",
     "row_id": "10485",
-    "name": "Innova IFA 24 D\u00e9cor Smooth Art 210gsm",
+    "name": "Innova IFA 24 Décor Smooth Art 210gsm",
     "price": 150.0,
     "stock": 10,
-    "description": "Authentic Innova IFA 24 D\u00e9cor Smooth Art 210gsm for professional printing equipment.",
+    "description": "Authentic Innova IFA 24 Décor Smooth Art 210gsm for professional printing equipment.",
     "tags": [
       "Accessory",
       "Innova",
@@ -10048,10 +10085,10 @@
     "_id": "IFA 25",
     "sku": "IFA 25",
     "row_id": "10490",
-    "name": "Innova IFA 25 D\u00e9cor Smooth Art DS 220gsm",
+    "name": "Innova IFA 25 Décor Smooth Art DS 220gsm",
     "price": 150.0,
     "stock": 10,
-    "description": "Authentic Innova IFA 25 D\u00e9cor Smooth Art DS 220gsm for professional printing equipment.",
+    "description": "Authentic Innova IFA 25 Décor Smooth Art DS 220gsm for professional printing equipment.",
     "tags": [
       "Accessory",
       "Innova",
@@ -10219,10 +10256,10 @@
     "_id": "IFA-24-A4-50",
     "sku": "IFA-24-A4-50",
     "row_id": "10567",
-    "name": "Innova IFA 24 D\u00e9cor Smooth Art 210gsm - A4 - 50 Sheets",
+    "name": "Innova IFA 24 Décor Smooth Art 210gsm - A4 - 50 Sheets",
     "price": 150.0,
     "stock": 10,
-    "description": "Authentic Innova IFA 24 D\u00e9cor Smooth Art 210gsm - A4 - 50 Sheets for professional printing equipment.",
+    "description": "Authentic Innova IFA 24 Décor Smooth Art 210gsm - A4 - 50 Sheets for professional printing equipment.",
     "tags": [
       "Accessory",
       "Innova",
@@ -10238,10 +10275,10 @@
     "_id": "IFA-24-A3P-50",
     "sku": "IFA-24-A3P-50",
     "row_id": "10568",
-    "name": "Innova IFA 24 D\u00e9cor Smooth Art 210gsm - A3+ - 50 Sheets",
+    "name": "Innova IFA 24 Décor Smooth Art 210gsm - A3+ - 50 Sheets",
     "price": 150.0,
     "stock": 10,
-    "description": "Authentic Innova IFA 24 D\u00e9cor Smooth Art 210gsm - A3+ - 50 Sheets for professional printing equipment.",
+    "description": "Authentic Innova IFA 24 Décor Smooth Art 210gsm - A3+ - 50 Sheets for professional printing equipment.",
     "tags": [
       "Accessory",
       "Innova",
@@ -10257,10 +10294,10 @@
     "_id": "IFA-24-610x30",
     "sku": "IFA-24-610x30",
     "row_id": "10570",
-    "name": "Innova IFA 24 D\u00e9cor Smooth Art 210gsm - 24\"X30 M",
+    "name": "Innova IFA 24 Décor Smooth Art 210gsm - 24\"X30 M",
     "price": 150.0,
     "stock": 10,
-    "description": "Authentic Innova IFA 24 D\u00e9cor Smooth Art 210gsm - 24\"X30 M for professional printing equipment.",
+    "description": "Authentic Innova IFA 24 Décor Smooth Art 210gsm - 24\"X30 M for professional printing equipment.",
     "tags": [
       "Accessory",
       "Innova",
@@ -10276,10 +10313,10 @@
     "_id": "IFA-24-1118x30",
     "sku": "IFA-24-1118x30",
     "row_id": "10571",
-    "name": "Innova IFA 24 D\u00e9cor Smooth Art 210gsm - 44\"X30 M",
+    "name": "Innova IFA 24 Décor Smooth Art 210gsm - 44\"X30 M",
     "price": 150.0,
     "stock": 10,
-    "description": "Authentic Innova IFA 24 D\u00e9cor Smooth Art 210gsm - 44\"X30 M for professional printing equipment.",
+    "description": "Authentic Innova IFA 24 Décor Smooth Art 210gsm - 44\"X30 M for professional printing equipment.",
     "tags": [
       "Accessory",
       "Innova",
@@ -10899,10 +10936,10 @@
     "_id": "C11CJ43402BY",
     "sku": "C11CJ43402BY",
     "row_id": "10698",
-    "name": "Epson WorkForce Enterprise WF\u200b AM C4000\u200b Printer",
-    "price": 8500.0,
+    "name": "Epson WorkForce Enterprise WF​ AM C4000​ Printer",
+    "price": null,
     "stock": 10,
-    "description": "High-precision Epson WorkForce Enterprise WF\u200b AM C4000\u200b Printer engineered for superior color accuracy, high-speed output, and professional production.",
+    "description": "High-precision Epson WorkForce Enterprise WF​ AM C4000​ Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
       "Business Printer",
       "Epson",
@@ -10925,10 +10962,10 @@
     "_id": "C11CJ42402BY",
     "sku": "C11CJ42402BY",
     "row_id": "10714",
-    "name": "Epson WorkForce Enterprise\u200b AM-C5000\u200b Printer",
-    "price": 8500.0,
+    "name": "Epson WorkForce Enterprise​ AM-C5000​ Printer",
+    "price": null,
     "stock": 0,
-    "description": "High-precision Epson WorkForce Enterprise\u200b AM-C5000\u200b Printer engineered for superior color accuracy, high-speed output, and professional production.",
+    "description": "High-precision Epson WorkForce Enterprise​ AM-C5000​ Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
       "Business Printer",
       "Epson",
@@ -10953,10 +10990,10 @@
     "_id": "C11CJ91402BY",
     "sku": "C11CJ91402BY",
     "row_id": "10731",
-    "name": "Epson WorkForce Enterprise\u200b AM C6000\u200b Printer",
-    "price": 8500.0,
+    "name": "Epson WorkForce Enterprise​ AM C6000​ Printer",
+    "price": null,
     "stock": 0,
-    "description": "High-precision Epson WorkForce Enterprise\u200b AM C6000\u200b Printer engineered for superior color accuracy, high-speed output, and professional production.",
+    "description": "High-precision Epson WorkForce Enterprise​ AM C6000​ Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
       "Business Printer",
       "Epson",
@@ -10972,8 +11009,7 @@
       "C13T08G200",
       "C13T08G300",
       "C13T08G400",
-      "C12C937181",
-      "C11CG05201"
+      "C12C937181"
     ],
     "availability": "Out of Stock"
   },
@@ -11069,7 +11105,7 @@
     "sku": "C13T08H400",
     "row_id": "10753",
     "name": "C13T08H400 Epson WorkForce Enterprise AM-C4000 Yellow Ink",
-    "price": 220.0,
+    "price": 883.0,
     "stock": 0,
     "description": "Genuine OEM C13T08H400 Epson WorkForce Enterprise AM-C4000 Yellow Ink delivering vibrant, archival-grade prints with wide color gamut.",
     "tags": [
@@ -11259,7 +11295,7 @@
     "sku": "CY-MS46",
     "row_id": "10930",
     "name": "Citizen CY-MS46 (4x6) Media",
-    "price": 3800.0,
+    "price": 625.0,
     "stock": 10,
     "description": "Professional Citizen CY-MS46 (4x6) Media renowned for compact design, high speed, and lab-quality photo output.",
     "tags": [
@@ -11280,7 +11316,7 @@
     "sku": "CY-MS68",
     "row_id": "10954",
     "name": "Citizen CY-MS68 (6x8) Media",
-    "price": 3800.0,
+    "price": 685.0,
     "stock": 10,
     "description": "Professional Citizen CY-MS68 (6x8) Media renowned for compact design, high speed, and lab-quality photo output.",
     "tags": [
@@ -11344,7 +11380,7 @@
     "sku": "CX2W 812",
     "row_id": "11059",
     "name": "Citizen CX2W 812 (8x12) Media",
-    "price": 3800.0,
+    "price": 975.0,
     "stock": 10,
     "description": "Professional Citizen CX2W 812 (8x12) Media renowned for compact design, high speed, and lab-quality photo output.",
     "tags": [
@@ -11365,7 +11401,7 @@
     "sku": "C11CJ80301",
     "row_id": "11240",
     "name": "Epson SureColor SC F100 Printer",
-    "price": 1850.0,
+    "price": 1950.0,
     "stock": 0,
     "description": "High-precision Epson SureColor SC F100 Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -11501,7 +11537,7 @@
     "sku": "C11CK23402BY",
     "row_id": "11408",
     "name": "Epson WorkForce Pro WF-C5890 DWF Printer",
-    "price": 8500.0,
+    "price": 1656.0,
     "stock": 0,
     "description": "High-precision Epson WorkForce Pro WF-C5890 DWF Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -11524,8 +11560,7 @@
       "C13T11D240",
       "C13T11D340",
       "C13T11D440",
-      "C13T11E140",
-      "C11CG05201"
+      "C13T11E140"
     ],
     "availability": "Out of Stock",
     "web_url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c5890-dwf-printer/"
@@ -12296,10 +12331,10 @@
     "_id": "C11CF11302A1",
     "sku": "C11CF11302A1",
     "row_id": "12453",
-    "name": "Epson SureColor SC-T3100 \u2013 Wireless Printer (With Stand)",
+    "name": "Epson SureColor SC-T3100 – Wireless Printer (With Stand)",
     "price": 1850.0,
     "stock": 0,
-    "description": "High-precision Epson SureColor SC-T3100 \u2013 Wireless Printer (With Stand) engineered for superior color accuracy, high-speed output, and professional production.",
+    "description": "High-precision Epson SureColor SC-T3100 – Wireless Printer (With Stand) engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
       "Printer",
       "Epson",
@@ -12402,7 +12437,17 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T3100-%E2%80%93-Wireless-Printer-With-Stand.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t3100-wireless-printer-with-stand/",
     "category": "Printer",
-    "consumables": [],
+    "consumables": [
+      "C13S210057",
+      "C13T40C140",
+      "C13T40C240",
+      "C13T40C340",
+      "C13T40C440",
+      "C13T40D140",
+      "C13T40D240",
+      "C13T40D340",
+      "C13T40D440"
+    ],
     "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100-large-format-printer/",
     "image": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T3100-%E2%80%93-Wireless-Printer-With-Stand.webp"
   },
@@ -13240,7 +13285,7 @@
     "sku": "C11CF34201",
     "row_id": "13402",
     "name": "Epson WorkForce Pro WF-C869R Multifunction Color Printer",
-    "price": 8500.0,
+    "price": null,
     "stock": 10,
     "description": "High-precision Epson WorkForce Pro WF-C869R Multifunction Color Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -13570,7 +13615,7 @@
     "sku": "B11B252402",
     "row_id": "13782",
     "name": "Epson WorkForce WF DS-70 Business Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 10,
     "description": "High-speed professional Epson WorkForce WF DS-70 Business Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -13591,7 +13636,7 @@
     "sku": "B11B253402",
     "row_id": "13798",
     "name": "Epson WorkForce WF DS-80W Wireless Portable Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 10,
     "description": "High-speed professional Epson WorkForce WF DS-80W Wireless Portable Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -13612,7 +13657,7 @@
     "sku": "B11B239402BB",
     "row_id": "13813",
     "name": "Epson WorkForce WF DS-1630 Flatbed Color Document Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 10,
     "description": "High-speed professional Epson WorkForce WF DS-1630 Flatbed Color Document Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -13633,7 +13678,7 @@
     "sku": "B11B244402BB",
     "row_id": "13827",
     "name": "Epson WorkForce WF DS-1660W Wi-Fi Flatbed Color Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 10,
     "description": "High-speed professional Epson WorkForce WF DS-1660W Wi-Fi Flatbed Color Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -13654,7 +13699,7 @@
     "sku": "B11B241401BY",
     "row_id": "13847",
     "name": "Epson WorkForce WF DS-310 Portable Sheet-fed Document Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 10,
     "description": "High-speed professional Epson WorkForce WF DS-310 Portable Sheet-fed Document Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -13675,7 +13720,7 @@
     "sku": "B11B242401BY",
     "row_id": "13882",
     "name": "Epson WorkForce WF DS-360W Wi-Fi Portable Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 10,
     "description": "High-speed professional Epson WorkForce WF DS-360W Wi-Fi Portable Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -13696,7 +13741,7 @@
     "sku": "B11B249401BB",
     "row_id": "13896",
     "name": "Epson WorkForce WF DS-410 Document Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 10,
     "description": "High-speed professional Epson WorkForce WF DS-410 Document Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -13717,7 +13762,7 @@
     "sku": "B11B261401BB",
     "row_id": "13913",
     "name": "Epson WorkForce WF DS-530II Color Duplex Document Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 10,
     "description": "High-speed professional Epson WorkForce WF DS-530II Color Duplex Document Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -13738,7 +13783,7 @@
     "sku": "B11B259401BB",
     "row_id": "13928",
     "name": "Epson WorkForce WF DS-730N Network Color Document Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 10,
     "description": "High-speed professional Epson WorkForce WF DS-730N Network Color Document Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -13759,7 +13804,7 @@
     "sku": "B11B262401BB",
     "row_id": "13948",
     "name": "Epson Workforce WF DS-770 II Color Duplex Document Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 10,
     "description": "High-speed professional Epson Workforce WF DS-770 II Color Duplex Document Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -13781,7 +13826,7 @@
     "sku": "B11B265401BB",
     "row_id": "13966",
     "name": "Epson WorkForce WF DS-790WN Wireless Color Document Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 10,
     "description": "High-speed professional Epson WorkForce WF DS-790WN Wireless Color Document Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -13803,7 +13848,7 @@
     "sku": "B11B250401BB",
     "row_id": "13987",
     "name": "Epson WorkForce WF DS-870 Color Duplex Document Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 10,
     "description": "High-speed professional Epson WorkForce WF DS-870 Color Duplex Document Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -13825,7 +13870,7 @@
     "sku": "B11B251401BB",
     "row_id": "14002",
     "name": "Epson WorkForce WF DS-970 Color Duplex Document Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 10,
     "description": "High-speed professional Epson WorkForce WF DS-970 Color Duplex Document Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -13847,7 +13892,7 @@
     "sku": "B11B255401BB",
     "row_id": "14020",
     "name": "Epson WorkForce WF DS-32000 Large-Format Document Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 10,
     "description": "High-speed professional Epson WorkForce WF DS-32000 Large-Format Document Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -13869,7 +13914,7 @@
     "sku": "B11B256401BB",
     "row_id": "14036",
     "name": "Epson WorkForce WF DS-30000 Large-Format Document Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 10,
     "description": "High-speed professional Epson WorkForce WF DS-30000 Large-Format Document Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -13890,7 +13935,7 @@
     "sku": "B11B204231BY",
     "row_id": "14053",
     "name": "Epson WorkForce WF DS-60000 Color Document Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 10,
     "description": "High-speed professional Epson WorkForce WF DS-60000 Color Document Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -13911,7 +13956,7 @@
     "sku": "B11B204231BU",
     "row_id": "14067",
     "name": "Epson WorkForce WF DS-60000N Color Document Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 10,
     "description": "High-speed professional Epson WorkForce WF DS-60000N Color Document Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -13932,7 +13977,7 @@
     "sku": "B11B204331BY",
     "row_id": "14083",
     "name": "Epson WorkForce WF DS-70000 Color Document Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 10,
     "description": "High-speed professional Epson WorkForce WF DS-70000 Color Document Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -13953,7 +13998,7 @@
     "sku": "B11B204331BU",
     "row_id": "14101",
     "name": "Epson WorkForce WF DS-70000N Color Document Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 10,
     "description": "High-speed professional Epson WorkForce WF DS-70000N Color Document Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -13974,7 +14019,7 @@
     "sku": "B11B205231BY",
     "row_id": "14112",
     "name": "Epson WorkForce WF DS-6500 Color Document Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 10,
     "description": "High-speed professional Epson WorkForce WF DS-6500 Color Document Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -13995,7 +14040,7 @@
     "sku": "B11B205231BU",
     "row_id": "14135",
     "name": "Epson WorkForce WF DS 6500N Color Document Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 10,
     "description": "High-speed professional Epson WorkForce WF DS 6500N Color Document Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -14015,7 +14060,7 @@
     "sku": "B11B205331BY",
     "row_id": "14152",
     "name": "Epson WorkForce WF DS-7500 Color Document Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 10,
     "description": "High-speed professional Epson WorkForce WF DS-7500 Color Document Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -14036,7 +14081,7 @@
     "sku": "B11B205331BU",
     "row_id": "14209",
     "name": "Epson WorkForce WF DS-7500N Color Document Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 10,
     "description": "High-speed professional Epson WorkForce WF DS-7500N Color Document Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -14057,7 +14102,7 @@
     "sku": "B11B240401BY",
     "row_id": "14217",
     "name": "Epson Expression 12000XL Photo Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 0,
     "description": "High-speed professional Epson Expression 12000XL Photo Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -14077,7 +14122,7 @@
     "sku": "B11B240401BU",
     "row_id": "14233",
     "name": "Epson Expression 12000XL Pro. Photo Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 0,
     "description": "High-speed professional Epson Expression 12000XL Pro. Photo Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -14097,7 +14142,7 @@
     "sku": "B11B263401BB",
     "row_id": "14242",
     "name": "Epson WorkForce WF ES-500WII Wireless Duplex Document Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 10,
     "description": "High-speed professional Epson WorkForce WF ES-500WII Wireless Duplex Document Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -14117,7 +14162,7 @@
     "sku": "B11B258401BB",
     "row_id": "14263",
     "name": "Epson WorkForce WF ES-580W Wireless Touchscreen Document Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 10,
     "description": "High-speed professional Epson WorkForce WF ES-580W Wireless Touchscreen Document Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -14281,7 +14326,7 @@
     "sku": "C11CH84301A1",
     "row_id": "14394",
     "name": "Epson SureColor SC T7700DM Multifunction Printer",
-    "price": 1850.0,
+    "price": null,
     "stock": 10,
     "description": "High-precision Epson SureColor SC T7700DM Multifunction Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -14292,16 +14337,30 @@
       "14394"
     ],
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2024/01/Epson-SureColor-SC-T7700DL-Technical-Printer.webp",
-    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t7700dl-technical-printer/",
     "category": "Printer",
-    "consumables": []
+    "consumables": [
+      "C13S210115",
+      "C13S210116",
+      "C13T50M100",
+      "C13T50M200",
+      "C13T50M300",
+      "C13T50M400",
+      "C13T50M800",
+      "C13T50MF00",
+      "C13T50U100",
+      "C13T50U200",
+      "C13T50U300",
+      "C13T50U400",
+      "C13T50U80N",
+      "C13T50UF00"
+    ]
   },
   {
     "_id": "C11CH79301A0",
     "sku": "C11CH79301A0",
     "row_id": "14634",
     "name": "Epson SureColor SC T3700E Printer",
-    "price": 1850.0,
+    "price": null,
     "stock": 0,
     "description": "High-precision Epson SureColor SC T3700E Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -14337,7 +14396,7 @@
     "sku": "C11CH80301A1",
     "row_id": "14664",
     "name": "Epson SureColor SC T3700D Printer",
-    "price": 1850.0,
+    "price": null,
     "stock": 0,
     "description": "High-precision Epson SureColor SC T3700D Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -14373,7 +14432,7 @@
     "sku": "C11CH80302A1",
     "row_id": "14676",
     "name": "Epson SureColor SC T3700DE Printer",
-    "price": 1850.0,
+    "price": null,
     "stock": 0,
     "description": "High-precision Epson SureColor SC T3700DE Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -14409,7 +14468,7 @@
     "sku": "C11CH81301A1",
     "row_id": "14693",
     "name": "Epson SureColor SC-T5700D Printer",
-    "price": 1850.0,
+    "price": null,
     "stock": 10,
     "description": "High-precision Epson SureColor SC-T5700D Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -14423,13 +14482,20 @@
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t3700d-printer/",
     "category": "Printer",
     "consumables": [
+      "C13S210115",
+      "C13S210116",
       "C13T50M100",
-      "C13T50M800",
       "C13T50M200",
       "C13T50M300",
       "C13T50M400",
+      "C13T50M800",
       "C13T50MF00",
-      "C13T699700"
+      "C13T50U100",
+      "C13T50U200",
+      "C13T50U300",
+      "C13T50U400",
+      "C13T50U80N",
+      "C13T50UF00"
     ],
     "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5700dm-technical-printer/"
   },
@@ -14438,7 +14504,7 @@
     "sku": "C11CH82301A0",
     "row_id": "14704",
     "name": "Epson SureColor SC T5700DM Technical Plotter Printer",
-    "price": 1850.0,
+    "price": null,
     "stock": 10,
     "description": "High-precision Epson SureColor SC T5700DM Technical Plotter Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -14451,14 +14517,29 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2024/01/SC-T5700DM-Printer.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5700dm-technical-printer/",
     "category": "Printer",
-    "consumables": []
+    "consumables": [
+      "C13S210115",
+      "C13S210116",
+      "C13T50M100",
+      "C13T50M200",
+      "C13T50M300",
+      "C13T50M400",
+      "C13T50M800",
+      "C13T50MF00",
+      "C13T50U100",
+      "C13T50U200",
+      "C13T50U300",
+      "C13T50U400",
+      "C13T50U80N",
+      "C13T50UF00"
+    ]
   },
   {
     "_id": "C11CH83301A1",
     "sku": "C11CH83301A1",
     "row_id": "14746",
     "name": "Epson SureColor SC-T7700D Large Format Printer",
-    "price": 1850.0,
+    "price": null,
     "stock": 0,
     "description": "High-precision Epson SureColor SC-T7700D Large Format Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -14495,7 +14576,7 @@
     "sku": "C11CJ74301A1",
     "row_id": "14805",
     "name": "Epson SureColor SC-T7700DL Technical Printer",
-    "price": 1850.0,
+    "price": null,
     "stock": 0,
     "description": "High-precision Epson SureColor SC-T7700DL Technical Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -14526,7 +14607,7 @@
     "sku": "C13S090013",
     "row_id": "14858",
     "name": "C13S090013 Epson Printer Cleaning Stick (50 pcs)",
-    "price": 1850.0,
+    "price": null,
     "stock": 10,
     "description": "High-precision C13S090013 Epson Printer Cleaning Stick (50 pcs) engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -14992,7 +15073,7 @@
     "sku": "C11CJ50301A1",
     "row_id": "15095",
     "name": "Epson SureColor SC-P8500D Large Format Printer",
-    "price": 1850.0,
+    "price": null,
     "stock": 10,
     "description": "High-precision Epson SureColor SC-P8500D Large Format Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -15006,11 +15087,20 @@
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
     "category": "Printer",
     "consumables": [
-      "C13T44Q140",
-      "C13T44Q240",
-      "C13T44Q340",
-      "C13T44Q440",
-      "C13T699700"
+      "C13S210115",
+      "C13S210116",
+      "C13T48M100",
+      "C13T48M200",
+      "C13T48M300",
+      "C13T48M400",
+      "C13T48M800",
+      "C13T48ME00",
+      "C13T48U100",
+      "C13T48U200",
+      "C13T48U300",
+      "C13T48U400",
+      "C13T48U800",
+      "C13T48UE00"
     ],
     "web_url": "https://www.keplertechllc.com/product/epson-sc-p8500d-large-format-printer/"
   },
@@ -15019,7 +15109,7 @@
     "sku": "C11CJ51301A1",
     "row_id": "15107",
     "name": "Epson SureColor SC-P8500DM Multifunctional Printer",
-    "price": 1850.0,
+    "price": null,
     "stock": 10,
     "description": "High-precision Epson SureColor SC-P8500DM Multifunctional Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -15033,11 +15123,20 @@
     "website_url": "https://www.keplertechllc.com/product/epson-sc-p8500dm-multifuctional-printer/",
     "category": "Printer",
     "consumables": [
-      "C13T44Q140",
-      "C13T44Q240",
-      "C13T44Q340",
-      "C13T44Q440",
-      "C13T699700"
+      "C13S210115",
+      "C13S210116",
+      "C13T48M100",
+      "C13T48M200",
+      "C13T48M300",
+      "C13T48M400",
+      "C13T48M800",
+      "C13T48ME00",
+      "C13T48U100",
+      "C13T48U200",
+      "C13T48U300",
+      "C13T48U400",
+      "C13T48U800",
+      "C13T48UE00"
     ],
     "web_url": "https://www.keplertechllc.com/product/epson-sc-p8500dm-multifuctional-printer/"
   },
@@ -15046,7 +15145,7 @@
     "sku": "C11CL14301A1",
     "row_id": "15116",
     "name": "Epson SureColor SC P5300 Professional 17\" Photo Printer",
-    "price": 1850.0,
+    "price": null,
     "stock": 10,
     "description": "High-precision Epson SureColor SC P5300 Professional 17\" Photo Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -15059,7 +15158,17 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2024/02/Epson-SureColor-SC-P5300-Professional-17-Photo-Printer.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-sc-p5300-professional-photo-printer/",
     "category": "Printer",
-    "consumables": []
+    "consumables": [
+      "C12C935711",
+      "C13T47A100",
+      "C13T47A200",
+      "C13T47A300",
+      "C13T47A400",
+      "C13T47A500",
+      "C13T47A600",
+      "C13T47A800",
+      "C13T47AD00"
+    ]
   },
   {
     "_id": "C13T48M100",
@@ -15519,7 +15628,7 @@
     "sku": "C11CJ49301A1",
     "row_id": "15240",
     "name": "Epson SureColor SC-P6500D Printer",
-    "price": 1850.0,
+    "price": null,
     "stock": 10,
     "description": "High-precision Epson SureColor SC-P6500D Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -15533,11 +15642,20 @@
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p6500de-printer/",
     "category": "Printer",
     "consumables": [
-      "C13T44Q140",
-      "C13T44Q240",
-      "C13T44Q340",
-      "C13T44Q440",
-      "C13T699700"
+      "C13S210115",
+      "C13S210116",
+      "C13T48M100",
+      "C13T48M200",
+      "C13T48M300",
+      "C13T48M400",
+      "C13T48M800",
+      "C13T48ME00",
+      "C13T48U100",
+      "C13T48U200",
+      "C13T48U300",
+      "C13T48U400",
+      "C13T48U800",
+      "C13T48UE00"
     ],
     "web_url": "https://www.keplertechllc.com/product/epson-sc-p6500d-large-format-printer/"
   },
@@ -15546,7 +15664,7 @@
     "sku": "C11CJ49302A1",
     "row_id": "15272",
     "name": "Epson SureColor SC-P6500DE Printer",
-    "price": 1850.0,
+    "price": null,
     "stock": 0,
     "description": "High-precision Epson SureColor SC-P6500DE Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -15583,7 +15701,7 @@
     "sku": "C11CJ48301A1",
     "row_id": "15294",
     "name": "Epson SureColor SC-P6500E Printer",
-    "price": 1850.0,
+    "price": null,
     "stock": 0,
     "description": "High-precision Epson SureColor SC-P6500E Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -15619,7 +15737,7 @@
     "sku": "C11CH65301A1",
     "row_id": "15807",
     "name": "Epson SureColor SC-T5400M MFP Plotter Printer",
-    "price": 1850.0,
+    "price": null,
     "stock": 10,
     "description": "High-precision Epson SureColor SC-T5400M MFP Plotter Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -15633,10 +15751,18 @@
     "website_url": "https://www.keplertechllc.com/product/epson-sc-t5400m-mfp-plotter-printer/",
     "category": "Printer",
     "consumables": [
-      "C13T40D140",
-      "C13T40D240",
-      "C13T40D340",
-      "C13T40D440",
+      "C13T41E240",
+      "C13T41E340",
+      "C13T41E440",
+      "C13T41E540",
+      "C13T41F240",
+      "C13T41F340",
+      "C13T41F440",
+      "C13T41F540",
+      "C13T41R240",
+      "C13T41R340",
+      "C13T41R440",
+      "C13T41R540",
       "C13T699700"
     ],
     "web_url": "https://www.keplertechllc.com/product/epson-sc-t5400m-mfp-plotter-printer/"
@@ -15645,10 +15771,10 @@
     "_id": "S045153",
     "sku": "S045153",
     "row_id": "16839",
-    "name": "S045153 Epson CrystalClear Film  Roll - 44\u201d X 100\u2019",
+    "name": "S045153 Epson CrystalClear Film  Roll - 44” X 100’",
     "price": 320.0,
     "stock": 10,
-    "description": "Premium quality S045153 Epson CrystalClear Film  Roll - 44\u201d X 100\u2019 providing fine art texture and crisp photo reproduction.",
+    "description": "Premium quality S045153 Epson CrystalClear Film  Roll - 44” X 100’ providing fine art texture and crisp photo reproduction.",
     "tags": [
       "Media & Paper",
       "Epson",
@@ -15666,7 +15792,7 @@
     "sku": "C11CK99301A1",
     "row_id": "17224",
     "name": "Epson SureColor SC P20500 Printer",
-    "price": 1850.0,
+    "price": null,
     "stock": 0,
     "description": "High-precision Epson SureColor SC P20500 Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -15793,7 +15919,13 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2024/08/LC.jpg.jpeg",
     "website_url": "https://www.keplertechllc.com/product/c13t56f500-epson-light-cyan-iips-ink-1600ml/",
     "category": "Ink Cartridge",
-    "consumables": [],
+    "consumables": [
+      "C13T49N100",
+      "C13T49N200",
+      "C13T49N300",
+      "C13T49N400",
+      "C13S210057"
+    ],
     "availability": "Out of Stock",
     "web_url": "https://www.keplertechllc.com/product/c13t56f500-epson-light-cyan-iips-ink-1600ml/"
   },
@@ -15963,7 +16095,7 @@
     "sku": "C11CJ93402BY",
     "row_id": "17774",
     "name": "Epson WorkForce AM-C400 A4 Multifunctional Printer",
-    "price": 8500.0,
+    "price": null,
     "stock": 0,
     "description": "High-precision Epson WorkForce AM-C400 A4 Multifunctional Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -15991,7 +16123,7 @@
     "sku": "C11CJ92402BY",
     "row_id": "17793",
     "name": "Epson WorkForce AM-C550 A4 Color Multifunction Printer",
-    "price": 8500.0,
+    "price": 9000.0,
     "stock": 0,
     "description": "High-precision Epson WorkForce AM-C550 A4 Color Multifunction Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -16265,10 +16397,10 @@
     "sku": "EM-C800RDWF",
     "row_id": "EMC800",
     "name": "Epson WorkForce Pro EM-C800 Color Multifunction Printer",
-    "price": 4800.0,
+    "price": null,
     "stock": 8,
     "category": "Business Printer",
-    "description": "High ink-yield 4-in-1 with PrecisionCore Heat-Free tech, 25 ISO ppm speed, auto 2-sided printing, duplex scanning, Replaceable Ink Pack System (RIPS), 2,500 \u2013 10,000 pages monthly volume, DURABrite Ultra ink.",
+    "description": "High ink-yield 4-in-1 with PrecisionCore Heat-Free tech, 25 ISO ppm speed, auto 2-sided printing, duplex scanning, Replaceable Ink Pack System (RIPS), 2,500 – 10,000 pages monthly volume, DURABrite Ultra ink.",
     "tags": [
       "A4",
       "Multifunction",
@@ -16277,12 +16409,17 @@
       "WorkForce",
       "Epson"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Printer-C879R.webp",
-    "website_url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c879r-dtwf-multifunction-printer/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2025/08/Epson-WorkForce-Pro-EM-C800-scaled.webp",
+    "website_url": "https://www.keplertechllc.com/product/epson-workforce-pro-em-c800/",
     "consumables": [
-      "C13T11C140",
-      "C13T11D140",
-      "C13T11E140",
+      "C13T11N140",
+      "C13T11N240",
+      "C13T11N340",
+      "C13T11N440",
+      "C13T11P140",
+      "C13T11P240",
+      "C13T11P340",
+      "C13T11P440",
       "C12C938211"
     ],
     "web_url": "https://www.keplertechllc.com/product/epson-workforce-pro-em-c800/"
@@ -16582,7 +16719,7 @@
     "sku": "C11CJ54301A1",
     "row_id": "18499",
     "name": "Epson SureColor SC-T5100M Plotter Printer",
-    "price": 1850.0,
+    "price": null,
     "stock": 0,
     "description": "High-precision Epson SureColor SC-T5100M Plotter Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -16614,7 +16751,7 @@
     "sku": "C11CJ17301A0",
     "row_id": "18709",
     "name": "Epson SureColor SC-F500 Dye-Sublimation Printer",
-    "price": 1850.0,
+    "price": null,
     "stock": 0,
     "description": "High-precision Epson SureColor SC-F500 Dye-Sublimation Printer engineered for superior color accuracy, high-speed output, and professional production.",
     "tags": [
@@ -16631,7 +16768,8 @@
       "C13T49N100",
       "C13T49N200",
       "C13T49N300",
-      "C13T49N400"
+      "C13T49N400",
+      "C13S210057"
     ],
     "availability": "Out of Stock",
     "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-f500-dye-sublimation-printer/"
@@ -16640,10 +16778,10 @@
     "_id": "C13S400082",
     "sku": "C13S400082",
     "row_id": "18723",
-    "name": "C13S400082 DS Transfer General Purpose 210mm\u00d730.5m",
+    "name": "C13S400082 DS Transfer General Purpose 210mm×30.5m",
     "price": 150.0,
     "stock": 10,
-    "description": "Authentic C13S400082 DS Transfer General Purpose 210mm\u00d730.5m for professional printing equipment.",
+    "description": "Authentic C13S400082 DS Transfer General Purpose 210mm×30.5m for professional printing equipment.",
     "tags": [
       "Accessory",
       "C13S400082",
@@ -16659,10 +16797,10 @@
     "_id": "C13S400081",
     "sku": "C13S400081",
     "row_id": "18726",
-    "name": "C13S400081 DS Transfer General Purpose 297mm \u00d7 30.5m",
+    "name": "C13S400081 DS Transfer General Purpose 297mm × 30.5m",
     "price": 150.0,
     "stock": 10,
-    "description": "Authentic C13S400081 DS Transfer General Purpose 297mm \u00d7 30.5m for professional printing equipment.",
+    "description": "Authentic C13S400081 DS Transfer General Purpose 297mm × 30.5m for professional printing equipment.",
     "tags": [
       "Accessory",
       "C13S400081",
@@ -16678,10 +16816,10 @@
     "_id": "C13S400079",
     "sku": "C13S400079",
     "row_id": "18730",
-    "name": "C13S400079 DS Transfer General Purpose 432mm\u00d730.5m",
+    "name": "C13S400079 DS Transfer General Purpose 432mm×30.5m",
     "price": 150.0,
     "stock": 10,
-    "description": "Authentic C13S400079 DS Transfer General Purpose 432mm\u00d730.5m for professional printing equipment.",
+    "description": "Authentic C13S400079 DS Transfer General Purpose 432mm×30.5m for professional printing equipment.",
     "tags": [
       "Accessory",
       "C13S400079",
@@ -16697,10 +16835,10 @@
     "_id": "C13S400080",
     "sku": "C13S400080",
     "row_id": "18733",
-    "name": "C13S400080 DS Transfer General Purpose 610mm \u00d7 30.5m",
+    "name": "C13S400080 DS Transfer General Purpose 610mm × 30.5m",
     "price": 150.0,
     "stock": 10,
-    "description": "Authentic C13S400080 DS Transfer General Purpose 610mm \u00d7 30.5m for professional printing equipment.",
+    "description": "Authentic C13S400080 DS Transfer General Purpose 610mm × 30.5m for professional printing equipment.",
     "tags": [
       "Accessory",
       "C13S400080",
@@ -16811,7 +16949,7 @@
     "sku": "B11B275401",
     "row_id": "18930",
     "name": "Epson WorkForce DS-800WN Document Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 0,
     "description": "High-speed professional Epson WorkForce DS-800WN Document Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -16833,7 +16971,7 @@
     "sku": "B11B276401",
     "row_id": "18938",
     "name": "Epson WorkForce DS-900WN High-Speed Network Document Scanner",
-    "price": 950.0,
+    "price": null,
     "stock": 0,
     "description": "High-speed professional Epson WorkForce DS-900WN High-Speed Network Document Scanner with high-capacity sheet feeder and duplex scanning.",
     "tags": [
@@ -16855,7 +16993,7 @@
     "sku": "SC-T5100",
     "row_id": "T5100",
     "name": "Epson SureColor SC-T5100 Wireless Technical Printer",
-    "price": 6800.0,
+    "price": 9700.0,
     "stock": 10,
     "category": "Large Format Printer",
     "description": "Entry-level 36-inch wireless large format printer for technical and CAD drawings, sleek compact design, PrecisionCore printhead, 12 months on-site service.",
@@ -16870,11 +17008,15 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T5100-Printer.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100-large-format-printer/",
     "consumables": [
+      "C13S210057",
+      "C13T40C140",
+      "C13T40C240",
+      "C13T40C340",
+      "C13T40C440",
       "C13T40D140",
       "C13T40D240",
       "C13T40D340",
-      "C13T40D440",
-      "C13S210057"
+      "C13T40D440"
     ],
     "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100-large-format-printer/"
   },
@@ -16882,8 +17024,8 @@
     "_id": "SC-T3100",
     "sku": "SC-T3100",
     "row_id": "T3100",
-    "name": "Epson SureColor SC-T3100 \u2013 Wireless Printer",
-    "price": 4200.0,
+    "name": "Epson SureColor SC-T3100 – Wireless Printer",
+    "price": 3880.0,
     "stock": 0,
     "category": "Large Format Printer",
     "description": "24-Inch Technical and CAD Wireless Large Format Printer for architectural and engineering drawings, pigment inks (Black, Cyan, Yellow, Magenta), 12 months on-site service.",

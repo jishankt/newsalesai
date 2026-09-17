@@ -4,7 +4,7 @@ Normalizes:
 - A1 -> 24 inches (print_width: 24)
 - A0 -> 36 inches (print_width: 36)
 - 44-inch -> 44
-- Monthly volume -> daily volume (e.g. 6,000 monthly -> 200 daily)
+- Monthly volume -> daily volume (e.g. 5,000 monthly -> 200 daily)
 - "scan and copy", "multifunction", "print and scan" -> functions: ["print", "scan", "copy"], scanner_required: True
 - "without scanner", "no scan", "no scanner", "print only" -> scanner_required: False
 - "photo booth", "event photos", "citizen" -> category: "citizen_photo"
@@ -14,6 +14,8 @@ Normalizes:
 """
 import re
 from typing import Dict, Any, Tuple, Optional
+from conversation.contextual_slot_resolver import ContextualSlotResolver
+from conversation.canonical_entity_normalizer import CanonicalEntityNormalizer
 
 
 def normalize_category(raw_text: str, current_category: Optional[str] = None) -> Optional[str]:
@@ -33,56 +35,117 @@ def normalize_category(raw_text: str, current_category: Optional[str] = None) ->
     ]):
         return "photography_large_format"
 
-    # 1. Citizen photo check (Citizen brand is exclusively photo printers)
+    # 1. Citizen photo check (Citizen brand is exclusively direct dye-sub/thermal photo printers)
     if any(k in text_l for k in [
         "citizen", "photo booth", "photobooth", "event photo", "event photos",
         "cz-01", "cx-02", "cy-02", "cx-02w"
-    ]):
+    ]) or (
+        any(k in text_l for k in ["dye sub", "dyesub", "dye-sub", "dye-sublimation"])
+        and any(k in text_l for k in ["photo", "photos", "kiosk", "booth", "event", "4x6", "6x8", "8x10", "8x12"])
+    ) or (
+        # Bare "event" or "events" echoing the chip label — only when not already a different category
+        bool(re.search(r"\bevents?\b", text_l))
+        and current_category not in ("office_printer", "photography_large_format", "technical_large_format", "dye_sublimation")
+    ):
+        if current_category in ("photography_large_format", "photo_printer", "photo"):
+            return current_category
         return "citizen_photo"
 
-    # Dye-sublimation desktop (SC-F100) - merchandise, textiles, mugs, promotional
-    if any(k in text_l for k in ["f100", "sc-f100", "sc f100"]) or (
-        any(k in text_l for k in ["sublimation", "dye-sub", "dye sub"])
-        and any(k in text_l for k in ["textile", "mug", "fabric", "merchandise", "apparel", "t-shirt", "promotional", "desktop sublimation"])
+    # 2. Dye-sublimation / T-Shirt / Merchandise printers (SC-F100, SC-F500)
+    if any(k in text_l for k in [
+        "f100", "sc-f100", "sc f100", "f500", "sc-f500", "sc f500",
+        "sublimation", "dye-sublimation", "dye sublimation",
+        "t-shirt printing", "t shirt printing", "tshirt printing",
+        "t-shirt printer", "t shirt printer", "tshirt printer",
+        "t-shirts printer", "t shirts printer", "tshirts printer",
+        "mug printing", "mugs printing", "jersey printing",
+        "textile sublimation", "fabric sublimation", "apparel sublimation",
+    ]) or (
+        any(k in text_l for k in ["dye sub", "dyesub", "dye-sub"])
+    ) or (
+        any(k in text_l for k in ["t-shirt", "t shirt", "tshirt", "t-shirts", "tshirts"])
+        and any(k in text_l for k in ["print", "printer", "printing", "transfer"])
+    ) or (
+        any(k in text_l for k in ["mug", "mugs", "merchandise", "promotional items"])
+        and any(k in text_l for k in ["printer", "printers", "printing", "sublimation"])
+    ) or (
+        # Bare single-word echoes of the chip label — only safe when no category is set yet
+        any(k in text_l for k in ["merchandise", "mugs", "t-shirts", "t shirts", "tshirts"])
+        and not current_category
     ):
         return "dye_sublimation"
 
-    if any(k in text_l for k in ["dye sub", "dyesub", "dye-sub", "dye-sublimation"]):
-        return "citizen_photo"
-
-    # 2. Technical / CAD check
+    # 3. Technical / CAD / Plotters (including common typos like 'plottaer')
+    # Also matches single-word user replies that mirror the category question wording
     if any(k in text_l for k in [
-        "cad", "blueprint", "blueprints", "plotter", "plotters", "architect", "architectural",
-        "engineering drawing", "engineering drawings", "gis", "sc-t", "t3100", "t3700",
-        "t5100", "t5400", "t5405", "t5700", "t7700", "technical printer", "technical printers"
-    ]):
+        "cad", "cad drawing", "cad drawings",
+        "blueprint", "blueprints",
+        "plotter", "plotters", "plottaer", "plottaers", "platter",
+        "architect", "architectural", "architecture",
+        "engineering drawing", "engineering drawings", "engineering",
+        "gis", "maps",
+        "sc-t", "t3100", "t3700", "t5100", "t5400", "t5405", "t5700", "t7700",
+        "technical printer", "technical printers", "technical large format",
+        "technical cad", "technical cad plotters",
+    ]) or (
+        # "technical" or "drawings" alone, only when not already set to another category
+        bool(re.search(r"\b(?:technical|drawings?)\b", text_l))
+        and current_category not in ("office_printer", "photography_large_format", "citizen_photo", "dye_sublimation")
+    ):
         return "technical_large_format"
 
-    # 3. Photography / Fine Art check
+    # 4. Large-Format / Photo check
+    # Also matches single-word replies from the category question ("professional", "photographs")
     if any(k in text_l for k in [
-        "fine art", "fine-art", "gallery", "photo printer", "photo printers",
-        "photography", "photograph", "photographs", "photographer",
-        "professional photo", "portrait photo", "portrait printing", "production photo",
-        "sc-p", "p700", "p900", "p5300", "p6500", "p7500", "p8500", "p9500", "p20500"
-    ]) or ("photo" in text_l and any(k in text_l for k in ["desktop", "gallery", "portrait", "fine art", "commercial", "poster", "posters", "production"])) or (
-        bool(re.search(r"\b(?:large\s+format|wide\s+format)\b", text_l)) and not bool(re.search(r"\b(?:a3|office|workforce|copier)\b", text_l)) and current_category in ("citizen_photo", "office_printer")
+        "surecolor", "fine art", "fine-art",
+        "canvas", "canvas printer", "canvas printing", "print on canvas",
+        "photo printer", "photo printers",
+        "photo printing", "fine art printer", "gallery printer",
+        "photographs", "photograph", "photography",
+        "photo printers (fine art & photo booth)", "photo printer (fine art & photo booth)",
+        "professional photographs", "professional photo", "professional photography",
+        "portraits", "portrait",
+        "sc-p", "p700", "p900", "p5300", "p6500", "p7500", "p8500", "p9500", "p20500",
+        "professional photography & fine art",
+    ]) or (
+        # "professional" alone (echoing chip wording) or bare "photograph(s)"
+        bool(re.search(r"\b(?:professional|photographs?|photography)\b", text_l))
+        and current_category not in ("office_printer", "technical_large_format", "citizen_photo", "dye_sublimation")
+    ) or (
+        "photo" in text_l and any(k in text_l for k in ["desktop", "gallery", "portrait", "fine art", "commercial", "poster", "posters", "production"])
+    ) or (
+        bool(re.search(r"\b(?:large\s+format|wide\s+format)\b", text_l))
+        and not bool(re.search(r"\b(?:a3|office|workforce|copier|cad|plotter)\b", text_l))
+        and current_category not in ("office_printer", "technical_large_format")
     ):
         return "photography_large_format"
 
-    # 4. Office Printer check
+    # 5. Office / Business Printer check (including A3 / A4 office printers)
+    # Also matches "documents", "office", "business" echoed back from the category question
     if any(k in text_l for k in [
         "office", "workforce", "copier", "copiers", "enterprise mfp",
+        "business printer", "business printers", "business printing", "business mfp", "business machine",
         "a4 printer", "a3 printer", "a4 colour", "a4 color", "a3 colour", "a3 color",
-        "a4 multifunction", "a3 multifunction",
+        "a4 multifunction", "a3 multifunction", "a3 or a4", "a4 or a3", "a3 and a4", "a4 and a3",
         "am-c400", "am-c550", "am-c4000", "am-c5000", "am-c6000",
-        "wf-c5890", "wf-c878", "wf-c879", "wf-c21000", "em-c800"
-    ]) or (not current_category and bool(re.search(r"\b(?:a4|a3)\b", text_l)) and not bool(re.search(r"\ba3\+", text_l))):
+        "wf-c5890", "wf-c878", "wf-c879", "wf-c21000", "em-c800",
+        "office & business documents (a3 / a4)",
+    ]) or (
+        bool(re.search(r"\bbusiness\b", text_l))
+        and any(k in text_l for k in ["printer", "printers", "printing", "document", "documents", "invoices", "office"])
+    ) or (
+        # Bare "documents" echoing the chip label
+        bool(re.search(r"\bdocuments?\b", text_l))
+        and current_category not in ("technical_large_format", "photography_large_format", "citizen_photo", "dye_sublimation")
+    ) or (
+        not current_category and bool(re.search(r"\b(?:a4|a3)\b", text_l)) and not bool(re.search(r"\ba3\+", text_l))
+    ):
         return "office_printer"
 
     return current_category
 
 
-def extract_deterministic_requirements(text: str, category: Optional[str] = None) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+def extract_deterministic_requirements(text: str, category: Optional[str] = None, awaiting_field: Optional[str] = None) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """
     Extracts and normalizes requirements and corrections deterministically.
     Returns (requirements, corrections).
@@ -91,184 +154,50 @@ def extract_deterministic_requirements(text: str, category: Optional[str] = None
     reqs: Dict[str, Any] = {}
     corrections: Dict[str, Any] = {}
 
-    is_correction = any(w in text_l for w in [
-        "actually", "instead", "changed my mind", "correction", "i meant", "no scanner needed",
-        "sorry", "apologies", "my bad", "my mistake", "make that", "change to", "update to",
-        "switch to", "rather", "incorrect", "wrong"
-    ]) or bool(re.search(r"\b(?:sorry|apologies|my bad)\b", text_l))
+    is_correction = CanonicalEntityNormalizer.is_correction(text_l)
+
+    # ── 0. Contextual Slot Resolution ─────────────────────────────────────
+    if awaiting_field:
+        c_reqs, c_corrs = ContextualSlotResolver.resolve(
+            text=text,
+            awaiting_field=awaiting_field,
+            category=category
+        )
+        reqs.update(c_reqs)
+        corrections.update(c_corrs)
 
     # ── 1. Scanner & Function Normalization ────────────────────────────────
-    # Check explicit negation first!
-    scanner_negated = bool(
-        re.search(r"\b(?:do\s+not\s+need|don'?t\s+need|no\s+need\s+for|without|no|not)\b.*?\b(?:scanner|scanning|scan)\b", text_l)
-        or re.search(r"\b(?:scanning|scanner)\s+(?:is\s+)?not\s+(?:needed|required)\b", text_l)
-        or any(neg in text_l for neg in [
-            "without scanner", "no scanner", "not scanner", "don't need scanner", 
-            "dont need scanner", "print only", "printer only", "only print", 
-            "only printer", "printing only", "no scan", "no scanning", "just print", "just printer",
-            "only need printing", "only need print"
-        ])
-    )
-
-    if scanner_negated:
-        reqs["scanner_required"] = False
-        reqs["functions"] = ["print"]
-        if is_correction:
-            corrections["scanner_required"] = False
-            corrections["functions"] = ["print"]
-
-    elif bool(
-        re.search(r"\b(?:need\s+to\s+scan|need\s+(?:a\s+)?scanner|need\s+scanning|scanner\s+(?:integrated|required)|integrated\s+scanner|with\s+(?:an?\s+)?integrated\s+scanner)\b", text_l)
-        or any(pos in text_l for pos in [
-            "with scanner", "need scanner", "need a scanner", "scanner required", "built-in scan",
-            "integrated scan", "scanner integrated", "scanning as well", "scan as well", "multifunction", "mfp",
-            "scan and copy", "print and scan", "printing and scanning", "copy and scan",
-            "print, scan and copy", "printing, scanning and copying", "make copies"
-        ])
-    ):
-        reqs["scanner_required"] = True
-        reqs["functions"] = ["print", "scan", "copy"]
-        if is_correction:
-            corrections["scanner_required"] = True
-            corrections["functions"] = ["print", "scan", "copy"]
+    if "scanner_required" not in reqs:
+        scan_dict = CanonicalEntityNormalizer.normalize_scanner_function(text_l)
+        if scan_dict:
+            reqs.update(scan_dict)
+            if is_correction:
+                corrections.update(scan_dict)
 
     # ── 2. Paper Size & Print Width Normalization ─────────────────────────
-    # A0 -> 36 inches
-    if re.search(r"\b(?:a0|36[\s-]*(?:inch|in|\")|36inch)\b", text_l):
-        reqs["print_width"] = 36
-        reqs["paper_size"] = "a0"
+    dim_dict = CanonicalEntityNormalizer.normalize_dimensions(text_l, category)
+    if dim_dict:
+        reqs.update(dim_dict)
         if is_correction:
-            corrections["print_width"] = 36
-            corrections["paper_size"] = "a0"
-    # A1 -> 24 inches
-    elif re.search(r"\b(?:a1|24[\s-]*(?:inch|in|\")|24inch)\b", text_l):
-        reqs["print_width"] = 24
-        reqs["paper_size"] = "a1"
-        if is_correction:
-            corrections["print_width"] = 24
-            corrections["paper_size"] = "a1"
-    # 44-inch -> 44
-    elif re.search(r"\b(?:44[\s-]*(?:inch|in|\")|44inch)\b", text_l):
-        reqs["print_width"] = 44
-        reqs["paper_size"] = "44-inch"
-        if is_correction:
-            corrections["print_width"] = 44
-            corrections["paper_size"] = "44-inch"
-    # 64-inch
-    elif re.search(r"\b(?:64[\s-]*(?:inch|in|\")|64inch)\b", text_l):
-        reqs["print_width"] = 64
-        reqs["paper_size"] = "64-inch"
-        if is_correction:
-            corrections["print_width"] = 64
-            corrections["paper_size"] = "64-inch"
-    # 13-inch (A3+)
-    elif re.search(r"\b(?:13[\s-]*(?:inch|in|\")|13inch|a3\+)", text_l):
-        reqs["print_width"] = 13
-        reqs["paper_size"] = "a3+"
-        if is_correction:
-            corrections["print_width"] = 13
-            corrections["paper_size"] = "a3+"
-    # 17-inch (A2+)
-    elif re.search(r"\b(?:17[\s-]*(?:inch|in|\")|17inch|a2\+)", text_l):
-        reqs["print_width"] = 17
-        reqs["paper_size"] = "a2"
-        if is_correction:
-            corrections["print_width"] = 17
-            corrections["paper_size"] = "a2"
-    # A3
-    elif re.search(r"\b(?:a3|tabloid|ledger)\b", text_l):
-        reqs["paper_size"] = "a3"
-        if is_correction:
-            corrections["paper_size"] = "a3"
-    # A4
-    elif re.search(r"\b(?:a4|standard\s*a4)\b", text_l):
-        reqs["paper_size"] = "a4"
-        if is_correction:
-            corrections["paper_size"] = "a4"
+            corrections.update(dim_dict)
 
-    # Photo sizes (Citizen / Photo)
-    photo_sizes = []
-    if re.search(r"\b(?:4x4|4\.5x4\.5|4\.5x8)\b", text_l):
-        photo_sizes.append("4x4")
-    if re.search(r"\b4x6\b", text_l):
-        photo_sizes.append("4x6")
-    if re.search(r"\b5x7\b", text_l):
-        photo_sizes.append("5x7")
-    if re.search(r"\b6x8\b", text_l):
-        photo_sizes.append("6x8")
-    if re.search(r"\b8x10\b", text_l):
-        photo_sizes.append("8x10")
-    if re.search(r"\b8x12\b", text_l):
-        photo_sizes.append("8x12")
-    if photo_sizes:
-        reqs["print_sizes"] = list(set(photo_sizes))
+    # Ribbon rewind / no media loss / single paper roll
+    if any(k in text_l for k in [
+        "without media loss", "with out media loss", "no media loss", "zero media loss",
+        "save media", "ribbon rewind", "media loss", "without waste", "without paper waste",
+        "single paper roll", "single roll"
+    ]):
+        reqs["ribbon_rewind"] = True
+        if is_correction:
+            corrections["ribbon_rewind"] = True
 
-    # ── 3. Volume Normalization (Monthly -> Daily) ────────────────────────
-    # Check for monthly volume (e.g., 1,200 monthly -> 40 daily)
-    monthly_match = re.search(r"(\d[\d,\s]*)\s*[^.\n,]*?\b(?:per\s*month|a\s*month|monthly|/month|every\s*month)\b", text_l)
-    if monthly_match:
-        raw_num = monthly_match.group(1).replace(",", "").replace(" ", "")
-        try:
-            val = int(raw_num)
-            reqs["monthly_volume"] = val
-            daily = max(1, val // 30)
-            reqs["daily_volume"] = daily
+    # ── 3. Volume Normalization (Monthly & Daily) ─────────────────────────
+    if "daily_volume" not in reqs:
+        vol_dict = CanonicalEntityNormalizer.normalize_volume(text_l)
+        if vol_dict:
+            reqs.update(vol_dict)
             if is_correction:
-                corrections["daily_volume"] = daily
-        except ValueError:
-            pass
-
-    # Check for daily volume
-    if "daily_volume" not in reqs:
-        daily_patterns = [
-            r"(?:daily\s+volume|volume\s+daily|volume\s+per\s+day|volume\s+is|expect|produce|process|print)\s*(?:is\s+)?(?:approximately|around|about|~|more\s+than)?\s*(\d[\d,\s]*)\s*(?:pages?|drawings?|prints?|photos?|photographs?|plans?|docs?)?\s*(?:per\s*day|a\s*day|every\s*day|daily|/day|per\s*event)",
-            r"(\d[\d,\s]*)\s*(?:pages?|drawings?|prints?|photos?|photographs?|plans?|docs?)?\s*(?:per\s*day|a\s*day|every\s*day|daily|/day|per\s*event)",
-            r"(?:around|about|approx|approximately|~|more\s+than)\s*(\d[\d,\s]*)\s*(?:pages?|drawings?|prints?|photos?|photographs?|plans?|docs?)\s*(?:a\s*day|per\s*day|every\s*day|daily|per\s*event)?",
-        ]
-        for pat in daily_patterns:
-            daily_match = re.search(pat, text_l)
-            if daily_match:
-                raw_num = daily_match.group(1).replace(",", "").replace(" ", "")
-                try:
-                    daily = int(raw_num)
-                    is_width = bool(re.search(rf"\b{daily}[\s-]*(?:inch|in|\")", text_l))
-                    if not is_width:
-                        reqs["daily_volume"] = daily
-                        if is_correction:
-                            corrections["daily_volume"] = daily
-                        break
-                except ValueError:
-                    pass
-
-    # Check for bare numbers or ranges (e.g. "20", "30", "20 to 30", "20-30", "around 50")
-    if "daily_volume" not in reqs:
-        range_match = re.search(r"\b(\d+)\s*(?:to|-|–)\s*(\d+)\b", text_l)
-        if range_match:
-            try:
-                n1 = int(range_match.group(1))
-                n2 = int(range_match.group(2))
-                avg_val = (n1 + n2) // 2
-                reqs["daily_volume"] = avg_val
-                if is_correction:
-                    corrections["daily_volume"] = avg_val
-            except ValueError:
-                pass
-        else:
-            # If the user message is concise (<= 5 words) and contains a number
-            if len(text_l.split()) <= 5:
-                single_match = re.search(r"\b(\d+)\b", text_l)
-                if single_match:
-                    try:
-                        n = int(single_match.group(1))
-                        # Never treat width dimensions (e.g. 36-inch, 24") as volume
-                        is_width = bool(re.search(rf"\b{n}[\s-]*(?:inch|in|\")", text_l))
-                        if not is_width:
-                            if n not in (13, 17, 24, 36, 44, 64) or bool(re.search(r"\b(?:pages?|prints?|drawings?|docs?|photos?)\b", text_l)) or len(text_l.split()) <= 2:
-                                reqs["daily_volume"] = n
-                                if is_correction:
-                                    corrections["daily_volume"] = n
-                    except ValueError:
-                        pass
+                corrections.update(vol_dict)
 
     # ── 4. Colour Mode ───────────────────────────────────────────────────
     if any(k in text_l for k in ["monochrome", "mono", "black and white", "b&w", "black & white"]):
@@ -280,18 +209,25 @@ def extract_deterministic_requirements(text: str, category: Optional[str] = None
         if is_correction:
             corrections["colour_mode"] = "colour"
     else:
-        # Default for the 41 catalog products is colour (all 41 approved catalogue entries are colour printers)
         if category == "office_printer" and not is_correction and not reqs.get("colour_mode"):
             reqs["colour_mode"] = "colour"
 
     # ── 5. Application ───────────────────────────────────────────────────
-    if any(k in text_l for k in ["cad", "blueprint", "engineering", "architect", "gis", "technical", "drawings", "plans"]):
+    if any(k in text_l for k in ["cad", "blueprint", "engineering", "architect", "gis", "technical", "drawings", "plans", "plotter", "plotters", "plottaer", "plottaers"]):
         reqs["application"] = "cad"
     elif any(k in text_l for k in ["photo booth", "booth", "event photo", "events", "mobile photo booth"]):
         reqs["application"] = "photo_booth"
         reqs["usage_environment"] = "photo_booth"
-    elif any(k in text_l for k in ["fine art", "gallery", "exhibition", "photography", "photographs", "portrait"]):
-        reqs["application"] = "fine_art"
+    elif any(k in text_l for k in ["fine art", "gallery", "exhibition", "canvas", "canvas printing"]):
+        reqs["application"] = "canvas" if "canvas" in text_l else "fine_art"
+        if "canvas" in text_l:
+            reqs["photo_form_factor"] = "large"
+    elif any(k in text_l for k in ["t-shirt", "t shirt", "tshirt", "tshirts", "t-shirts", "jersey", "jerseys", "apparel", "garment"]):
+        reqs["application"] = "t_shirt_printing"
+    elif any(k in text_l for k in ["mug", "mugs", "phone cover", "phone cases", "custom gift", "promotional merchandise"]):
+        reqs["application"] = "promotional_merchandise"
+    elif any(k in text_l for k in ["sublimation", "dye-sub", "dye sub"]):
+        reqs["application"] = "dye_sublimation"
     elif any(k in text_l for k in ["kiosk", "unattended", "retail kiosk", "unattended retail kiosk"]):
         reqs["usage_environment"] = "retail_kiosk"
     elif any(k in text_l for k in ["studio portrait", "portrait studio", "studio", "studio portraiture"]):
@@ -307,8 +243,58 @@ def extract_deterministic_requirements(text: str, category: Optional[str] = None
     if any(k in text_l for k in ["high capacity", "high media capacity", "fixed kiosk", "more than 700", "700 prints"]):
         reqs["high_capacity_required"] = True
 
+    # ── 6b. Photo Form Factor & Brand Normalization ──────────────────────
+    if category in ("photography_large_format", "photo_printer", "photo", "citizen_photo", None):
+        if any(k in text_l for k in [
+            "compact (desktop / portable)", "compact desktop", "compact portable", "compact",
+            "desktop", "portable", "small format", "smaller format"
+        ]):
+            reqs["photo_form_factor"] = "compact"
+            if is_correction:
+                corrections["photo_form_factor"] = "compact"
+        elif any(k in text_l for k in [
+            "large format (24″ to 64″)", "large format (24\" to 64\")", "large format (24 to 64)",
+            "large format", "large-format", "wide format", "wide-format"
+        ]) or (
+            category in ("photography_large_format", "photo_printer", "photo") and bool(re.search(r"\blarge\b", text_l)) and not any(k in text_l for k in ["a3", "office", "cad", "technical"])
+        ) or (
+            reqs.get("print_width") in (24, 44, 64) and category in ("photography_large_format", "citizen_photo", None)
+        ):
+            reqs["photo_form_factor"] = "large"
+            if is_correction:
+                corrections["photo_form_factor"] = "large"
+
+        # Width-driven form factor and brand defaults for photography
+        if reqs.get("print_width") in (13, 17):
+            reqs["photo_form_factor"] = "compact"
+            reqs["photo_brand"] = "epson"
+            reqs["brand"] = "Epson"
+            if is_correction:
+                corrections["photo_form_factor"] = "compact"
+                corrections["photo_brand"] = "epson"
+                corrections["brand"] = "Epson"
+
+    if any(k in text_l for k in [
+        "epson desktop (fine art / a3+ / a2+)", "epson desktop", "epson fine art", "epson photo",
+        "epson", "fine art", "a3+", "a2+"
+    ]):
+        reqs["photo_brand"] = "epson"
+        reqs["brand"] = "Epson"
+        if is_correction:
+            corrections["photo_brand"] = "epson"
+            corrections["brand"] = "Epson"
+    elif any(k in text_l for k in [
+        "citizen (photo booth / events)", "citizen photo", "citizen", "photo booth",
+        "event photo", "event photography", "instant photo", "dye-sub photo"
+    ]):
+        reqs["photo_brand"] = "citizen"
+        reqs["brand"] = "Citizen"
+        if is_correction:
+            corrections["photo_brand"] = "citizen"
+            corrections["brand"] = "Citizen"
+
     # ── 7. Explicit Product Line Normalization ───────────────────────────
-    # A. Explicit corrections & contrast (e.g. "I said WorkForce Pro, not Enterprise")
+    # A. Explicit corrections & contrast
     if re.search(r"\b(?:said\s+)?workforce\s+pro\b.*?\b(?:not\s+enterprise|instead\s+of\s+enterprise)\b", text_l) or \
        re.search(r"\bpro\b.*?\b(?:not\s+enterprise|instead\s+of\s+enterprise)\b", text_l):
         reqs["product_line"] = "workforce_pro"
@@ -318,7 +304,7 @@ def extract_deterministic_requirements(text: str, category: Optional[str] = None
         reqs["product_line"] = "workforce_enterprise"
         corrections["product_line"] = "workforce_enterprise"
 
-    # B. Explicitly unspecified / indifferent (e.g. "I don't care whether it is Pro or Enterprise")
+    # B. Explicitly unspecified / indifferent
     elif any(k in text_l for k in [
         "don't care whether it is pro or enterprise",
         "dont care whether it is pro or enterprise",
@@ -368,18 +354,24 @@ def extract_deterministic_requirements(text: str, category: Optional[str] = None
         if is_correction:
             corrections["product_line"] = "citizen"
 
+    # H. SureColor F-Series
+    elif any(k in text_l for k in ["surecolor f-series", "surecolor f", "f-series", "f series", "sublimation series", "sc-f100", "sc-f500", "f100", "f500"]):
+        reqs["product_line"] = "surecolor_f"
+        if is_correction:
+            corrections["product_line"] = "surecolor_f"
+
     return reqs, corrections
 
 
 class RequirementNormalizer:
     @staticmethod
-    def normalize(text: str, category: Optional[str] = None) -> Dict[str, Any]:
-        reqs, _ = extract_deterministic_requirements(text, category)
+    def normalize(text: str, category: Optional[str] = None, awaiting_field: Optional[str] = None) -> Dict[str, Any]:
+        reqs, _ = extract_deterministic_requirements(text, category, awaiting_field)
         return reqs
 
     @staticmethod
-    def extract_requirements(text: str, category: Optional[str] = None) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-        return extract_deterministic_requirements(text, category)
+    def extract_requirements(text: str, category: Optional[str] = None, awaiting_field: Optional[str] = None) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        return extract_deterministic_requirements(text, category, awaiting_field)
 
     @staticmethod
     def normalize_category(raw_text: str, current_category: Optional[str] = None) -> Optional[str]:
