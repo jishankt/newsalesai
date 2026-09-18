@@ -242,6 +242,18 @@ def get_consumables():
     })
 
 
+@app.route("/api/chat/poll", methods=["GET"])
+def poll_chat():
+    """Polls for new messages (e.g. from live sales agent) and handover status for the chat widget."""
+    session_id = request.args.get("session_id")
+    last_count = int(request.args.get("last_count", 0))
+    if not session_id:
+        return jsonify({"error": "Missing session_id"}), 400
+
+    poll_data = state_manager.get_poll_data(session_id, last_count=last_count)
+    return jsonify(poll_data)
+
+
 @app.route("/api/chat", methods=["POST"])
 def chat():
     """
@@ -307,6 +319,47 @@ def chat():
     # Retrieve canonical state and history via unified state_manager
     state = state_manager.get_or_create(session_id)
     history = state_manager.get_history(session_id)
+
+    # Detect customer request for live human sales assistance
+    escalation_phrases = [
+        "human agent", "talk to human", "speak to human", "talk to a person", "speak to a person",
+        "human representative", "sales representative", "speak to someone", "call me back",
+        "talk to sales", "connect me to sales", "live agent", "real person", "operator"
+    ]
+    lower_raw = raw_message.lower()
+    if any(p in lower_raw for p in escalation_phrases):
+        state.handover_triggered = True
+        state.handover_reason = "customer_requested_human"
+        state.handover_timestamp = time.time()
+        state_manager.save(state, history)
+        logger.info(f"[{session_prefix}] Escalation flagged: customer requested human assistance.")
+
+    # If a sales agent has manually taken over this session, route directly to human agent desk
+    if state.human_agent_active:
+        agent_name = state.human_agent_name or "Sales Specialist"
+        state.history_turns.append({"role": "user", "content": raw_message})
+        history.append({"role": "user", "content": raw_message})
+        state_manager.save(state, history)
+        logger.info(f"[{session_prefix}] req_id={request_id} routed to active sales agent: {agent_name}")
+        reply_msg = f"Your message has been received by {agent_name}. They are reviewing your request and will reply directly in a moment."
+        return jsonify({
+            "success": True,
+            "session_id": session_id,
+            "reply": reply_msg,
+            "message": reply_msg,
+            "source": "human_agent_queue",
+            "human_agent_active": True,
+            "human_agent_name": agent_name,
+            "cards": [],
+            "product_cards": [],
+            "consumable_cards": [],
+            "suggested_chips": [],
+            "active_agent": "Sales Specialist",
+            "retrieved_sources": [],
+            "type": "message",
+            "grounding": {"status": "human_agent_active"},
+            "nlp": {"intent": "HUMAN_AGENT_CHAT", "normalized_text": normalized_msg},
+        })
 
     if LOG_SENSITIVE_DATA:
         logger.info(f"[{session_prefix}] req_id={request_id} Customer: '{raw_message}' -> Normalized: '{normalized_msg}' | Intent: {detected_intent}")

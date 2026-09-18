@@ -269,6 +269,245 @@
 
     /* Refresh indicator */
     #refresh-ts { font-size: 11px; color: var(--muted); }
+
+    /* ── Live Sales Desk Layout ── */
+    .livedesk-container {
+      display: grid;
+      grid-template-columns: 320px 1fr 310px;
+      gap: 16px;
+      height: calc(100vh - 120px);
+      min-height: 560px;
+    }
+    .livedesk-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .livedesk-head {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .livedesk-head-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .queue-filters {
+      display: flex;
+      gap: 4px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+      overflow-x: auto;
+    }
+    .q-filter-btn {
+      background: none;
+      border: none;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all .15s;
+    }
+    .q-filter-btn.active {
+      background: rgba(59,130,246,.2);
+      color: var(--accent);
+    }
+    .queue-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .queue-item {
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      cursor: pointer;
+      transition: all .15s;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .queue-item:hover {
+      border-color: var(--accent);
+      background: rgba(59,130,246,.08);
+    }
+    .queue-item.active {
+      border-color: var(--accent);
+      background: rgba(59,130,246,.15);
+      box-shadow: inset 3px 0 0 var(--accent);
+    }
+    .queue-item.needs-attention {
+      border-color: rgba(245,158,11,.6);
+      background: rgba(245,158,11,.08);
+    }
+    .queue-item.agent-active {
+      border-color: rgba(16,185,129,.6);
+      background: rgba(16,185,129,.08);
+    }
+    .q-row-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .q-name {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .q-time {
+      font-size: 10px;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+    .q-snippet {
+      font-size: 11.5px;
+      color: var(--muted);
+      line-height: 1.35;
+      overflow: hidden;
+      display: -webkit-box;
+      line-clamp: 2;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .q-tags {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 2px;
+    }
+    .console-thread {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .msg-avatar.agent-av {
+      background: rgba(16,185,129,.2);
+      color: var(--green);
+    }
+    .msg-row.agent {
+      flex-direction: row;
+    }
+    .msg-row.agent .msg-bubble {
+      background: rgba(16,185,129,.15);
+      border: 1px solid rgba(16,185,129,.3);
+      border-radius: 4px 12px 12px 12px;
+    }
+    .msg-row.system-event {
+      justify-content: center;
+    }
+    .msg-row.system-event .sys-pill {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 4px 12px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .canned-drawer {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-top: 1px solid var(--border);
+      background: var(--surface2);
+      overflow-x: auto;
+    }
+    .canned-chip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 3px 10px;
+      font-size: 11px;
+      color: var(--text);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all .15s;
+    }
+    .canned-chip:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .composer-wrap {
+      padding: 12px 14px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .composer-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .composer-input {
+      width: 100%;
+      min-height: 60px;
+      max-height: 120px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: var(--text);
+      font-size: 13px;
+      font-family: inherit;
+      resize: vertical;
+      outline: none;
+    }
+    .composer-input:focus {
+      border-color: var(--accent);
+    }
+    .copilot-card {
+      background: rgba(99,102,241,.1);
+      border: 1px solid rgba(99,102,241,.3);
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .copilot-btn {
+      background: var(--accent2);
+      color: #fff;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+      align-self: flex-start;
+    }
+    .copilot-btn:hover {
+      opacity: .9;
+    }
   </style>
 </head>
 <body>
@@ -289,6 +528,12 @@
     <button class="nav-item active" onclick="showPanel('overview',this)" id="nav-overview">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
       Overview
+    </button>
+    <div class="nav-label" style="margin-top:16px">Live Sales</div>
+    <button class="nav-item" onclick="showPanel('livedesk',this)" id="nav-livedesk">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="12" cy="11" r="3"/></svg>
+      Live Sales Desk
+      <span id="nav-attention-badge" class="badge badge-amber" style="display:none;margin-left:auto;padding:2px 6px;font-size:10px;">0</span>
     </button>
     <div class="nav-label" style="margin-top:16px">Activity</div>
     <button class="nav-item" onclick="showPanel('sessions',this)" id="nav-sessions">
@@ -360,6 +605,101 @@
       </div>
     </div>
 
+    <!-- ── LIVE SALES DESK PANEL ── -->
+    <div class="panel" id="panel-livedesk">
+      <div class="livedesk-container">
+
+        <!-- Column 1: Live Queue -->
+        <div class="livedesk-card">
+          <div class="livedesk-head">
+            <div class="livedesk-head-title">
+              <span>📥 Active Queue</span>
+              <span id="queue-count-badge" class="badge badge-gray">0</span>
+            </div>
+            <button class="btn btn-ghost" style="padding:4px 8px;font-size:11px;" onclick="loadLiveDeskQueue()">↻</button>
+          </div>
+          <div class="queue-filters">
+            <button class="q-filter-btn active" onclick="filterLiveQueue('all', this)">All</button>
+            <button class="q-filter-btn" onclick="filterLiveQueue('attention', this)">🚨 Attention</button>
+            <button class="q-filter-btn" onclick="filterLiveQueue('agent', this)">👤 Handled</button>
+            <button class="q-filter-btn" onclick="filterLiveQueue('ai', this)">🤖 AI</button>
+          </div>
+          <div class="queue-list" id="livedesk-queue-list">
+            <div class="loader"><div class="spinner"></div> Loading…</div>
+          </div>
+        </div>
+
+        <!-- Column 2: Live Chat Console -->
+        <div class="livedesk-card" id="livedesk-console-card">
+          <div class="livedesk-head" id="console-head">
+            <div>
+              <div style="font-size:14px;font-weight:700;" id="console-customer-name">Select a Conversation</div>
+              <div style="font-size:11px;color:var(--muted);" id="console-session-meta">Click any session on the left to monitor or take over</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;" id="console-actions">
+              <!-- Dynamically populated with Takeover / Resume AI buttons -->
+            </div>
+          </div>
+
+          <!-- Message Thread -->
+          <div class="console-thread" id="livedesk-chat-thread">
+            <div class="empty">No conversation selected</div>
+          </div>
+
+          <!-- Canned Responses -->
+          <div class="canned-drawer" id="canned-drawer" style="display:none;">
+            <span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;">Quick:</span>
+            <div class="canned-chip" onclick="insertCanned('Hello! I am a technical sales specialist at Kepler Tech. How can I assist with your printing requirements?')">👋 Introduction</div>
+            <div class="canned-chip" onclick="insertCanned('I would be happy to prepare a formal quotation with official warranty and volume pricing. Could you share your email or phone number?')">📋 Quotation Offer</div>
+            <div class="canned-chip" onclick="insertCanned('We have this model on live demonstration at our Showroom 01 in Dubai. Would you like to arrange a demonstration?')">🏢 Showroom Demo</div>
+            <div class="canned-chip" onclick="insertCanned('May I confirm your estimated daily or monthly page volume so I can calculate your exact cost-per-page?')">📊 Cost Per Page</div>
+          </div>
+
+          <!-- Message Composer -->
+          <div class="composer-wrap" id="composer-wrap" style="display:none;">
+            <div class="composer-toolbar">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="font-size:11px;color:var(--muted);">Agent Name:</span>
+                <input id="agent-name-input" type="text" value="Sales Specialist" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:11px;color:var(--text);outline:none;width:130px;">
+              </div>
+              <span style="font-size:10px;color:var(--muted);">Enter or Ctrl+Enter to Send</span>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <textarea id="agent-message-input" class="composer-input" placeholder="Type a response directly to the customer as a Sales Advisor…" onkeydown="handleComposerKey(event)"></textarea>
+              <button class="btn btn-primary" style="align-self:flex-end;padding:10px 16px;display:flex;align-items:center;gap:6px;" onclick="sendAgentMessage()">
+                <span>Send</span>
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Column 3: Context & AI Copilot -->
+        <div class="livedesk-card">
+          <div class="livedesk-head">
+            <div class="livedesk-head-title">👤 Customer & Context</div>
+          </div>
+          <div style="padding:16px;overflow-y:auto;flex:1;">
+            <div id="livedesk-customer-info">
+              <div style="font-size:12px;color:var(--muted);">Select a conversation to view customer requirements and AI recommendations.</div>
+            </div>
+
+            <!-- AI Copilot Suggestion -->
+            <div class="copilot-card" id="copilot-box" style="display:none;">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span style="font-size:11px;font-weight:700;color:var(--accent2);display:flex;align-items:center;gap:4px;">
+                  🤖 SalesAI Copilot Suggestion
+                </span>
+              </div>
+              <div style="font-size:12px;line-height:1.45;color:var(--text);" id="copilot-text">—</div>
+              <button class="copilot-btn" onclick="insertCopilot()">Insert into Composer ↵</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -416,10 +756,11 @@
     document.getElementById('panel-' + name).classList.add('active');
     btn.classList.add('active');
     currentPanel = name;
-    const titles = { overview: 'Overview', sessions: 'Chat Sessions', leads: 'Leads' };
+    const titles = { overview: 'Overview', sessions: 'Chat Sessions', leads: 'Leads', livedesk: 'Live Sales Desk' };
     document.getElementById('page-title').textContent = titles[name] || name;
     if (name === 'sessions' && document.getElementById('sessions-table-wrap').innerHTML.includes('Loading')) loadSessions();
     if (name === 'leads' && document.getElementById('leads-table-wrap').innerHTML.includes('Loading')) loadLeads();
+    if (name === 'livedesk') loadLiveDeskQueue();
   }
 
   /* ── Stats ── */
@@ -613,13 +954,421 @@
     loadStats();
     if (currentPanel === 'sessions') loadSessions();
     if (currentPanel === 'leads') loadLeads();
+    if (currentPanel === 'livedesk') loadLiveDeskQueue();
     document.getElementById('refresh-ts').textContent = new Date().toLocaleTimeString();
+  }
+
+  /* ── LIVE SALES DESK LOGIC ── */
+  let currentLiveFilter = 'all';
+  let activeLiveSessionId = null;
+  let activeLiveLastCount = 0;
+  let liveDeskPollInterval = null;
+  let latestCopilotText = '';
+
+  function filterLiveQueue(filter, btn) {
+    currentLiveFilter = filter;
+    document.querySelectorAll('.q-filter-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    loadLiveDeskQueue();
+  }
+
+  async function loadLiveDeskQueue() {
+    try {
+      const resp = await fetch(`/api/admin/live-desk/sessions?filter=${encodeURIComponent(currentLiveFilter)}`);
+      const data = await resp.json();
+      if (!data.success) return;
+
+      const badge = document.getElementById('queue-count-badge');
+      if (badge) badge.textContent = data.count;
+
+      const navBadge = document.getElementById('nav-attention-badge');
+      if (navBadge) {
+        if (data.attention_count > 0) {
+          navBadge.textContent = data.attention_count;
+          navBadge.style.display = 'inline-flex';
+        } else {
+          navBadge.style.display = 'none';
+        }
+      }
+
+      const listEl = document.getElementById('livedesk-queue-list');
+      if (!listEl) return;
+
+      if (!data.sessions || !data.sessions.length) {
+        listEl.innerHTML = '<div class="empty" style="padding:24px;">No active conversations</div>';
+        return;
+      }
+
+      listEl.innerHTML = data.sessions.map(s => {
+        const isSelected = s.session_id === activeLiveSessionId;
+        const cls = ['queue-item'];
+        if (isSelected) cls.push('active');
+        if (s.priority === 1) cls.push('needs-attention');
+        if (s.human_agent_active) cls.push('agent-active');
+
+        let statusBadge = '';
+        if (s.priority === 1) {
+          statusBadge = '<span class="badge badge-amber" style="font-size:10px;padding:1px 6px;">🚨 Needs Attention</span>';
+        } else if (s.human_agent_active) {
+          statusBadge = '<span class="badge badge-green" style="font-size:10px;padding:1px 6px;">👤 Handled</span>';
+        } else {
+          statusBadge = '<span class="badge badge-blue" style="font-size:10px;padding:1px 6px;">🤖 AI</span>';
+        }
+
+        const catLabel = CAT_LABELS[s.category] || s.category || 'General';
+
+        return `<div class="${cls.join(' ')}" onclick="selectLiveDeskSession('${s.session_id}')">
+          <div class="q-row-top">
+            <span class="q-name">${s.customer_name}</span>
+            <span class="q-time">${s.updated ? s.updated.split(' ')[1] : ''}</span>
+          </div>
+          <div class="q-snippet">${s.last_message ? s.last_message.replace(/</g,'&lt;') : 'No messages yet'}</div>
+          <div class="q-tags">
+            ${statusBadge}
+            <span class="badge badge-gray" style="font-size:10px;padding:1px 6px;">${catLabel}</span>
+            ${s.turns ? `<span style="font-size:10px;color:var(--muted);margin-left:auto;">${s.turns} msgs</span>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+    } catch (e) {
+      console.error('loadLiveDeskQueue error:', e);
+    }
+  }
+
+  async function selectLiveDeskSession(sessionId) {
+    activeLiveSessionId = sessionId;
+    activeLiveLastCount = 0;
+
+    // Highlight selected queue card
+    document.querySelectorAll('.queue-item').forEach(el => el.classList.remove('active'));
+
+    const consoleName = document.getElementById('console-customer-name');
+    const consoleMeta = document.getElementById('console-session-meta');
+    const thread = document.getElementById('livedesk-chat-thread');
+    const actions = document.getElementById('console-actions');
+    const cannedDrawer = document.getElementById('canned-drawer');
+    const composer = document.getElementById('composer-wrap');
+    const contextBox = document.getElementById('livedesk-customer-info');
+    const copilotBox = document.getElementById('copilot-box');
+
+    consoleName.textContent = 'Loading conversation…';
+    consoleMeta.textContent = sessionId;
+    thread.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+
+    try {
+      const resp = await fetch(`/api/admin/sessions/${encodeURIComponent(sessionId)}`);
+      const data = await resp.json();
+      if (!data.success) {
+        thread.innerHTML = '<div class="empty">Error loading conversation</div>';
+        return;
+      }
+
+      consoleName.textContent = data.customer_name || 'Anonymous Customer';
+      consoleMeta.textContent = `ID: ${sessionId.slice(0, 24)}… · Updated: ${data.updated}`;
+
+      const state = data.state || {};
+      const isAgentActive = Boolean(state.human_agent_active);
+
+      // Render action buttons
+      updateConsoleActions(isAgentActive, state.human_agent_name);
+
+      // Show composer and canned drawers
+      if (cannedDrawer) cannedDrawer.style.display = 'flex';
+      if (composer) composer.style.display = 'flex';
+
+      // Render messages
+      renderConsoleMessages(data.history || []);
+      activeLiveLastCount = (data.history || []).length;
+
+      // Render context panel
+      renderContextPanel(data);
+
+      // Start active poll timer for real-time conversation sync
+      if (liveDeskPollInterval) clearInterval(liveDeskPollInterval);
+      liveDeskPollInterval = setInterval(pollActiveLiveSession, 2500);
+
+      // Fetch initial copilot draft
+      pollActiveLiveSession();
+    } catch (e) {
+      console.error('selectLiveDeskSession error:', e);
+    }
+  }
+
+  function updateConsoleActions(isAgentActive, agentName) {
+    const actions = document.getElementById('console-actions');
+    if (!actions) return;
+
+    if (isAgentActive) {
+      actions.innerHTML = `
+        <span class="badge badge-green">👤 Agent Active (${agentName || 'You'})</span>
+        <button class="btn btn-ghost" style="padding:6px 12px;color:var(--amber);border-color:var(--amber);" onclick="releaseChat()">
+          Resume AI 🤖
+        </button>
+      `;
+    } else {
+      actions.innerHTML = `
+        <span class="badge badge-blue">🤖 AI Responding</span>
+        <button class="btn btn-primary" style="padding:6px 12px;background:#f59e0b;color:#000;font-weight:700;" onclick="takeoverChat()">
+          Take Over Chat (Pause AI) ✋
+        </button>
+      `;
+    }
+  }
+
+  function renderConsoleMessages(history) {
+    const thread = document.getElementById('livedesk-chat-thread');
+    if (!thread) return;
+
+    if (!history || !history.length) {
+      thread.innerHTML = '<div class="empty">No messages in this conversation yet</div>';
+      return;
+    }
+
+    thread.innerHTML = history.map(msg => {
+      if (msg.role === 'system' || msg.event) {
+        return `<div class="msg-row system-event">
+          <div class="sys-pill">⚙️ ${msg.content || ''}</div>
+        </div>`;
+      }
+
+      const role = msg.role || (msg.sender === 'user' ? 'user' : 'assistant');
+      const sender = msg.sender || (role === 'user' ? 'user' : 'bot');
+      const isUser = sender === 'user';
+      const isAgent = sender === 'agent';
+
+      let av = '🤖';
+      let avCls = 'bot-av';
+      let rowCls = 'bot';
+      let senderTitle = 'SalesAI Assistant';
+
+      if (isUser) {
+        av = '👤';
+        avCls = 'user-av';
+        rowCls = 'user';
+        senderTitle = 'Customer';
+      } else if (isAgent) {
+        av = '👨‍💼';
+        avCls = 'agent-av';
+        rowCls = 'agent';
+        senderTitle = msg.agent_name ? `Sales Specialist (${msg.agent_name})` : 'Sales Specialist';
+      }
+
+      const text = (msg.content || msg.reply || msg.text || '').replace(/</g, '&lt;');
+
+      return `<div class="msg-row ${rowCls}">
+        <div class="msg-avatar ${avCls}">${av}</div>
+        <div style="max-width:80%;">
+          <div class="msg-bubble">${text}</div>
+          <div class="msg-time" style="text-align:${isUser ? 'right' : 'left'}">${senderTitle}</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    thread.scrollTop = thread.scrollHeight;
+  }
+
+  function renderContextPanel(data) {
+    const box = document.getElementById('livedesk-customer-info');
+    if (!box) return;
+
+    const s = data.state || {};
+    const leads = data.leads || [];
+    const lead = leads.length ? leads[0] : null;
+
+    let leadHtml = '';
+    if (lead) {
+      leadHtml = `
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px;">
+          <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px;">🎯 Contact Details</div>
+          <div style="font-size:12px;"><strong>Name:</strong> ${lead.customer_name || '—'}</div>
+          <div style="font-size:12px;"><strong>Company:</strong> ${lead.company || '—'}</div>
+          <div style="font-size:12px;"><strong>Email:</strong> ${lead.email || '—'}</div>
+          <div style="font-size:12px;"><strong>Phone:</strong> ${lead.phone || '—'}</div>
+        </div>
+      `;
+    }
+
+    const reqs = s.requirements || {};
+    const reqHtml = Object.keys(reqs).length ? Object.entries(reqs).map(([k, v]) => `
+      <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border);">
+        <span style="color:var(--muted);">${k}:</span>
+        <span style="font-weight:600;">${typeof v === 'object' ? JSON.stringify(v) : v}</span>
+      </div>
+    `).join('') : '<div style="font-size:12px;color:var(--muted);">No specific criteria specified yet.</div>';
+
+    const activeProdName = s.active_product ? (s.active_product.display_name || s.active_product.name) : (s.active_product_id || 'None');
+
+    box.innerHTML = `
+      ${leadHtml}
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">Conversation Intel</div>
+      <div style="margin-bottom:12px;font-size:12px;">
+        <div><strong>Category:</strong> ${CAT_LABELS[s.category] || s.category || 'Not determined'}</div>
+        <div><strong>Active Model:</strong> ${activeProdName}</div>
+        <div><strong>Stage:</strong> ${s.stage || 'open'}</div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">Extracted Requirements</div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;">
+        ${reqHtml}
+      </div>
+    `;
+  }
+
+  async function pollActiveLiveSession() {
+    if (!activeLiveSessionId) return;
+
+    try {
+      const resp = await fetch(`/api/admin/live-desk/poll?session_id=${encodeURIComponent(activeLiveSessionId)}&last_count=${activeLiveLastCount}`);
+      const data = await resp.json();
+      if (!data.success) return;
+
+      // Update copilot draft
+      const copilotBox = document.getElementById('copilot-box');
+      const copilotText = document.getElementById('copilot-text');
+      if (data.copilot_draft && copilotBox && copilotText) {
+        latestCopilotText = data.copilot_draft;
+        copilotText.textContent = latestCopilotText;
+        copilotBox.style.display = 'flex';
+      }
+
+      // If new messages arrived
+      if (data.new_messages && data.new_messages.length > 0) {
+        const thread = document.getElementById('livedesk-chat-thread');
+        if (thread) {
+          data.new_messages.forEach(msg => {
+            if (msg.role === 'system' || msg.event) {
+              const el = document.createElement('div');
+              el.className = 'msg-row system-event';
+              el.innerHTML = `<div class="sys-pill">⚙️ ${msg.content || ''}</div>`;
+              thread.appendChild(el);
+              return;
+            }
+
+            const isUser = msg.sender === 'user' || msg.role === 'user';
+            const isAgent = msg.sender === 'agent';
+            let av = isUser ? '👤' : (isAgent ? '👨‍💼' : '🤖');
+            let avCls = isUser ? 'user-av' : (isAgent ? 'agent-av' : 'bot-av');
+            let rowCls = isUser ? 'user' : (isAgent ? 'agent' : 'bot');
+            let senderTitle = isUser ? 'Customer' : (isAgent ? `Sales Specialist (${msg.agent_name || 'You'})` : 'SalesAI Assistant');
+
+            const text = (msg.content || msg.reply || msg.text || '').replace(/</g, '&lt;');
+            const el = document.createElement('div');
+            el.className = `msg-row ${rowCls}`;
+            el.innerHTML = `
+              <div class="msg-avatar ${avCls}">${av}</div>
+              <div style="max-width:80%;">
+                <div class="msg-bubble">${text}</div>
+                <div class="msg-time" style="text-align:${isUser ? 'right' : 'left'}">${senderTitle}</div>
+              </div>
+            `;
+            thread.appendChild(el);
+          });
+          thread.scrollTop = thread.scrollHeight;
+          activeLiveLastCount = data.total_count;
+        }
+      }
+
+      // Update takeover status buttons
+      updateConsoleActions(data.human_agent_active, data.human_agent_name);
+    } catch (e) {
+      console.error('pollActiveLiveSession error:', e);
+    }
+  }
+
+  async function takeoverChat() {
+    if (!activeLiveSessionId) return;
+    const nameInput = document.getElementById('agent-name-input');
+    const agentName = nameInput ? nameInput.value.trim() : 'Sales Specialist';
+
+    try {
+      const resp = await fetch('/api/admin/live-desk/takeover', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: activeLiveSessionId, agent_name: agentName, reason: 'manual_takeover' })
+      });
+      const data = await resp.json();
+      if (data.success) {
+        updateConsoleActions(true, agentName);
+        loadLiveDeskQueue();
+      }
+    } catch (e) {
+      console.error('takeoverChat error:', e);
+    }
+  }
+
+  async function releaseChat() {
+    if (!activeLiveSessionId) return;
+
+    try {
+      const resp = await fetch('/api/admin/live-desk/release', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: activeLiveSessionId })
+      });
+      const data = await resp.json();
+      if (data.success) {
+        updateConsoleActions(false, null);
+        loadLiveDeskQueue();
+      }
+    } catch (e) {
+      console.error('releaseChat error:', e);
+    }
+  }
+
+  async function sendAgentMessage() {
+    if (!activeLiveSessionId) return;
+    const input = document.getElementById('agent-message-input');
+    const nameInput = document.getElementById('agent-name-input');
+    if (!input || !input.value.trim()) return;
+
+    const message = input.value.trim();
+    const agentName = nameInput ? nameInput.value.trim() : 'Sales Specialist';
+    input.value = '';
+
+    try {
+      const resp = await fetch('/api/admin/live-desk/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: activeLiveSessionId, message: message, agent_name: agentName })
+      });
+      const data = await resp.json();
+      if (data.success) {
+        pollActiveLiveSession();
+      }
+    } catch (e) {
+      console.error('sendAgentMessage error:', e);
+    }
+  }
+
+  function handleComposerKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendAgentMessage();
+    }
+  }
+
+  function insertCanned(text) {
+    const input = document.getElementById('agent-message-input');
+    if (input) {
+      input.value = text;
+      input.focus();
+    }
+  }
+
+  function insertCopilot() {
+    const input = document.getElementById('agent-message-input');
+    if (input && latestCopilotText) {
+      input.value = latestCopilotText;
+      input.focus();
+    }
   }
 
   /* ── Init ── */
   loadStats();
   document.getElementById('refresh-ts').textContent = new Date().toLocaleTimeString();
   setInterval(loadStats, 60000); // auto-refresh every 60s
+  setInterval(() => {
+    if (currentPanel === 'livedesk') loadLiveDeskQueue();
+  }, 5000); // live queue refresh every 5s
 </script>
 </body>
 </html>

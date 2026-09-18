@@ -213,6 +213,98 @@ class StateManager:
         with self._lock:
             self._store.pop(sid, None)
 
+    def set_agent_takeover(
+        self,
+        session_id: str,
+        agent_name: str = "Sales Specialist",
+        reason: str = "manual_takeover",
+        agent_id: Optional[str] = None
+    ) -> ConversationState:
+        """Transfers control of a session from AI to a human sales agent."""
+        state = self.get_or_create(session_id)
+        history = self.get_history(session_id)
+        state.human_agent_active = True
+        state.human_agent_name = agent_name
+        state.human_agent_id = agent_id or f"agent-{int(time.time())}"
+        state.handover_triggered = True
+        state.handover_reason = reason
+        state.handover_timestamp = time.time()
+
+        system_event = {
+            "role": "system",
+            "sender": "system",
+            "content": f"Live Sales Advisor {agent_name} has joined the conversation.",
+            "timestamp": time.time(),
+            "event": "agent_takeover"
+        }
+        history.append(system_event)
+        state.history_turns.append(system_event)
+        self.save(state, history)
+        return state
+
+    def release_agent_takeover(self, session_id: str) -> ConversationState:
+        """Releases session back to SalesAI automated handling."""
+        state = self.get_or_create(session_id)
+        history = self.get_history(session_id)
+        state.human_agent_active = False
+        state.handover_timestamp = time.time()
+
+        system_event = {
+            "role": "system",
+            "sender": "system",
+            "content": "SalesAI automated assistant has resumed this conversation.",
+            "timestamp": time.time(),
+            "event": "agent_released"
+        }
+        history.append(system_event)
+        state.history_turns.append(system_event)
+        self.save(state, history)
+        return state
+
+    def add_agent_message(
+        self,
+        session_id: str,
+        message: str,
+        agent_name: str = "Sales Specialist"
+    ) -> Dict[str, Any]:
+        """Appends a message written manually by a sales agent in admin console."""
+        state = self.get_or_create(session_id)
+        history = self.get_history(session_id)
+
+        msg_obj = {
+            "role": "assistant",
+            "sender": "agent",
+            "agent_name": agent_name,
+            "content": message.strip(),
+            "timestamp": time.time(),
+            "id": str(uuid.uuid4())[:8],
+        }
+
+        history.append(msg_obj)
+        state.history_turns.append(msg_obj)
+        state.pending_agent_messages.append(msg_obj)
+        self.save(state, history)
+        return msg_obj
+
+    def get_poll_data(self, session_id: str, last_count: int = 0) -> Dict[str, Any]:
+        """Fetches newly appended messages and current human takeover status."""
+        state = self.get_or_create(session_id)
+        history = self.get_history(session_id)
+        current_count = len(history)
+
+        new_messages = []
+        if last_count < current_count:
+            new_messages = history[last_count:]
+
+        return {
+            "session_id": session_id,
+            "human_agent_active": state.human_agent_active,
+            "human_agent_name": state.human_agent_name,
+            "handover_triggered": state.handover_triggered,
+            "total_count": current_count,
+            "new_messages": new_messages,
+        }
+
     def _cleanup_expired_locked(self, now: float) -> None:
         """Removes stale sessions that exceed TTL. Must be called under self._lock."""
         expired = [sid for sid, entry in self._store.items() if (now - entry["last_active"]) > self.ttl_seconds]
@@ -221,3 +313,4 @@ class StateManager:
 
 
 state_manager = StateManager()
+

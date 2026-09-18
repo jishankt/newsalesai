@@ -59,6 +59,15 @@ class ConversationState:
     turn_count: int = 0
     state_version: int = 3
 
+    # ── Live Sales Agent & Handover Control ──────────────────────────────
+    human_agent_active: bool = False
+    human_agent_id: Optional[str] = None
+    human_agent_name: Optional[str] = None
+    handover_triggered: bool = False
+    handover_reason: Optional[str] = None
+    handover_timestamp: Optional[float] = None
+    pending_agent_messages: List[Dict[str, Any]] = field(default_factory=list)
+
     # ── Serialization ────────────────────────────────────────────────────
 
     def to_dict(self) -> Dict[str, Any]:
@@ -102,6 +111,13 @@ class ConversationState:
             "history_turns": self.history_turns,
             "turn_count": self.turn_count or len(self.history_turns),
             "state_version": self.state_version,
+            "human_agent_active": self.human_agent_active,
+            "human_agent_id": self.human_agent_id,
+            "human_agent_name": self.human_agent_name,
+            "handover_triggered": self.handover_triggered,
+            "handover_reason": self.handover_reason,
+            "handover_timestamp": self.handover_timestamp,
+            "pending_agent_messages": self.pending_agent_messages,
         }
 
     @classmethod
@@ -145,6 +161,13 @@ class ConversationState:
             history_turns=data.get("history_turns", []),
             turn_count=data.get("turn_count", 0),
             state_version=data.get("state_version", 3),
+            human_agent_active=bool(data.get("human_agent_active", False)),
+            human_agent_id=data.get("human_agent_id"),
+            human_agent_name=data.get("human_agent_name"),
+            handover_triggered=bool(data.get("handover_triggered", False)),
+            handover_reason=data.get("handover_reason"),
+            handover_timestamp=data.get("handover_timestamp"),
+            pending_agent_messages=data.get("pending_agent_messages", []),
         )
 
     # ── State Mutations ──────────────────────────────────────────────────

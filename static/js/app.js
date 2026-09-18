@@ -82,17 +82,21 @@ document.addEventListener('DOMContentLoaded', () => {
   let sessionId = generateUUID();
   sessionStorage.setItem('cra_session_id', sessionId);
   let isAwaitingReply = false;
+  let clientLastMessageCount = 0;
+  let clientLivePollTimer = null;
 
   // Initialize
   checkHealth();
   updateActiveAgentUI(DEFAULT_AGENT);
   renderInitialGreeting();
+  startClientLivePolling();
 
   // Clear Chat button
   if (clearChatBtn) {
     clearChatBtn.addEventListener('click', () => {
       sessionId = generateUUID();
       sessionStorage.setItem('cra_session_id', sessionId);
+      clientLastMessageCount = 0;
       messagesContainer.innerHTML = '';
       renderInitialGreeting();
     });
@@ -260,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const activeAgent = data.active_agent || DEFAULT_AGENT;
         updateActiveAgentUI(activeAgent);
-        const sourceLabel = data.source === 'ollama' ? 'Ollama' : (data.source === 'rag_comparison_engine' ? 'RAG Comparison Engine' : (data.source === 'guardrail_rule' ? 'Commercial Guardrail' : 'Rule Engine'));
+        const sourceLabel = data.source === 'ollama' ? 'Ollama' : (data.source === 'rag_comparison_engine' ? 'RAG Comparison Engine' : (data.source === 'guardrail_rule' ? 'Commercial Guardrail' : (data.source === 'human_agent_queue' ? 'Live Sales Desk' : 'Rule Engine')));
         appendMessage(
           'bot',
           data.reply,
@@ -274,9 +278,71 @@ document.addEventListener('DOMContentLoaded', () => {
           activeAgent,
           data.comparison_data || null
         );
+        clientLastMessageCount++;
       } catch (renderErr) {
         console.error('Error rendering assistant reply:', renderErr);
       }
+    }
+  }
+
+  // Live Sales Agent Background Polling
+  function startClientLivePolling() {
+    if (clientLivePollTimer) clearInterval(clientLivePollTimer);
+    clientLivePollTimer = setInterval(pollForAgentMessages, 2500);
+  }
+
+  async function pollForAgentMessages() {
+    if (!sessionId || isAwaitingReply) return;
+    try {
+      const res = await fetch(`/api/chat/poll?session_id=${encodeURIComponent(sessionId)}&last_count=${clientLastMessageCount}`);
+      if (!res.ok) return;
+      const data = await res.json();
+
+      if (data.human_agent_active) {
+        updateActiveAgentUI({
+          id: 'live_sales_specialist',
+          name: data.human_agent_name || 'Live Sales Specialist',
+          role: 'Technical Sales Advisor',
+          badge: `👨‍💼 ${data.human_agent_name || 'Sales Specialist'} (Live)`,
+          theme_color: '#10b981'
+        });
+      }
+
+      if (data.new_messages && data.new_messages.length > 0) {
+        data.new_messages.forEach(msg => {
+          if (msg.sender === 'agent') {
+            appendMessage(
+              'bot',
+              msg.content,
+              'Live Sales Advisor',
+              [],
+              null,
+              null,
+              [],
+              [],
+              [],
+              {
+                id: 'live_agent',
+                name: msg.agent_name || 'Sales Specialist',
+                badge: `👨‍💼 ${msg.agent_name || 'Sales Specialist'} (Live)`,
+                theme_color: '#10b981'
+              }
+            );
+          } else if (msg.role === 'system' && msg.event === 'agent_takeover') {
+            const notice = document.createElement('div');
+            notice.className = 'agent-system-notice';
+            notice.style.cssText = 'text-align:center;margin:10px auto;font-size:11.5px;font-weight:600;color:#10b981;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);border-radius:20px;padding:5px 14px;max-width:85%;';
+            notice.textContent = `👨‍💼 ${msg.content}`;
+            messagesContainer.appendChild(notice);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+          }
+        });
+      }
+      if (typeof data.total_count === 'number' && data.total_count > clientLastMessageCount) {
+        clientLastMessageCount = data.total_count;
+      }
+    } catch (err) {
+      // background polling fails silently
     }
   }
 
