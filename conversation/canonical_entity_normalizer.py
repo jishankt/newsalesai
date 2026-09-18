@@ -34,15 +34,15 @@ class CanonicalEntityNormalizer:
         re.IGNORECASE
     )
 
-    # ── Photo Dimension Patterns (Order Agnostic) ──────────────────────────
+    # ── Photo Dimension Patterns (Order Agnostic, Imperial & Metric) ────────
     PHOTO_SIZE_RULES: List[Tuple[re.Pattern, str]] = [
-        (re.compile(r"\b(?:2\s*(?:x|\*)\s*6|6\s*(?:x|\*)\s*2|photo\s*strip|2-inch\s*strip|2x6\s*strip)\b", re.I), "2x6"),
-        (re.compile(r"\b(?:4\s*(?:x|\*)\s*6|6\s*(?:x|\*)\s*4)\b", re.I), "4x6"),
-        (re.compile(r"\b(?:5\s*(?:x|\*)\s*7|7\s*(?:x|\*)\s*5)\b", re.I), "5x7"),
-        (re.compile(r"\b(?:6\s*(?:x|\*)\s*8|8\s*(?:x|\*)\s*6)\b", re.I), "6x8"),
-        (re.compile(r"\b(?:8\s*(?:x|\*)\s*10|10\s*(?:x|\*)\s*8)\b", re.I), "8x10"),
-        (re.compile(r"\b(?:8\s*(?:x|\*)\s*12|12\s*(?:x|\*)\s*8)\b", re.I), "8x12"),
-        (re.compile(r"\b(?:4\s*(?:x|\*)\s*4|4\.5\s*(?:x|\*)\s*4\.5|4\.5\s*(?:x|\*)\s*8)\b", re.I), "4x4"),
+        (re.compile(r"(?:^|[^\w])(?:2(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*6(?:\s*inch|\s*in|[\"\'\s])*|6(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*2(?:\s*inch|\s*in|[\"\'\s])*|photo\s*strip|2-inch\s*strip|2x6\s*strip)(?:$|[^\w])", re.I), "2x6"),
+        (re.compile(r"(?:^|[^\w])(?:4(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*6(?:\s*inch|\s*in|[\"\'\s])*|6(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*4(?:\s*inch|\s*in|[\"\'\s])*|10\s*cm\s*(?:x|\*)\s*15\s*cm|15\s*cm\s*(?:x|\*)\s*10\s*cm|10\s*(?:x|\*)\s*15\s*cm|15\s*(?:x|\*)\s*10\s*cm|100\s*mm\s*(?:x|\*)\s*150\s*mm|150\s*mm\s*(?:x|\*)\s*100\s*mm)(?:$|[^\w])", re.I), "4x6"),
+        (re.compile(r"(?:^|[^\w])(?:5(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*7(?:\s*inch|\s*in|[\"\'\s])*|7(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*5(?:\s*inch|\s*in|[\"\'\s])*|13\s*cm\s*(?:x|\*)\s*18\s*cm|18\s*cm\s*(?:x|\*)\s*13\s*cm|13\s*(?:x|\*)\s*18\s*cm|18\s*(?:x|\*)\s*13\s*cm)(?:$|[^\w])", re.I), "5x7"),
+        (re.compile(r"(?:^|[^\w])(?:6(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*8(?:\s*inch|\s*in|[\"\'\s])*|8(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*6(?:\s*inch|\s*in|[\"\'\s])*|15\s*cm\s*(?:x|\*)\s*20\s*cm|20\s*cm\s*(?:x|\*)\s*15\s*cm|15\s*(?:x|\*)\s*20\s*cm|20\s*(?:x|\*)\s*15\s*cm)(?:$|[^\w])", re.I), "6x8"),
+        (re.compile(r"(?:^|[^\w])(?:8(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*10(?:\s*inch|\s*in|[\"\'\s])*|10(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*8(?:\s*inch|\s*in|[\"\'\s])*|20\s*cm\s*(?:x|\*)\s*25\s*cm|25\s*cm\s*(?:x|\*)\s*20\s*cm|20\s*(?:x|\*)\s*25\s*cm)(?:$|[^\w])", re.I), "8x10"),
+        (re.compile(r"(?:^|[^\w])(?:8(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*12(?:\s*inch|\s*in|[\"\'\s])*|12(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*8(?:\s*inch|\s*in|[\"\'\s])*|20\s*cm\s*(?:x|\*)\s*30\s*cm|30\s*cm\s*(?:x|\*)\s*20\s*cm|20\s*(?:x|\*)\s*30\s*cm)(?:$|[^\w])", re.I), "8x12"),
+        (re.compile(r"(?:^|[^\w])(?:4(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*4(?:\s*inch|\s*in|[\"\'\s])*|4\.5(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*4\.5(?:\s*inch|\s*in|[\"\'\s])*|4\.5(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*8(?:\s*inch|\s*in|[\"\'\s])*|8(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*4\.5(?:\s*inch|\s*in|[\"\'\s])*|10\s*cm\s*(?:x|\*)\s*10\s*cm|10\s*(?:x|\*)\s*10\s*cm)(?:$|[^\w])", re.I), "4x4"),
     ]
 
     # Metric width conversion mappings (e.g. 914mm -> 36-inch, 610mm -> 24-inch)

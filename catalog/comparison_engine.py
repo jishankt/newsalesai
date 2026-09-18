@@ -29,13 +29,20 @@ NOT_VERIFIED = "Not verified in the approved catalogue."
 
 # ── Common criteria (all comparisons) ──────────────────────────────────────
 COMMON_CRITERIA: List[Tuple[str, str]] = [
-    ("model",           "Model"),
-    ("main_category",   "Main Category"),
-    ("subcategory_key", "Subcategory"),
-    ("applications",    "Primary Applications"),
-    ("functions",       "Functions"),
-    ("max_output_size", "Maximum Output Size"),
-    ("match_reasons",   "Key Selling Points"),
+    ("model",                "Model"),
+    ("functions",            "Functions & Integrated Features"),
+    ("print_speed",          "Print Speed"),
+    ("dpi",                  "Print Resolution (DPI)"),
+    ("colour_specification", "Colour Specification & Ink Tech"),
+    ("total_colours",        "Total Colours"),
+    ("cartridge_sizes",      "Cartridge Sizes / Capacities"),
+    ("consumable_volume",    "Consumable Volume & Page Yield"),
+    ("memory",               "Memory & Storage"),
+    ("max_output_size",      "Maximum Output Size"),
+    ("main_category",        "Main Category"),
+    ("subcategory_key",      "Subcategory"),
+    ("applications",         "Primary Applications"),
+    ("match_reasons",        "Key Selling Points"),
 ]
 
 # ── Category-specific criteria ──────────────────────────────────────────────
@@ -82,15 +89,22 @@ CATEGORY_CRITERIA: Dict[str, List[Tuple[str, str]]] = {
 
 # Cross-category: only these shared fields
 CROSS_CATEGORY_SHARED: List[Tuple[str, str]] = [
-    ("model",           "Model"),
-    ("main_category",   "Main Category"),
-    ("subcategory_key", "Subcategory"),
-    ("applications",    "Primary Applications"),
-    ("functions",       "Functions"),
-    ("max_output_size", "Maximum Output Size"),
-    ("colour_mode",     "Colour Mode"),
-    ("match_reasons",   "Key Selling Points"),
-    ("product_line",    "Product Line"),
+    ("model",                "Model"),
+    ("functions",            "Functions & Integrated Features"),
+    ("print_speed",          "Print Speed"),
+    ("dpi",                  "Print Resolution (DPI)"),
+    ("colour_specification", "Colour Specification & Ink Tech"),
+    ("total_colours",        "Total Colours"),
+    ("cartridge_sizes",      "Cartridge Sizes / Capacities"),
+    ("consumable_volume",    "Consumable Volume & Page Yield"),
+    ("memory",               "Memory & Storage"),
+    ("max_output_size",      "Maximum Output Size"),
+    ("colour_mode",          "Colour Mode"),
+    ("main_category",        "Main Category"),
+    ("subcategory_key",      "Subcategory"),
+    ("applications",         "Primary Applications"),
+    ("match_reasons",        "Key Selling Points"),
+    ("product_line",         "Product Line"),
 ]
 
 
@@ -159,7 +173,60 @@ def _resolve_field(product: Dict[str, Any], key: str) -> str:
 
     if key == "functions":
         funcs = p.get("functions") or []
-        return _safe(funcs) if funcs else NOT_VERIFIED
+        base = ", ".join(f.replace("_", " ").title() for f in funcs) if funcs else ""
+        integrated_parts = []
+        if p.get("scanner_integrated"):
+            w = p.get("max_width_inches")
+            if w and w >= 36:
+                integrated_parts.append("Integrated 36″ Scanner")
+            elif w and w >= 24:
+                integrated_parts.append("Integrated 24″ Scanner")
+            elif p.get("product_line") in ("workforce_enterprise", "workforce_pro"):
+                integrated_parts.append("Integrated Dual-Scan ADF & Flatbed")
+            else:
+                integrated_parts.append("Integrated Scanner")
+        if p.get("dual_roll"):
+            integrated_parts.append("Integrated Dual-Roll Media")
+        if p.get("spectro"):
+            integrated_parts.append("Integrated Spectrophotometer")
+
+        if base and integrated_parts:
+            return html.escape(f"{base} ({', '.join(integrated_parts)})")
+        elif base:
+            if base.lower() == "print":
+                return html.escape("Print Only")
+            return html.escape(base)
+        elif integrated_parts:
+            return html.escape(f"Print ({', '.join(integrated_parts)})")
+        return NOT_VERIFIED
+
+    if key in ("print_speed", "printspeed"):
+        v = p.get("print_speed") or p.get("printspeed")
+        return html.escape(str(v)) if v else NOT_VERIFIED
+
+    if key in ("dpi", "dots_per_inch", "resolution"):
+        v = p.get("dpi") or p.get("dots_per_inch")
+        return html.escape(str(v)) if v else NOT_VERIFIED
+
+    if key in ("colour_specification", "color_specification", "ink_specification"):
+        v = p.get("colour_specification") or p.get("color_specification")
+        return html.escape(str(v)) if v else NOT_VERIFIED
+
+    if key in ("total_colours", "total_colors"):
+        v = p.get("total_colours") or p.get("total_colors")
+        return html.escape(str(v)) if v else NOT_VERIFIED
+
+    if key in ("cartridge_sizes", "cartridge_size", "catrich_sizees", "cartridge_capacities"):
+        v = p.get("cartridge_sizes") or p.get("catrich_sizees") or p.get("cartridge_size")
+        return html.escape(str(v)) if v else NOT_VERIFIED
+
+    if key in ("consumable_volume", "consumable_yield", "page_yield", "consumabe_volume"):
+        v = p.get("consumable_volume") or p.get("consumabe_volume") or p.get("page_yield")
+        return html.escape(str(v)) if v else NOT_VERIFIED
+
+    if key in ("memory", "internal_memory", "ram"):
+        v = p.get("memory") or p.get("ram")
+        return html.escape(str(v)) if v else NOT_VERIFIED
 
     if key == "max_output_size":
         w = p.get("max_width_inches")
@@ -421,9 +488,10 @@ def build_comparison_intro(
         joined = ", ".join(f"**{n}**" for n in names)
         header = f"Here is a verified comparison of {len(names)} models: {joined}"
 
+    quantifier = "both" if len(names) == 2 else "all"
     suffix_map = {
-        "same_subcategory": ", both from the same product subcategory.",
-        "same_category":    ", both from the same product category.",
+        "same_subcategory": f", {quantifier} from the same product subcategory.",
+        "same_category":    f", {quantifier} from the same product category.",
         "cross_category":   ". Note that these products serve different application areas — only shared specifications are shown.",
     }
     intro = header + suffix_map.get(comp_type, ".")
@@ -432,3 +500,30 @@ def build_comparison_intro(
         intro += f"\n\n{comparison_data['recommendation_note']}"
 
     return intro
+
+
+def format_comparison_markdown_table(
+    products: List[Dict[str, Any]],
+    comparison_data: Dict[str, Any],
+) -> str:
+    """Renders a clean GitHub-flavored markdown table of comparison criteria."""
+    criteria = comparison_data.get("criteria", [])
+    if not criteria or not products:
+        return ""
+
+    headers = ["Specification"] + [p.get("display_name", p["id"]) for p in products]
+    col_bars = [" :--- "] * len(headers)
+
+    table_lines = [
+        "| " + " | ".join(headers) + " |",
+        "|" + "|".join(col_bars) + "|",
+    ]
+
+    for row in criteria:
+        label = row.get("label", row.get("key", ""))
+        vals = row.get("values", {})
+        row_vals = [f"**{label}**"] + [str(vals.get(p["id"], "—")) for p in products]
+        table_lines.append("| " + " | ".join(row_vals) + " |")
+
+    return "\n".join(table_lines)
+

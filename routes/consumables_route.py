@@ -42,6 +42,19 @@ def sort_consumables_inks_first(cards: list) -> list:
     return sorted(cards, key=_rank)
 
 
+def format_consumable_bullet(c: dict) -> str:
+    """Format consumable card with title, direct link, SKU, and verified price."""
+    name = c.get("title") or c.get("name") or "Consumable Item"
+    sku = c.get("sku")
+    sku_text = f" (SKU: `{sku}`)" if sku else ""
+    price_str = c.get("price_formatted") or (f"AED {c.get('price'):,.2f}" if c.get("price") else None)
+    vat = c.get("vat_note") or "(Excl. VAT)"
+    price_part = f": **{price_str} {vat}**" if price_str else ""
+    url = c.get("url") or c.get("website_url")
+    link_title = f"[{name}]({url})" if url else f"**{name}**"
+    return f"• **{link_title}**{sku_text}{price_part}"
+
+
 def handle(understanding: LLMUnderstanding, state: ConversationState, raw_message: str = "") -> RouteResult:
     """Handle consumable queries — find inks/cartridges/ribbons with color specificity."""
     entities = understanding.entities
@@ -431,7 +444,7 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
 
     # For Citizen dye-sub photo printers: they use paper/ribbon rolls, NEVER ask for ink colors
     if is_citizen_dyesub:
-        items_list = "\n".join([f"• **{c.get('name')}** (SKU: `{c.get('sku')}`)" for c in all_consumables])
+        items_list = "\n".join([format_consumable_bullet(c) for c in all_consumables])
         if is_ink_cartridge_question:
             reply = (
                 f"No, the **{printer_name}** does not use liquid ink cartridges. It is a thermal dye-sublimation photo printer that uses all-in-one ribbon and paper media sets (each pack includes both the photo paper roll and the thermal ribbon).\n\n"
@@ -455,7 +468,7 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
 
     # For Epson dye-sublimation printers (SC-F100, SC-F500): use 140ml UltraChrome DS bottles & maintenance box
     if is_epson_dyesub:
-        items_list = "\n".join([f"• **{c.get('name')}** (SKU: `{c.get('sku')}`)" for c in all_consumables])
+        items_list = "\n".join([format_consumable_bullet(c) for c in all_consumables])
         if is_ink_cartridge_question:
             reply = (
                 f"The **{printer_name}** uses genuine Epson 140ml UltraChrome DS dye-sublimation ink bottles (T49N series) and a maintenance box, rather than traditional sealed cartridges.\n\n"
@@ -478,7 +491,7 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
 
     # For inkjet printers when asked if it uses ink cartridges
     if is_ink_cartridge_question and not is_dyesub:
-        items_list = "\n".join([f"• **{c.get('name')}** (SKU: `{c.get('sku')}`)" for c in all_consumables[:6]])
+        items_list = "\n".join([format_consumable_bullet(c) for c in all_consumables[:6]])
         colors_display = ", ".join(available_ink_colors) if available_ink_colors else "genuine ink cartridges"
         reply = (
             f"Yes, the **{printer_name}** uses genuine ink cartridges ({colors_display}).\n\n"
@@ -510,7 +523,7 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
         )
 
     # Default: Return verified compatible consumables / media with clean bullet points
-    items_list = "\n".join([f"• **{c.get('name')}** (SKU: `{c.get('sku')}`)" for c in all_consumables[:6]])
+    items_list = "\n".join([format_consumable_bullet(c) for c in all_consumables[:6]])
     reply = f"Here are the verified genuine consumables and media for **{printer_name}**:\n\n{items_list}"
 
     return RouteResult(

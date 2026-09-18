@@ -336,6 +336,107 @@ class TestComparisonIntro(unittest.TestCase):
         self.assertEqual([c["id"] for c in cards], ["epson-sc-p700", "epson-sc-p900"])
 
 
+class TestEnhancedComparisonCriteria(unittest.TestCase):
+
+    def test_functions_integrated_on_top(self):
+        """Functions must be the second criterion (index 1) directly below Model."""
+        from catalog.comparison_engine import COMMON_CRITERIA, CROSS_CATEGORY_SHARED
+        self.assertEqual(COMMON_CRITERIA[0][0], "model")
+        self.assertEqual(COMMON_CRITERIA[1][0], "functions")
+        self.assertIn("Functions", COMMON_CRITERIA[1][1])
+
+        self.assertEqual(CROSS_CATEGORY_SHARED[0][0], "model")
+        self.assertEqual(CROSS_CATEGORY_SHARED[1][0], "functions")
+        self.assertIn("Functions", CROSS_CATEGORY_SHARED[1][1])
+
+    def test_all_new_fields_in_criteria(self):
+        """All requested technical fields must be in COMMON_CRITERIA and CROSS_CATEGORY_SHARED."""
+        from catalog.comparison_engine import COMMON_CRITERIA, CROSS_CATEGORY_SHARED
+        common_keys = [k for k, _ in COMMON_CRITERIA]
+        cross_keys = [k for k, _ in CROSS_CATEGORY_SHARED]
+        required_fields = [
+            "print_speed",
+            "dpi",
+            "colour_specification",
+            "total_colours",
+            "cartridge_sizes",
+            "consumable_volume",
+            "memory",
+        ]
+        for f in required_fields:
+            self.assertIn(f, common_keys, f"Field '{f}' missing from COMMON_CRITERIA")
+            self.assertIn(f, cross_keys, f"Field '{f}' missing from CROSS_CATEGORY_SHARED")
+
+    def test_all_43_catalogue_products_have_verified_technical_fields(self):
+        """Every single one of the 43 approved catalogue models must have resolved, verified specs."""
+        from catalog.comparison_engine import _resolve_field
+        products = catalogue_loader.products
+        self.assertEqual(len(products), 43)
+
+        keys_to_test = [
+            "functions",
+            "print_speed",
+            "dpi",
+            "colour_specification",
+            "total_colours",
+            "cartridge_sizes",
+            "consumable_volume",
+            "memory",
+        ]
+
+        for p in products:
+            pid = p["id"]
+            for k in keys_to_test:
+                val = _resolve_field(p, k)
+                self.assertNotEqual(
+                    val,
+                    NOT_VERIFIED,
+                    f"Product '{pid}' field '{k}' returned NOT_VERIFIED! Value was missing."
+                )
+                self.assertTrue(len(val.strip()) > 0, f"Product '{pid}' field '{k}' was empty.")
+
+    def test_integrated_scanner_and_hardware_in_functions(self):
+        """Integrated scanners and dual roll/spectro are highlighted in the functions row."""
+        from catalog.comparison_engine import _resolve_field
+        # SC-T5100M has integrated 36-inch scanner
+        p_t5100m = catalogue_loader.get_by_id("epson-sc-t5100m")
+        funcs_t5100m = _resolve_field(p_t5100m, "functions")
+        self.assertIn("Integrated 36″ Scanner", funcs_t5100m)
+
+        # SC-P7500 Spectro has integrated spectrophotometer
+        p_p7500_spectro = catalogue_loader.get_by_id("epson-sc-p7500-spectro")
+        funcs_p7500 = _resolve_field(p_p7500_spectro, "functions")
+        self.assertIn("Spectrophotometer", funcs_p7500)
+
+        # SC-T5700D has dual roll
+        p_t5700d = catalogue_loader.get_by_id("epson-sc-t5700d")
+        funcs_t5700d = _resolve_field(p_t5700d, "functions")
+        self.assertIn("Dual-Roll", funcs_t5700d)
+
+        # Print only without extra hardware
+        p_cz01 = catalogue_loader.get_by_id("citizen-cz-01")
+        funcs_cz01 = _resolve_field(p_cz01, "functions")
+        self.assertEqual(funcs_cz01, "Print Only")
+
+    def test_markdown_table_includes_all_new_fields(self):
+        """format_comparison_markdown_table produces rows for all new specifications."""
+        from catalog.comparison_engine import format_comparison_markdown_table
+        p1 = catalogue_loader.get_by_id("epson-sc-t5405")
+        p2 = catalogue_loader.get_by_id("epson-sc-t5700d")
+        comp_data = build_comparison([p1, p2])
+        table = format_comparison_markdown_table([p1, p2], comp_data)
+
+        self.assertIn("Print Speed", table)
+        self.assertIn("Print Resolution (DPI)", table)
+        self.assertIn("Colour Specification & Ink Tech", table)
+        self.assertIn("Total Colours", table)
+        self.assertIn("Cartridge Sizes / Capacities", table)
+        self.assertIn("Consumable Volume & Page Yield", table)
+        self.assertIn("Memory & Storage", table)
+        self.assertIn("Functions & Integrated Features", table)
+
+
 if __name__ == "__main__":
     unittest.main()
+
 

@@ -40,7 +40,14 @@
     "source_catalogue": "BUSINESS A4 PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "workforce_pro"
+    "product_line": "workforce_pro",
+    "print_speed": "25 ISO ppm black / 25 ISO ppm colour",
+    "dpi": "4,800 \u00d7 1,200 DPI",
+    "memory": "1,024 MB (1 GB) RAM",
+    "total_colours": "4 Colours (Black, Cyan, Magenta, Yellow)",
+    "colour_specification": "Epson DURABrite Ultra Pigment Inks (Water & highlighter resistant)",
+    "cartridge_sizes": "Standard, XL, and XXL High-Capacity Ink Packs",
+    "consumable_volume": "Up to 10,000 pages Black / 5,000 pages Colour (T11D/T11E)"
   },
   {
     "id": "epson-em-c800",
@@ -83,7 +90,14 @@
     "source_catalogue": "BUSINESS A4 PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "workforce_pro"
+    "product_line": "workforce_pro",
+    "print_speed": "25 ISO ppm black / 25 ISO ppm colour",
+    "dpi": "4,800 \u00d7 1,200 DPI",
+    "memory": "2,048 MB (2 GB) RAM",
+    "total_colours": "4 Colours (Black, Cyan, Magenta, Yellow)",
+    "colour_specification": "Epson DURABrite Pro Pigment Inks with PrecisionCore Heat-Free Technology",
+    "cartridge_sizes": "Replaceable Ink Supply Bags (RIPS)",
+    "consumable_volume": "Up to 50,000 pages Black / 20,000 pages Colour"
   },
   {
     "id": "epson-am-c400",
@@ -123,7 +137,14 @@
     "source_catalogue": "BUSINESS A4 PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "workforce_enterprise"
+    "product_line": "workforce_enterprise",
+    "print_speed": "40 ISO ppm black / 40 ISO ppm colour",
+    "dpi": "600 \u00d7 2,400 DPI",
+    "memory": "4,096 MB (4 GB) RAM + 320 GB HDD",
+    "total_colours": "4 Colours (Black, Cyan, Magenta, Yellow)",
+    "colour_specification": "DURABrite Pro Aqueous Pigment Inks with PrecisionCore Line Head",
+    "cartridge_sizes": "High-Yield Industrial Ink Packs",
+    "consumable_volume": "Up to 31,500 pages Black / 28,000 pages Colour"
   },
   {
     "id": "epson-am-c550",
@@ -163,7 +184,14 @@
     "source_catalogue": "BUSINESS A4 PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "workforce_enterprise"
+    "product_line": "workforce_enterprise",
+    "print_speed": "55 ISO ppm black / 55 ISO ppm colour",
+    "dpi": "600 \u00d7 2,400 DPI",
+    "memory": "4,096 MB (4 GB) RAM + 320 GB HDD",
+    "total_colours": "4 Colours (Black, Cyan, Magenta, Yellow)",
+    "colour_specification": "DURABrite Pro Aqueous Pigment Inks with PrecisionCore Line Head",
+    "cartridge_sizes": "High-Yield Industrial Ink Packs",
+    "consumable_volume": "Up to 31,500 pages Black / 28,000 pages Colour"
   },
   {
     "id": "epson-wf-c878r-dwf",
@@ -206,7 +234,14 @@
     "source_catalogue": "BUSINESS A3 PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "workforce_pro"
+    "product_line": "workforce_pro",
+    "print_speed": "25 ISO ppm black / 24 ISO ppm colour",
+    "dpi": "4,800 \u00d7 1,200 DPI",
+    "memory": "1,536 MB (1.5 GB) RAM",
+    "total_colours": "4 Colours (Black, Cyan, Magenta, Yellow)",
+    "colour_specification": "Epson DURABrite Pro Pigment Inks (Archival & quick-drying)",
+    "cartridge_sizes": "XL / XXL Replaceable High-Capacity Ink Supply Bags",
+    "consumable_volume": "Up to 86,000 pages Black / 50,000 pages Colour"
   },
   {
     "id": "epson-wf-c879r-dwf",
@@ -249,7 +284,14 @@
     "source_catalogue": "BUSINESS A3 PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "workforce_pro"
+    "product_line": "workforce_pro",
+    "print_speed": "26 ISO ppm black / 25 ISO ppm colour",
+    "dpi": "4,800 \u00d7 1,200 DPI",
+    "memory": "3,072 MB (3 GB) RAM",
+    "total_colours": "4 Colours (Black, Cyan, Magenta, Yellow)",
+    "colour_specification": "Epson DURABrite Pro Pigment Inks",
+    "cartridge_sizes": "XL / XXL Replaceable High-Capacity Ink Supply Bags",
+    "consumable_volume": "Up to 86,000 pages Black / 50,000 pages Colour"
   },
   {
     "id": "epson-am-c4000",
@@ -291,7 +333,14 @@
     "source_catalogue": "BUSINESS A3 PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "workforce_enterprise"
+    "product_line": "workforce_enterprise",
+    "print_speed": "40 ISO ppm black / 40 ISO ppm colour",
+    "dpi": "600 \u00d7 2,400 DPI",
+    "memory": "8,192 MB (8 GB) RAM + 320 GB Self-Encrypting HDD",
+    "total_colours": "4 Colours (Black, Cyan, Magenta, Yellow)",
+    "colour_specification": "DURABrite Pro Aqueous Pigment Inks with PrecisionCore Line Head",
+    "cartridge_sizes": "High-Yield Ink Bags (T08H Series)",
+    "consumable_volume": "Up to 31,500 pages Black / 28,000 pages Colour"
   },
   {
     "id": "epson-am-c5000",
@@ -333,7 +382,14 @@
     "source_catalogue": "BUSINESS A3 PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "workforce_enterprise"
+    "product_line": "workforce_enterprise",
+    "print_speed": "50 ISO ppm black / 50 ISO ppm colour",
+    "dpi": "600 \u00d7 2,400 DPI",
+    "memory": "8,192 MB (8 GB) RAM + 320 GB Self-Encrypting HDD",
+    "total_colours": "4 Colours (Black, Cyan, Magenta, Yellow)",
+    "colour_specification": "DURABrite Pro Aqueous Pigment Inks with PrecisionCore Line Head",
+    "cartridge_sizes": "Ultra High-Yield Ink Bags (T08G Series)",
+    "consumable_volume": "Up to 50,000 pages Black / 30,000 pages Colour"
   },
   {
     "id": "epson-am-c6000",
@@ -375,7 +431,14 @@
     "source_catalogue": "BUSINESS A3 PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "workforce_enterprise"
+    "product_line": "workforce_enterprise",
+    "print_speed": "60 ISO ppm black / 60 ISO ppm colour",
+    "dpi": "600 \u00d7 2,400 DPI",
+    "memory": "8,192 MB (8 GB) RAM + 320 GB Self-Encrypting HDD",
+    "total_colours": "4 Colours (Black, Cyan, Magenta, Yellow)",
+    "colour_specification": "DURABrite Pro Aqueous Pigment Inks with PrecisionCore Line Head",
+    "cartridge_sizes": "Ultra High-Yield Ink Bags (T08G Series)",
+    "consumable_volume": "Up to 50,000 pages Black / 30,000 pages Colour"
   },
   {
     "id": "epson-wf-c21000-d4tw",
@@ -417,7 +480,14 @@
     "source_catalogue": "BUSINESS A3 PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "workforce_enterprise"
+    "product_line": "workforce_enterprise",
+    "print_speed": "100 ISO ppm black / 100 ISO ppm colour",
+    "dpi": "600 \u00d7 2,400 DPI",
+    "memory": "8,192 MB (8 GB) RAM + 320 GB HDD",
+    "total_colours": "4 Colours (Black, Cyan, Magenta, Yellow)",
+    "colour_specification": "DURABrite Pro Industrial Pigment Ink (Heat-Free PrecisionCore Array)",
+    "cartridge_sizes": "Quad Ultra-High Capacity Ink Supply Units (T887)",
+    "consumable_volume": "Up to 100,000 pages Black / 50,000 pages Colour"
   },
   {
     "id": "epson-sc-t3100",
@@ -458,7 +528,14 @@
     "source_catalogue": "TECHNICAL LARGE FORMAT PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_t"
+    "product_line": "surecolor_t",
+    "print_speed": "34 sec / A1 CAD line drawing (approx. 106 A1/hr)",
+    "dpi": "2,400 \u00d7 1,200 DPI",
+    "memory": "1,024 MB (1 GB) RAM",
+    "total_colours": "4 Colours (Matte Black, Cyan, Magenta, Yellow)",
+    "colour_specification": "Epson UltraChrome XD2 All-Pigment Inks (Water & smudge resistant)",
+    "cartridge_sizes": "26ml, 50ml, and 80ml Cartridges",
+    "consumable_volume": "Approx. 100\u2013180 A1 CAD line drawings per black cartridge"
   },
   {
     "id": "epson-sc-t3700e",
@@ -498,7 +575,14 @@
     "source_catalogue": "TECHNICAL LARGE FORMAT PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_t"
+    "product_line": "surecolor_t",
+    "print_speed": "16 sec / A1 CAD drawing (up to 130 m\u00b2/hour)",
+    "dpi": "2,400 \u00d7 1,200 DPI",
+    "memory": "4,096 MB (4 GB) RAM + Optional 960 GB SSD",
+    "total_colours": "6 Colours (Matte Black, Photo Black, Cyan, Magenta, Yellow, Red)",
+    "colour_specification": "Epson UltraChrome XD3 Pigment Ink with Dedicated Chromatic Red",
+    "cartridge_sizes": "350ml and 700ml Tanks",
+    "consumable_volume": "Over 2,500 A1 CAD line drawings per 700ml set"
   },
   {
     "id": "epson-sc-t3700d",
@@ -538,7 +622,14 @@
     "source_catalogue": "TECHNICAL LARGE FORMAT PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_t"
+    "product_line": "surecolor_t",
+    "print_speed": "16 sec / A1 CAD drawing (up to 130 m\u00b2/hour)",
+    "dpi": "2,400 \u00d7 1,200 DPI",
+    "memory": "4,096 MB (4 GB) RAM + Optional 960 GB SSD",
+    "total_colours": "6 Colours (Matte Black, Photo Black, Cyan, Magenta, Yellow, Red)",
+    "colour_specification": "Epson UltraChrome XD3 Pigment Ink with Dedicated Chromatic Red",
+    "cartridge_sizes": "350ml and 700ml Tanks",
+    "consumable_volume": "Over 2,500 A1 CAD line drawings per 700ml set"
   },
   {
     "id": "epson-sc-t3700de",
@@ -578,7 +669,14 @@
     "source_catalogue": "TECHNICAL LARGE FORMAT PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_t"
+    "product_line": "surecolor_t",
+    "print_speed": "16 sec / A1 CAD drawing (up to 130 m\u00b2/hour)",
+    "dpi": "2,400 \u00d7 1,200 DPI",
+    "memory": "4,096 MB (4 GB) RAM + Optional 960 GB SSD",
+    "total_colours": "6 Colours (Matte Black, Photo Black, Cyan, Magenta, Yellow, Red)",
+    "colour_specification": "Epson UltraChrome XD3 Pigment Ink with Dedicated Chromatic Red",
+    "cartridge_sizes": "350ml and 700ml Tanks",
+    "consumable_volume": "Over 2,500 A1 CAD line drawings per 700ml set"
   },
   {
     "id": "epson-sc-t5100",
@@ -621,7 +719,14 @@
     "source_catalogue": "TECHNICAL LARGE FORMAT PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_t"
+    "product_line": "surecolor_t",
+    "print_speed": "31 sec / A1 CAD line drawing (approx. 106 A1/hr)",
+    "dpi": "2,400 \u00d7 1,200 DPI",
+    "memory": "1,024 MB (1 GB) RAM",
+    "total_colours": "4 Colours (Matte Black, Cyan, Magenta, Yellow)",
+    "colour_specification": "Epson UltraChrome XD2 All-Pigment Inks (Water & smudge resistant)",
+    "cartridge_sizes": "26ml, 50ml, and 80ml Cartridges",
+    "consumable_volume": "Approx. 120\u2013200 A1 CAD line drawings per black cartridge"
   },
   {
     "id": "epson-sc-t5405",
@@ -663,7 +768,14 @@
     "source_catalogue": "TECHNICAL LARGE FORMAT PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_t"
+    "product_line": "surecolor_t",
+    "print_speed": "22 sec / A1 CAD line drawing (approx. 140 A1/hr)",
+    "dpi": "2,400 \u00d7 1,200 DPI",
+    "memory": "1,024 MB (1 GB) RAM",
+    "total_colours": "4 Colours (Matte Black, Cyan, Magenta, Yellow)",
+    "colour_specification": "Epson UltraChrome XD2 All-Pigment Inks",
+    "cartridge_sizes": "110ml, 350ml, and 700ml Cartridges",
+    "consumable_volume": "Over 2,000 A1 CAD drawings per 700ml tank at 5% coverage"
   },
   {
     "id": "epson-sc-t5700d",
@@ -705,7 +817,14 @@
     "source_catalogue": "TECHNICAL LARGE FORMAT PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_t"
+    "product_line": "surecolor_t",
+    "print_speed": "16 sec / A1 CAD drawing (up to 130 m\u00b2/hour)",
+    "dpi": "2,400 \u00d7 1,200 DPI",
+    "memory": "4,096 MB (4 GB) RAM + Optional 960 GB SSD",
+    "total_colours": "6 Colours (Matte Black, Photo Black, Cyan, Magenta, Yellow, Red)",
+    "colour_specification": "Epson UltraChrome XD3 Pigment Inks with Dedicated Chromatic Red",
+    "cartridge_sizes": "350ml and 700ml Tanks",
+    "consumable_volume": "Over 2,500 A1 CAD drawings per 700ml set"
   },
   {
     "id": "epson-sc-t5100m",
@@ -749,7 +868,14 @@
     "source_catalogue": "TECHNICAL LARGE FORMAT PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_t"
+    "product_line": "surecolor_t",
+    "print_speed": "31 sec / A1 CAD drawing; Scan: 1.5 ips colour / 4.5 ips mono",
+    "dpi": "2,400 \u00d7 1,200 DPI (Print) / 600 DPI (Scan)",
+    "memory": "1,024 MB (1 GB) RAM",
+    "total_colours": "4 Colours (Matte Black, Cyan, Magenta, Yellow)",
+    "colour_specification": "Epson UltraChrome XD2 All-Pigment Inks",
+    "cartridge_sizes": "26ml, 50ml, and 80ml Cartridges",
+    "consumable_volume": "Approx. 120\u2013200 A1 CAD drawings per black cartridge"
   },
   {
     "id": "epson-sc-t5400m",
@@ -793,7 +919,14 @@
     "source_catalogue": "TECHNICAL LARGE FORMAT PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_t"
+    "product_line": "surecolor_t",
+    "print_speed": "22 sec / A1 CAD drawing; Scan: 4.5 ips colour / 7.5 ips mono",
+    "dpi": "2,400 \u00d7 1,200 DPI (Print) / 600 DPI (Scan)",
+    "memory": "1,024 MB (1 GB) RAM",
+    "total_colours": "4 Colours (Matte Black, Cyan, Magenta, Yellow)",
+    "colour_specification": "Epson UltraChrome XD2 All-Pigment Inks",
+    "cartridge_sizes": "110ml and 350ml Cartridges",
+    "consumable_volume": "Over 1,000 A1 CAD drawings per 350ml tank set"
   },
   {
     "id": "epson-sc-t5700dm",
@@ -836,7 +969,14 @@
     "source_catalogue": "TECHNICAL LARGE FORMAT PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_t"
+    "product_line": "surecolor_t",
+    "print_speed": "16 sec / A1 CAD drawing; Scan: 10 ips colour / 10 ips mono",
+    "dpi": "2,400 \u00d7 1,200 DPI (Print) / 600 DPI (Scan)",
+    "memory": "4,096 MB (4 GB) RAM + 960 GB SSD",
+    "total_colours": "6 Colours (Matte Black, Photo Black, Cyan, Magenta, Yellow, Red)",
+    "colour_specification": "Epson UltraChrome XD3 Pigment Inks with Chromatic Red",
+    "cartridge_sizes": "350ml and 700ml Tanks",
+    "consumable_volume": "Over 2,500 A1 CAD drawings per 700ml set"
   },
   {
     "id": "epson-sc-t7700d",
@@ -878,7 +1018,14 @@
     "source_catalogue": "TECHNICAL LARGE FORMAT PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_t"
+    "product_line": "surecolor_t",
+    "print_speed": "16 sec / A1 CAD drawing (up to 130 m\u00b2/hour)",
+    "dpi": "2,400 \u00d7 1,200 DPI",
+    "memory": "4,096 MB (4 GB) RAM + Optional 960 GB SSD",
+    "total_colours": "6 Colours (Matte Black, Photo Black, Cyan, Magenta, Yellow, Red)",
+    "colour_specification": "Epson UltraChrome XD3 Pigment Inks with Chromatic Red",
+    "cartridge_sizes": "350ml and 700ml Tanks",
+    "consumable_volume": "Over 2,500 A1 CAD drawings per 700ml set"
   },
   {
     "id": "epson-sc-t7700dl",
@@ -919,7 +1066,14 @@
     "source_catalogue": "TECHNICAL LARGE FORMAT PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_t"
+    "product_line": "surecolor_t",
+    "print_speed": "16 sec / A1 CAD drawing (up to 130 m\u00b2/hour)",
+    "dpi": "2,400 \u00d7 1,200 DPI",
+    "memory": "4,096 MB (4 GB) RAM + 960 GB SSD",
+    "total_colours": "6 Colours (Matte Black, Photo Black, Cyan, Magenta, Yellow, Red)",
+    "colour_specification": "Epson UltraChrome XD3 Pigment Inks with Chromatic Red",
+    "cartridge_sizes": "1,600ml (1.6 Litre) Ink Supply Packs",
+    "consumable_volume": "Over 6,000 A1 CAD drawings per 1.6L pack set"
   },
   {
     "id": "epson-sc-t7700dm",
@@ -962,7 +1116,14 @@
     "source_catalogue": "TECHNICAL LARGE FORMAT PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_t"
+    "product_line": "surecolor_t",
+    "print_speed": "16 sec / A1 CAD drawing; Scan: 10 ips colour / 10 ips mono",
+    "dpi": "2,400 \u00d7 1,200 DPI (Print) / 600 DPI (Scan)",
+    "memory": "4,096 MB (4 GB) RAM + 960 GB SSD",
+    "total_colours": "6 Colours (Matte Black, Photo Black, Cyan, Magenta, Yellow, Red)",
+    "colour_specification": "Epson UltraChrome XD3 Pigment Inks with Chromatic Red",
+    "cartridge_sizes": "350ml and 700ml Tanks",
+    "consumable_volume": "Over 2,500 A1 CAD drawings per 700ml set"
   },
   {
     "id": "epson-sc-p700",
@@ -1004,7 +1165,14 @@
     "source_catalogue": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_p"
+    "product_line": "surecolor_p",
+    "print_speed": "Approx. 90 sec for 8\u00d710\u2033 / 150 sec for 13\u00d719\u2033 fine art",
+    "dpi": "5,760 \u00d7 1,440 DPI",
+    "memory": "1,024 MB (1 GB) RAM",
+    "total_colours": "10 Colours (Photo Black, Matte Black, Cyan, Vivid Magenta, Yellow, Light Cyan, Vivid Light Magenta, Gray, Light Gray, Violet)",
+    "colour_specification": "UltraChrome PRO10 Pigment Inks with Black Enhance Overcoat (BEO)",
+    "cartridge_sizes": "25ml Individual Ink Cartridges",
+    "consumable_volume": "Zero black-switch ink waste (dedicated Photo/Matte channels)"
   },
   {
     "id": "epson-sc-p900",
@@ -1045,7 +1213,14 @@
     "source_catalogue": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_p"
+    "product_line": "surecolor_p",
+    "print_speed": "Approx. 90 sec for 8\u00d710\u2033 / 150 sec for 13\u00d719\u2033 / 280 sec for 17\u00d722\u2033",
+    "dpi": "5,760 \u00d7 1,440 DPI",
+    "memory": "1,024 MB (1 GB) RAM",
+    "total_colours": "10 Colours (Photo Black, Matte Black, Cyan, Vivid Magenta, Yellow, Light Cyan, Vivid Light Magenta, Gray, Light Gray, Violet)",
+    "colour_specification": "UltraChrome PRO10 Pigment Inks with Black Enhance Overcoat (BEO)",
+    "cartridge_sizes": "50ml Individual Ink Cartridges",
+    "consumable_volume": "Zero black-switch ink waste (dedicated Photo/Matte channels)"
   },
   {
     "id": "epson-sc-p900-roll",
@@ -1085,7 +1260,14 @@
     "source_catalogue": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_p"
+    "product_line": "surecolor_p",
+    "print_speed": "Approx. 90 sec for 8\u00d710\u2033 / 150 sec for 13\u00d719\u2033 / 280 sec for 17\u00d722\u2033",
+    "dpi": "5,760 \u00d7 1,440 DPI",
+    "memory": "1,024 MB (1 GB) RAM",
+    "total_colours": "10 Colours (Photo Black, Matte Black, Cyan, Vivid Magenta, Yellow, Light Cyan, Vivid Light Magenta, Gray, Light Gray, Violet)",
+    "colour_specification": "UltraChrome PRO10 Pigment Inks with Black Enhance Overcoat (BEO)",
+    "cartridge_sizes": "50ml Individual Ink Cartridges",
+    "consumable_volume": "Continuous panoramic and banner roll photo yield"
   },
   {
     "id": "epson-sc-p5300",
@@ -1124,7 +1306,14 @@
     "source_catalogue": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_p"
+    "product_line": "surecolor_p",
+    "print_speed": "Approx. 66 sec for 8\u00d710\u2033 / 140 sec for 13\u00d719\u2033 high-quality photo",
+    "dpi": "5,760 \u00d7 1,440 DPI",
+    "memory": "1,024 MB (1 GB) RAM",
+    "total_colours": "10 Colours (Photo Black, Matte Black, Cyan, Vivid Magenta, Yellow, Light Cyan, Vivid Light Magenta, Gray, Light Gray, Violet)",
+    "colour_specification": "UltraChrome PRO10 Inks with Carbon Black mode & Violet channel",
+    "cartridge_sizes": "200ml High-Capacity Cartridges",
+    "consumable_volume": "High D-Max archival proofing & gallery photographic yield"
   },
   {
     "id": "epson-sc-p6500e",
@@ -1163,7 +1352,14 @@
     "source_catalogue": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_p"
+    "product_line": "surecolor_p",
+    "print_speed": "Up to 18 m\u00b2/hour on photo paper (up to 130 m\u00b2/hr draft)",
+    "dpi": "2,400 \u00d7 1,200 DPI",
+    "memory": "4,096 MB (4 GB) RAM + Optional 960 GB SSD",
+    "total_colours": "6 Colours (Photo Black, Matte Black, Cyan, Magenta, Yellow, Gray)",
+    "colour_specification": "UltraChrome PRO6 Aqueous Pigment Ink with Dedicated Gray",
+    "cartridge_sizes": "350ml and 700ml Tanks",
+    "consumable_volume": "Over 2,000 m\u00b2 high-capacity commercial photo and poster output"
   },
   {
     "id": "epson-sc-p6500d",
@@ -1202,7 +1398,14 @@
     "source_catalogue": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_p"
+    "product_line": "surecolor_p",
+    "print_speed": "Up to 18 m\u00b2/hour on photo paper (up to 130 m\u00b2/hr draft)",
+    "dpi": "2,400 \u00d7 1,200 DPI",
+    "memory": "4,096 MB (4 GB) RAM + Optional 960 GB SSD",
+    "total_colours": "6 Colours (Photo Black, Matte Black, Cyan, Magenta, Yellow, Gray)",
+    "colour_specification": "UltraChrome PRO6 Aqueous Pigment Ink with Dedicated Gray",
+    "cartridge_sizes": "350ml and 700ml Tanks",
+    "consumable_volume": "Continuous dual-roll commercial photo & poster production"
   },
   {
     "id": "epson-sc-p6500de",
@@ -1241,7 +1444,14 @@
     "source_catalogue": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_p"
+    "product_line": "surecolor_p",
+    "print_speed": "Up to 18 m\u00b2/hour on photo paper (up to 130 m\u00b2/hr draft)",
+    "dpi": "2,400 \u00d7 1,200 DPI",
+    "memory": "4,096 MB (4 GB) RAM + Optional 960 GB SSD",
+    "total_colours": "6 Colours (Photo Black, Matte Black, Cyan, Magenta, Yellow, Gray)",
+    "colour_specification": "UltraChrome PRO6 Aqueous Pigment Ink with Dedicated Gray",
+    "cartridge_sizes": "350ml and 700ml Tanks",
+    "consumable_volume": "Dual-roll high-capacity photographic production yield"
   },
   {
     "id": "epson-sc-p7500",
@@ -1280,7 +1490,14 @@
     "source_catalogue": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_p"
+    "product_line": "surecolor_p",
+    "print_speed": "Up to 21.9 m\u00b2/hr (Draft) / Approx. 1.6 min for A1 photo",
+    "dpi": "2,400 \u00d7 1,200 DPI",
+    "memory": "2,048 MB (2 GB) RAM + Optional 320 GB HDD",
+    "total_colours": "12 Colours (Photo Black, Matte Black, Cyan, Light Cyan, Vivid Magenta, Vivid Light Magenta, Yellow, Gray, Light Gray, Orange, Green, Violet)",
+    "colour_specification": "UltraChrome PRO12 All-Pigment Inks with K3 Technology (99% Pantone)",
+    "cartridge_sizes": "350ml and 700ml Individual Ink Cartridges",
+    "consumable_volume": "Exhibition contract proofing and gallery photographic yield"
   },
   {
     "id": "epson-sc-p7500-spectro",
@@ -1319,7 +1536,14 @@
     "source_catalogue": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_p"
+    "product_line": "surecolor_p",
+    "print_speed": "Up to 21.9 m\u00b2/hr; Automated colour calibration & certification",
+    "dpi": "2,400 \u00d7 1,200 DPI",
+    "memory": "2,048 MB (2 GB) RAM + Optional 320 GB HDD",
+    "total_colours": "12 Colours (Photo Black, Matte Black, Cyan, Light Cyan, Vivid Magenta, Vivid Light Magenta, Yellow, Gray, Light Gray, Orange, Green, Violet)",
+    "colour_specification": "UltraChrome PRO12 All-Pigment Inks (99% Pantone Matching)",
+    "cartridge_sizes": "350ml and 700ml Individual Ink Cartridges",
+    "consumable_volume": "Certified contract proofing and packaging proof certification"
   },
   {
     "id": "epson-sc-p8500d",
@@ -1359,7 +1583,14 @@
     "source_catalogue": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_p"
+    "product_line": "surecolor_p",
+    "print_speed": "Up to 18 m\u00b2/hour on photo paper (up to 130 m\u00b2/hr draft)",
+    "dpi": "2,400 \u00d7 1,200 DPI",
+    "memory": "4,096 MB (4 GB) RAM + Optional 960 GB SSD",
+    "total_colours": "6 Colours (Photo Black, Matte Black, Cyan, Magenta, Yellow, Gray)",
+    "colour_specification": "UltraChrome PRO6 Aqueous Pigment Ink with Dedicated Gray",
+    "cartridge_sizes": "350ml and 700ml Tanks",
+    "consumable_volume": "Large-format continuous dual-roll commercial photo production"
   },
   {
     "id": "epson-sc-p8500dm",
@@ -1401,7 +1632,14 @@
     "source_catalogue": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_p"
+    "product_line": "surecolor_p",
+    "print_speed": "Up to 18 m\u00b2/hr photo; Scan: 10 ips colour / 10 ips mono",
+    "dpi": "2,400 \u00d7 1,200 DPI (Print) / 600 DPI (Scan)",
+    "memory": "4,096 MB (4 GB) RAM + 960 GB SSD",
+    "total_colours": "6 Colours (Photo Black, Matte Black, Cyan, Magenta, Yellow, Gray)",
+    "colour_specification": "UltraChrome PRO6 Aqueous Pigment Ink with Dedicated Gray",
+    "cartridge_sizes": "350ml and 700ml Tanks",
+    "consumable_volume": "Dual-roll high-capacity unattended commercial poster & photo production"
   },
   {
     "id": "epson-sc-p9500",
@@ -1442,7 +1680,14 @@
     "source_catalogue": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_p"
+    "product_line": "surecolor_p",
+    "print_speed": "Up to 21.9 m\u00b2/hr (Draft) / Approx. 1.6 min for A1 photo",
+    "dpi": "2,400 \u00d7 1,200 DPI",
+    "memory": "2,048 MB (2 GB) RAM + Optional 320 GB HDD",
+    "total_colours": "12 Colours (Photo Black, Matte Black, Cyan, Light Cyan, Vivid Magenta, Vivid Light Magenta, Yellow, Gray, Light Gray, Orange, Green, Violet)",
+    "colour_specification": "UltraChrome PRO12 All-Pigment Inks with K3 Technology (99% Pantone)",
+    "cartridge_sizes": "350ml and 700ml Individual Ink Cartridges",
+    "consumable_volume": "Exhibition gallery yield with 99% Pantone gamut coverage"
   },
   {
     "id": "epson-sc-p9500-spectro",
@@ -1482,7 +1727,14 @@
     "source_catalogue": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_p"
+    "product_line": "surecolor_p",
+    "print_speed": "Up to 21.9 m\u00b2/hr; Automated colour calibration & certification",
+    "dpi": "2,400 \u00d7 1,200 DPI",
+    "memory": "2,048 MB (2 GB) RAM + Optional 320 GB HDD",
+    "total_colours": "12 Colours (Photo Black, Matte Black, Cyan, Light Cyan, Vivid Magenta, Vivid Light Magenta, Yellow, Gray, Light Gray, Orange, Green, Violet)",
+    "colour_specification": "UltraChrome PRO12 All-Pigment Inks (99% Pantone Matching)",
+    "cartridge_sizes": "350ml and 700ml Individual Ink Cartridges",
+    "consumable_volume": "Certified contract proofing and packaging proof certification"
   },
   {
     "id": "epson-sc-p20500",
@@ -1520,7 +1772,14 @@
     "source_catalogue": "LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_p"
+    "product_line": "surecolor_p",
+    "print_speed": "Up to 19.2 m\u00b2/hour on glossy photo paper (up to 44.5 m\u00b2/hr production)",
+    "dpi": "2,400 \u00d7 1,200 DPI",
+    "memory": "4,096 MB (4 GB) RAM + 960 GB SSD",
+    "total_colours": "12 Colours (Photo Black, Matte Black, Cyan, Light Cyan, Vivid Magenta, Vivid Light Magenta, Yellow, Gray, Light Gray, Orange, Green, Violet)",
+    "colour_specification": "UltraChrome PRO12 Aqueous Pigment Inks with Orange, Green & Violet",
+    "cartridge_sizes": "1,600ml (1.6 Litre) High-Capacity Ink Packs",
+    "consumable_volume": "Bulk industrial photographic production (over 5,000 m\u00b2 yield)"
   },
   {
     "id": "citizen-cz-01",
@@ -1559,7 +1818,14 @@
     "source_catalogue": "CITIZEN PHOTO PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "citizen"
+    "product_line": "citizen",
+    "print_speed": "18.8 sec per 4\u00d76\u2033 print (approx. 191 prints/hour)",
+    "dpi": "300 \u00d7 300 DPI (High-speed) / 300 \u00d7 600 DPI (High-resolution)",
+    "memory": "64 MB Internal Image Buffer",
+    "total_colours": "3 Colours + Overcoat (Yellow, Magenta, Cyan + Protective Laminate)",
+    "colour_specification": "Thermal Dye-Sublimation with Driver-Selectable Glossy / Matte Finish",
+    "cartridge_sizes": "CZ-MS46 (4\u00d76\u2033) and CZ-MS458 (4.5\u00d78\u2033) Media Packs",
+    "consumable_volume": "150 prints/roll (300 prints per 2-roll box of CZ-MS46)"
   },
   {
     "id": "citizen-cx-02",
@@ -1597,7 +1863,14 @@
     "source_catalogue": "CITIZEN PHOTO PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "citizen"
+    "product_line": "citizen",
+    "print_speed": "13.8 sec per 4\u00d76\u2033 print (approx. 260 prints/hour)",
+    "dpi": "300 \u00d7 300 DPI (High-speed) / 300 \u00d7 600 DPI (High-resolution)",
+    "memory": "64 MB Internal Image Buffer",
+    "total_colours": "3 Colours + Overcoat (Yellow, Magenta, Cyan + Protective Laminate)",
+    "colour_specification": "Thermal Dye-Sublimation with Ribbon-Save Rewind & Glossy/Matte Control",
+    "cartridge_sizes": "CX2.4X6 (4\u00d76\u2033) and CX2.6X8 (6\u00d78\u2033) Media Packs",
+    "consumable_volume": "400 prints/roll (800 prints per 2-roll box of CX2.4X6)"
   },
   {
     "id": "citizen-cy-02",
@@ -1634,7 +1907,14 @@
     "source_catalogue": "CITIZEN PHOTO PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "citizen"
+    "product_line": "citizen",
+    "print_speed": "12.4 sec per 4\u00d76\u2033 print (approx. 290 prints/hour)",
+    "dpi": "300 \u00d7 300 DPI (High-speed) / 300 \u00d7 600 DPI (High-resolution)",
+    "memory": "64 MB Internal Image Buffer",
+    "total_colours": "3 Colours + Overcoat (Yellow, Magenta, Cyan + Protective Laminate)",
+    "colour_specification": "Thermal Dye-Sublimation with Commercial Overcoat Protection",
+    "cartridge_sizes": "CY-MS46 (4\u00d76\u2033) and CY-MS68 (6\u00d78\u2033) Media Packs",
+    "consumable_volume": "700 prints/roll (1,400 prints per 2-roll box of CY-MS46)"
   },
   {
     "id": "citizen-cx-02w",
@@ -1671,7 +1951,14 @@
     "source_catalogue": "CITIZEN PHOTO PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "citizen"
+    "product_line": "citizen",
+    "print_speed": "19.5 sec per 8\u00d712\u2033 print (approx. 184 prints/hour)",
+    "dpi": "300 \u00d7 300 DPI (High-speed) / 300 \u00d7 600 DPI (High-resolution)",
+    "memory": "64 MB Internal Image Buffer",
+    "total_colours": "3 Colours + Overcoat (Yellow, Magenta, Cyan + Protective Laminate)",
+    "colour_specification": "Thermal Dye-Sublimation supporting Standard, Silver Pearl & Metallic media",
+    "cartridge_sizes": "CX2W 812 (8\u00d710\u2033 and 8\u00d712\u2033) Media Packs",
+    "consumable_volume": "110 prints/roll (220 prints per 2-roll box of CX2W 812)"
   },
   {
     "id": "epson-sc-f100",
@@ -1710,7 +1997,14 @@
     "source_catalogue": "DYE SUBLIMATION PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_f"
+    "product_line": "surecolor_f",
+    "print_speed": "Approx. 65 sec per A4 transfer page",
+    "dpi": "600 \u00d7 1,200 DPI",
+    "memory": "1,024 MB (1 GB) RAM",
+    "total_colours": "4 Colours (Cyan, Magenta, Yellow, High-Density Black)",
+    "colour_specification": "Epson UltraChrome DS Dye-Sublimation Ink (OEKO-TEX ECO PASSPORT)",
+    "cartridge_sizes": "140ml Refill Ink Bottles (T49N Series)",
+    "consumable_volume": "140ml Refill Ink Tank System (Zero cartridge waste)"
   },
   {
     "id": "epson-sc-f500",
@@ -1752,6 +2046,13 @@
     "source_catalogue": "DYE SUBLIMATION PRINTERS_CATALOG.pdf",
     "catalogue_verified": true,
     "active": true,
-    "product_line": "surecolor_f"
+    "product_line": "surecolor_f",
+    "print_speed": "Approx. 70 sec per A1 transfer sheet",
+    "dpi": "2,400 \u00d7 1,200 DPI",
+    "memory": "1,024 MB (1 GB) RAM",
+    "total_colours": "4 Colours (Cyan, Magenta, Yellow, High-Density Black)",
+    "colour_specification": "Epson UltraChrome DS Dye-Sublimation Ink (Vibrant textiles & hard goods)",
+    "cartridge_sizes": "140ml Refill Ink Bottles (T49N Series)",
+    "consumable_volume": "140ml Refill Ink Tank System (Refill while printing)"
   }
 ]

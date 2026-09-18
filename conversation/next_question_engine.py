@@ -11,6 +11,22 @@ class NextQuestionEngine:
     def __init__(self):
         pass
 
+    @classmethod
+    def get_next_question(
+        cls,
+        category: Optional[str] = None,
+        requirements: Optional[Dict[str, Any]] = None,
+        unresolved_fields: Optional[Any] = None,
+        state: Optional[ConversationState] = None,
+    ) -> Optional[Dict[str, Any]]:
+        if state is None:
+            state = ConversationState(session_id="eval-session")
+            if category:
+                state.category = category
+            if requirements:
+                state.requirements = dict(requirements)
+        return cls().evaluate_next_step(state)
+
     def evaluate_next_step(self, state: ConversationState) -> Optional[Dict[str, Any]]:
         category = state.category
         reqs = state.requirements or {}

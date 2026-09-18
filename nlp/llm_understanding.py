@@ -208,7 +208,8 @@ class LLMUnderstandingEngine:
             "consumable", "consumables", "ink", "inks", "cartridge", "cartridges",
             "toner", "ribbon", "what ink", "which ink", "maintenance box", "maintenance tank",
             "paper roll", "photo paper", "yellow", "cyan", "magenta", "photo black",
-            "matte black", "light cyan", "light magenta", "gray", "grey", "violet", "orange", "green"
+            "matte black", "light cyan", "light magenta", "gray", "grey", "violet", "orange", "green",
+            "yield", "yields", "yeild", "yeilds", "page yield", "print yield"
         ]) or "compatible with" in msg_l
         is_negating_ink = any(k in msg_l for k in ["not ink", "no ink", "dont want ink", "don't want ink", "printer only", "only printer"])
         is_printer_search = any(p in msg_l for p in ["printer", "printers", "plotter", "plotters", "show all", "show matching", "show every", "need a", "looking for"])

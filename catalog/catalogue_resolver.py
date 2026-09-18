@@ -163,7 +163,11 @@ def build_approved_comparison_response(
         comparison_data_json is the structured dict for frontend rendering.
     """
     from catalog.catalogue_filter import catalogue_filter
-    from catalog.comparison_engine import build_comparison, build_comparison_intro
+    from catalog.comparison_engine import (
+        build_comparison,
+        build_comparison_intro,
+        format_comparison_markdown_table,
+    )
     import logging
     _log = logging.getLogger("catalog:resolver")
 
@@ -179,9 +183,13 @@ def build_approved_comparison_response(
         )
 
     intro = build_comparison_intro(products[:3], comparison_data)
+    table_md = format_comparison_markdown_table(products[:3], comparison_data)
+    reply_text = f"{intro}\n\n{table_md}" if table_md else intro
+
     cards = [
         catalogue_filter._format_card(p, p.get("subcategory"), {})
         for p in products[:3]
     ]
 
-    return intro, cards, comparison_data
+    return reply_text, cards, comparison_data
+

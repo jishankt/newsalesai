@@ -258,11 +258,17 @@ class Orchestrator:
                 if k not in det_reqs and v is not None and v != "":
                     det_reqs[k] = v
 
-        # Dialogue Act Guard: If user is asking a capability question about an already active product,
+        # Dialogue Act Guard: If user is asking a capability, consumable, yield, or warranty question about an already active product,
         # do not pollute search requirements or wipe active_product from state.
-        is_cap_query = CanonicalEntityNormalizer.is_capability_query(normalized_msg)
-        if is_cap_query and state.active_product:
-            logger.info(f"[{session_id[:8]}] Capability query detected for active product {state.active_product}; preserving requirements")
+        is_cap_query = (
+            CanonicalEntityNormalizer.is_capability_query(normalized_msg)
+            or bool(re.search(r"\b(?:inks?|cartridges?|toners?|ribbons?|consum[a-z]{3,6}s?|consub[a-z]{2,5}s?|media|paper|print\s+media|yields?|yeilds?|page\s*yield|print\s*yield|warranty|guarantee|coverplus|cpp|cost\s*per\s*(?:print|page))\b", normalized_msg.lower()))
+        )
+        if is_cap_query and (state.active_product or prev_active_product):
+            logger.info(f"[{session_id[:8]}] Capability/attribute query detected for active product; preserving active_product")
+            if not state.active_product and prev_active_product:
+                state.active_product = prev_active_product
+                state.active_product_id = prev_active_product_id
         else:
             state.update_requirements(det_reqs, det_corrections)
         logger.info(f"[{session_id[:8]}] Current requirements: {state.requirements}")
@@ -749,20 +755,120 @@ class Orchestrator:
                 latency_ms=int((time.time() - start_time) * 1000),
             )
 
+        # 6a-cpp. Real-time Cost-Per-Print / Cost-Per-Page (CPP) Inquiry Route
+        is_cpp_inquiry = bool(re.search(
+            r"\b(?:cost\s*per\s*(?:print|page|copy)|per\s*(?:print|page|copy)\s*cost|cpp|running\s*cost(?:s)?|printing\s*cost(?:s)?)\b",
+            normalized_msg.lower()
+        ))
+        if is_cpp_inquiry:
+            target_prod = mentioned_products[0] if mentioned_products else state.active_product
+            if not target_prod and state.active_product_id:
+                target_prod = catalogue_loader.get_by_id(state.active_product_id)
+
+            p_id = (target_prod.get("id") or "").lower() if target_prod else ""
+            p_cat = (target_prod.get("category") or target_prod.get("main_category") or state.category or "").lower() if target_prod else (state.category or "").lower()
+
+            if any(k in p_id for k in ["am-c", "workforce", "c4000", "c5000", "c6000", "c550", "c400"]) or "office" in p_cat:
+                p_name = target_prod.get("display_name") or target_prod.get("name") if target_prod else "Epson WorkForce Enterprise"
+                reply_text = (
+                    f"For the **{p_name}**, running costs are exceptionally low due to high-capacity Heat-Free ink packs:\n\n"
+                    "• **Black (Mono) Cost-Per-Page:** Approx. **0.02 – 0.03 AED** per page (ink yields up to 50,000 ISO pages).\n"
+                    "• **Colour Cost-Per-Page:** Approx. **0.09 – 0.12 AED** per page (CMY ink packs yield up to 30,000 ISO pages).\n"
+                    "• **Energy Savings:** Heat-Free technology consumes up to 85% less electricity than laser copiers, further lowering total cost of ownership (TCO).\n\n"
+                    "Kepler Tech LLC also provides Managed Print Services (MPS) and all-inclusive Cost-Per-Copy (CPC) contracts covering ink, maintenance boxes, and certified service. Would you like an MPS proposal?"
+                )
+            elif any(k in p_id for k in ["citizen", "cz-01", "cx-02", "cy-02", "cx-02w"]) or "citizen" in p_cat or "photo" in p_cat:
+                p_name = target_prod.get("display_name") or target_prod.get("name") if target_prod else "Citizen Photo Printer"
+                reply_text = (
+                    f"For **{p_name}** dye-sublimation systems, genuine media packs include both the paper roll and matched ribbon, guaranteeing a fixed cost per print:\n\n"
+                    "• **Citizen CZ-01 (4×6″):** Approx. **1.50 AED** per print (CZ-MS46 media set).\n"
+                    "• **Citizen CX-02 (4×6″):** Approx. **0.90 – 1.10 AED** per print (CX-MS46 media set).\n"
+                    "• **Citizen CY-02 (4×6″):** Approx. **0.80 – 0.90 AED** per print (CY-MS46 high-capacity media).\n"
+                    "• **Citizen CX-02W (8×10″ / 8×12″):** Approx. **2.20 – 2.45 AED** per print (**CX2W 812** media kit).\n\n"
+                    "Compatible genuine media for the **Citizen CX-02W** includes **CX2W 812** (8x10/8x12 media kit). "
+                    "Would you like pricing for genuine Citizen media packs or bulk delivery quotes?"
+                )
+            elif any(k in p_id for k in ["sc-t", "t3100", "t5100", "t5405", "t5700"]) or "technical" in p_cat:
+                p_name = target_prod.get("display_name") or target_prod.get("name") if target_prod else "Epson SureColor Technical Plotter"
+                reply_text = (
+                    f"For **{p_name}** technical plotters, running costs depend on line coverage and cartridge capacity:\n\n"
+                    "• **CAD / Blueprint Line Drawings (5% coverage):** Approx. **0.30 – 0.60 AED** per A1 plot.\n"
+                    "• **Full-Color GIS / Renderings (30–50% coverage):** Approx. **2.50 – 4.50 AED** per A1 plot.\n"
+                    "• **High-Capacity 700ml Tanks:** Minimize ink cost per milliliter for production workflows.\n\n"
+                    "Would you like consumable details or an ink consumption estimate for your blueprint volume?"
+                )
+            else:
+                reply_text = (
+                    "Running cost per print varies based on technology and consumable capacity:\n\n"
+                    "• **Office A3 Copiers (Epson AM-C Series):** ~0.02 AED mono / ~0.09 AED colour per page.\n"
+                    "• **Instant Dye-Sub Photo (Citizen):** Fixed ~0.90 – 1.50 AED per 4×6″ print including paper & ribbon.\n"
+                    "• **CAD Plotters (Epson SC-T Series):** ~0.35 AED per A1 line drawing on plain paper.\n\n"
+                    "Which specific model or application would you like detailed Cost-Per-Page figures for?"
+                )
+            chips_to_return = ["View Inks & Media", "Request Official Quotation", "Managed Print Services"]
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="route:cost_per_print",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=chips_to_return,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
         # 6a-0. Real-time Product Price Inquiry Route
         has_ink_in_msg = bool(re.search(
             r"\b(?:inks?|cartridges?|toners?|ribbons?|consum[a-z]{3,6}s?|consub[a-z]{2,5}s?|media|paper|maintenance\s+(?:box|tank)(?:es|s)?)\b",
             normalized_msg.lower()
         ))
         if is_price_inquiry(normalized_msg) and not is_discount_inquiry(normalized_msg):
+            # Check if user asks about OTHER models' consumable price
+            if any(w in normalized_msg.lower() for w in ["other", "another", "alternative"]) and has_ink_in_msg:
+                from catalog.price_resolver import price_resolver
+                cy_info = price_resolver.get_price_info("CY-MS46")
+                cx_info = price_resolver.get_price_info("CX2W-812")
+                cx2_info = price_resolver.get_price_info("CX2.4X6")
+                cy_url = cy_info.get("url") or "https://www.keplertechllc.com/product/citizen-cy-ms46-4x6/"
+                cx_url = cx_info.get("url") or "https://www.keplertechllc.com/product/citizen-cx2w-8x12-media/"
+                cx2_url = cx2_info.get("url") or "https://www.keplertechllc.com/product/citizen-cx-02-4x6-printer-media/"
+                reply_text = (
+                    "Here are the official media prices and product links for other Citizen photo models:\n\n"
+                    f"• **[Citizen CY-02 Media (CY-MS46 4×6″)]({cy_url})** (SKU: `CY-MS46`): **{cy_info.get('price_str', 'AED 625.00')} (Excl. VAT)** — High-capacity roll yielding 700 prints.\n"
+                    f"• **[Citizen CX-02 Media (CX2.4X6 4×6″)]({cx2_url})** (SKU: `CX2.4X6`): **{cx2_info.get('price_str', 'AED 490.00')} (Excl. VAT)** — Dual-roll pack yielding 800 prints.\n"
+                    f"• **[Citizen CX-02W Large Format Media (CX2W 812 8×12″)]({cx_url})** (SKU: `CX2W 812`): **{cx_info.get('price_str', 'AED 975.00')} (Excl. VAT)** — Yields 220 prints per box.\n\n"
+                    f"For corporate purchase orders or bulk deliveries, contact our sales team at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}."
+                )
+                chips_to_return = ["Order on Website", "Contact Sales Desk", "Compatible Printers"]
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(
+                    reply=reply_text,
+                    source="route:consumable_price_inquiry",
+                    product_cards=[],
+                    consumable_cards=[],
+                    suggested_chips=chips_to_return,
+                    nlp_result=nlp_result,
+                    state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
+
             # If user has an active consumable and inquires about its price
             active_c = getattr(state, "active_consumable", None)
             if active_c and (has_ink_in_msg or not state.active_product or "this" in normalized_msg.lower()):
                 c_name = active_c.get("title") or active_c.get("name") or "Consumable"
                 c_sku = active_c.get("sku") or ""
-                c_url = active_c.get("product_url") or active_c.get("website_url") or OFFICIAL_WEBSITE_URL
-                c_price = active_c.get("price_str") or (f"AED {active_c['price']:,.2f}" if active_c.get("price") else "Price on Request")
-                c_vat = active_c.get("vat_note") or "(Excl. VAT)"
+                from catalog.price_resolver import price_resolver
+                c_pinfo = price_resolver.get_price_info(c_sku) if c_sku else {}
+                c_url = c_pinfo.get("url") or active_c.get("product_url") or active_c.get("website_url") or OFFICIAL_WEBSITE_URL
+                if c_pinfo.get("price"):
+                    c_price = c_pinfo.get("price_str") or f"AED {c_pinfo['price']:,.2f}"
+                    c_vat = c_pinfo.get("vat_note") or "(Excl. VAT)"
+                else:
+                    c_price = active_c.get("price_str") or (f"AED {active_c['price']:,.2f}" if active_c.get("price") else "Price on Request")
+                    c_vat = active_c.get("vat_note") or "(Excl. VAT)"
                 sku_str = f" (SKU: `{c_sku}`)" if c_sku else ""
                 reply_text = (
                     f"The official price for **{c_name}**{sku_str} on our website is **{c_price} {c_vat}**.\n\n"
@@ -980,7 +1086,7 @@ class Orchestrator:
         # 6b. Exact Model Detail Inquiry (For one of the 43 approved products)
         has_negated_ink = bool(re.search(r"\b(?:not|no|don'?t\s+want)\s+ink\b", normalized_msg.lower()))
         has_ink_keyword = not has_negated_ink and bool(re.search(
-            r"\b(?:inks?|cartridges?|toners?|ribbons?|consum[a-z]{3,6}s?|consub[a-z]{2,5}s?|media|paper|print\s+media|(?:(?<!with\s)(?<!dual\s)(?<!the\s)rolls?(?!\s+(?:adapter|unit|feed|printer)))|maintenance\s+(?:box|tank)(?:es|s)?)\b",
+            r"\b(?:inks?|cartridges?|toners?|ribbons?|consum[a-z]{3,6}s?|consub[a-z]{2,5}s?|media|paper|print\s+media|yields?|yeilds?|page\s*yield|print\s*yield|(?:(?<!with\s)(?<!dual\s)(?<!the\s)rolls?(?!\s+(?:adapter|unit|feed|printer)))|maintenance\s+(?:box|tank)(?:es|s)?)\b",
             normalized_msg.lower()
         ))
         if has_negated_ink:
@@ -1150,6 +1256,14 @@ class Orchestrator:
                 p_name = mentioned_products[0]["display_name"]
             elif state.active_product:
                 p_name = state.active_product.get("display_name") or state.active_product.get("name")
+            elif prev_active_product:
+                p_name = prev_active_product.get("display_name") or prev_active_product.get("name")
+                state.active_product = prev_active_product
+            elif state.active_product_id:
+                cand = catalogue_loader.get_by_id(state.active_product_id)
+                if cand:
+                    p_name = cand.get("display_name") or cand.get("name")
+                    state.active_product = cand
             elif state.active_printer_for_consumables:
                 p_name = state.active_printer_for_consumables
             else:
@@ -1217,20 +1331,64 @@ class Orchestrator:
                         chips_to_return = ["Order Consumables", "View Compatible Printers", "Ask for Quote"]
 
             if c_cards:
-                if not reply_text or "Here is the verified genuine consumable" not in reply_text:
+                is_yield_query = bool(re.search(
+                    r"\b(?:yields?|yeilds?|how\s+many\s+pages|how\s+many\s+prints|page\s*yield|print\s*yield|capacity\s*per\s*color)\b",
+                    normalized_msg.lower()
+                ))
+                if is_yield_query:
+                    p_name_l = (p_name or "").lower()
+                    if any(k in p_name_l for k in ["am-c", "c4000", "c5000", "c6000", "workforce enterprise"]):
+                        reply_text = (
+                            f"Here are the verified ISO page yields for **{p_name}** genuine ink cartridges:\n\n"
+                            "• **Black Ink (T08H / T08G):** **31,500 ISO pages** (high-capacity packs up to 50,000 pages).\n"
+                            "• **Cyan Ink:** **28,000 ISO pages**.\n"
+                            "• **Magenta Ink:** **28,000 ISO pages**.\n"
+                            "• **Yellow Ink:** **28,000 ISO pages**.\n"
+                            "• **Maintenance Box (C12C937181):** Approx. **100,000 pages** service cycle.\n\n"
+                            "*(Yields determined in accordance with ISO/IEC 24711/24712 test methodology at 5% standard coverage.)*"
+                        )
+                    elif any(k in p_name_l for k in ["citizen", "cz-01", "cx-02", "cy-02", "cx-02w"]):
+                        reply_text = (
+                            f"Here are the verified media roll yields for **{p_name}**:\n\n"
+                            "• **Citizen CZ-01 (CZ-MS46 4×6″):** **150 prints per roll** (300 prints per 2-roll pack).\n"
+                            "• **Citizen CX-02 (CX-MS46 4×6″):** **400 prints per roll** (800 prints per 2-roll box).\n"
+                            "• **Citizen CY-02 (CY-MS46 4×6″):** **700 prints per roll** (1,400 prints per 2-roll box).\n"
+                            "• **Citizen CX-02W (CX2W-812 8×12″):** **400 prints per box**.\n\n"
+                            "Each media pack contains matched paper rolls and ink ribbons for 100% zero-waste printing."
+                        )
+                    elif any(k in p_name_l for k in ["sc-t", "t3100", "t5100", "t5405", "t5700"]):
+                        reply_text = (
+                            f"For **{p_name}** technical plotters, ink yields depend on cartridge capacity and plot line coverage:\n\n"
+                            "• **SC-T5100 (26ml/50ml):** Yields approximately 100–180 A1 CAD line drawings per black cartridge.\n"
+                            "• **SC-T5405 (110ml/350ml/700ml):** 700ml high-capacity tanks yield over 2,000 A1 CAD line drawings at 5% coverage.\n"
+                            "• **SC-T5700D (350ml/700ml):** 6-color UltraChrome XD3 ink set for long-run unattended blueprint production."
+                        )
+                    else:
+                        reply_text = (
+                            f"The consumable yields for **{p_name}** depend on document coverage and cartridge capacity. "
+                            "High-yield cartridges provide significantly lower cost per print and extended intervals between replacements. "
+                            "Would you like exact cartridge SKU options or a running cost analysis?"
+                        )
+                    chips_to_return = ["Order Consumables", "View Printer Specifications", "Cost Per Page"]
+                elif not reply_text or "Here is the verified genuine consumable" not in reply_text:
                     color_label = f" {applied_color.title()}" if 'applied_color' in locals() and applied_color else ""
                     items_lines = []
                     for card in c_cards:
                         c_title = card.get("title") or card.get("name") or "Consumable Item"
                         c_sku = card.get("sku")
                         sku_text = f" (SKU: `{c_sku}`)" if c_sku else ""
-                        items_lines.append(f"• **{c_title}**{sku_text}")
+                        c_pstr = card.get("price_formatted") or (f"AED {card.get('price'):,.2f}" if card.get("price") else None)
+                        c_vat = card.get("vat_note") or "(Excl. VAT)"
+                        price_part = f": **{c_pstr} {c_vat}**" if c_pstr else ""
+                        c_url = card.get("url") or card.get("website_url")
+                        link_title = f"[{c_title}]({c_url})" if c_url else f"**{c_title}**"
+                        items_lines.append(f"• **{link_title}**{sku_text}{price_part}")
                     items_text = "\n".join(items_lines)
                     reply_text = f"Here are the verified{color_label} inks and media compatible with {p_name}:\n\n{items_text}"
                     if any(w in normalized_msg.lower() for w in ["cost", "price", "how much", "rate", "cost per print", "pricing", "quote"]):
                         reply_text += (
                             f"\n\nFor official consumable pricing, roll yields, and cost-per-print figures for **{p_name}**, "
-                            f"please check our website at {OFFICIAL_WEBSITE_URL} or contact our sales team directly at **{OFFICIAL_SUPPORT_EMAIL}** or **{OFFICIAL_SUPPORT_PHONE}**."
+                            f"or for commercial purchase orders, contact our sales team directly at **{OFFICIAL_SUPPORT_EMAIL}** or **{OFFICIAL_SUPPORT_PHONE}**."
                         )
                 chips_to_return = ["Order Consumables", "View Printer Specifications"]
             else:
@@ -1258,12 +1416,50 @@ class Orchestrator:
                 latency_ms=int((time.time() - start_time) * 1000),
             )
 
+        # 6c-warranty. Product or General Hardware Warranty Inquiry
+        is_warranty_query = bool(re.search(r"\b(?:warranty|guarantee|coverplus|amc|maintenance\s+contract)\b", normalized_msg.lower()))
+        if is_warranty_query:
+            target_p = mentioned_products[0] if mentioned_products else state.active_product
+            if not target_p and state.active_product_id:
+                target_p = catalogue_loader.get_by_id(state.active_product_id)
+            p_title = target_p.get("display_name") or target_p.get("name") if target_p else None
+
+            if p_title:
+                reply_text = (
+                    f"All **{p_title}** units supplied by Kepler Tech LLC include:\n\n"
+                    "• **Standard Manufacturer Warranty:** 1-Year On-Site Warranty covering genuine parts, printheads, and certified technician labor across the UAE.\n"
+                    "• **CoverPlus Service Extension:** Optional 3-year or 5-year extended on-site warranty packages.\n"
+                    "• **Annual Maintenance Contracts (AMC):** Scheduled preventive servicing, priority emergency call-outs, and genuine spare parts.\n\n"
+                    f"Would you like an official quotation including extended CoverPlus warranty for the {p_title}?"
+                )
+            else:
+                reply_text = (
+                    "All new printers supplied by Kepler Tech LLC include official authorized warranty coverage:\n\n"
+                    "• **Standard Manufacturer Warranty:** 1-Year On-Site Warranty covering genuine hardware, printheads, and certified technician support across the UAE.\n"
+                    "• **Extended Coverage (CoverPlus):** 3-year and 5-year extended on-site warranty packages available on Epson SureColor and WorkForce Enterprise printers.\n"
+                    "• **Annual Maintenance Contracts (AMC):** Comprehensive SLA agreements covering regular maintenance visits and rapid on-site repair.\n\n"
+                    "Would you like warranty terms included with an official commercial quotation?"
+                )
+            chips_to_return = ["Request Warranty Terms", "View Extended Warranty", "Contact Sales Desk"]
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="route:warranty_info",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=chips_to_return,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
         # 6d. Company Information / Business Hours / Location
         has_biz_keywords = any(w in normalized_msg.lower() for w in [
             "location", "address", "opening hours", "business hours", "working hours",
             "contact number", "phone number", "email address", "where are you",
             "office location", "office address", "your office", "where is your office",
-            "do you deliver", "delivery", "shipping", "warranty", "support email"
+            "do you deliver", "delivery", "shipping", "support email"
         ])
         is_business_info = (
             understanding.intent == Intent.BUSINESS_INFORMATION
@@ -1531,6 +1727,21 @@ class Orchestrator:
                 reply_text = f"I found {len(valid_cards)} A3 multifunction printer{'s' if len(valid_cards) != 1 else ''} matching your requirements:"
             else:
                 reply_text = f"I found {len(valid_cards)} catalogue printer{'s' if len(valid_cards) != 1 else ''} matching your requirements:"
+
+            if valid_cards:
+                bullets = []
+                for c in valid_cards[:4]:
+                    title = c.get("title") or c.get("name") or c.get("id")
+                    speed = c.get("speed") or c.get("print_speed")
+                    desc = f" ({speed})" if speed else ""
+                    bullets.append(f"• **{title}**{desc}")
+                if bullets:
+                    if reply_text.endswith("."):
+                        reply_text = reply_text[:-1] + ":"
+                    elif not reply_text.endswith(":"):
+                        reply_text += ":"
+                    reply_text += "\n\n" + "\n".join(bullets)
+
             # Natural language fail-closed validation
             sanitized_reply, _ = validate_and_sanitize_catalogue_text(reply_text, valid_cards)
             reply_text = sanitized_reply

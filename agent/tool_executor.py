@@ -68,7 +68,7 @@ class CatalogToolExecutor:
 
         brochure_info = brochure_resolver.get_brochure(name) or brochure_resolver.get_brochure(str(prod.get("id", ""))) or brochure_resolver.get_brochure(str(sku))
         pdf_url = brochure_info.get("pdf") if brochure_info else prod.get("pdf_url")
-        if brochure_info and brochure_info.get("url"):
+        if card_type == "hardware" and brochure_info and brochure_info.get("url"):
             product_url = brochure_info["url"]
 
         price_info = price_resolver.get_price_info(identifier=sku, prod=prod)

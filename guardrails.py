@@ -40,7 +40,7 @@ DISCOUNT_USER_PATTERNS = [
     r"\b(?:can we negotiate|can i negotiate|price negotiation|negotiate price)\b",
     r"\b(?:give me (?:a )?better price|what is your lowest price|lowest price|minimum price)\b",
     r"\b(?:special\s+offers?|promotional\s+offers?|discount\s+offers?|best\s+offers?|bulk\s+offers?|exclusive\s+offers?|any\s+offers?|make\s+an\s+offer)\b",
-    r"\b(?:good\s+deals?|special\s+deals?|best\s+deals?|any\s+deals?)\b",
+    r"\b(?:better\s+deals?|good\s+deals?|special\s+deals?|best\s+deals?|any\s+deals?)\b",
     r"\boffers?\s+(?:and|or)\s+discounts?\b",
     r"\bdiscounts?\s+(?:and|or)\s+offers?\b",
     r"\bhave\s+(?:any\s+|an\s+)?offers?\b",

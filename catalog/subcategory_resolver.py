@@ -109,12 +109,12 @@ def resolve_subcategory(category: str, requirements: Dict[str, Any]) -> Optional
                 if isinstance(sizes, str):
                     sizes = [sizes]
                 sizes_str = " ".join(sizes).lower()
-                if any(s in sizes_str for s in ["2x6", "6x2", "4x6", "5x7", "6x8", "6-inch", "6 inch"]) or requirements.get("ribbon_rewind"):
-                    return "citizen_6_inch"
+                if any(s in sizes_str for s in ["4x4", "4.5x4.5", "4.5x8", "4-inch", "4 inch"]):
+                    return "citizen_4_inch"
                 elif any(s in sizes_str for s in ["8x10", "8x12", "8-inch", "8 inch"]):
                     return "citizen_8_inch"
-                elif any(s in sizes_str for s in ["4x4", "4.5x4.5", "4.5x8", "4-inch", "4 inch"]):
-                    return "citizen_4_inch"
+                elif any(s in sizes_str for s in ["2x6", "6x2", "4x6", "5x7", "6x8", "6-inch", "6 inch"]) or requirements.get("ribbon_rewind"):
+                    return "citizen_6_inch"
                 return "citizen_photo"
 
             # Brand unanswered
@@ -141,12 +141,12 @@ def resolve_subcategory(category: str, requirements: Dict[str, Any]) -> Optional
             sizes = [sizes]
         sizes_str = " ".join(sizes).lower()
 
-        if any(s in sizes_str for s in ["2x6", "6x2", "4x6", "5x7", "6x8", "6-inch", "6 inch"]) or requirements.get("ribbon_rewind"):
-            return "citizen_6_inch"
+        if any(s in sizes_str for s in ["4x4", "4.5x4.5", "4.5x8", "4-inch", "4 inch"]):
+            return "citizen_4_inch"
         elif any(s in sizes_str for s in ["8x10", "8x12", "8-inch", "8 inch"]):
             return "citizen_8_inch"
-        elif any(s in sizes_str for s in ["4x4", "4.5x4.5", "4.5x8", "4-inch", "4 inch"]):
-            return "citizen_4_inch"
+        elif any(s in sizes_str for s in ["2x6", "6x2", "4x6", "5x7", "6x8", "6-inch", "6 inch"]) or requirements.get("ribbon_rewind"):
+            return "citizen_6_inch"
 
         # General Citizen category with all models
         return "citizen_photo"

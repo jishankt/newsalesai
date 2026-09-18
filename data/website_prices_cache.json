@@ -1,4 +1,24 @@
 {
+  "cz-ms46": {
+    "price": 295.0,
+    "currency": "AED",
+    "price_str": "AED 295.00",
+    "vat_note": "(Excl. VAT)",
+    "is_request": false,
+    "is_cached": true,
+    "source": "live_kepler_store",
+    "url": "https://www.keplertechllc.com/product/citizen-cz-ms46-4x-6/"
+  },
+  "cy-ms46": {
+    "price": 625.0,
+    "currency": "AED",
+    "price_str": "AED 625.00",
+    "vat_note": "(Excl. VAT)",
+    "is_request": false,
+    "is_cached": true,
+    "source": "live_kepler_store",
+    "url": "https://www.keplertechllc.com/product/citizen-cy-ms46-4x6/"
+  },
   "epson-wf-c5890-dwf": {
     "price": 1656.0,
     "currency": "AED",
@@ -592,5 +612,215 @@
     "status": "published_on_site",
     "method": "schema_product",
     "url": "https://www.keplertechllc.com/product/citizen-cz-01-photo-printer/"
+  },
+  "cz-ms458": {
+    "price": 340.0,
+    "currency": "AED",
+    "price_str": "AED 340.00",
+    "vat_note": "(Excl. VAT)",
+    "is_request": false,
+    "is_cached": true,
+    "source": "live_kepler_store",
+    "url": "https://www.keplertechllc.com/product/citizen-cz-ms458-4-5x8-media/"
+  },
+  "cy-ms68": {
+    "price": 685.0,
+    "currency": "AED",
+    "price_str": "AED 685.00",
+    "vat_note": "(Excl. VAT)",
+    "is_request": false,
+    "is_cached": true,
+    "source": "live_kepler_store",
+    "url": "https://www.keplertechllc.com/product/citizen-cy-ms68/"
+  },
+  "cx2.4x6": {
+    "price": 490.0,
+    "currency": "AED",
+    "price_str": "AED 490.00",
+    "vat_note": "(Excl. VAT)",
+    "is_request": false,
+    "is_cached": true,
+    "source": "live_kepler_store",
+    "url": "https://www.keplertechllc.com/product/citizen-cx-02-4x6-printer-media/"
+  },
+  "cx2-ms46": {
+    "price": 490.0,
+    "currency": "AED",
+    "price_str": "AED 490.00",
+    "vat_note": "(Excl. VAT)",
+    "is_request": false,
+    "is_cached": true,
+    "source": "live_kepler_store",
+    "url": "https://www.keplertechllc.com/product/citizen-cx-02-4x6-printer-media/"
+  },
+  "cx2.6x8": {
+    "price": 500.0,
+    "currency": "AED",
+    "price_str": "AED 500.00",
+    "vat_note": "(Excl. VAT)",
+    "is_request": false,
+    "is_cached": true,
+    "source": "live_kepler_store",
+    "url": "https://www.keplertechllc.com/product/citizen-cx-02-printer-6x8-media/"
+  },
+  "cx2-ms68": {
+    "price": 500.0,
+    "currency": "AED",
+    "price_str": "AED 500.00",
+    "vat_note": "(Excl. VAT)",
+    "is_request": false,
+    "is_cached": true,
+    "source": "live_kepler_store",
+    "url": "https://www.keplertechllc.com/product/citizen-cx-02-printer-6x8-media/"
+  },
+  "cx2w 812": {
+    "price": 975.0,
+    "currency": "AED",
+    "price_str": "AED 975.00",
+    "vat_note": "(Excl. VAT)",
+    "is_request": false,
+    "is_cached": true,
+    "source": "live_kepler_store",
+    "url": "https://www.keplertechllc.com/product/citizen-cx2w-8x12-media/"
+  },
+  "cx2w-812": {
+    "price": 975.0,
+    "currency": "AED",
+    "price_str": "AED 975.00",
+    "vat_note": "(Excl. VAT)",
+    "is_request": false,
+    "is_cached": true,
+    "source": "live_kepler_store",
+    "url": "https://www.keplertechllc.com/product/citizen-cx2w-8x12-media/"
+  },
+  "c13t08g100": {
+    "price": 220.0,
+    "currency": "AED",
+    "price_str": "AED 220.00",
+    "vat_note": "(Excl. VAT)",
+    "is_request": false,
+    "is_cached": true,
+    "source": "live_kepler_store",
+    "url": "https://www.keplertechllc.com/product/c13t08g100-epson-workforce-enterprise-am-c5000-6000-black-ink/"
+  },
+  "c13t08g200": {
+    "price": 220.0,
+    "currency": "AED",
+    "price_str": "AED 220.00",
+    "vat_note": "(Excl. VAT)",
+    "is_request": false,
+    "is_cached": true,
+    "source": "live_kepler_store",
+    "url": "https://www.keplertechllc.com/product/c13t08g200-epson-workforce-enterprise-am-c5000-6000-cyan-ink/"
+  },
+  "c13t08g300": {
+    "price": 220.0,
+    "currency": "AED",
+    "price_str": "AED 220.00",
+    "vat_note": "(Excl. VAT)",
+    "is_request": false,
+    "is_cached": true,
+    "source": "live_kepler_store",
+    "url": "https://www.keplertechllc.com/product/c13t08g300-epson-workforce-enterprise-am-c5000-6000-magenta-ink/"
+  },
+  "c13t08g400": {
+    "price": 220.0,
+    "currency": "AED",
+    "price_str": "AED 220.00",
+    "vat_note": "(Excl. VAT)",
+    "is_request": false,
+    "is_cached": true,
+    "source": "live_kepler_store",
+    "url": "https://www.keplertechllc.com/product/c13t08g400-epson-workforce-enterprise-am-c5000-6000-yellow-ink/"
+  },
+  "c13t08h100": {
+    "price": 220.0,
+    "currency": "AED",
+    "price_str": "AED 220.00",
+    "vat_note": "(Excl. VAT)",
+    "is_request": false,
+    "is_cached": true,
+    "source": "live_kepler_store",
+    "url": "https://www.keplertechllc.com/product/c13t08h100-epson-workforce-enterprise-am-c4000-black-ink/"
+  },
+  "c13t08h200": {
+    "price": 220.0,
+    "currency": "AED",
+    "price_str": "AED 220.00",
+    "vat_note": "(Excl. VAT)",
+    "is_request": false,
+    "is_cached": true,
+    "source": "live_kepler_store",
+    "url": "https://www.keplertechllc.com/product/c13t08h200-epson-workforce-enterprise-am-c4000-cyan-ink/"
+  },
+  "c13t08h300": {
+    "price": 220.0,
+    "currency": "AED",
+    "price_str": "AED 220.00",
+    "vat_note": "(Excl. VAT)",
+    "is_request": false,
+    "is_cached": true,
+    "source": "live_kepler_store",
+    "url": "https://www.keplertechllc.com/product/c13t08h300-epson-workforce-enterprise-am-c4000-magenta-ink/"
+  },
+  "c13t08h400": {
+    "price": 883.0,
+    "currency": "AED",
+    "price_str": "AED 883.00",
+    "vat_note": "(Excl. VAT)",
+    "is_request": false,
+    "is_cached": true,
+    "source": "live_kepler_store",
+    "url": "https://www.keplertechllc.com/product/c13t08h400-epson-workforce-enterprise-am-c4000-yellow-ink/"
+  },
+  "c12c937181": {
+    "price": 180.0,
+    "currency": "AED",
+    "price_str": "AED 180.00",
+    "vat_note": "(Excl. VAT)",
+    "is_request": false,
+    "is_cached": true,
+    "source": "live_kepler_store",
+    "url": "https://www.keplertechllc.com/product/c12c937181-epson-maintenance-box-am-c4000-5000-6000/"
+  },
+  "citizen pen": {
+    "price": 190.0,
+    "currency": "AED",
+    "price_str": "AED 190.00",
+    "vat_note": "(Excl. VAT)",
+    "is_request": false,
+    "is_cached": true,
+    "source": "live_kepler_store",
+    "url": "https://www.keplertechllc.com/product/citizen-thermal-head-cleaning-pen/"
+  },
+  "cz01 carry bag": {
+    "price": 250.0,
+    "currency": "AED",
+    "price_str": "AED 250.00",
+    "vat_note": "(Excl. VAT)",
+    "is_request": false,
+    "is_cached": true,
+    "source": "live_kepler_store",
+    "url": "https://www.keplertechllc.com/product/citizen-cz-01-printer-carry-bag/"
+  },
+  "cy02bag": {
+    "price": 335.0,
+    "currency": "AED",
+    "price_str": "AED 335.00",
+    "vat_note": "(Excl. VAT)",
+    "is_request": false,
+    "is_cached": true,
+    "source": "live_kepler_store",
+    "url": "https://www.keplertechllc.com/product/citizen-cy-02-carry-bags/"
+  },
+  "citizen cx-02 bag": {
+    "price": 325.0,
+    "currency": "AED",
+    "price_str": "AED 325.00",
+    "vat_note": "(Excl. VAT)",
+    "is_request": false,
+    "is_cached": true,
+    "source": "live_kepler_store",
+    "url": "https://www.keplertechllc.com/product/citizen-cx-02-printer-carry-bag/"
   }
 }

@@ -286,7 +286,11 @@ def extract_deterministic_requirements(text: str, category: Optional[str] = None
     elif any(k in text_l for k in [
         "citizen (photo booth / events)", "citizen photo", "citizen", "photo booth",
         "event photo", "event photography", "instant photo", "dye-sub photo"
-    ]):
+    ]) or (
+        "portable" in text_l and not any(k in text_l for k in ["desktop", "compact", "fine art", "a3+", "a2+", "gallery", "canvas", "p700", "p900"])
+    ) or (
+        bool(reqs.get("print_sizes")) and not any(k in text_l for k in ["epson", "fine art", "a3+", "a2+", "p700", "p900"])
+    ):
         reqs["photo_brand"] = "citizen"
         reqs["brand"] = "Citizen"
         if is_correction:
