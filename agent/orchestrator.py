@@ -1074,6 +1074,59 @@ class Orchestrator:
                         latency_ms=int((time.time() - start_time) * 1000),
                     )
 
+        # 6a-0. Conversational Memory Recall Query (e.g. "the last time I told one printer which one?", "which printer did I mention earlier?")
+        msg_norm_l = normalized_msg.lower()
+        is_memory_recall_query = bool(re.search(
+            r"\b(?:"
+            r"(?:last|previous)\s*(?:time\s*)?(?:i\s*)?(?:told|mentioned|asked|said|chose|inquired|wanted)\s*(?:about\s*)?(?:one\s*)?(?:printer|model|machine)?|"
+            r"which\s*(?:printer|model|machine|one)\s*(?:did\s*i|i\s*(?:told|said|mentioned|asked|chose|inquired))|"
+            r"what\s*(?:was\s*)?(?:the\s*)?(?:last|previous)\s*(?:printer|model|machine)|"
+            r"remind\s*me\s*(?:which|what)\s*(?:printer|model|machine)"
+            r")\b",
+            msg_norm_l
+        )) or (
+            any(w in msg_norm_l for w in ["which one", "which printer", "what printer"])
+            and any(w in msg_norm_l for w in ["last time", "earlier", "previously", "i told", "i said", "i mentioned"])
+        )
+        if is_memory_recall_query:
+            target_prod = state.active_product or prev_active_product
+            if not target_prod and (state.active_product_id or prev_active_product_id):
+                act_id = state.active_product_id or prev_active_product_id
+                target_prod = catalogue_loader.get_by_id(act_id)
+
+            if not target_prod:
+                # Scan history in reverse for any previously mentioned catalogue product
+                all_hist = list(history or []) + list(state.history_turns or [])
+                for h in reversed(all_hist):
+                    h_text = h.get("content", "")
+                    h_prods = find_mentioned_catalogue_products(h_text)
+                    if h_prods:
+                        target_prod = h_prods[0]
+                        break
+
+            if target_prod:
+                state.active_product = target_prod
+                state.active_product_id = target_prod["id"]
+                p_name = target_prod.get("display_name") or target_prod.get("name") or target_prod["id"]
+                fam_label = target_prod.get("model_family") or p_name
+                card = catalogue_filter._format_card(target_prod, target_prod.get("subcategory"), {})
+                reply_text = (
+                    f"The model you previously inquired about is the **{p_name}**!\n\n"
+                    f"Would you like to review its technical specifications, view compatible consumables, or compare it with another model?"
+                )
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(
+                    reply=reply_text,
+                    source="route:conversational_memory_recall",
+                    product_cards=[card],
+                    consumable_cards=[],
+                    suggested_chips=[f"{fam_label} Specs", f"{fam_label} Consumables", "Compare with Another Model"],
+                    nlp_result=nlp_result,
+                    state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
+
         # 6a. Comparison Query (Between 2+ Approved Catalogue Products)
         is_comparison_query = (
             understanding.intent == Intent.PRODUCT_COMPARISON
@@ -1975,6 +2028,8 @@ class Orchestrator:
                     reply_text = f"Based on your requirements, here are our recommended Citizen 6-inch photo printer{'s' if len(valid_cards) != 1 else ''}:"
             elif state.requirements.get("paper_size") == "a3":
                 reply_text = f"Based on your requirements, here are our recommended A3 multifunction printer{'s' if len(valid_cards) != 1 else ''}:"
+            elif subcategory == "photo_64_production" or state.requirements.get("print_width") == 64:
+                reply_text = "Based on your requirements, here is our premier 64-inch production photo & fine art roll printer (64″ / 162.6 cm is our standard maximum roll width):"
             else:
                 reply_text = f"Based on your requirements, here are our recommended catalogue printer{'s' if len(valid_cards) != 1 else ''}:"
 
@@ -1997,6 +2052,14 @@ class Orchestrator:
             reply_text = sanitized_reply
             chips_to_return = ["Compare Matching Models", "View Detailed Specifications", "Filter by Requirements"]
             source = "recommendation:catalogue_list"
+
+        # Stale Recommendation / Repetition Prevention Guard
+        if state.last_assistant_response and reply_text == state.last_assistant_response:
+            reply_text = (
+                "To help tailor our recommendation, could you tell me a bit more about your priority—such as preferred roll width, daily print volume, or whether you need an integrated scanner?\n\n"
+                "Our sales specialists are also available if you would like a personalized commercial quotation or equipment demonstration."
+            )
+            chips_to_return = ["View All Specifications", "Request Quotation", "Showroom Hours & Location"]
 
         state.last_assistant_response = reply_text
         state.increment_turn()

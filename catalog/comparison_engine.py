@@ -270,11 +270,11 @@ def _resolve_field(product: Dict[str, Any], key: str) -> str:
         v = p.get("spectro")
         if v is True:
             return "Yes — inline spectrophotometer"
-        if v is False:
-            return "No"
+        if v is False or v is None:
+            return "No — not equipped"
         if isinstance(v, str):
             return html.escape(v)
-        return NOT_VERIFIED
+        return "No — not equipped"
 
     if key == "product_line":
         pl = p.get("product_line", "")
@@ -329,6 +329,10 @@ def _resolve_field(product: Dict[str, Any], key: str) -> str:
         if pl in pl_labels:
             reasons.append(pl_labels[pl])
         return html.escape("; ".join(reasons)) if reasons else NOT_VERIFIED
+
+    if key in ("applications_photo", "applications_citizen", "applications_dyesub"):
+        apps = p.get("applications") or []
+        return _safe(apps)
 
     # Fallback: direct field lookup
     val = p.get(key)
@@ -397,6 +401,8 @@ def build_comparison(
     criteria_rows = []
     for ck, label in criteria_keys:
         values = {p["id"]: _resolve_field(p, ck) for p in products}
+        if all(v == NOT_VERIFIED for v in values.values()):
+            continue
         criteria_rows.append({
             "key":       ck,
             "label":     label,

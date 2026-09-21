@@ -105,14 +105,18 @@ class ContextualSlotResolver:
         # 2. Print Width (Technical CAD or Large Format)
         if awaiting_field in ("print_width", "photography_print_width"):
             # Direct bare numbers
-            num_match = re.search(r"\b(13|17|24|36|44|64)\b", text_l)
+            num_match = re.search(r"\b(13|17|24|36|44|64|65)\b", text_l)
             if num_match:
                 width_val = int(num_match.group(1))
+                if width_val == 65:
+                    width_val = 64
                 reqs["print_width"] = width_val
                 if width_val == 24:
                     reqs["paper_size"] = "a1"
                 elif width_val == 36:
                     reqs["paper_size"] = "a0"
+                elif width_val == 64:
+                    reqs["paper_size"] = "64-inch"
                 return reqs, corrections
 
             # Explicit size labels
@@ -164,10 +168,19 @@ class ContextualSlotResolver:
                 "roll", "wide", "wide format", "wider",
                 "production", "gallery", "commercial", "studio",
                 "big", "bigger", "biggest",
-                "24", "44", "64",
+                "24", "44", "64", "65",
                 "p6500", "p7500", "p8500", "p9500", "p20500"
             ]):
                 reqs["photo_form_factor"] = "large"
+                if any(k in text_l for k in ["64", "65", "p20500"]):
+                    reqs["print_width"] = 64
+                    reqs["paper_size"] = "64-inch"
+                elif any(k in text_l for k in ["44", "p7500", "p8500", "p9500"]):
+                    reqs["print_width"] = 44
+                    reqs["paper_size"] = "44-inch"
+                elif any(k in text_l for k in ["24", "p6500"]):
+                    reqs["print_width"] = 24
+                    reqs["paper_size"] = "24-inch"
                 return reqs, corrections
 
         # 4. Photo Brand (Epson Fine Art vs Citizen Event)

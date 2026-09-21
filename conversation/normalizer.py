@@ -23,8 +23,8 @@ def normalize_category(raw_text: str, current_category: Optional[str] = None) ->
     text_l = (raw_text or "").lower()
 
     # 0. Explicit size/model based overrides
-    # 64-inch is exclusively Photography Large Format (Epson SC-P20500)
-    if bool(re.search(r"\b(?:64[\s-]*(?:inch|in|\")|64inch)\b", text_l)):
+    # 64-inch (and 65-inch approximations) is exclusively Photography Large Format (Epson SC-P20500)
+    if bool(re.search(r"\b(?:6[45][\s-]*(?:inch|in|\"|'')|6[45]inch)\b", text_l)):
         return "photography_large_format"
 
     # 13-inch (A3+) and 17-inch (A2+) are exclusively Photography Large Format
@@ -151,6 +151,12 @@ def extract_deterministic_requirements(text: str, category: Optional[str] = None
     Returns (requirements, corrections).
     """
     text_l = (text or "").lower().strip().replace("×", "x")
+    # Typo normalizations
+    text_l = re.sub(r"\bro+ls?\b", "roll", text_l)
+    text_l = re.sub(r"\binsh(?:es)?\b", "inch", text_l)
+    text_l = re.sub(r"\bhu+m[ae]ns?\b", "human", text_l)
+    text_l = re.sub(r"\bprnt\b", "print", text_l)
+
     reqs: Dict[str, Any] = {}
     corrections: Dict[str, Any] = {}
 
@@ -159,7 +165,7 @@ def extract_deterministic_requirements(text: str, category: Optional[str] = None
     # ── 0. Contextual Slot Resolution ─────────────────────────────────────
     if awaiting_field:
         c_reqs, c_corrs = ContextualSlotResolver.resolve(
-            text=text,
+            text=text_l,
             awaiting_field=awaiting_field,
             category=category
         )

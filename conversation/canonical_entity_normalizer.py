@@ -50,7 +50,7 @@ class CanonicalEntityNormalizer:
         (re.compile(r"\b(?:914\s*mm|91\.4\s*cm|841\s*mm|84\.1\s*cm|90\s*cm|900\s*mm|0\.9\s*m(?:eter|etre)?s?|0\.91\s*m(?:eter|etre)?s?|3\s*feet|3\s*ft|3\s*')\b", re.I), 36, "a0"),
         (re.compile(r"\b(?:610\s*mm|61\s*cm|594\s*mm|59\.4\s*cm|60\s*cm|600\s*mm|0\.6\s*m(?:eter|etre)?s?|0\.61\s*m(?:eter|etre)?s?|2\s*feet|2\s*ft|2\s*')\b", re.I), 24, "a1"),
         (re.compile(r"\b(?:1118\s*mm|111\.8\s*cm|1067\s*mm|110\s*cm|1100\s*mm|100\s*cm|1000\s*mm|1\s*m(?:eter|etre)|1\.0\s*m(?:eter|etre)?s?|1\.1\s*m(?:eter|etre)?s?|1\.12\s*m(?:eter|etre)?s?|3\.6\s*feet|3\.7\s*feet)\b", re.I), 44, "44-inch"),
-        (re.compile(r"\b(?:1626\s*mm|162\.6\s*cm|160\s*cm|1600\s*mm|1\.6\s*m(?:eter|etre)?s?|1\.63\s*m(?:eter|etre)?s?|4\s*feet|4\s*ft|5\s*feet|5\s*ft|5\.3\s*feet)\b", re.I), 64, "64-inch"),
+        (re.compile(r"\b(?:1626\s*mm|162\.6\s*cm|160\s*cm|1600\s*mm|165\s*cm|1650\s*mm|1\.6\s*m(?:eter|etre)?s?|1\.63\s*m(?:eter|etre)?s?|1\.65\s*m(?:eter|etre)?s?|4\s*feet|4\s*ft|5\s*feet|5\s*ft|5\.3\s*feet|5\.4\s*feet|5\.5\s*feet)\b", re.I), 64, "64-inch"),
         (re.compile(r"\b(?:329\s*mm|32\.9\s*cm|33\s*cm|30\s*cm|0\.33\s*m(?:eter|etre)?s?|1\s*foot|1\s*ft|1\.1\s*feet)\b", re.I), 13, "a3+"),
         (re.compile(r"\b(?:432\s*mm|43\.2\s*cm|43\s*cm|42\s*cm|40\s*cm|0\.43\s*m(?:eter|etre)?s?|1\.4\s*feet|1\.5\s*feet)\b", re.I), 17, "a2+"),
     ]
@@ -71,8 +71,8 @@ class CanonicalEntityNormalizer:
         elif u in ("ft", "feet", "foot", "'"):
             if 0.8 <= val <= 6.0:
                 return val * 12.0
-        elif u in ("in", "inch", "inches", '"', "″"):
-            if 8.0 <= val <= 65.0:
+        elif u in ("in", "inch", "inches", '"', "″", "''"):
+            if 8.0 <= val <= 66.0:
                 return val
         return None
 
@@ -89,7 +89,7 @@ class CanonicalEntityNormalizer:
             return 36, "a0"
         elif w_in <= 44.5:
             return 44, "44-inch"
-        elif w_in <= 64.5:
+        elif w_in <= 66.0:
             return 64, "64-inch"
         return None, None
 
@@ -173,8 +173,8 @@ class CanonicalEntityNormalizer:
         elif re.search(r"\b(?:44[\s-]*(?:inch|in|\")|44inch)\b", text_l) or (not is_explicit_vol and bool(re.search(r"\b44\b", text_l))):
             res["print_width"] = 44
             res["paper_size"] = "44-inch"
-        # 64-inch
-        elif not is_large_range and (re.search(r"\b(?:64[\s-]*(?:inch|in|\")|64inch)\b", text_l) or (not is_explicit_vol and bool(re.search(r"\b64\b", text_l)))):
+        # 64-inch (and 65-inch approximations)
+        elif not is_large_range and (re.search(r"\b(?:6[45][\s-]*(?:inch|in|\"|'')|6[45]inch)\b", text_l) or (not is_explicit_vol and bool(re.search(r"\b6[45]\b", text_l)))):
             res["print_width"] = 64
             res["paper_size"] = "64-inch"
         # 13-inch (A3+)

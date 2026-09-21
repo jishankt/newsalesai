@@ -79,8 +79,18 @@ def find_mentioned_catalogue_products(text: str) -> List[Dict[str, Any]]:
                     found = True
                     break
                 if len(cand) >= 6 and cand in clean_text:
-                    found = True
-                    break
+                    # Mask already matched longer candidate models to avoid substring false positives
+                    # (e.g. 'scp8500d' matching inside 'scp8500dm')
+                    masked_text = clean_text
+                    for m in matched:
+                        m_fam = re.sub(r"[^a-z0-9]", "", m.get("model_family", "").lower())
+                        m_pid = re.sub(r"[^a-z0-9]", "", m.get("id", "").replace("epson-", "").replace("citizen-", "").lower())
+                        for mc in [m_fam, m_pid]:
+                            if len(mc) > len(cand) and cand in mc:
+                                masked_text = masked_text.replace(mc, " " * len(mc), 1)
+                    if cand in masked_text:
+                        found = True
+                        break
 
         if found and pid not in seen_ids:
             seen_ids.add(pid)
