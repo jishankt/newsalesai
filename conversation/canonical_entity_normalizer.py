@@ -36,24 +36,62 @@ class CanonicalEntityNormalizer:
 
     # ── Photo Dimension Patterns (Order Agnostic, Imperial & Metric) ────────
     PHOTO_SIZE_RULES: List[Tuple[re.Pattern, str]] = [
-        (re.compile(r"(?:^|[^\w])(?:2(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*6(?:\s*inch|\s*in|[\"\'\s])*|6(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*2(?:\s*inch|\s*in|[\"\'\s])*|photo\s*strip|2-inch\s*strip|2x6\s*strip)(?:$|[^\w])", re.I), "2x6"),
-        (re.compile(r"(?:^|[^\w])(?:4(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*6(?:\s*inch|\s*in|[\"\'\s])*|6(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*4(?:\s*inch|\s*in|[\"\'\s])*|10\s*cm\s*(?:x|\*)\s*15\s*cm|15\s*cm\s*(?:x|\*)\s*10\s*cm|10\s*(?:x|\*)\s*15\s*cm|15\s*(?:x|\*)\s*10\s*cm|100\s*mm\s*(?:x|\*)\s*150\s*mm|150\s*mm\s*(?:x|\*)\s*100\s*mm)(?:$|[^\w])", re.I), "4x6"),
-        (re.compile(r"(?:^|[^\w])(?:5(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*7(?:\s*inch|\s*in|[\"\'\s])*|7(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*5(?:\s*inch|\s*in|[\"\'\s])*|13\s*cm\s*(?:x|\*)\s*18\s*cm|18\s*cm\s*(?:x|\*)\s*13\s*cm|13\s*(?:x|\*)\s*18\s*cm|18\s*(?:x|\*)\s*13\s*cm)(?:$|[^\w])", re.I), "5x7"),
-        (re.compile(r"(?:^|[^\w])(?:6(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*8(?:\s*inch|\s*in|[\"\'\s])*|8(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*6(?:\s*inch|\s*in|[\"\'\s])*|15\s*cm\s*(?:x|\*)\s*20\s*cm|20\s*cm\s*(?:x|\*)\s*15\s*cm|15\s*(?:x|\*)\s*20\s*cm|20\s*(?:x|\*)\s*15\s*cm)(?:$|[^\w])", re.I), "6x8"),
-        (re.compile(r"(?:^|[^\w])(?:8(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*10(?:\s*inch|\s*in|[\"\'\s])*|10(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*8(?:\s*inch|\s*in|[\"\'\s])*|20\s*cm\s*(?:x|\*)\s*25\s*cm|25\s*cm\s*(?:x|\*)\s*20\s*cm|20\s*(?:x|\*)\s*25\s*cm)(?:$|[^\w])", re.I), "8x10"),
-        (re.compile(r"(?:^|[^\w])(?:8(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*12(?:\s*inch|\s*in|[\"\'\s])*|12(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*8(?:\s*inch|\s*in|[\"\'\s])*|20\s*cm\s*(?:x|\*)\s*30\s*cm|30\s*cm\s*(?:x|\*)\s*20\s*cm|20\s*(?:x|\*)\s*30\s*cm)(?:$|[^\w])", re.I), "8x12"),
-        (re.compile(r"(?:^|[^\w])(?:4(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*4(?:\s*inch|\s*in|[\"\'\s])*|4\.5(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*4\.5(?:\s*inch|\s*in|[\"\'\s])*|4\.5(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*8(?:\s*inch|\s*in|[\"\'\s])*|8(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*)\s*4\.5(?:\s*inch|\s*in|[\"\'\s])*|10\s*cm\s*(?:x|\*)\s*10\s*cm|10\s*(?:x|\*)\s*10\s*cm)(?:$|[^\w])", re.I), "4x4"),
+        (re.compile(r"(?:^|[^\w])(?:2(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*|by)\s*6(?:\s*inch|\s*in|[\"\'\s])*|6(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*|by)\s*2(?:\s*inch|\s*in|[\"\'\s])*|photo\s*strip|2-inch\s*strip|2x6\s*strip)(?:$|[^\w])", re.I), "2x6"),
+        (re.compile(r"(?:^|[^\w])(?:4(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*|by)\s*6(?:\s*inch|\s*in|[\"\'\s])*|6(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*|by)\s*4(?:\s*inch|\s*in|[\"\'\s])*|10\s*cm\s*(?:x|\*|by)\s*15\s*cm|15\s*cm\s*(?:x|\*|by)\s*10\s*cm|10\s*(?:x|\*|by)\s*15\s*cm|15\s*(?:x|\*|by)\s*10\s*cm|100\s*mm\s*(?:x|\*|by)\s*150\s*mm|150\s*mm\s*(?:x|\*|by)\s*100\s*mm)(?:$|[^\w])", re.I), "4x6"),
+        (re.compile(r"(?:^|[^\w])(?:5(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*|by)\s*7(?:\s*inch|\s*in|[\"\'\s])*|7(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*|by)\s*5(?:\s*inch|\s*in|[\"\'\s])*|13\s*cm\s*(?:x|\*|by)\s*18\s*cm|18\s*cm\s*(?:x|\*|by)\s*13\s*cm|13\s*(?:x|\*|by)\s*18\s*cm|18\s*(?:x|\*|by)\s*13\s*cm)(?:$|[^\w])", re.I), "5x7"),
+        (re.compile(r"(?:^|[^\w])(?:6(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*|by)\s*8(?:\s*inch|\s*in|[\"\'\s])*|8(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*|by)\s*6(?:\s*inch|\s*in|[\"\'\s])*|15\s*cm\s*(?:x|\*|by)\s*20\s*cm|20\s*cm\s*(?:x|\*|by)\s*15\s*cm|15\s*(?:x|\*|by)\s*20\s*cm|20\s*(?:x|\*|by)\s*15\s*cm)(?:$|[^\w])", re.I), "6x8"),
+        (re.compile(r"(?:^|[^\w])(?:8(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*|by)\s*10(?:\s*inch|\s*in|[\"\'\s])*|10(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*|by)\s*8(?:\s*inch|\s*in|[\"\'\s])*|20\s*cm\s*(?:x|\*|by)\s*25\s*cm|25\s*cm\s*(?:x|\*|by)\s*20\s*cm|20\s*(?:x|\*|by)\s*25\s*cm)(?:$|[^\w])", re.I), "8x10"),
+        (re.compile(r"(?:^|[^\w])(?:8(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*|by)\s*12(?:\s*inch|\s*in|[\"\'\s])*|12(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*|by)\s*8(?:\s*inch|\s*in|[\"\'\s])*|20\s*cm\s*(?:x|\*|by)\s*30\s*cm|30\s*cm\s*(?:x|\*|by)\s*20\s*cm|20\s*(?:x|\*|by)\s*30\s*cm)(?:$|[^\w])", re.I), "8x12"),
+        (re.compile(r"(?:^|[^\w])(?:4(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*|by)\s*4(?:\s*inch|\s*in|[\"\'\s])*|4\.5(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*|by)\s*4\.5(?:\s*inch|\s*in|[\"\'\s])*|4\.5(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*|by)\s*8(?:\s*inch|\s*in|[\"\'\s])*|8(?:\s*inch|\s*in|[\"\'\s])*\s*(?:x|\*|by)\s*4\.5(?:\s*inch|\s*in|[\"\'\s])*|10\s*cm\s*(?:x|\*|by)\s*10\s*cm|10\s*(?:x|\*|by)\s*10\s*cm)(?:$|[^\w])", re.I), "4x4"),
     ]
 
-    # Metric width conversion mappings (e.g. 914mm -> 36-inch, 610mm -> 24-inch)
+    # Metric and imperial roll width conversion mappings
     METRIC_WIDTH_MAP: List[Tuple[re.Pattern, int, str]] = [
-        (re.compile(r"\b(?:914\s*mm|91\.4\s*cm|841\s*mm|84\.1\s*cm)\b", re.I), 36, "a0"),
-        (re.compile(r"\b(?:610\s*mm|61\s*cm|594\s*mm|59\.4\s*cm)\b", re.I), 24, "a1"),
-        (re.compile(r"\b(?:1118\s*mm|111\.8\s*cm|1067\s*mm)\b", re.I), 44, "44-inch"),
-        (re.compile(r"\b(?:1626\s*mm|162\.6\s*cm)\b", re.I), 64, "64-inch"),
-        (re.compile(r"\b(?:329\s*mm|32\.9\s*cm)\b", re.I), 13, "a3+"),
-        (re.compile(r"\b(?:432\s*mm|43\.2\s*cm)\b", re.I), 17, "a2+"),
+        (re.compile(r"\b(?:914\s*mm|91\.4\s*cm|841\s*mm|84\.1\s*cm|90\s*cm|900\s*mm|0\.9\s*m(?:eter|etre)?s?|0\.91\s*m(?:eter|etre)?s?|3\s*feet|3\s*ft|3\s*')\b", re.I), 36, "a0"),
+        (re.compile(r"\b(?:610\s*mm|61\s*cm|594\s*mm|59\.4\s*cm|60\s*cm|600\s*mm|0\.6\s*m(?:eter|etre)?s?|0\.61\s*m(?:eter|etre)?s?|2\s*feet|2\s*ft|2\s*')\b", re.I), 24, "a1"),
+        (re.compile(r"\b(?:1118\s*mm|111\.8\s*cm|1067\s*mm|110\s*cm|1100\s*mm|100\s*cm|1000\s*mm|1\s*m(?:eter|etre)|1\.0\s*m(?:eter|etre)?s?|1\.1\s*m(?:eter|etre)?s?|1\.12\s*m(?:eter|etre)?s?|3\.6\s*feet|3\.7\s*feet)\b", re.I), 44, "44-inch"),
+        (re.compile(r"\b(?:1626\s*mm|162\.6\s*cm|160\s*cm|1600\s*mm|1\.6\s*m(?:eter|etre)?s?|1\.63\s*m(?:eter|etre)?s?|4\s*feet|4\s*ft|5\s*feet|5\s*ft|5\.3\s*feet)\b", re.I), 64, "64-inch"),
+        (re.compile(r"\b(?:329\s*mm|32\.9\s*cm|33\s*cm|30\s*cm|0\.33\s*m(?:eter|etre)?s?|1\s*foot|1\s*ft|1\.1\s*feet)\b", re.I), 13, "a3+"),
+        (re.compile(r"\b(?:432\s*mm|43\.2\s*cm|43\s*cm|42\s*cm|40\s*cm|0\.43\s*m(?:eter|etre)?s?|1\.4\s*feet|1\.5\s*feet)\b", re.I), 17, "a2+"),
     ]
+
+    @classmethod
+    def convert_unit_to_inches(cls, val: float, unit: str) -> Optional[float]:
+        """Converts meters, cm, mm, feet, or inches to inches with domain safety boundaries."""
+        u = unit.lower().strip()
+        if u in ("m", "meter", "meters", "metre", "metres"):
+            if 0.25 <= val <= 2.0:
+                return val * 39.3701
+        elif u in ("cm", "centimeter", "centimeters", "centimetre", "centimetres"):
+            if 25.0 <= val <= 200.0:
+                return val / 2.54
+        elif u in ("mm", "millimeter", "millimeters", "millimetre", "millimetres"):
+            if 250.0 <= val <= 2000.0:
+                return val / 25.4
+        elif u in ("ft", "feet", "foot", "'"):
+            if 0.8 <= val <= 6.0:
+                return val * 12.0
+        elif u in ("in", "inch", "inches", '"', "″"):
+            if 8.0 <= val <= 65.0:
+                return val
+        return None
+
+    @classmethod
+    def map_inches_to_printer_class(cls, w_in: float) -> Tuple[Optional[int], Optional[str]]:
+        """Maps continuous inch measurement to standard commercial printer width class."""
+        if w_in <= 13.5:
+            return 13, "a3+"
+        elif w_in <= 17.5:
+            return 17, "a2+"
+        elif w_in <= 24.5:
+            return 24, "a1"
+        elif w_in <= 36.5:
+            return 36, "a0"
+        elif w_in <= 44.5:
+            return 44, "44-inch"
+        elif w_in <= 64.5:
+            return 64, "64-inch"
+        return None, None
 
     @classmethod
     def is_capability_query(cls, text: str) -> bool:
@@ -87,6 +125,13 @@ class CanonicalEntityNormalizer:
         """
         res: Dict[str, Any] = {}
         text_l = text.lower()
+
+        # 0. Photo sizes (2D dimensions take precedence over 1D roll widths)
+        photo_sizes = cls.extract_photo_sizes(text_l)
+        if photo_sizes:
+            res["print_sizes"] = photo_sizes
+            if not any(k in text_l for k in ["roll", "plotter", "cad", "blueprint", "wide format", "large format"]):
+                return res
 
         # 1. Check metric conversions
         for pat, width, size_code in cls.METRIC_WIDTH_MAP:
@@ -160,30 +205,22 @@ class CanonicalEntityNormalizer:
                 res["paper_size"] = "24-inch"
                 res["print_width"] = 24
 
-        # Continuous / arbitrary inch widths (e.g. 40", upto 40", 40 inch, 42-inch)
+        # Continuous / arbitrary dimension widths across inches, feet, meters, cm, mm
         if not res.get("print_width"):
-            arbitrary_inch_match = re.search(r"\b(?:upto|up\s+to|around|max(?:imum)?\s+)?(\d{1,2})\s*(?:inch(?:es)?|in|\"|″)", text_l)
-            if arbitrary_inch_match:
-                w_val = int(arbitrary_inch_match.group(1))
-                if 10 <= w_val <= 64:
-                    if w_val > 44:
-                        res["print_width"] = 64
-                        res["paper_size"] = "64-inch"
-                    elif w_val > 36:
-                        res["print_width"] = 44
-                        res["paper_size"] = "44-inch"
-                    elif w_val > 24:
-                        res["print_width"] = 36
-                        res["paper_size"] = "a0"
-                    elif w_val > 17:
-                        res["print_width"] = 24
-                        res["paper_size"] = "24-inch" if category == "dye_sublimation" else "a1"
-                    elif w_val > 13:
-                        res["print_width"] = 17
-                        res["paper_size"] = "a2+"
-                    else:
-                        res["print_width"] = 13
-                        res["paper_size"] = "a3+"
+            unit_match = re.search(
+                r"\b(?:upto|up\s+to|around|max(?:imum)?\s+|min(?:imum)?\s+|width\s+of\s+|size\s+of\s+)?(\d+(?:\.\d+)?)\s*"
+                r"(inch(?:es)?|in|\"|″|feet|foot|ft|'|meters?|metres?|m(?![a-z])|centimeters?|centimetres?|cm|millimeters?|millimetres?|mm)\b",
+                text_l
+            )
+            if unit_match and not is_explicit_vol:
+                raw_num = float(unit_match.group(1))
+                unit_str = unit_match.group(2).lower()
+                w_in = cls.convert_unit_to_inches(raw_num, unit_str)
+                if w_in:
+                    p_w, p_sz = cls.map_inches_to_printer_class(w_in)
+                    if p_w:
+                        res["print_width"] = p_w
+                        res["paper_size"] = "24-inch" if (p_w == 24 and category == "dye_sublimation") else p_sz
 
         # 4. Photo sizes
         photo_sizes = cls.extract_photo_sizes(text_l)

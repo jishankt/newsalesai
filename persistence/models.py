@@ -30,6 +30,20 @@ class LeadRecord:
     notes: Optional[str] = None
 
 
+@dataclass
+class AgentRecord:
+    agent_id: str
+    username: str
+    name: str
+    email: Optional[str] = None
+    password_hash: str = ""
+    role: str = "salesman"          # "admin" or "salesman"
+    status: str = "active"          # "active" or "inactive"
+    online_status: str = "offline"  # "online", "busy", "offline"
+    created_at: float = field(default_factory=time.time)
+    last_login: Optional[float] = None
+
+
 CREATE_TABLES_SQL = """
 CREATE TABLE IF NOT EXISTS conversation_sessions (
     session_id TEXT PRIMARY KEY,
@@ -54,4 +68,18 @@ CREATE TABLE IF NOT EXISTS commercial_leads (
 );
 CREATE INDEX IF NOT EXISTS idx_leads_session ON commercial_leads (session_id);
 CREATE INDEX IF NOT EXISTS idx_leads_created ON commercial_leads (created_at);
+
+CREATE TABLE IF NOT EXISTS sales_agents (
+    agent_id TEXT PRIMARY KEY,
+    username TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    email TEXT,
+    password_hash TEXT NOT NULL,
+    role TEXT DEFAULT 'salesman',
+    status TEXT DEFAULT 'active',
+    online_status TEXT DEFAULT 'offline',
+    created_at REAL NOT NULL,
+    last_login REAL
+);
+CREATE INDEX IF NOT EXISTS idx_agents_username ON sales_agents (username);
 """

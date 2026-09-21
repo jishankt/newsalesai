@@ -102,7 +102,7 @@ def build_model_detail_response(product: Dict[str, Any]) -> Tuple[str, List[Dict
     scanner = "Includes integrated scanner" if product.get("scanner_integrated") else "Dedicated print-only"
 
     reply = (
-        f"Here are the verified specifications for the **{name}** from our official {cat} catalogue:\n\n"
+        f"Here are the verified specifications and key features for the **{name}** ({cat} — {subcat}):\n\n"
         f"• **Category:** {cat} ({subcat})\n"
         f"• **Functions:** {functions} ({scanner})\n"
     )
@@ -114,6 +114,10 @@ def build_model_detail_response(product: Dict[str, Any]) -> Tuple[str, List[Dict
         reply += "• **Dual Roll:** Automatic dual-roll media switching supported\n"
     if product.get("spectro"):
         reply += "• **Spectrophotometer:** Integrated inline colour calibration\n"
+    if product.get("yield_capacity"):
+        reply += f"• **Yield & Capacity:** {product['yield_capacity']}\n"
+    if product.get("pattern_and_finishing"):
+        reply += f"• **Finishing & Pattern:** {product['pattern_and_finishing']}\n"
 
     reply += f"\n*(Verified from official catalogue: {product.get('source_catalogue')})*"
 
@@ -135,10 +139,10 @@ def build_p900_family_detail_response() -> Tuple[str, List[Dict[str, Any]]]:
         cards.append(catalogue_filter._format_card(p_roll, p_roll.get("subcategory"), {}))
 
     reply = (
-        "Here are the verified specifications for the **Epson SureColor SC-P900** from our official Photography And Fine Art catalogue.\n\n"
-        "The SC-P900 is available in two configurations (both shown below):\n"
-        "• **Standard Configuration (without Roll Adapter)**: Dedicated 17-inch desktop photo printer for sheet-media (A2+, A3+, A3, A4).\n"
-        "• **With Roll Adapter Configuration**: Includes the roll media unit for continuous paper and panoramic printing up to 17 inches.\n\n"
+        "Great choice! The **Epson SureColor SC-P900** is our premier 17-inch photo and fine-art desktop printer.\n\n"
+        "It is available in two official configurations to match your workflow:\n"
+        "• **Standard Configuration (without Roll Adapter)**: Dedicated desktop photo printer for cut-sheet media (A2+, A3+, A3, A4).\n"
+        "• **With Roll Adapter Configuration**: Includes the continuous roll media unit for panoramic photography and banner printing up to 17 inches.\n\n"
         "• **Category:** Photography And Fine Art (Photo 17 Desktop)\n"
         "• **Functions:** Print (Dedicated print-only)\n"
         "• **Maximum Print Width:** 17 inches\n"

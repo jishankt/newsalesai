@@ -9,7 +9,8 @@ import os
 import time
 import logging
 from typing import Dict, Any, List, Optional
-from flask import Blueprint, jsonify, request, render_template
+from flask import Blueprint, jsonify, request, render_template, session
+from persistence.agent_repository import agent_repository
 
 logger = logging.getLogger("admin_routes")
 
@@ -300,7 +301,7 @@ def live_desk_takeover():
     from domain.state_store import state_manager
     data = request.get_json(silent=True) or {}
     session_id = data.get("session_id")
-    agent_name = data.get("agent_name") or "Sales Specialist"
+    agent_name = data.get("agent_name") or session.get("agent_name") or "Sales Specialist"
     reason = data.get("reason") or "manual_takeover"
 
     if not session_id:
@@ -314,6 +315,7 @@ def live_desk_takeover():
         )
         return jsonify({
             "success": True,
+            "agent_name": agent_name,
             "message": f"Session taken over by {agent_name}. AI replies paused.",
             "state": state.to_dict(),
         })
@@ -351,7 +353,7 @@ def live_desk_send():
     data = request.get_json(silent=True) or {}
     session_id = data.get("session_id")
     message = data.get("message", "").strip()
-    agent_name = data.get("agent_name") or "Sales Specialist"
+    agent_name = data.get("agent_name") or session.get("agent_name") or "Sales Specialist"
 
     if not session_id or not message:
         return jsonify({"success": False, "error": "session_id and message are required"}), 400
@@ -402,4 +404,243 @@ def live_desk_poll():
     except Exception as e:
         logger.error(f"Live desk poll error {session_id}: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ── Real-Time Live Desk Escalation Notifications ────────────────────────────
+@admin_bp.route("/api/admin/live-desk/notifications", methods=["GET"])
+def live_desk_notifications():
+    """Returns unhandled customer escalations requiring sales agent attention."""
+    try:
+        since_ts = float(request.args.get("since", 0))
+        notifications = []
+        with _conn() as conn:
+            # Query recent sessions updated in the last 2 hours
+            cutoff = max(since_ts, time.time() - 7200)
+            rows = conn.execute(
+                """
+                SELECT session_id, updated_at, customer_name, state_json, history_json
+                FROM conversation_sessions
+                WHERE updated_at >= ?
+                ORDER BY updated_at DESC
+                """,
+                (cutoff,),
+            ).fetchall()
+
+            for r in rows:
+                try:
+                    s = json.loads(r["state_json"])
+                    if s.get("handover_triggered") and not s.get("human_agent_active"):
+                        h = json.loads(r["history_json"])
+                        last_msg = ""
+                        for m in reversed(h):
+                            if m.get("role") == "user":
+                                last_msg = m.get("content", "")
+                                break
+                        notifications.append({
+                            "session_id": r["session_id"],
+                            "customer_name": r["customer_name"] or "Customer",
+                            "reason": s.get("handover_reason") or "customer_requested_human",
+                            "last_message": last_msg,
+                            "updated_at": r["updated_at"],
+                            "priority": 1,
+                        })
+                except Exception:
+                    continue
+
+        return jsonify({
+            "success": True,
+            "count": len(notifications),
+            "notifications": notifications,
+            "server_timestamp": time.time(),
+        })
+    except Exception as e:
+        logger.error(f"Live desk notifications error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ── Agent Authentication & Session Management ──────────────────────────────
+def _current_agent() -> Optional[Dict[str, Any]]:
+    """Helper: resolves current authenticated agent from session."""
+    agent_id = session.get("agent_id")
+    if not agent_id:
+        return None
+    agent = agent_repository.get_by_id(agent_id)
+    if not agent or agent.status != "active":
+        return None
+    return {
+        "agent_id": agent.agent_id,
+        "username": agent.username,
+        "name": agent.name,
+        "email": agent.email,
+        "role": agent.role,
+        "online_status": agent.online_status,
+        "last_login": agent.last_login,
+    }
+
+
+@admin_bp.route("/api/admin/auth/login", methods=["POST"])
+def auth_login():
+    """Salesman or admin logs in with username and password."""
+    data = request.get_json(silent=True) or {}
+    username = data.get("username", "").strip()
+    password = data.get("password", "")
+
+    agent = agent_repository.authenticate(username, password)
+    if not agent:
+        return jsonify({"success": False, "error": "Invalid username or password"}), 401
+
+    session["agent_id"] = agent.agent_id
+    session["agent_name"] = agent.name
+    session["agent_role"] = agent.role
+
+    return jsonify({
+        "success": True,
+        "message": f"Welcome back, {agent.name}!",
+        "agent": {
+            "agent_id": agent.agent_id,
+            "username": agent.username,
+            "name": agent.name,
+            "email": agent.email,
+            "role": agent.role,
+            "online_status": agent.online_status,
+            "last_login": agent.last_login,
+        },
+    })
+
+
+@admin_bp.route("/api/admin/auth/logout", methods=["POST"])
+def auth_logout():
+    """Logs out agent and updates online status to offline."""
+    agent_id = session.get("agent_id")
+    if agent_id:
+        agent_repository.update_online_status(agent_id, "offline")
+    session.clear()
+    return jsonify({"success": True, "message": "Logged out successfully."})
+
+
+@admin_bp.route("/api/admin/auth/me", methods=["GET"])
+def auth_me():
+    """Returns profile of currently logged-in agent."""
+    agent = _current_agent()
+    if not agent:
+        return jsonify({"success": True, "logged_in": False, "authenticated": False, "agent": None})
+    return jsonify({"success": True, "logged_in": True, "authenticated": True, "agent": agent})
+
+
+@admin_bp.route("/api/admin/auth/status", methods=["POST"])
+def auth_status():
+    """Updates salesman availability: online, busy, offline."""
+    agent = _current_agent()
+    if not agent:
+        return jsonify({"success": False, "error": "Not authenticated"}), 401
+    data = request.get_json(silent=True) or {}
+    new_status = data.get("status")
+    if new_status not in ("online", "busy", "offline"):
+        return jsonify({"success": False, "error": "Invalid status"}), 400
+    agent_repository.update_online_status(agent["agent_id"], new_status)
+    return jsonify({"success": True, "status": new_status})
+
+
+# ── Agent Management Endpoints (Admin & Team) ──────────────────────────────
+@admin_bp.route("/api/admin/agents", methods=["GET"])
+def get_agents():
+    """Lists all sales agents (accessible to authenticated users)."""
+    agent = _current_agent()
+    if not agent:
+        return jsonify({"success": False, "error": "Authentication required"}), 401
+    agents = agent_repository.list_agents()
+    return jsonify({"success": True, "count": len(agents), "agents": agents})
+
+
+@admin_bp.route("/api/admin/agents", methods=["POST"])
+def create_agent():
+    """Admin creates a new salesman agent."""
+    agent = _current_agent()
+    if not agent or agent.get("role") != "admin":
+        return jsonify({"success": False, "error": "Admin privileges required"}), 403
+
+    data = request.get_json(silent=True) or {}
+    username = data.get("username")
+    password = data.get("password")
+    name = data.get("name")
+    email = data.get("email")
+    role = data.get("role", "salesman")
+
+    try:
+        new_agent = agent_repository.create_agent(
+            username=username,
+            password=password,
+            name=name,
+            email=email,
+            role=role,
+        )
+        return jsonify({
+            "success": True,
+            "message": f"Agent {new_agent.name} created successfully.",
+            "agent": {
+                "agent_id": new_agent.agent_id,
+                "username": new_agent.username,
+                "name": new_agent.name,
+                "email": new_agent.email,
+                "role": new_agent.role,
+                "status": new_agent.status,
+                "created_at": new_agent.created_at,
+            },
+        }), 201
+    except ValueError as ve:
+        return jsonify({"success": False, "error": str(ve)}), 400
+    except Exception as e:
+        logger.error(f"Error creating agent: {e}")
+        return jsonify({"success": False, "error": "Failed to create agent"}), 500
+
+
+@admin_bp.route("/api/admin/agents/<agent_id>", methods=["PATCH"])
+def update_agent(agent_id: str):
+    """Admin updates agent status, role, details, or password."""
+    agent = _current_agent()
+    if not agent or agent.get("role") != "admin":
+        return jsonify({"success": False, "error": "Admin privileges required"}), 403
+
+    data = request.get_json(silent=True) or {}
+    ok = agent_repository.update_agent(
+        agent_id=agent_id,
+        name=data.get("name"),
+        email=data.get("email"),
+        status=data.get("status"),
+        role=data.get("role"),
+        password=data.get("password"),
+    )
+    if not ok:
+        return jsonify({"success": False, "error": "Agent not found or no changes made"}), 404
+    updated = agent_repository.get_by_id(agent_id)
+    agent_data = {
+        "agent_id": updated.agent_id,
+        "username": updated.username,
+        "name": updated.name,
+        "email": updated.email,
+        "role": updated.role,
+        "status": updated.online_status,
+        "online_status": updated.online_status,
+    } if updated else None
+    return jsonify({"success": True, "message": "Agent updated successfully.", "agent": agent_data})
+
+
+@admin_bp.route("/api/admin/agents/<agent_id>", methods=["DELETE"])
+def delete_agent(agent_id: str):
+    """Admin deletes an agent."""
+    agent = _current_agent()
+    if not agent or agent.get("role") != "admin":
+        return jsonify({"success": False, "error": "Admin privileges required"}), 403
+
+    try:
+        ok = agent_repository.delete_agent(agent_id)
+        if not ok:
+            return jsonify({"success": False, "error": "Agent not found"}), 404
+        return jsonify({"success": True, "message": "Agent deleted successfully."})
+    except ValueError as ve:
+        return jsonify({"success": False, "error": str(ve)}), 400
+    except Exception as e:
+        logger.error(f"Error deleting agent {agent_id}: {e}")
+        return jsonify({"success": False, "error": "Failed to delete agent"}), 500
+
 

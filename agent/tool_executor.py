@@ -77,12 +77,13 @@ class CatalogToolExecutor:
         vat_note = price_info.get("vat_note", "")
 
         tags = prod.get("tags", [])
+        cat = str(prod.get("category", "")).lower()
         badge = "Hardware" if card_type == "hardware" else "Consumable"
-        if any("Ink" in t for t in tags):
-            badge = "UltraChrome Ink"
-        elif any("Maintenance" in t for t in tags):
+        if any("Ink" in t for t in tags) or "ink" in name.lower() or "cartridge" in name.lower():
+            badge = "UltraChrome Ink" if "ultrachrome" in name.lower() or "ultrachrome" in " ".join(tags).lower() else "Ink Cartridge"
+        elif any("Maintenance" in t for t in tags) or "maintenance" in name.lower():
             badge = "Maintenance Tank"
-        elif any("Media" in t for t in tags) or "media" in name.lower():
+        elif any("Media" in t for t in tags) or cat == "media & paper" or any(m in name.lower() for m in ["media", "paper", "canvas", "roll", "sheet", "film", "luster", "glossy", "matte", "baryta", "velvet", "rag"]):
             badge = "Print Media"
 
         width_val = prod.get("width") or prod.get("print_sizes")
@@ -356,10 +357,20 @@ class CatalogToolExecutor:
                     # Strictly skip hardware printers, plotters, and scanners
                     if any(hw in item_cat_l for hw in ["printer", "scanner", "plotter"]):
                         continue
-                    if not any(cons_kw in item_name_l for cons_kw in ["ink", "cartridge", "tank", "box", "ribbon", "media", "paper", "pack", "bottle", "maintenance", "cleaning", "pen", "bag"]):
+                    # Allow recognized consumables or any item from Media & Paper category
+                    is_valid_cons = (
+                        item_cat_l in ("media & paper", "ink cartridge", "maintenance box", "ribbon")
+                        or any(cons_kw in item_name_l for cons_kw in [
+                            "ink", "cartridge", "tank", "box", "ribbon", "media", "paper", "pack",
+                            "bottle", "maintenance", "cleaning", "pen", "bag", "canvas", "roll",
+                            "sheet", "film", "luster", "glossy", "matte", "baryta", "velvet", "rag"
+                        ])
+                    )
+                    if not is_valid_cons:
                         continue
                     item_brand = "citizen" if "citizen" in item_name_l else ("epson" if "epson" in item_name_l else None)
-                    if not target_brand or not item_brand or target_brand == item_brand:
+                    # Note: fine art papers (Innova, etc.) or generic media can be used with Epson large format printers
+                    if not target_brand or not item_brand or target_brand == item_brand or (target_brand == "epson" and item_cat_l == "media & paper"):
                         seen.add(c_sku_up)
                         consumable_items.append(item)
                         if len(consumable_items) >= limit:
@@ -388,13 +399,17 @@ class CatalogToolExecutor:
 
                 p_item_brand = "citizen" if "citizen" in p_name_l else ("epson" if "epson" in p_name_l else None)
                 if target_brand and p_item_brand and target_brand != p_item_brand:
-                    continue
+                    if not (target_brand == "epson" and p_cat_l == "media & paper"):
+                        continue
 
                 p_name_norm = re.sub(r"[\s\-_\u200b]", "", p_name_l)
                 p_desc_norm = re.sub(r"[\s\-_\u200b]", "", p.get("description", "").lower())
                 p_tags_norm = re.sub(r"[\s\-_\u200b]", "", " ".join(p.get("tags", [])).lower())
 
-                is_cons = any(k in p_name_l for k in ["ink", "cartridge", "tank", "box", "maintenance", "ribbon", "media", "paper", "bottle", "pack"])
+                is_cons = (
+                    p_cat_l in ("media & paper", "ink cartridge", "maintenance box", "ribbon")
+                    or any(k in p_name_l for k in ["ink", "cartridge", "tank", "box", "maintenance", "ribbon", "media", "paper", "bottle", "pack", "canvas", "roll", "sheet", "luster", "matte", "glossy", "velvet", "baryta"])
+                )
                 if is_cons and any(t in p_name_norm or t in p_desc_norm or t in p_tags_norm for t in tokens):
                     seen.add(sku_up)
                     consumable_items.append(p)
@@ -408,6 +423,8 @@ class CatalogToolExecutor:
                 or target_brand in " ".join(c.get("tags", [])).lower()
                 or target_brand in str(c.get("category", "")).lower()
                 or any(str(c.get("sku", "")).upper().startswith(pfx) for pfx in ["CX", "CY", "CZ", "CITIZEN"])
+                or str(c.get("sku", "")).upper() in [str(s).upper() for s in target_printer.get("consumables", [])]
+                or (target_brand == "epson" and str(c.get("category", "")).lower() == "media & paper")
             ]
 
         consumable_cards = [self.format_card(c, card_type="consumable") for c in consumable_items]

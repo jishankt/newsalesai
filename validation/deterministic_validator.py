@@ -364,9 +364,9 @@ class DeterministicResponseValidator:
         # 3c. Capacity validation — active product only.
         # IMPORTANT: We validate exclusively against the active product's allowed
         # capacities.  We never skip the check because another product has the value.
-        cap_matches = re.finditer(r"\b(\d{3,4})\s*(?:photos|prints|sheets|copies)\b", text_lower)
+        cap_matches = re.finditer(r"(?<!\d,)(?<!\d)\b(\d{1,2},?\d{3}|\d{3,4})\s*(?:photos|prints|sheets|copies)\b", text_lower)
         for cm in cap_matches:
-            val_str = cm.group(1)
+            val_str = cm.group(1).replace(",", "")
             for pid in active_pids:
                 m_info = VERIFIED_METRICS.get(pid, {})
                 allowed_c = m_info.get("capacities", set())

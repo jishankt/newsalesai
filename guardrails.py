@@ -20,8 +20,8 @@ DISCOUNT_REFUSAL = (
 PRICE_REFUSAL = DISCOUNT_REFUSAL
 
 GENERAL_PRICE_DIRECT = (
-    f"Official pricing for available models and genuine consumables is published on our website at {OFFICIAL_WEBSITE_URL}.\n\n"
-    f"For enterprise systems not listed for direct online checkout, please contact our customer support team directly at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}."
+    f"Verified pricing for available models and genuine consumables is published on our official website at {OFFICIAL_WEBSITE_URL}.\n\n"
+    f"For enterprise and production systems not listed for direct online checkout, our sales team would be glad to prepare an official commercial quotation at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}."
 )
 
 PRICE_USER_PATTERNS = [

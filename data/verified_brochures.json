@@ -67,19 +67,19 @@
   },
   "epson-p900": {
     "name": "Epson SureColor SC-P900 17\" Photo Printer",
-    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-printer-with-roll-adapter/",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-p900-17-inch-photo-printer/",
     "pdf": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-SureColor-P900-Photo-Printer-Datasheet.pdf",
     "aliases": ["p900", "sc-p900"]
   },
   "epson-p5000": {
     "name": "Epson SureColor SC-P5000 17\" Commercial Photo Printer",
-    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-printer-with-roll-adapter/",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p5000-standard-large-format-printer/",
     "pdf": "https://www.keplertechllc.com/wp-content/uploads/2023/07/Epson-SureCOlor-P5000-Printer-1.pdf",
     "aliases": ["p5000", "sc-p5000"]
   },
   "epson-p6000": {
     "name": "Epson SureColor SC-P6000 24\" Large Format Printer",
-    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-printer-with-roll-adapter/",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-p6000-24-large-format-printer-std/",
     "pdf": "https://www.keplertechllc.com/wp-content/uploads/2023/07/Epson-SureColor-SC-P6000-Product-Datasheet.pdf",
     "aliases": ["p6000", "sc-p6000"]
   },
@@ -96,10 +96,16 @@
     "aliases": ["p9000", "sc-p9000"]
   },
   "epson-p7500": {
-    "name": "Epson SureColor SC-P7500 / SC-P9500 12-Color Large Format Photo Printer",
+    "name": "Epson SureColor SC-P7500 12-Color Large Format Photo Printer",
     "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
     "pdf": "https://www.keplertechllc.com/wp-content/uploads/2025/09/epson-surecolor-sc-p7500-datasheet-kepler-tech.pdf",
-    "aliases": ["p7500", "p9500", "sc-p7500", "sc-p9500"]
+    "aliases": ["p7500", "sc-p7500"]
+  },
+  "epson-p9500": {
+    "name": "Epson SureColor SC-P9500 44\" 12-Color Large Format Photo Printer",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-p9500-large-format-printer/",
+    "pdf": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-SureColor-SC-P9500-Datasheet.pdf",
+    "aliases": ["p9500", "sc-p9500"]
   },
   "epson-sc-f100": {
     "name": "Epson SureColor SC-F100 Desktop Dye-Sublimation Printer",

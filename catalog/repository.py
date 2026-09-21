@@ -4,6 +4,7 @@ Loads and unifies raw catalog data into NormalizedProduct models with strict 3-v
 """
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Dict, List, Optional
 from catalog.schema import NormalizedProduct, VerifiedSpecs, ProductSource
@@ -12,10 +13,11 @@ logger = logging.getLogger("catalog:repository")
 
 
 class CatalogRepository:
-    def __init__(self, corpus_path: Optional[str] = None, products_path: Optional[str] = None):
+    def __init__(self, corpus_path: Optional[str] = None, products_path: Optional[str] = None, catalogue_products_path: Optional[str] = None):
         base_dir = Path(__file__).parent.parent / "data"
         self.corpus_path = Path(corpus_path) if corpus_path else base_dir / "kepler_product_corpus.json"
         self.products_path = Path(products_path) if products_path else base_dir / "products.json"
+        self.catalogue_products_path = Path(catalogue_products_path) if catalogue_products_path else base_dir / "catalogue_products.json"
         
         self.products_by_id: Dict[str, NormalizedProduct] = {}
         self.products_by_category: Dict[str, List[NormalizedProduct]] = {}
@@ -177,7 +179,7 @@ class CatalogRepository:
                 "entity_type": "printer",
                 "canonical_id": "epson-p700",
                 "display_name": "Epson SureColor SC-P700 13\" Photo Printer",
-                "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7000-Printer-1.webp",
+                "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/EPSON-P700-Printer-1.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-surecolor-p700-13-photo-printer/",
                 "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-SureColor-SC-P700-13-Photo-Printer-Datasheet.pdf",
                 "consumables": ["C12C935711", "C13T46S100", "C13T46S200", "C13T46S300", "C13T46S400", "C13T46S500", "C13T46S600", "C13T46S700", "C13T46S800", "C13T46S900", "C13T46SD00"],
@@ -210,7 +212,7 @@ class CatalogRepository:
                 "entity_type": "printer",
                 "canonical_id": "epson-p9500",
                 "display_name": "Epson SureColor SC-P9500 44\" Large Format Printer",
-                "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp",
+                "image_url": "https://www.keplertechllc.com/wp-content/uploads/2016/03/Epson-P9500-Printer-4.webp",
                 "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p9500-large-format-printer/",
                 "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-SureColor-SC-P9500-Datasheet.pdf",
                 "consumables": ["C13T699700", "C13T44J240", "C13T44Q240", "C13T44J740", "C13T44Q740", "C13T44JB40", "C13T44QB40", "C13T44J940", "C13T44J840", "C13T44JA40", "C13T44QA40", "C13T44JD40", "C13T44QD40", "C13T44J640", "C13T44J440", "C13T44Q440"],
@@ -750,6 +752,66 @@ class CatalogRepository:
                                 self.products_by_id[norm_scanner.id] = norm_scanner
             except Exception as e:
                 logger.error(f"Error indexing scanners from {self.products_path}: {e}")
+
+        # 4. Sync catalogue_products.json to guarantee consumables and specifications for all catalogue items
+        if self.catalogue_products_path.exists():
+            try:
+                with open(self.catalogue_products_path, "r", encoding="utf-8") as f:
+                    cat_data = json.load(f)
+                    for item in cat_data:
+                        c_id = item.get("id")
+                        if not c_id:
+                            continue
+                        c_id_clean = re.sub(r"[\s\-_]+", "", c_id.lower()).replace("citizen", "").replace("epson", "")
+                        consumables = item.get("consumables", [])
+                        img = item.get("image_url")
+                        web_url = item.get("product_url")
+                        disp_name = item.get("display_name")
+
+                        matched = False
+                        for p in self.products_by_id.values():
+                            p_id_clean = re.sub(r"[\s\-_]+", "", p.id.lower()).replace("citizen", "").replace("epson", "")
+                            p_name_clean = re.sub(r"[\s\-_]+", "", p.name.lower()).replace("citizen", "").replace("epson", "")
+                            if p.id == c_id or p_id_clean == c_id_clean or (len(c_id_clean) >= 5 and c_id_clean in p_name_clean):
+                                matched = True
+                                if consumables:
+                                    existing_c = p.consumables or []
+                                    p.consumables = list(dict.fromkeys(consumables + existing_c))
+                                if img and (not p.image_url or "placeholder" in p.image_url.lower()):
+                                    p.image_url = img
+                                if web_url and (not p.product_url or not p.source.website_url):
+                                    p.product_url = web_url
+                                    p.source.website_url = web_url
+                                break
+
+                        if not matched:
+                            # Index item into catalog
+                            brand_val = item.get("brand", "Epson")
+                            cat_val = item.get("main_category", "office_printer")
+                            p_sizes = item.get("supported_print_sizes", [])
+                            norm_cat_item = NormalizedProduct(
+                                id=c_id,
+                                canonical_id=c_id,
+                                display_name=disp_name or item.get("model_family") or c_id,
+                                entity_type="printer",
+                                product_url=web_url,
+                                brand=brand_val,
+                                model=item.get("model_family") or disp_name,
+                                name=disp_name or c_id,
+                                category=cat_val,
+                                sku=c_id.upper(),
+                                verified=VerifiedSpecs(
+                                    supported_print_sizes=list(p_sizes),
+                                    max_width_label=f"{item.get('max_width_inches')} inches" if item.get("max_width_inches") else None,
+                                ),
+                                source=ProductSource(website_url=web_url),
+                                image_url=img,
+                                consumables=list(consumables),
+                                supported_print_sizes=list(p_sizes),
+                            )
+                            self.products_by_id[c_id] = norm_cat_item
+            except Exception as e:
+                logger.error(f"Error enriching from catalogue_products {self.catalogue_products_path}: {e}")
 
         # Index by category
         self.products_by_category = {}

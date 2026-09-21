@@ -15,35 +15,40 @@
       "2933"
     ],
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-P9500-Large-Format-Printer.webp",
-    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p9500-large-format-printer/",
+    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-p9500-large-format-printer/",
     "category": "Large Format Printer",
     "consumables": [
       "C13T699700",
       "C13T44J240",
-      "C13T44Q240",
       "C13T44J740",
-      "C13T44Q740",
       "C13T44JB40",
-      "C13T44QB40",
       "C13T44J940",
       "C13T44J840",
       "C13T44JA40",
-      "C13T44QA40",
       "C13T44JD40",
-      "C13T44QD40",
       "C13T44J640",
       "C13T44J440",
-      "C13T44Q440"
+      "C13T44Q240",
+      "C13T44Q740",
+      "C13T44QB40",
+      "C13T44QA40",
+      "C13T44QD40",
+      "C13T44Q440",
+      "C13S041597",
+      "C13S041848",
+      "C13S045259"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p9500-large-format-printer/",
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-P9500-Large-Format-Printer.webp"
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-p9500-large-format-printer/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-P9500-Large-Format-Printer.webp",
+    "yield_capacity": "Exhibition gallery yield with 99% Pantone gamut coverage (350ml and 700ml Individual Ink Cartridges)",
+    "pattern_and_finishing": "Glossy, Semi-Gloss, Luster, Matte, Baryta, and Fine Art museum canvas media; sheet feed and manual fine art feed;  zero black-ink switching; automated PrecisionCore nozzle check diagnostic pattern."
   },
   {
     "_id": "C11CE20001A0",
     "sku": "C11CE20001A0",
     "row_id": "6089",
-    "name": "Epson SureColor SC P20000 Large Format Printer",
+    "name": "Epson SureColor SC-P20000 Large Format Printer",
     "price": null,
     "stock": 10,
     "description": "High-precision Epson SureColor SC P20000 Large Format Printer engineered for superior color accuracy, high-speed output, and professional production.",
@@ -54,16 +59,19 @@
       "C11CE20001A0",
       "6089"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-SureColor-SC-T7200-Printer.webp",
-    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t7200-large-format-printer/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/EPSON-P20000-PEINTER-1.webp",
+    "website_url": "https://www.keplertechllc.com/product/epson-sc-p20000-large-format-printer/",
     "category": "Large Format Printer",
     "consumables": [
-      "C13T800100",
-      "C13T800200",
-      "C13T800300",
-      "C13T800400",
-      "C13T619300"
-    ]
+      "C13T619300",
+      "C13T56F100",
+      "C13T56F500",
+      "C13S042138",
+      "C13S042135",
+      "C13S045065"
+    ],
+    "web_url": "https://www.keplertechllc.com/product/epson-sc-p20000-large-format-printer/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/EPSON-P20000-PEINTER-1.webp"
   },
   {
     "_id": "C13T800100",
@@ -315,7 +323,9 @@
       "CX2.6X8"
     ],
     "web_url": "https://www.keplertechllc.com/product/citizen-cx-02-photo-printer/",
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Citizen-CX-02-Photo-Printer-Dubai.webp"
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Citizen-CX-02-Photo-Printer-Dubai.webp",
+    "yield_capacity": "400 prints per roll (4\u00d76\u2033) / 200 prints per roll (6\u00d78\u2033); 800 prints per 2-roll box of CX2.4X6",
+    "pattern_and_finishing": "Glossy and Matte finishes managed via thermal printhead overcoat in the printer driver without changing media (promotional overview also references a luster effect); ribbon rewind technology to prevent media waste; drop-in paper loading; automated test pattern diagnostics."
   },
   {
     "_id": "C11CH86401BY",
@@ -333,7 +343,7 @@
       "6219"
     ],
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Enterprise-WF-C20600.webp",
-    "website_url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-wf-c20600-color-multifunction-printer/",
+    "website_url": "https://www.keplertechllc.com/product/workforce-enterprise-wf-c20600-multi-functional-printer/",
     "category": "Business Printer",
     "consumables": [
       "C13T02S100",
@@ -342,8 +352,10 @@
       "C13T02S400",
       "C13T671300"
     ],
-    "web_url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-wf-c20600-color-multifunction-printer/",
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Enterprise-WF-C20600.webp"
+    "web_url": "https://www.keplertechllc.com/product/workforce-enterprise-wf-c20600-multi-functional-printer/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Enterprise-WF-C20600.webp",
+    "product_url": "https://www.keplertechllc.com/product/workforce-enterprise-wf-c20600-multi-functional-printer/",
+    "url": "https://www.keplertechllc.com/product/workforce-enterprise-wf-c20600-multi-functional-printer/"
   },
   {
     "_id": "C13T02Q100",
@@ -1015,23 +1027,27 @@
     "consumables": [
       "C13T699700",
       "C13T44J240",
-      "C13T44Q240",
       "C13T44J740",
-      "C13T44Q740",
       "C13T44JB40",
-      "C13T44QB40",
       "C13T44J940",
       "C13T44J840",
       "C13T44JA40",
-      "C13T44QA40",
       "C13T44JD40",
-      "C13T44QD40",
       "C13T44J640",
       "C13T44J440",
-      "C13T44Q440"
+      "C13T44Q240",
+      "C13T44Q740",
+      "C13T44QB40",
+      "C13T44QA40",
+      "C13T44QD40",
+      "C13T44Q440",
+      "C13S041595",
+      "C13S041847"
     ],
     "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp"
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp",
+    "yield_capacity": "Exhibition contract proofing and gallery photographic yield (350ml and 700ml Individual Ink Cartridges)",
+    "pattern_and_finishing": "Glossy, Semi-Gloss, Luster, Matte, Baryta, and Fine Art museum canvas media; sheet feed and manual fine art feed;  zero black-ink switching; automated PrecisionCore nozzle check diagnostic pattern."
   },
   {
     "_id": "C11CE40301A0",
@@ -1052,6 +1068,21 @@
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-p9000-large-format-printer/",
     "category": "Large Format Printer",
     "consumables": [
+      "C12C935711",
+      "C13T47A100",
+      "C13T47A200",
+      "C13T47A300",
+      "C13T47A400",
+      "C13T47A500",
+      "C13T47A600",
+      "C13T47A700",
+      "C13T47A800",
+      "C13T47A900",
+      "C13T47AD00",
+      "C12C935901",
+      "C13S042123",
+      "C13S041725",
+      "C13S041846",
       "C13T54X100",
       "C13T54X200",
       "C13T54X300",
@@ -1077,7 +1108,9 @@
       "C13T699700"
     ],
     "availability": "Out of Stock",
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P9000-Printer-3.webp"
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P9000-Printer-3.webp",
+    "yield_capacity": "Zero black-switch ink waste (dedicated Photo/Matte channels) (50ml Individual Ink Cartridges)",
+    "pattern_and_finishing": "Glossy, Semi-Gloss, Luster, Matte, Baryta, and Fine Art museum canvas media; sheet feed and manual fine art feed;  zero black-ink switching; automated PrecisionCore nozzle check diagnostic pattern."
   },
   {
     "_id": "C13T804200",
@@ -1595,7 +1628,7 @@
     "_id": "C11CE41301A0",
     "sku": "C11CE41301A0",
     "row_id": "6721",
-    "name": "Epson SureColor SC P6000 Large-Format Printer STD",
+    "name": "Epson SureColor SC-P6000 24\" Large-Format Printer STD",
     "price": null,
     "stock": 10,
     "description": "High-precision Epson SureColor SC P6000 Large-Format Printer STD engineered for superior color accuracy, high-speed output, and professional production.",
@@ -1606,16 +1639,20 @@
       "C11CE41301A0",
       "6721"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7000-Printer-1.webp",
-    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-p7000-large-format-printer-std/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P6000-Printer-1.webp",
+    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-p6000-24-large-format-printer-std/",
     "category": "Printer",
     "consumables": [
-      "C13T800100",
-      "C13T800200",
-      "C13T800300",
-      "C13T800400",
-      "C13T699700"
-    ]
+      "C13T699700",
+      "C13T44J240",
+      "C13T44J740",
+      "C13T44J940",
+      "C13T44J840",
+      "C13S041595",
+      "C13S041847"
+    ],
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-p6000-24-large-format-printer-std/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P6000-Printer-1.webp"
   },
   {
     "_id": "C13T913100",
@@ -1808,7 +1845,7 @@
     "_id": "C11CF66001A4",
     "sku": "C11CF66001A4",
     "row_id": "6794",
-    "name": "Epson SureColor SC P5000 17\" Large Format Printer STD",
+    "name": "Epson SureColor SC-P5000 17\" Large Format Printer STD",
     "price": null,
     "stock": 10,
     "description": "High-precision Epson SureColor SC P5000 17\" Large Format Printer STD engineered for superior color accuracy, high-speed output, and professional production.",
@@ -1819,16 +1856,18 @@
       "C11CF66001A4",
       "6794"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7000-Printer-1.webp",
-    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-p7000-large-format-printer-std/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P5000-Printer-2.webp",
+    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p5000-standard-large-format-printer/",
     "category": "Printer",
     "consumables": [
-      "C13T913100",
-      "C13T913200",
-      "C13T913300",
-      "C13T913400",
-      "C13T619300"
-    ]
+      "C13T699700",
+      "C13T44J240",
+      "C13T44J740",
+      "C13S041725",
+      "C13S041846"
+    ],
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p5000-standard-large-format-printer/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P5000-Printer-2.webp"
   },
   {
     "_id": "C13T913900",
@@ -2148,7 +2187,9 @@
       "C12C935711"
     ],
     "web_url": "https://www.keplertechllc.com/product/maintenance-tank-sc-p700-sc-p900-c12c935711/",
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Maintenance-Tank-SC-P700SC-P900-C12C935711.webp"
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Maintenance-Tank-SC-P700SC-P900-C12C935711.webp",
+    "yield_capacity": "Zero black-switch ink waste (dedicated Photo/Matte channels) (25ml Individual Ink Cartridges)",
+    "pattern_and_finishing": "Glossy, Semi-Gloss, Luster, Matte, Baryta, and Fine Art museum canvas media; sheet feed and manual fine art feed;  zero black-ink switching; automated PrecisionCore nozzle check diagnostic pattern."
   },
   {
     "_id": "C11CH37402DA",
@@ -2166,7 +2207,7 @@
       "6886"
     ],
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-P900-Printer-2.webp",
-    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-photo-printer/",
+    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-p900-17-inch-photo-printer/",
     "category": "Printer",
     "consumables": [
       "C13T47A100",
@@ -2181,7 +2222,7 @@
       "C13T47A900",
       "C12C935711"
     ],
-    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-photo-printer/",
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-p900-17-inch-photo-printer/",
     "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-P900-Printer-2.webp"
   },
   {
@@ -2403,6 +2444,7 @@
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-p700-13-photo-printer/",
     "category": "Printer",
     "consumables": [
+      "C12C935711",
       "C13T46S100",
       "C13T46S200",
       "C13T46S300",
@@ -2413,10 +2455,14 @@
       "C13T46S800",
       "C13T46S900",
       "C13T46SD00",
-      "C12C935711"
+      "C13S041785",
+      "C13S042330",
+      "C13S042300"
     ],
     "web_url": "https://www.keplertechllc.com/product/epson-surecolor-p700-13-photo-printer/",
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/EPSON-P700-Printer-1.webp"
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/EPSON-P700-Printer-1.webp",
+    "yield_capacity": "Zero black-switch ink waste (dedicated Photo/Matte channels) (25ml Individual Ink Cartridges)",
+    "pattern_and_finishing": "Glossy, Semi-Gloss, Luster, Matte, Baryta, and Fine Art museum canvas media; sheet feed and manual fine art feed;  zero black-ink switching; automated PrecisionCore nozzle check diagnostic pattern."
   },
   {
     "_id": "CY-02",
@@ -2440,7 +2486,9 @@
       "CY-MS68"
     ],
     "web_url": "https://www.keplertechllc.com/product/citizen-cy-02-photo-printer/",
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CY-02-Photo-Printer.webp"
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CY-02-Photo-Printer.webp",
+    "yield_capacity": "700 prints per roll (4\u00d76\u2033) / 350 prints per roll (6\u00d78\u2033); 1,400 prints per 2-roll box of CY-MS46",
+    "pattern_and_finishing": "Glossy and Matte finishes managed directly via thermal printhead overcoat in the printer driver without changing media rolls; rapid drop-in roll media loading; automated test pattern diagnostics."
   },
   {
     "_id": "CX-02W",
@@ -2460,10 +2508,16 @@
     "website_url": "https://www.keplertechllc.com/product/citizen-cx-02w-large-photo-printer/",
     "category": "Photo Printer",
     "consumables": [
-      "CX2W 812"
+      "CX2W 812",
+      "Citizen Pen",
+      "CX2.4x6",
+      "CX2.6X8",
+      "Citizen CX-02 Bag"
     ],
     "web_url": "https://www.keplertechllc.com/product/citizen-cx-02w-large-photo-printer/",
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CX-02W-Photo-Printer.webp"
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CX-02W-Photo-Printer.webp",
+    "yield_capacity": "400 prints per roll (4\u00d76\u2033) / 200 prints per roll (6\u00d78\u2033); 800 prints per 2-roll box of CX2.4X6",
+    "pattern_and_finishing": "Glossy and Matte finishes managed via thermal printhead overcoat in the printer driver without changing media (promotional overview also references a luster effect); ribbon rewind technology to prevent media waste; drop-in paper loading; automated test pattern diagnostics."
   },
   {
     "_id": "CZ-01",
@@ -2487,7 +2541,9 @@
       "CZ-MS458"
     ],
     "web_url": "https://www.keplertechllc.com/product/citizen-cz-01-photo-printer/",
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CZ-01-Photo-Printer.webp"
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CZ-01-Photo-Printer.webp",
+    "yield_capacity": "150 prints per roll (4\u00d76\u2033); 300 prints per 2-roll box of CZ-MS46",
+    "pattern_and_finishing": "Glossy, Matte, and Partial Matte finishes managed via thermal printhead overcoat in the printer driver without changing media (Partial Matte enables selective texture patterns); ultra-compact drop-in roll loading; automated test pattern diagnostics."
   },
   {
     "_id": "C13T619100",
@@ -2786,11 +2842,15 @@
     "website_url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-wf-c21000-multi-function-printer/",
     "category": "Business Printer",
     "consumables": [
+      "C13T02Y100",
+      "C13T02Y200",
+      "C13T02Y300",
+      "C13T02Y400",
+      "C13T671300",
       "C13T02S100",
       "C13T02S200",
       "C13T02S300",
-      "C13T02S400",
-      "C13T671300"
+      "C13T02S400"
     ],
     "web_url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-wf-c21000-multi-function-printer/",
     "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Enterprise-WF-C21000.webp"
@@ -3599,11 +3659,15 @@
       "C13T05A200",
       "C13T05A300",
       "C13T05A400",
+      "C13T05B100",
+      "C13T05B200",
+      "C13T05B300",
+      "C13T05B400",
+      "C13T671400",
       "C13T05B140",
       "C13T05B240",
       "C13T05B340",
-      "C13T05B440",
-      "C13T671400"
+      "C13T05B440"
     ],
     "web_url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c879r-d3twfc-multifunction-printer-copy/"
   },
@@ -3630,6 +3694,10 @@
       "C13T05A200",
       "C13T05A300",
       "C13T05A400",
+      "C13T05B100",
+      "C13T05B200",
+      "C13T05B300",
+      "C13T05B400",
       "C13T671400"
     ],
     "availability": "Out of Stock",
@@ -4307,7 +4375,15 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T3100-%E2%80%93-Wireless-Printer-With-Stand.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t3100-wireless-printer-with-stand/",
     "category": "Printer",
-    "consumables": [],
+    "consumables": [
+      "C13T699700",
+      "C13T692100",
+      "C13T692200",
+      "C13T692300",
+      "C13T692400",
+      "C13T692500",
+      "C13S041385"
+    ],
     "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t3200-printer/"
   },
   {
@@ -4406,7 +4482,15 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-SureColor-T5200-MFP.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5200-mfp-large-format-printer/",
     "category": "Printer",
-    "consumables": [],
+    "consumables": [
+      "C13T699700",
+      "C13T692100",
+      "C13T692200",
+      "C13T692300",
+      "C13T692400",
+      "C13T692500",
+      "C13S041387"
+    ],
     "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5200-large-format-printer/"
   },
   {
@@ -4427,7 +4511,15 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-SureColor-T7200-Multi-Functional-Printer.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t7200-mfp-large-format-printer/",
     "category": "Printer",
-    "consumables": [],
+    "consumables": [
+      "C13T699700",
+      "C13T692100",
+      "C13T692200",
+      "C13T692300",
+      "C13T692400",
+      "C13T692500",
+      "C13S042138"
+    ],
     "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t7200-mfp-large-format-printer/"
   },
   {
@@ -4485,22 +4577,27 @@
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5405-wireless-printer/",
     "category": "Printer",
     "consumables": [
-      "C13T41E240",
-      "C13T41E340",
-      "C13T41E440",
-      "C13T41E540",
-      "C13T41F240",
-      "C13T41F340",
-      "C13T41F440",
-      "C13T41F540",
+      "C13T699700",
       "C13T41R240",
       "C13T41R340",
       "C13T41R440",
       "C13T41R540",
-      "C13T699700"
+      "C13T41F240",
+      "C13T41F340",
+      "C13T41F440",
+      "C13T41F540",
+      "C13S041385",
+      "C13S041387",
+      "C13S041597",
+      "C13T41E240",
+      "C13T41E340",
+      "C13T41E440",
+      "C13T41E540"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5405-wireless-printer/"
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5405-wireless-printer/",
+    "yield_capacity": "Over 2,000 A1 CAD drawings per 700ml tank at 5% coverage (110ml, 350ml, and 700ml Cartridges)",
+    "pattern_and_finishing": "Plain paper, CAD bond paper, tracing paper, matte film, and coated presentation media; single roll and manual sheet feed; automated PrecisionCore nozzle check diagnostic pattern and head cleaning."
   },
   {
     "_id": "C13S042138",
@@ -7506,7 +7603,7 @@
       "8440"
     ],
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/EPSON-P20000-PEINTER-1.webp",
-    "website_url": "https://www.keplertechllc.com/product/epson-sc-p20000-large-format-printer/",
+    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p9000-44-large-format-printer-std-spectro/",
     "category": "Large Format Printer",
     "consumables": [
       "C13T47A100",
@@ -7516,7 +7613,12 @@
       "C13T47AD00",
       "C13T699700"
     ],
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/EPSON-P20000-PEINTER-1.webp"
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/EPSON-P20000-PEINTER-1.webp",
+    "yield_capacity": "Zero black-switch ink waste (dedicated Photo/Matte channels) (50ml Individual Ink Cartridges)",
+    "pattern_and_finishing": "Glossy, Semi-Gloss, Luster, Matte, Baryta, and Fine Art museum canvas media; sheet feed and manual fine art feed;  zero black-ink switching; automated PrecisionCore nozzle check diagnostic pattern.",
+    "product_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p9000-44-large-format-printer-std-spectro/",
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p9000-44-large-format-printer-std-spectro/",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p9000-44-large-format-printer-std-spectro/"
   },
   {
     "_id": "C11CE40301A1",
@@ -7544,7 +7646,9 @@
       "C13T47AD00",
       "C13T699700"
     ],
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2024/08/Epson-SC-P20500-Large-Format-Printer.webp"
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2024/08/Epson-SC-P20500-Large-Format-Printer.webp",
+    "yield_capacity": "Zero black-switch ink waste (dedicated Photo/Matte channels) (50ml Individual Ink Cartridges)",
+    "pattern_and_finishing": "Glossy, Semi-Gloss, Luster, Matte, Baryta, and Fine Art museum canvas media; sheet feed and manual fine art feed;  zero black-ink switching; automated PrecisionCore nozzle check diagnostic pattern."
   },
   {
     "_id": "C11CE40301A3",
@@ -7561,7 +7665,7 @@
       "8444"
     ],
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Epson-P9500-Spectro.webp",
-    "website_url": "https://www.keplertechllc.com/?s=Epson+SC+P9000V+Printer+Violet+Spectro&post_type=product",
+    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p9000v-44-large-format-printer-spectro/",
     "category": "Large Format Printer",
     "consumables": [
       "C13T47A100",
@@ -7570,7 +7674,12 @@
       "C13T47A400",
       "C13T47AD00",
       "C13T699700"
-    ]
+    ],
+    "yield_capacity": "Zero black-switch ink waste (dedicated Photo/Matte channels) (50ml Individual Ink Cartridges)",
+    "pattern_and_finishing": "Glossy, Semi-Gloss, Luster, Matte, Baryta, and Fine Art museum canvas media; sheet feed and manual fine art feed;  zero black-ink switching; automated PrecisionCore nozzle check diagnostic pattern.",
+    "product_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p9000v-44-large-format-printer-spectro/",
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p9000v-44-large-format-printer-spectro/",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p9000v-44-large-format-printer-spectro/"
   },
   {
     "_id": "C11CH13301A3",
@@ -7588,7 +7697,7 @@
       "8475"
     ],
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp",
-    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
+    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-p9500-large-format-printer/",
     "category": "Large Format Printer",
     "consumables": [
       "C13T699700",
@@ -7609,7 +7718,12 @@
       "C13T44Q440"
     ],
     "availability": "Out of Stock",
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp"
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp",
+    "yield_capacity": "Exhibition gallery yield with 99% Pantone gamut coverage (350ml and 700ml Individual Ink Cartridges)",
+    "pattern_and_finishing": "Glossy, Semi-Gloss, Luster, Matte, Baryta, and Fine Art museum canvas media; sheet feed and manual fine art feed;  zero black-ink switching; automated PrecisionCore nozzle check diagnostic pattern.",
+    "product_url": "https://www.keplertechllc.com/product/epson-surecolor-p9500-large-format-printer/",
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-p9500-large-format-printer/",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-p9500-large-format-printer/"
   },
   {
     "_id": "C11CE42301A2",
@@ -7676,7 +7790,9 @@
     ],
     "availability": "Out of Stock",
     "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2024/08/Epson-SC-P20500-Large-Format-Printer.webp"
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2024/08/Epson-SC-P20500-Large-Format-Printer.webp",
+    "yield_capacity": "Exhibition contract proofing and gallery photographic yield (350ml and 700ml Individual Ink Cartridges)",
+    "pattern_and_finishing": "Glossy, Semi-Gloss, Luster, Matte, Baryta, and Fine Art museum canvas media; sheet feed and manual fine art feed;  zero black-ink switching; automated PrecisionCore nozzle check diagnostic pattern."
   },
   {
     "_id": "C11CE41301A2",
@@ -7720,7 +7836,7 @@
       "8574"
     ],
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp",
-    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
+    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p5000-standard-large-format-printer/",
     "category": "Printer",
     "consumables": [
       "C13T913100",
@@ -7728,13 +7844,16 @@
       "C13T913300",
       "C13T913400",
       "C13T619300"
-    ]
+    ],
+    "product_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p5000-standard-large-format-printer/",
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p5000-standard-large-format-printer/",
+    "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p5000-standard-large-format-printer/"
   },
   {
     "_id": "C11CF66001A6",
     "sku": "C11CF66001A6",
     "row_id": "8579",
-    "name": "Epson SureColor SC P5000 17\" Large Format Printer STD Spectro",
+    "name": "Epson SureColor SC-P5000 17\" Large Format Printer Spectro",
     "price": null,
     "stock": 10,
     "description": "High-precision Epson SureColor SC P5000 17\" Large Format Printer STD Spectro engineered for superior color accuracy, high-speed output, and professional production.",
@@ -7745,16 +7864,18 @@
       "C11CF66001A6",
       "8579"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7000-Printer-1.webp",
-    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-p7000-large-format-printer-std/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P5000-Printer-2.webp",
+    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p5000-standard-large-format-printer/",
     "category": "Printer",
     "consumables": [
-      "C13T913100",
-      "C13T913200",
-      "C13T913300",
-      "C13T913400",
-      "C13T619300"
-    ]
+      "C13T699700",
+      "C13T44J240",
+      "C13T44J740",
+      "C13S041725",
+      "C13S041846"
+    ],
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p5000-standard-large-format-printer/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P5000-Printer-2.webp"
   },
   {
     "_id": "C11CF66001A7",
@@ -7800,7 +7921,15 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T3100-%E2%80%93-Wireless-Printer-With-Stand.webp",
     "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t3100-wireless-printer-with-stand/",
     "category": "Printer",
-    "consumables": [],
+    "consumables": [
+      "C13T699700",
+      "C13T692100",
+      "C13T692200",
+      "C13T692300",
+      "C13T692400",
+      "C13T692500",
+      "C13S041385"
+    ],
     "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t3200-printer/"
   },
   {
@@ -8084,7 +8213,9 @@
     "category": "Accessory",
     "consumables": [],
     "web_url": "https://www.keplertechllc.com/product/citizen-cy-02-carry-bags/",
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Citizen-CY-02-Carry-Bags.webp"
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Citizen-CY-02-Carry-Bags.webp",
+    "yield_capacity": "700 prints per roll (4\u00d76\u2033) / 350 prints per roll (6\u00d78\u2033); 1,400 prints per 2-roll box of CY-MS46",
+    "pattern_and_finishing": "Glossy and Matte finishes managed directly via thermal printhead overcoat in the printer driver without changing media rolls; rapid drop-in roll media loading; automated test pattern diagnostics."
   },
   {
     "_id": "Citizen CX-02 Bag",
@@ -8106,7 +8237,9 @@
     "consumables": [],
     "availability": "Out of Stock",
     "web_url": "https://www.keplertechllc.com/product/citizen-cx-02-printer-carry-bag/",
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Untitled-1.webp"
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Untitled-1.webp",
+    "yield_capacity": "400 prints per roll (4\u00d76\u2033) / 200 prints per roll (6\u00d78\u2033); 800 prints per 2-roll box of CX2.4X6",
+    "pattern_and_finishing": "Glossy and Matte finishes managed via thermal printhead overcoat in the printer driver without changing media (promotional overview also references a luster effect); ribbon rewind technology to prevent media waste; drop-in paper loading; automated test pattern diagnostics."
   },
   {
     "_id": "CZ01 Carry Bag",
@@ -8128,7 +8261,9 @@
     "consumables": [],
     "availability": "Out of Stock",
     "web_url": "https://www.keplertechllc.com/product/citizen-cz-01-printer-carry-bag/",
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Untitled-1-1.webp"
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Untitled-1-1.webp",
+    "yield_capacity": "150 prints per roll (4\u00d76\u2033); 300 prints per 2-roll box of CZ-MS46",
+    "pattern_and_finishing": "Glossy, Matte, and Partial Matte finishes managed via thermal printhead overcoat in the printer driver without changing media (Partial Matte enables selective texture patterns); ultra-compact drop-in roll loading; automated test pattern diagnostics."
   },
   {
     "_id": "Citizen Pen",
@@ -8174,7 +8309,9 @@
       "CX02-MEDIA-6X8"
     ],
     "web_url": "https://www.keplertechllc.com/product/citizen-cx-02-printer-6x8-media/",
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Citizen-Consumable-CX2-68-6x8-2.webp"
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Citizen-Consumable-CX2-68-6x8-2.webp",
+    "yield_capacity": "400 prints per roll (4\u00d76\u2033) / 200 prints per roll (6\u00d78\u2033); 800 prints per 2-roll box of CX2.4X6",
+    "pattern_and_finishing": "Glossy and Matte finishes managed via thermal printhead overcoat in the printer driver without changing media (promotional overview also references a luster effect); ribbon rewind technology to prevent media waste; drop-in paper loading; automated test pattern diagnostics."
   },
   {
     "_id": "CX2.4x6",
@@ -8198,7 +8335,9 @@
       "CX02-MEDIA-6X8"
     ],
     "web_url": "https://www.keplertechllc.com/product/citizen-cx-02-4x6-printer-media/",
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Citizen-CX2-46-6x4-1.webp"
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Citizen-CX2-46-6x4-1.webp",
+    "yield_capacity": "400 prints per roll (4\u00d76\u2033) / 200 prints per roll (6\u00d78\u2033); 800 prints per 2-roll box of CX2.4X6",
+    "pattern_and_finishing": "Glossy and Matte finishes managed via thermal printhead overcoat in the printer driver without changing media (promotional overview also references a luster effect); ribbon rewind technology to prevent media waste; drop-in paper loading; automated test pattern diagnostics."
   },
   {
     "_id": "IFA 11",
@@ -10984,7 +11123,9 @@
       "C12C937181"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-am-c5000-printer/"
+    "web_url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-am-c5000-printer/",
+    "yield_capacity": "Up to 50,000 pages Black / 30,000 pages Colour (Ultra High-Yield Ink Bags (T08G Series))",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
   },
   {
     "_id": "C11CJ91402BY",
@@ -11040,7 +11181,9 @@
     ],
     "availability": "Out of Stock",
     "web_url": "https://www.keplertechllc.com/product/c13t08h300-epson-workforce-enterprise-am-c4000-magenta-ink/",
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/06/C13T08H300-Epson-WorkForce-Enterprise-AM-C4000-Magenta-Ink.webp"
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/06/C13T08H300-Epson-WorkForce-Enterprise-AM-C4000-Magenta-Ink.webp",
+    "yield_capacity": "Up to 31,500 pages Black / 28,000 pages Colour (High-Yield Industrial Ink Packs)",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
   },
   {
     "_id": "C13T08H100",
@@ -11069,7 +11212,9 @@
     ],
     "availability": "Out of Stock",
     "web_url": "https://www.keplertechllc.com/product/c13t08h100-epson-workforce-enterprise-am-c4000-black-ink/",
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/06/C13T08H100-Epson-WorkForce-AM-C4000-Black-Ink.webp"
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/06/C13T08H100-Epson-WorkForce-AM-C4000-Black-Ink.webp",
+    "yield_capacity": "Up to 31,500 pages Black / 28,000 pages Colour (High-Yield Industrial Ink Packs)",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
   },
   {
     "_id": "C13T08H200",
@@ -11098,7 +11243,9 @@
     ],
     "availability": "Out of Stock",
     "web_url": "https://www.keplertechllc.com/product/c13t08h200-epson-workforce-enterprise-am-c4000-cyan-ink/",
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/06/C13T08H200-Epson-WorkForce-AM-C4000-Cyan-Ink.webp"
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/06/C13T08H200-Epson-WorkForce-AM-C4000-Cyan-Ink.webp",
+    "yield_capacity": "Up to 31,500 pages Black / 28,000 pages Colour (High-Yield Industrial Ink Packs)",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
   },
   {
     "_id": "C13T08H400",
@@ -11127,7 +11274,9 @@
     ],
     "availability": "Out of Stock",
     "web_url": "https://www.keplertechllc.com/product/c13t08h400-epson-workforce-enterprise-am-c4000-yellow-ink/",
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/06/Epson-WorkForce-AM-C4000-Yellow-Ink.webp"
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/06/Epson-WorkForce-AM-C4000-Yellow-Ink.webp",
+    "yield_capacity": "Up to 31,500 pages Black / 28,000 pages Colour (High-Yield Industrial Ink Packs)",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
   },
   {
     "_id": "C12C937181",
@@ -11155,7 +11304,9 @@
     ],
     "web_url": "https://www.keplertechllc.com/product/c12c937181-epson-maintenance-box-am-c4000-5000-6000/",
     "availability": "Out of Stock",
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/06/C12C937181-Epson-Maintenance-Box-AM-C4000-5000-6000.webp"
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/06/C12C937181-Epson-Maintenance-Box-AM-C4000-5000-6000.webp",
+    "yield_capacity": "Up to 31,500 pages Black / 28,000 pages Colour (High-Yield Industrial Ink Packs)",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
   },
   {
     "_id": "C13T08G300",
@@ -11225,7 +11376,9 @@
       "C12C937181"
     ],
     "web_url": "https://www.keplertechllc.com/product/c13t08g400-epson-workforce-enterprise-am-c5000-6000-yellow-ink/",
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/06/C13T08G400-Epson-WorkForce-Enterprise-AM-C5000-6000-Yellow-Ink.webp"
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/06/C13T08G400-Epson-WorkForce-Enterprise-AM-C5000-6000-Yellow-Ink.webp",
+    "yield_capacity": "Up to 50,000 pages Black / 30,000 pages Colour (Ultra High-Yield Ink Bags (T08G Series))",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
   },
   {
     "_id": "C13T08G200",
@@ -11253,7 +11406,9 @@
       "C12C937181"
     ],
     "web_url": "https://www.keplertechllc.com/product/c13t08g200-epson-workforce-enterprise-am-c5000-6000-cyan-ink/",
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/06/C13T08G200-Epson-WorkForce-Enterprise-AM-C5000-6000-Cyan-Ink.webp"
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/06/C13T08G200-Epson-WorkForce-Enterprise-AM-C5000-6000-Cyan-Ink.webp",
+    "yield_capacity": "Up to 50,000 pages Black / 30,000 pages Colour (Ultra High-Yield Ink Bags (T08G Series))",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
   },
   {
     "_id": "C11CH37402DR",
@@ -11271,7 +11426,7 @@
       "10873"
     ],
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-P900-Printer-2.webp",
-    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-printer-with-roll-adapter/",
+    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-p900-17-inch-photo-printer/",
     "category": "Printer",
     "consumables": [
       "C13T47A100",
@@ -11287,8 +11442,10 @@
       "C12C935711"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p900-printer-with-roll-adapter/",
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-P900-Printer-2.webp"
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-p900-17-inch-photo-printer/",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-P900-Printer-2.webp",
+    "yield_capacity": "Zero black-switch ink waste (dedicated Photo/Matte channels) (50ml Individual Ink Cartridges)",
+    "pattern_and_finishing": "Glossy, Semi-Gloss, Luster, Matte, Baryta, and Fine Art museum canvas media; sheet feed and manual fine art feed;  zero black-ink switching; automated PrecisionCore nozzle check diagnostic pattern."
   },
   {
     "_id": "CY-MS46",
@@ -11551,16 +11708,20 @@
     "website_url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c5890-dwf-printer/",
     "category": "Business Printer",
     "consumables": [
-      "C12C938211",
-      "C13T11C140",
-      "C13T11C240",
-      "C13T11C340",
-      "C13T11C440",
       "C13T11D140",
       "C13T11D240",
       "C13T11D340",
       "C13T11D440",
-      "C13T11E140"
+      "C13T11E140",
+      "C13T11E240",
+      "C13T11E340",
+      "C13T11E440",
+      "C13S210125",
+      "C12C938211",
+      "C13T11C140",
+      "C13T11C240",
+      "C13T11C340",
+      "C13T11C440"
     ],
     "availability": "Out of Stock",
     "web_url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c5890-dwf-printer/"
@@ -12354,10 +12515,14 @@
       "C13T40D140",
       "C13T40D240",
       "C13T40D340",
-      "C13T40D440"
+      "C13T40D440",
+      "C13S041385",
+      "C13S041595"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t3100-wireless-printer-with-stand/"
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t3100-wireless-printer-with-stand/",
+    "yield_capacity": "Approx. 100\u2013180 A1 CAD line drawings per black cartridge (26ml, 50ml, and 80ml Cartridges)",
+    "pattern_and_finishing": "Plain paper, CAD bond paper, tracing paper, matte film, and coated presentation media; single roll and manual sheet feed; automated PrecisionCore nozzle check diagnostic pattern and head cleaning."
   },
   {
     "_id": "C13T55KB00",
@@ -12446,10 +12611,16 @@
       "C13T40D140",
       "C13T40D240",
       "C13T40D340",
-      "C13T40D440"
+      "C13T40D440",
+      "C13S041385",
+      "C13S041387",
+      "C13S041595",
+      "C13S041597"
     ],
     "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100-large-format-printer/",
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T3100-%E2%80%93-Wireless-Printer-With-Stand.webp"
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/08/Epson-SureColor-SC-T3100-%E2%80%93-Wireless-Printer-With-Stand.webp",
+    "yield_capacity": "Approx. 120\u2013200 A1 CAD line drawings per black cartridge (26ml, 50ml, and 80ml Cartridges)",
+    "pattern_and_finishing": "Plain paper, CAD bond paper, tracing paper, matte film, and coated presentation media; single roll and manual sheet feed; automated PrecisionCore nozzle check diagnostic pattern and head cleaning."
   },
   {
     "_id": "C13T54XA00",
@@ -13296,10 +13467,22 @@
       "13402"
     ],
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Epson-WorkForce-Pro-WF-C5790-Network-Multifunction-Color-Printer.webp",
-    "website_url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c5790-multifunction-color-printer/",
+    "website_url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c869r-network-multifunction-color-printer/",
     "category": "Business Printer",
-    "consumables": [],
-    "web_url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c869r-network-multifunction-color-printer/"
+    "consumables": [
+      "C13T973120",
+      "C13T973220",
+      "C13T973320",
+      "C13T973420",
+      "C13T974120",
+      "C13T974220",
+      "C13T974320",
+      "C13T974420",
+      "C13T671400"
+    ],
+    "web_url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c869r-network-multifunction-color-printer/",
+    "product_url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c869r-network-multifunction-color-printer/",
+    "url": "https://www.keplertechllc.com/product/epson-workforce-pro-wf-c869r-network-multifunction-color-printer/"
   },
   {
     "_id": "C13T973120",
@@ -14353,7 +14536,9 @@
       "C13T50U400",
       "C13T50U80N",
       "C13T50UF00"
-    ]
+    ],
+    "website_url": "https://www.keplertechllc.com/product/epson-sc-t7700dm-multi-function-technical-printer/",
+    "web_url": "https://www.keplertechllc.com/product/epson-sc-t7700dm-multi-function-technical-printer/"
   },
   {
     "_id": "C11CH79301A0",
@@ -14495,9 +14680,13 @@
       "C13T50U300",
       "C13T50U400",
       "C13T50U80N",
-      "C13T50UF00"
+      "C13T50UF00",
+      "C13S041387",
+      "C13S041597"
     ],
-    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5700dm-technical-printer/"
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5700dm-technical-printer/",
+    "yield_capacity": "Over 2,500 A1 CAD drawings per 700ml set (350ml and 700ml Tanks)",
+    "pattern_and_finishing": "Plain paper, CAD bond paper, tracing paper, matte film, and coated presentation media; automatic dual-roll media switching; automated PrecisionCore nozzle check diagnostic pattern and head cleaning."
   },
   {
     "_id": "C11CH82301A0",
@@ -14566,10 +14755,15 @@
       "C13T50U300",
       "C13T50U400",
       "C13T50U80N",
-      "C13T50UF00"
+      "C13T50UF00",
+      "C13S041387",
+      "C13S041597",
+      "C13S042138"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/epson-sc-t7700dm-multi-function-technical-printer/"
+    "web_url": "https://www.keplertechllc.com/product/epson-sc-t7700dm-multi-function-technical-printer/",
+    "yield_capacity": "Over 2,500 A1 CAD drawings per 700ml set (350ml and 700ml Tanks)",
+    "pattern_and_finishing": "Plain paper, CAD bond paper, tracing paper, matte film, and coated presentation media; automatic dual-roll media switching; automated PrecisionCore nozzle check diagnostic pattern and head cleaning."
   },
   {
     "_id": "C11CJ74301A1",
@@ -14597,10 +14791,15 @@
       "C13T53A300",
       "C13T53A400",
       "C13T53A800",
-      "C13T53A900"
+      "C13T53A900",
+      "C13S041387",
+      "C13S041597",
+      "C13S042138"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t7700dl-technical-printer/"
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t7700dl-technical-printer/",
+    "yield_capacity": "Over 2,500 A1 CAD drawings per 700ml set (350ml and 700ml Tanks)",
+    "pattern_and_finishing": "Plain paper, CAD bond paper, tracing paper, matte film, and coated presentation media; automatic dual-roll media switching; automated PrecisionCore nozzle check diagnostic pattern and head cleaning."
   },
   {
     "_id": "C13S090013",
@@ -15084,7 +15283,7 @@
       "15095"
     ],
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/03/Epson-P7500-Printer.webp",
-    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p7500-large-format-printer/",
+    "website_url": "https://www.keplertechllc.com/product/epson-sc-p8500d-large-format-printer/",
     "category": "Printer",
     "consumables": [
       "C13S210115",
@@ -15095,6 +15294,8 @@
       "C13T48M400",
       "C13T48M800",
       "C13T48ME00",
+      "C13S041597",
+      "C13S041848",
       "C13T48U100",
       "C13T48U200",
       "C13T48U300",
@@ -15102,7 +15303,11 @@
       "C13T48U800",
       "C13T48UE00"
     ],
-    "web_url": "https://www.keplertechllc.com/product/epson-sc-p8500d-large-format-printer/"
+    "web_url": "https://www.keplertechllc.com/product/epson-sc-p8500d-large-format-printer/",
+    "yield_capacity": "Large-format continuous dual-roll commercial photo production (350ml and 700ml Tanks)",
+    "pattern_and_finishing": "Glossy, Semi-Gloss, Luster, Matte, Baryta, and Fine Art museum canvas media; dual-roll continuous feed;  zero black-ink switching; automated PrecisionCore nozzle check diagnostic pattern.",
+    "product_url": "https://www.keplertechllc.com/product/epson-sc-p8500d-large-format-printer/",
+    "url": "https://www.keplertechllc.com/product/epson-sc-p8500d-large-format-printer/"
   },
   {
     "_id": "C11CJ51301A1",
@@ -15131,6 +15336,8 @@
       "C13T48M400",
       "C13T48M800",
       "C13T48ME00",
+      "C13S041597",
+      "C13S041848",
       "C13T48U100",
       "C13T48U200",
       "C13T48U300",
@@ -15138,7 +15345,9 @@
       "C13T48U800",
       "C13T48UE00"
     ],
-    "web_url": "https://www.keplertechllc.com/product/epson-sc-p8500dm-multifuctional-printer/"
+    "web_url": "https://www.keplertechllc.com/product/epson-sc-p8500dm-multifuctional-printer/",
+    "yield_capacity": "Large-format continuous dual-roll commercial photo production (350ml and 700ml Tanks)",
+    "pattern_and_finishing": "Glossy, Semi-Gloss, Luster, Matte, Baryta, and Fine Art museum canvas media; dual-roll continuous feed;  zero black-ink switching; automated PrecisionCore nozzle check diagnostic pattern."
   },
   {
     "_id": "C11CL14301A1",
@@ -15650,6 +15859,8 @@
       "C13T48M400",
       "C13T48M800",
       "C13T48ME00",
+      "C13S041595",
+      "C13S041847",
       "C13T48U100",
       "C13T48U200",
       "C13T48U300",
@@ -15657,7 +15868,9 @@
       "C13T48U800",
       "C13T48UE00"
     ],
-    "web_url": "https://www.keplertechllc.com/product/epson-sc-p6500d-large-format-printer/"
+    "web_url": "https://www.keplertechllc.com/product/epson-sc-p6500d-large-format-printer/",
+    "yield_capacity": "Continuous dual-roll commercial photo & poster production (350ml and 700ml Tanks)",
+    "pattern_and_finishing": "Glossy, Semi-Gloss, Luster, Matte, Baryta, and Fine Art museum canvas media; dual-roll continuous feed;  zero black-ink switching; automated PrecisionCore nozzle check diagnostic pattern."
   },
   {
     "_id": "C11CJ49302A1",
@@ -15686,6 +15899,8 @@
       "C13T48M400",
       "C13T48M800",
       "C13T48ME00",
+      "C13S041595",
+      "C13S041847",
       "C13T48U100",
       "C13T48U200",
       "C13T48U300",
@@ -15694,7 +15909,9 @@
       "C13T48UE00"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p6500de-printer/"
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p6500de-printer/",
+    "yield_capacity": "Continuous dual-roll commercial photo & poster production (350ml and 700ml Tanks)",
+    "pattern_and_finishing": "Glossy, Semi-Gloss, Luster, Matte, Baryta, and Fine Art museum canvas media; dual-roll continuous feed;  zero black-ink switching; automated PrecisionCore nozzle check diagnostic pattern."
   },
   {
     "_id": "C11CJ48301A1",
@@ -15723,6 +15940,8 @@
       "C13T48M400",
       "C13T48M800",
       "C13T48ME00",
+      "C13S041595",
+      "C13S041847",
       "C13T48U100",
       "C13T48U200",
       "C13T48U300",
@@ -15730,7 +15949,9 @@
       "C13T48U800",
       "C13T48UE00"
     ],
-    "availability": "Out of Stock"
+    "availability": "Out of Stock",
+    "yield_capacity": "Over 2,000 m\u00b2 high-capacity commercial photo and poster output (350ml and 700ml Tanks)",
+    "pattern_and_finishing": "Glossy, Semi-Gloss, Luster, Matte, Baryta, and Fine Art museum canvas media; sheet feed and manual fine art feed;  zero black-ink switching; automated PrecisionCore nozzle check diagnostic pattern."
   },
   {
     "_id": "C11CH65301A1",
@@ -15751,21 +15972,26 @@
     "website_url": "https://www.keplertechllc.com/product/epson-sc-t5400m-mfp-plotter-printer/",
     "category": "Printer",
     "consumables": [
-      "C13T41E240",
-      "C13T41E340",
-      "C13T41E440",
-      "C13T41E540",
-      "C13T41F240",
-      "C13T41F340",
-      "C13T41F440",
-      "C13T41F540",
+      "C13T699700",
       "C13T41R240",
       "C13T41R340",
       "C13T41R440",
       "C13T41R540",
-      "C13T699700"
+      "C13T41F240",
+      "C13T41F340",
+      "C13T41F440",
+      "C13T41F540",
+      "C13S041385",
+      "C13S041387",
+      "C13S041597",
+      "C13T41E240",
+      "C13T41E340",
+      "C13T41E440",
+      "C13T41E540"
     ],
-    "web_url": "https://www.keplertechllc.com/product/epson-sc-t5400m-mfp-plotter-printer/"
+    "web_url": "https://www.keplertechllc.com/product/epson-sc-t5400m-mfp-plotter-printer/",
+    "yield_capacity": "Over 1,000 A1 CAD drawings per 350ml tank set (110ml and 350ml Cartridges)",
+    "pattern_and_finishing": "Plain paper, CAD bond paper, tracing paper, matte film, and coated presentation media; single roll and manual sheet feed; automated PrecisionCore nozzle check diagnostic pattern and head cleaning."
   },
   {
     "_id": "S045153",
@@ -16109,14 +16335,20 @@
     "website_url": "https://www.keplertechllc.com/product/epson-wf-am-c400-a4-printer/",
     "category": "Business Printer",
     "consumables": [
+      "C13T08Q140",
+      "C13T08Q240",
+      "C13T08Q340",
+      "C13T08Q440",
+      "C12C937201",
       "C13T08N140",
       "C13T08N240",
       "C13T08N340",
-      "C13T08N440",
-      "C12C937201"
+      "C13T08N440"
     ],
     "web_url": "https://www.keplertechllc.com/product/epson-wf-am-c400-a4-printer/",
-    "availability": "Out of Stock"
+    "availability": "Out of Stock",
+    "yield_capacity": "Up to 31,500 pages Black / 28,000 pages Colour (High-Yield Industrial Ink Packs)",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
   },
   {
     "_id": "C11CJ92402BY",
@@ -16144,7 +16376,9 @@
       "C12C937201"
     ],
     "web_url": "https://www.keplertechllc.com/product/epson-wf-am-c550-a4-multifunction-printer/",
-    "availability": "Out of Stock"
+    "availability": "Out of Stock",
+    "yield_capacity": "Up to 31,500 pages Black / 28,000 pages Colour (High-Yield Industrial Ink Packs)",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
   },
   {
     "_id": "C13T08N440",
@@ -16172,7 +16406,9 @@
       "C12C937201"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t08n440-epson-workforce-am-c400-yellow-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t08n440-epson-workforce-am-c400-yellow-ink/",
+    "yield_capacity": "Up to 31,500 pages Black / 28,000 pages Colour (High-Yield Industrial Ink Packs)",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
   },
   {
     "_id": "C13T08N240",
@@ -16200,7 +16436,9 @@
       "C12C937201"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t08n240-epson-workforce-am-c400-cyan-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t08n240-epson-workforce-am-c400-cyan-ink/",
+    "yield_capacity": "Up to 31,500 pages Black / 28,000 pages Colour (High-Yield Industrial Ink Packs)",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
   },
   {
     "_id": "C13T08N340",
@@ -16228,7 +16466,9 @@
       "C12C937201"
     ],
     "web_url": "https://www.keplertechllc.com/product/c13t08n340-epson-wf-am-c400-magenta-ink/",
-    "availability": "Out of Stock"
+    "availability": "Out of Stock",
+    "yield_capacity": "Up to 31,500 pages Black / 28,000 pages Colour (High-Yield Industrial Ink Packs)",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
   },
   {
     "_id": "C13T08N140",
@@ -16256,7 +16496,9 @@
       "C12C937201"
     ],
     "web_url": "https://www.keplertechllc.com/product/c13t08n140-epson-wf-am-c400-black-ink/",
-    "availability": "Out of Stock"
+    "availability": "Out of Stock",
+    "yield_capacity": "Up to 31,500 pages Black / 28,000 pages Colour (High-Yield Industrial Ink Packs)",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
   },
   {
     "_id": "C12C937201",
@@ -16277,7 +16519,9 @@
     "category": "Maintenance Box",
     "consumables": [],
     "web_url": "https://www.keplertechllc.com/product/c12c937201-epson-maintenance-box/",
-    "availability": "Out of Stock"
+    "availability": "Out of Stock",
+    "yield_capacity": "Up to 31,500 pages Black / 28,000 pages Colour (High-Yield Industrial Ink Packs)",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
   },
   {
     "_id": "C13T08Q140",
@@ -16305,7 +16549,9 @@
       "C12C937201"
     ],
     "web_url": "https://www.keplertechllc.com/product/c13t08q140-epson-wf-am-c550-black-ink/",
-    "availability": "Out of Stock"
+    "availability": "Out of Stock",
+    "yield_capacity": "Up to 31,500 pages Black / 28,000 pages Colour (High-Yield Industrial Ink Packs)",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
   },
   {
     "_id": "C13T08Q440",
@@ -16333,7 +16579,9 @@
       "C12C937201"
     ],
     "web_url": "https://www.keplertechllc.com/product/c13t08q440-epson-wf-am-c550-yellow-ink/",
-    "availability": "Out of Stock"
+    "availability": "Out of Stock",
+    "yield_capacity": "Up to 31,500 pages Black / 28,000 pages Colour (High-Yield Industrial Ink Packs)",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
   },
   {
     "_id": "C13T08Q340",
@@ -16362,7 +16610,9 @@
     ],
     "availability": "Out of Stock",
     "web_url": "https://www.keplertechllc.com/product/c13t08q340-epson-wf-am-c550-cyan-ink/",
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2025/01/C13T08Q340-Epson-WorkForce-AM-C550-Cyan-Ink.webp"
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2025/01/C13T08Q340-Epson-WorkForce-AM-C550-Cyan-Ink.webp",
+    "yield_capacity": "Up to 31,500 pages Black / 28,000 pages Colour (High-Yield Industrial Ink Packs)",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
   },
   {
     "_id": "C13T08Q240",
@@ -16390,7 +16640,9 @@
       "C12C937201"
     ],
     "web_url": "https://www.keplertechllc.com/product/c13t08q340-epson-wf-am-c550-cyan-ink/",
-    "availability": "Out of Stock"
+    "availability": "Out of Stock",
+    "yield_capacity": "Up to 31,500 pages Black / 28,000 pages Colour (High-Yield Industrial Ink Packs)",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
   },
   {
     "_id": "EM-C800",
@@ -16420,9 +16672,12 @@
       "C13T11P240",
       "C13T11P340",
       "C13T11P440",
+      "C13S210125",
       "C12C938211"
     ],
-    "web_url": "https://www.keplertechllc.com/product/epson-workforce-pro-em-c800/"
+    "web_url": "https://www.keplertechllc.com/product/epson-workforce-pro-em-c800/",
+    "yield_capacity": "Up to 50,000 pages Black / 20,000 pages Colour (Replaceable Ink Supply Bags (RIPS))",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
   },
   {
     "_id": "C13T11N140",
@@ -16443,7 +16698,9 @@
     "website_url": "https://www.keplertechllc.com/product/c13t11p140-epson-workforce-pro-em-c800r-black-xxl-ink/",
     "category": "Ink Cartridge",
     "consumables": [],
-    "web_url": "https://www.keplertechllc.com/product/epson-workforce-pro-em-c800r-black-xl-ink/"
+    "web_url": "https://www.keplertechllc.com/product/epson-workforce-pro-em-c800r-black-xl-ink/",
+    "yield_capacity": "Up to 50,000 pages Black / 20,000 pages Colour (Replaceable Ink Supply Bags (RIPS))",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
   },
   {
     "_id": "C13T11P140",
@@ -16465,7 +16722,9 @@
     "category": "Ink Cartridge",
     "consumables": [],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t11p140-epson-workforce-pro-em-c800r-black-xxl-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t11p140-epson-workforce-pro-em-c800r-black-xxl-ink/",
+    "yield_capacity": "Up to 50,000 pages Black / 20,000 pages Colour (Replaceable Ink Supply Bags (RIPS))",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
   },
   {
     "_id": "C13T11N240",
@@ -16487,7 +16746,9 @@
     "category": "Ink Cartridge",
     "consumables": [],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t11n240-epson-workforce-pro-em-c800r-cyan-xl-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t11n240-epson-workforce-pro-em-c800r-cyan-xl-ink/",
+    "yield_capacity": "Up to 50,000 pages Black / 20,000 pages Colour (Replaceable Ink Supply Bags (RIPS))",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
   },
   {
     "_id": "C13T11P240",
@@ -16509,7 +16770,9 @@
     "category": "Ink Cartridge",
     "consumables": [],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t11p240-epson-workforce-pro-em-c800r-cyan-xxl-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t11p240-epson-workforce-pro-em-c800r-cyan-xxl-ink/",
+    "yield_capacity": "Up to 50,000 pages Black / 20,000 pages Colour (Replaceable Ink Supply Bags (RIPS))",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
   },
   {
     "_id": "C13T11N340",
@@ -16531,7 +16794,9 @@
     "category": "Ink Cartridge",
     "consumables": [],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t11n340-epson-workforce-pro-em-c800r-magenta-xl-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t11n340-epson-workforce-pro-em-c800r-magenta-xl-ink/",
+    "yield_capacity": "Up to 50,000 pages Black / 20,000 pages Colour (Replaceable Ink Supply Bags (RIPS))",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
   },
   {
     "_id": "C13T11P340",
@@ -16553,7 +16818,9 @@
     "category": "Ink Cartridge",
     "consumables": [],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t11p340-epson-workforce-pro-em-c800r-magenta-xxl-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t11p340-epson-workforce-pro-em-c800r-magenta-xxl-ink/",
+    "yield_capacity": "Up to 50,000 pages Black / 20,000 pages Colour (Replaceable Ink Supply Bags (RIPS))",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
   },
   {
     "_id": "C13T11N440",
@@ -16575,7 +16842,9 @@
     "category": "Ink Cartridge",
     "consumables": [],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t11n440-epson-workforce-pro-em-c800r-yellow-xl-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t11n440-epson-workforce-pro-em-c800r-yellow-xl-ink/",
+    "yield_capacity": "Up to 50,000 pages Black / 20,000 pages Colour (Replaceable Ink Supply Bags (RIPS))",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
   },
   {
     "_id": "C13T11P440",
@@ -16597,7 +16866,9 @@
     "category": "Ink Cartridge",
     "consumables": [],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/c13t11p440-epson-workforce-pro-em-c800r-yellow-xxl-ink/"
+    "web_url": "https://www.keplertechllc.com/product/c13t11p440-epson-workforce-pro-em-c800r-yellow-xxl-ink/",
+    "yield_capacity": "Up to 50,000 pages Black / 20,000 pages Colour (Replaceable Ink Supply Bags (RIPS))",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
   },
   {
     "_id": "KJP230PMXX",
@@ -16741,10 +17012,15 @@
       "C13T40D140",
       "C13T40D240",
       "C13T40D340",
-      "C13T40D440"
+      "C13T40D440",
+      "C13S041385",
+      "C13S041387",
+      "C13S041595"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100m-plotter-printer/"
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100m-plotter-printer/",
+    "yield_capacity": "Approx. 120\u2013200 A1 CAD line drawings per black cartridge (26ml, 50ml, and 80ml Cartridges)",
+    "pattern_and_finishing": "Plain paper, CAD bond paper, tracing paper, matte film, and coated presentation media; single roll and manual sheet feed; automated PrecisionCore nozzle check diagnostic pattern and head cleaning."
   },
   {
     "_id": "C11CJ17301A0",
@@ -16772,7 +17048,9 @@
       "C13S210057"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-f500-dye-sublimation-printer/"
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-f500-dye-sublimation-printer/",
+    "yield_capacity": "140ml Refill Ink Tank System (Refill while printing) (140ml Refill Ink Bottles (T49N Series))",
+    "pattern_and_finishing": "Dye-sublimation transfer paper finishing for rigid substrates and soft polyester fabrics; roll or auto-sheet loading; automated PrecisionCore nozzle check diagnostic pattern."
   },
   {
     "_id": "C13S400082",
@@ -16940,9 +17218,12 @@
       "18752"
     ],
     "image_url": "https://images.unsplash.com/photo-1586075010923-2dd4570fb338?w=600&fit=crop&q=80",
-    "website_url": "https://www.keplertechllc.com/?s=Mirage+Professional+Printing+Software&post_type=product",
+    "website_url": "https://www.keplertechllc.com/product/mirage/",
     "category": "Media & Paper",
-    "consumables": []
+    "consumables": [],
+    "product_url": "https://www.keplertechllc.com/product/mirage/",
+    "web_url": "https://www.keplertechllc.com/product/mirage/",
+    "url": "https://www.keplertechllc.com/product/mirage/"
   },
   {
     "_id": "B11B275401",
@@ -17018,7 +17299,9 @@
       "C13T40D340",
       "C13T40D440"
     ],
-    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100-large-format-printer/"
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t5100-large-format-printer/",
+    "yield_capacity": "Approx. 120\u2013200 A1 CAD line drawings per black cartridge (26ml, 50ml, and 80ml Cartridges)",
+    "pattern_and_finishing": "Plain paper, CAD bond paper, tracing paper, matte film, and coated presentation media; single roll and manual sheet feed; automated PrecisionCore nozzle check diagnostic pattern and head cleaning."
   },
   {
     "_id": "SC-T3100",
@@ -17052,7 +17335,9 @@
       "C13T40D440"
     ],
     "availability": "Out of Stock",
-    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t3100-wireless-printer-with-stand/"
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-t3100-wireless-printer-with-stand/",
+    "yield_capacity": "Approx. 100\u2013180 A1 CAD line drawings per black cartridge (26ml, 50ml, and 80ml Cartridges)",
+    "pattern_and_finishing": "Plain paper, CAD bond paper, tracing paper, matte film, and coated presentation media; single roll and manual sheet feed; automated PrecisionCore nozzle check diagnostic pattern and head cleaning."
   },
   {
     "_id": "CZ01-MEDIA-4X6",
@@ -17076,7 +17361,9 @@
     "category": "Media & Paper",
     "consumables": [],
     "web_url": "https://www.keplertechllc.com/product/citizen-cz-01-photo-printer/",
-    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Citizen-CX2-46-6x4-1.webp"
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Citizen-CX2-46-6x4-1.webp",
+    "yield_capacity": "150 prints per roll (4\u00d76\u2033); 300 prints per 2-roll box of CZ-MS46",
+    "pattern_and_finishing": "Glossy, Matte, and Partial Matte finishes managed via thermal printhead overcoat in the printer driver without changing media (Partial Matte enables selective texture patterns); ultra-compact drop-in roll loading; automated test pattern diagnostics."
   },
   {
     "_id": "C13T946240",
@@ -17149,5 +17436,308 @@
     "consumables": [],
     "web_url": "https://www.keplertechllc.com/product/c13t946140-epson-wf-c5290-wf-c5790-series-ink-cartridge-xxl-black/",
     "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/WF-C5290-WF-C5790-Ink-Cartridge-XXL-Black-C13T946140.webp"
+  },
+  {
+    "_id": "epson-am-c4000",
+    "sku": "epson-am-c4000",
+    "name": "Epson WorkForce Enterprise AM-C4000",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/06/WorkForce-Enterprise%E2%80%8B-AM-C4000%E2%80%8B.webp",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/06/WorkForce-Enterprise%E2%80%8B-AM-C4000%E2%80%8B.webp",
+    "website_url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-am-c4000-printer/",
+    "web_url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-am-c4000-printer/",
+    "category": "Business Printer",
+    "consumables": [
+      "C13T08H100",
+      "C13T08H200",
+      "C13T08H300",
+      "C13T08H400",
+      "C12C937181"
+    ],
+    "description": "Official verified Epson WorkForce Enterprise AM-C4000 distributed by Kepler Tech LLC.",
+    "yield_capacity": "Up to 31,500 pages Black / 28,000 pages Colour (High-Yield Ink Bags (T08H Series))",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
+  },
+  {
+    "_id": "epson-am-c6000",
+    "sku": "epson-am-c6000",
+    "name": "Epson WorkForce Enterprise AM-C6000",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/06/WorkForce-Enterprise%E2%80%8B-AM-C4000%E2%80%8B-2.webp",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/06/WorkForce-Enterprise%E2%80%8B-AM-C4000%E2%80%8B-2.webp",
+    "website_url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-am-c6000-printer/",
+    "web_url": "https://www.keplertechllc.com/product/epson-workforce-enterprise-am-c6000-printer/",
+    "category": "Business Printer",
+    "consumables": [
+      "C13T08G100",
+      "C13T08G200",
+      "C13T08G300",
+      "C13T08G400",
+      "C12C937181"
+    ],
+    "description": "Official verified Epson WorkForce Enterprise AM-C6000 distributed by Kepler Tech LLC.",
+    "yield_capacity": "Up to 50,000 pages Black / 30,000 pages Colour (Ultra High-Yield Ink Bags (T08G Series))",
+    "pattern_and_finishing": "Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning."
+  },
+  {
+    "_id": "epson-sc-t3700e",
+    "sku": "epson-sc-t3700e",
+    "name": "Epson SureColor SC-T3700E",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2024/01/SC-T5700DM-Printer.webp",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2024/01/SC-T5700DM-Printer.webp",
+    "website_url": "https://www.keplertechllc.com/product/epson-sc-t5700d-technical-printer/",
+    "web_url": "https://www.keplertechllc.com/product/epson-sc-t5700d-technical-printer/",
+    "category": "Large Format Printer",
+    "consumables": [
+      "C13S210115",
+      "C13S210116",
+      "C13T50M100",
+      "C13T50M200",
+      "C13T50M300",
+      "C13T50M400",
+      "C13T50M800",
+      "C13T50MF00",
+      "C13T50U100",
+      "C13T50U200",
+      "C13T50U300",
+      "C13T50U400",
+      "C13T50U80N",
+      "C13T50UF00",
+      "C13S041385",
+      "C13S041595"
+    ],
+    "description": "Official verified Epson SureColor SC-T3700E distributed by Kepler Tech LLC.",
+    "yield_capacity": "Over 2,500 A1 CAD line drawings per 700ml set (350ml and 700ml Tanks)",
+    "pattern_and_finishing": "Plain paper, CAD bond paper, tracing paper, matte film, and coated presentation media; single roll and manual sheet feed; automated PrecisionCore nozzle check diagnostic pattern and head cleaning."
+  },
+  {
+    "_id": "epson-sc-t3700d",
+    "sku": "epson-sc-t3700d",
+    "name": "Epson SureColor SC-T3700D",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2024/01/SC-T5700DM-Printer.webp",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2024/01/SC-T5700DM-Printer.webp",
+    "website_url": "https://www.keplertechllc.com/product/epson-sc-t5700d-technical-printer/",
+    "web_url": "https://www.keplertechllc.com/product/epson-sc-t5700d-technical-printer/",
+    "category": "Large Format Printer",
+    "consumables": [
+      "C13S210115",
+      "C13S210116",
+      "C13T50M100",
+      "C13T50M200",
+      "C13T50M300",
+      "C13T50M400",
+      "C13T50M800",
+      "C13T50MF00",
+      "C13T50U100",
+      "C13T50U200",
+      "C13T50U300",
+      "C13T50U400",
+      "C13T50U80N",
+      "C13T50UF00",
+      "C13S041385",
+      "C13S041595"
+    ],
+    "description": "Official verified Epson SureColor SC-T3700D distributed by Kepler Tech LLC.",
+    "yield_capacity": "Over 2,500 A1 CAD line drawings per 700ml set (350ml and 700ml Tanks)",
+    "pattern_and_finishing": "Plain paper, CAD bond paper, tracing paper, matte film, and coated presentation media; automatic dual-roll media switching; automated PrecisionCore nozzle check diagnostic pattern and head cleaning."
+  },
+  {
+    "_id": "epson-sc-t3700de",
+    "sku": "epson-sc-t3700de",
+    "name": "Epson SureColor SC-T3700DE",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2024/01/SC-T5700DM-Printer.webp",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2024/01/SC-T5700DM-Printer.webp",
+    "website_url": "https://www.keplertechllc.com/product/epson-sc-t5700d-technical-printer/",
+    "web_url": "https://www.keplertechllc.com/product/epson-sc-t5700d-technical-printer/",
+    "category": "Large Format Printer",
+    "consumables": [
+      "C13S210115",
+      "C13S210116",
+      "C13T50M100",
+      "C13T50M200",
+      "C13T50M300",
+      "C13T50M400",
+      "C13T50M800",
+      "C13T50MF00",
+      "C13T50U100",
+      "C13T50U200",
+      "C13T50U300",
+      "C13T50U400",
+      "C13T50U80N",
+      "C13T50UF00",
+      "C13S041385",
+      "C13S041595"
+    ],
+    "description": "Official verified Epson SureColor SC-T3700DE distributed by Kepler Tech LLC.",
+    "yield_capacity": "Over 2,500 A1 CAD line drawings per 700ml set (350ml and 700ml Tanks)",
+    "pattern_and_finishing": "Plain paper, CAD bond paper, tracing paper, matte film, and coated presentation media; automatic dual-roll media switching; automated PrecisionCore nozzle check diagnostic pattern and head cleaning."
+  },
+  {
+    "_id": "epson-sc-t5700dm",
+    "sku": "epson-sc-t5700dm",
+    "name": "Epson SureColor SC-T5700DM",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2024/01/SC-T5700DM-Printer.webp",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2024/01/SC-T5700DM-Printer.webp",
+    "website_url": "https://www.keplertechllc.com/product/epson-sc-t5700d-technical-printer/",
+    "web_url": "https://www.keplertechllc.com/product/epson-sc-t5700d-technical-printer/",
+    "category": "Large Format Printer",
+    "consumables": [
+      "C13S210115",
+      "C13S210116",
+      "C13T50M100",
+      "C13T50M200",
+      "C13T50M300",
+      "C13T50M400",
+      "C13T50M800",
+      "C13T50MF00",
+      "C13T50U100",
+      "C13T50U200",
+      "C13T50U300",
+      "C13T50U400",
+      "C13T50U80N",
+      "C13T50UF00",
+      "C13S041387",
+      "C13S041597"
+    ],
+    "description": "Official verified Epson SureColor SC-T5700DM distributed by Kepler Tech LLC.",
+    "yield_capacity": "Over 2,500 A1 CAD drawings per 700ml set (350ml and 700ml Tanks)",
+    "pattern_and_finishing": "Plain paper, CAD bond paper, tracing paper, matte film, and coated presentation media; automatic dual-roll media switching; automated PrecisionCore nozzle check diagnostic pattern and head cleaning."
+  },
+  {
+    "_id": "epson-sc-t7700dm",
+    "sku": "epson-sc-t7700dm",
+    "name": "Epson SureColor SC-T7700DM",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2024/01/Epson-SureColor-SC-T7700DM-Technical-Printer.webp",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2024/01/Epson-SureColor-SC-T7700DM-Technical-Printer.webp",
+    "website_url": "https://www.keplertechllc.com/product/epson-sc-t7700dm-multi-function-technical-printer/",
+    "web_url": "https://www.keplertechllc.com/product/epson-sc-t7700dm-multi-function-technical-printer/",
+    "category": "Large Format Printer",
+    "consumables": [
+      "C13S210115",
+      "C13S210116",
+      "C13T50M100",
+      "C13T50M200",
+      "C13T50M300",
+      "C13T50M400",
+      "C13T50M800",
+      "C13T50MF00",
+      "C13T50U100",
+      "C13T50U200",
+      "C13T50U300",
+      "C13T50U400",
+      "C13T50U80N",
+      "C13T50UF00",
+      "C13S041387",
+      "C13S041597",
+      "C13S042138"
+    ],
+    "description": "Official verified Epson SureColor SC-T7700DM distributed by Kepler Tech LLC.",
+    "yield_capacity": "Over 2,500 A1 CAD drawings per 700ml set (350ml and 700ml Tanks)",
+    "pattern_and_finishing": "Plain paper, CAD bond paper, tracing paper, matte film, and coated presentation media; automatic dual-roll media switching; automated PrecisionCore nozzle check diagnostic pattern and head cleaning."
+  },
+  {
+    "_id": "epson-sc-p5300",
+    "sku": "epson-sc-p5300",
+    "name": "Epson SureColor SC-P5300",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2024/02/Epson-SureColor-SC-P5300-Professional-17-Photo-Printer.webp",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2024/02/Epson-SureColor-SC-P5300-Professional-17-Photo-Printer.webp",
+    "website_url": "https://www.keplertechllc.com/product/epson-sc-p5300-professional-photo-printer/",
+    "web_url": "https://www.keplertechllc.com/product/epson-sc-p5300-professional-photo-printer/",
+    "category": "Large Format Printer",
+    "consumables": [
+      "C13S210057",
+      "C13T47A100",
+      "C13T47A200",
+      "C13T47A300",
+      "C13T47A400",
+      "C13T47A500",
+      "C13T47A600",
+      "C13T47A700",
+      "C13T47A800",
+      "C13T47A900",
+      "C13T47AD00",
+      "C13S041725",
+      "C13S041846"
+    ],
+    "description": "Official verified Epson SureColor SC-P5300 distributed by Kepler Tech LLC.",
+    "yield_capacity": "High D-Max archival proofing & gallery photographic yield (200ml High-Capacity Cartridges)",
+    "pattern_and_finishing": "Glossy, Semi-Gloss, Luster, Matte, Baryta, and Fine Art museum canvas media; sheet feed and manual fine art feed;  zero black-ink switching; automated PrecisionCore nozzle check diagnostic pattern."
+  },
+  {
+    "_id": "epson-sc-p20500",
+    "sku": "epson-sc-p20500",
+    "name": "Epson SureColor SC-P20500",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2024/08/Epson-SC-P20500-Large-Format-Printer.webp",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2024/08/Epson-SC-P20500-Large-Format-Printer.webp",
+    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p20500-printer/",
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-p20500-printer/",
+    "category": "Large Format Printer",
+    "consumables": [
+      "C13S210115",
+      "C13T56F100",
+      "C13T56F500",
+      "C13S042138",
+      "C13S042135",
+      "C13S045065"
+    ],
+    "description": "Official verified Epson SureColor SC-P20500 distributed by Kepler Tech LLC.",
+    "yield_capacity": "Bulk industrial photographic production (over 5,000 m\u00b2 yield) (1,600ml (1.6 Litre) High-Capacity Ink Packs)",
+    "pattern_and_finishing": "Glossy, Semi-Gloss, Luster, Matte, Baryta, and Fine Art museum canvas media; dual-roll continuous feed;  zero black-ink switching; automated PrecisionCore nozzle check diagnostic pattern."
+  },
+  {
+    "_id": "citizen-cz-01",
+    "sku": "citizen-cz-01",
+    "name": "Citizen CZ-01",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CZ-01-Photo-Printer.webp",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CZ-01-Photo-Printer.webp",
+    "website_url": "https://www.keplertechllc.com/product/citizen-cz-01-photo-printer/",
+    "web_url": "https://www.keplertechllc.com/product/citizen-cz-01-photo-printer/",
+    "category": "Printer",
+    "consumables": [
+      "CZ-MS46",
+      "CZ-MS458",
+      "CZ01 Carry Bag",
+      "Citizen Pen"
+    ],
+    "description": "Official verified Citizen CZ-01 distributed by Kepler Tech LLC.",
+    "yield_capacity": "150 prints per roll (4\u00d76\u2033); 300 prints per 2-roll box of CZ-MS46",
+    "pattern_and_finishing": "Glossy, Matte, and Partial Matte finishes managed via thermal printhead overcoat in the printer driver without changing media (Partial Matte enables selective texture patterns); ultra-compact drop-in roll loading; automated test pattern diagnostics."
+  },
+  {
+    "_id": "citizen-cy-02",
+    "sku": "citizen-cy-02",
+    "name": "Citizen CY-02",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CY-02-Photo-Printer.webp",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/04/Citizen-CY-02-Photo-Printer.webp",
+    "website_url": "https://www.keplertechllc.com/product/citizen-cy-02-photo-printer/",
+    "web_url": "https://www.keplertechllc.com/product/citizen-cy-02-photo-printer/",
+    "category": "Printer",
+    "consumables": [
+      "CY-MS46",
+      "CY-MS68",
+      "CY02Bag",
+      "Citizen Pen"
+    ],
+    "description": "Official verified Citizen CY-02 distributed by Kepler Tech LLC.",
+    "yield_capacity": "700 prints per roll (4\u00d76\u2033) / 350 prints per roll (6\u00d78\u2033); 1400 prints per 2-roll box of CY-MS46",
+    "pattern_and_finishing": "Glossy and Matte finishes managed directly via thermal printhead overcoat in the printer driver without changing media rolls; rapid drop-in roll media loading; automated test pattern diagnostics."
+  },
+  {
+    "_id": "epson-sc-f100",
+    "sku": "epson-sc-f100",
+    "name": "Epson SureColor SC-F100",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/07/Epson-F100.webp",
+    "image": "https://www.keplertechllc.com/wp-content/uploads/2023/07/Epson-F100.webp",
+    "website_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-f100-printer/",
+    "web_url": "https://www.keplertechllc.com/product/epson-surecolor-sc-f100-printer/",
+    "category": "Large Format Printer",
+    "consumables": [
+      "C13T49N100",
+      "C13T49N200",
+      "C13T49N300",
+      "C13T49N400",
+      "C13S210125"
+    ],
+    "description": "Official verified Epson SureColor SC-F100 distributed by Kepler Tech LLC.",
+    "yield_capacity": "140ml Refill Ink Tank System (Zero cartridge waste) (140ml Refill Ink Bottles (T49N Series))",
+    "pattern_and_finishing": "Dye-sublimation transfer paper finishing for rigid substrates and soft polyester fabrics; roll or auto-sheet loading; automated PrecisionCore nozzle check diagnostic pattern."
   }
 ]

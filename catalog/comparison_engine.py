@@ -468,8 +468,8 @@ def _build_recommendation_note(
         return (
             f"Based on your stated requirements, the "
             f"**{html.escape(winner.get('display_name', winner['id']))}** "
-            f"appears to be the better fit. "
-            "Please confirm your full requirements for a definitive recommendation."
+            f"is the most tailored match for your workflow. "
+            "Our sales specialists can also prepare a complete commercial proposal including installation and genuine supplies."
         )
     return None
 
@@ -483,10 +483,10 @@ def build_comparison_intro(
     comp_type = comparison_data.get("comparison_type", "")
 
     if len(names) == 2:
-        header = f"Here is a verified side-by-side comparison of the **{names[0]}** and **{names[1]}**"
+        header = f"Here is a side-by-side comparison of the **{names[0]}** and **{names[1]}** to help you select the ideal model for your workflow"
     else:
         joined = ", ".join(f"**{n}**" for n in names)
-        header = f"Here is a verified comparison of {len(names)} models: {joined}"
+        header = f"Here is a side-by-side comparison of the {len(names)} selected models ({joined})"
 
     quantifier = "both" if len(names) == 2 else "all"
     suffix_map = {

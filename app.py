@@ -20,6 +20,7 @@ from config import (
     CORS_ORIGINS,
     MAX_REQUEST_BYTES,
     validate_secret_key,
+    SECRET_KEY,
     APP_ENV,
     IS_PRODUCTION,
     LOG_SENSITIVE_DATA,
@@ -49,6 +50,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(na
 logger = logging.getLogger("conversational_ai")
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
+app.secret_key = SECRET_KEY
 CORS(app, resources={r"/api/*": {"origins": CORS_ORIGINS}})
 
 # Admin Dashboard Blueprint

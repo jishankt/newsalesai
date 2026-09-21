@@ -147,20 +147,22 @@ class CatalogueFilter:
                 req_width = None
             if req_width is None and isinstance(requirements.get("paper_size"), (int, float)):
                 req_width = float(requirements["paper_size"])
-            elif req_width is None and str(requirements.get("paper_size", "")).lower() in ("a3+", "13-inch", "13"):
-                req_width = 13
-            elif req_width is None and str(requirements.get("paper_size", "")).lower() in ("a2", "a2+", "17-inch", "17"):
-                req_width = 17
-            elif req_width is None and str(requirements.get("paper_size", "")).lower() in ("24", "24-inch", "24\""):
-                req_width = 24
-            elif req_width is None and str(requirements.get("paper_size", "")).lower() in ("36", "36-inch", "36\"", "a0"):
-                req_width = 36
-            elif req_width is None and str(requirements.get("paper_size", "")).lower() in ("44", "44-inch", "44\""):
-                req_width = 44
-            elif req_width is None and str(requirements.get("paper_size", "")).lower() in ("64", "64-inch", "64\""):
-                req_width = 64
-            elif req_width is None and str(requirements.get("paper_size", "")).lower() in ("a4", "desktop", "cut_sheet") and category == "dye_sublimation":
-                req_width = 8.5
+            elif req_width is None:
+                ps_str = str(requirements.get("paper_size", "")).lower().strip()
+                if ps_str in ("a3+", "13-inch", "13", "33cm", "329mm"):
+                    req_width = 13
+                elif ps_str in ("a2", "a2+", "17-inch", "17", "43cm", "432mm"):
+                    req_width = 17
+                elif ps_str in ("24", "24-inch", "24\"", "a1", "60cm", "61cm", "610mm", "600mm", "2ft", "2 feet", "0.6m"):
+                    req_width = 24
+                elif ps_str in ("36", "36-inch", "36\"", "a0", "90cm", "91cm", "91.4cm", "914mm", "900mm", "3ft", "3 feet", "0.9m"):
+                    req_width = 36
+                elif ps_str in ("44", "44-inch", "44\"", "100cm", "110cm", "111.8cm", "1118mm", "1000mm", "1m", "1 meter", "1.1m"):
+                    req_width = 44
+                elif ps_str in ("64", "64-inch", "64\"", "160cm", "162.6cm", "1626mm", "1600mm", "4ft", "4 feet", "5ft", "5 feet", "1.6m"):
+                    req_width = 64
+                elif ps_str in ("a4", "desktop", "cut_sheet") and category == "dye_sublimation":
+                    req_width = 8.5
 
             if req_width is not None and p.get("max_width_inches") is not None:
                 if p["max_width_inches"] != float(req_width):

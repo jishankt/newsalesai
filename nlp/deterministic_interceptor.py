@@ -77,7 +77,7 @@ def intercept(message: str, raw_message: Optional[str] = None) -> InterceptResul
         return InterceptResult(
             matched=True,
             intent="greeting",
-            response="Hello! Welcome to Kepler Tech LLC. How can I assist you with your printing solutions today?",
+            response="Hello and welcome to Kepler Tech! I'm here to help you find the ideal professional printing equipment, genuine consumables, or technical specifications. What printing application or project can I assist you with today?",
             should_continue=False,
             suggested_chips=[],
         )
@@ -87,7 +87,7 @@ def intercept(message: str, raw_message: Optional[str] = None) -> InterceptResul
         return InterceptResult(
             matched=True,
             intent="conversation_ending",
-            response="Thank you for contacting Kepler Tech LLC! Feel free to reach out anytime you need help with printing equipment or consumables.",
+            response="Thank you for contacting Kepler Tech LLC! Feel free to reach out anytime you need assistance with printing equipment, specifications, or genuine consumables. Have a great day!",
             should_continue=False,
             suggested_chips=[],
         )
@@ -98,7 +98,7 @@ def intercept(message: str, raw_message: Optional[str] = None) -> InterceptResul
         return InterceptResult(
             matched=True,
             intent="empty",
-            response="How can I help you today? Feel free to ask about our printers, scanners, or consumables.",
+            response="Hello! How can I assist you today? Feel free to ask about our professional printers, technical plotters, or genuine consumables.",
             should_continue=False,
             suggested_chips=[],
         )
@@ -109,7 +109,7 @@ def intercept(message: str, raw_message: Optional[str] = None) -> InterceptResul
             return InterceptResult(
                 matched=True,
                 intent="out_of_scope",
-                response="I'm a product assistant for Kepler Tech LLC. I can help you find printers, scanners, and consumables. What would you like to explore?",
+                response="I'm a dedicated product consultant for Kepler Tech LLC. I can assist you with professional printers, technical plotters, scanners, and genuine consumables. What can I help you explore today?",
                 should_continue=False,
                 suggested_chips=[],
             )
@@ -120,7 +120,7 @@ def intercept(message: str, raw_message: Optional[str] = None) -> InterceptResul
             return InterceptResult(
                 matched=True,
                 intent="out_of_scope",
-                response="I am a specialized product assistant for Kepler Tech LLC. I can assist you with large format technical plotters, photo printers, office enterprise MFPs, document scanners, and genuine consumables. How can I assist you with your printing requirements today?",
+                response="I am a specialized product consultant for Kepler Tech LLC. We specialize in large format technical plotters, photo printers, office enterprise MFPs, document scanners, and genuine consumables. How can I assist you with your printing requirements today?",
                 should_continue=False,
                 suggested_chips=["Large Format Plotters", "Photo Printers", "Office MFPs", "Document Scanners"],
             )

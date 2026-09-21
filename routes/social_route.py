@@ -30,12 +30,12 @@ def handle(understanding: LLMUnderstanding, state: ConversationState) -> RouteRe
         # Check if there's a pending question to resume
         pending = state.pending_question
         if pending and name:
-            reply = f"Nice to meet you, {name}! {pending}"
+            reply = f"Pleasure to meet you, {name}! {pending}"
             state.consume_pending_question()
         elif name:
-            reply = f"Nice to meet you, {name}! How can I help you today?"
+            reply = f"Pleasure to meet you, {name}! How can I assist you with your printing equipment or consumables today?"
         else:
-            reply = "Nice to meet you! How can I help you today?"
+            reply = "Pleasure to meet you! How can I assist you with your printing equipment or consumables today?"
 
         return RouteResult(
             reply=reply,
@@ -51,9 +51,9 @@ def handle(understanding: LLMUnderstanding, state: ConversationState) -> RouteRe
             state.requirements = {}
             state.category = None
         if state.customer_name:
-            reply = f"Hello, {state.customer_name}! How can I assist you today?"
+            reply = f"Hello, {state.customer_name}! It's a pleasure to assist you. What can I help you find across our printing systems and genuine consumables today?"
         else:
-            reply = "Hello! Welcome to Kepler Tech LLC. How can I assist you with your printing solutions today?"
+            reply = "Hello and welcome to Kepler Tech! I'm here to help you find the ideal professional printing equipment, genuine consumables, or technical specifications. What printing application or project can I assist you with today?"
 
         return RouteResult(
             reply=reply,
@@ -65,7 +65,7 @@ def handle(understanding: LLMUnderstanding, state: ConversationState) -> RouteRe
 
     # ── Positive feedback ────────────────────────────────────────────────
     if intent == Intent.POSITIVE_FEEDBACK:
-        reply = "Thank you for the kind words! Is there anything else I can help you with?"
+        reply = "You're very welcome! I'm glad I could help. Please let me know if you need any further specifications, consumable pricing, or model comparisons."
         return RouteResult(reply=reply, source="route:social")
 
     # ── Negative feedback ────────────────────────────────────────────────
@@ -102,10 +102,10 @@ def handle(understanding: LLMUnderstanding, state: ConversationState) -> RouteRe
     if intent == Intent.SMALL_TALK:
         pending = state.pending_question
         if pending:
-            reply = f"That's interesting! Now, {pending}"
+            reply = f"Thank you! To continue with your printing setup: {pending}"
             state.consume_pending_question()
         else:
-            reply = "That's great! Is there anything I can help you with regarding printing equipment?"
+            reply = "I'm always glad to help! What printing equipment, photo printer, or genuine consumables can I assist you with today?"
         return RouteResult(
             reply=reply,
             suggested_chips=[],
@@ -115,7 +115,7 @@ def handle(understanding: LLMUnderstanding, state: ConversationState) -> RouteRe
     # ── Conversation ending ──────────────────────────────────────────────
     if intent == Intent.CONVERSATION_ENDING:
         name_suffix = f", {state.customer_name}" if state.customer_name else ""
-        reply = f"Thank you for contacting Kepler Tech LLC{name_suffix}! Feel free to reach out anytime."
+        reply = f"Thank you for contacting Kepler Tech LLC{name_suffix}! If you need official quotations, technical data, or delivery arrangements, we're always here to assist. Have a wonderful day!"
         state.stage = "closing"
         return RouteResult(reply=reply, source="route:social")
 

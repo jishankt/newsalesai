@@ -508,6 +508,76 @@
     .copilot-btn:hover {
       opacity: .9;
     }
+
+    /* ── Escalation Toast Notification ── */
+    #toast-container {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-width: 380px;
+      pointer-events: none;
+    }
+    .escalation-toast {
+      pointer-events: auto;
+      background: var(--surface);
+      border: 1px solid var(--amber);
+      border-radius: 12px;
+      padding: 14px 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6), 0 0 16px rgba(245,158,11,0.25);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      animation: toastSlideIn .3s ease;
+    }
+    @keyframes toastSlideIn {
+      from { transform: translateX(50px); opacity: 0; }
+      to   { transform: translateX(0); opacity: 1; }
+    }
+    .toast-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .toast-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--amber);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .toast-close {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+    }
+    .toast-close:hover { color: var(--text); }
+    .toast-body {
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--text);
+    }
+    .toast-action {
+      margin-top: 4px;
+      align-self: flex-start;
+      background: var(--amber);
+      color: #000;
+      font-weight: 700;
+      font-size: 12px;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 12px;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+    .toast-action:hover { opacity: .9; }
   </style>
 </head>
 <body>
@@ -544,6 +614,11 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       Leads
     </button>
+    <div class="nav-label" style="margin-top:16px" id="nav-team-label">Management</div>
+    <button class="nav-item" onclick="showPanel('team',this)" id="nav-team">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Sales Team
+    </button>
   </nav>
   <div class="sidebar-footer">
     SalesAI v2 · <span id="refresh-ts">—</span>
@@ -557,7 +632,23 @@
       <div class="topbar-title" id="page-title">Overview</div>
       <div class="topbar-sub">Kepler Tech LLC — Customer Conversations</div>
     </div>
-    <div style="display:flex;align-items:center;gap:12px;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div id="agent-profile-wrap" style="display:none;align-items:center;gap:8px;">
+        <select id="agent-status-select" onchange="changeAgentStatus(this.value)" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;cursor:pointer;outline:none;">
+          <option value="online">🟢 Online</option>
+          <option value="busy">🟡 Busy</option>
+          <option value="offline">⚪ Offline</option>
+        </select>
+        <span id="agent-display-badge" class="badge badge-green" style="font-size:12px;padding:5px 10px;">
+          👨‍💼 <span id="agent-name-display">Sales Specialist</span>
+        </span>
+        <button id="sound-toggle-btn" class="btn btn-ghost" onclick="toggleNotificationSound()" title="Toggle Notification Audio Alert" style="padding:5px 9px;font-size:13px;">
+          🔔
+        </button>
+        <button class="btn btn-ghost" onclick="handleLogout()" style="padding:5px 10px;font-size:12px;color:var(--red);" title="Sign out">
+          Sign Out
+        </button>
+      </div>
       <div class="live-badge"><div class="live-dot"></div> Live</div>
       <button class="btn btn-ghost" onclick="refreshAll()">↻ Refresh</button>
     </div>
@@ -700,6 +791,22 @@
       </div>
     </div>
 
+    <!-- ── TEAM / AGENTS PANEL ── -->
+    <div class="panel" id="panel-team">
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <div>
+            <span style="font-weight:700;font-size:14px;">Sales Representatives & Advisors</span>
+            <span style="font-size:12px;color:var(--muted);margin-left:8px;" id="team-count-label">—</span>
+          </div>
+          <button class="btn btn-primary" id="add-agent-btn" onclick="openAddAgentModal()">+ Add Salesman</button>
+        </div>
+        <div id="team-table-wrap">
+          <div class="loader"><div class="spinner"></div> Loading…</div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -727,6 +834,79 @@
     </div>
   </div>
 </div>
+
+<!-- ── Login Screen Overlay ── -->
+<div class="overlay" id="login-overlay" style="display:none;z-index:99999;backdrop-filter:blur(6px);">
+  <div class="modal" style="width:400px;padding:28px;" onclick="event.stopPropagation()">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div class="brand-dot" style="margin:0 auto 12px;width:48px;height:48px;font-size:24px;">🖨</div>
+      <h2 style="font-size:19px;font-weight:700;">Kepler Tech SalesAI</h2>
+      <p style="font-size:12px;color:var(--muted);margin-top:4px;">Salesman & Administrator Portal</p>
+    </div>
+    <div id="login-error" style="display:none;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;padding:8px 12px;border-radius:8px;font-size:12px;margin-bottom:14px;"></div>
+    <form id="login-form" onsubmit="submitLogin(event)" style="display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">Username</label>
+        <input type="text" id="login-username" required style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;outline:none;" placeholder="e.g. sales or admin">
+      </div>
+      <div>
+        <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">Password</label>
+        <input type="password" id="login-password" required style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;outline:none;" placeholder="••••••••">
+      </div>
+      <button type="submit" class="btn btn-primary" style="padding:10px;font-size:13px;font-weight:600;margin-top:4px;">Sign In</button>
+    </form>
+    <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);text-align:center;">
+      Quick Fill:
+      <a href="javascript:void(0)" onclick="quickFill('sales','sales123')" style="color:var(--accent);text-decoration:none;margin:0 4px;font-weight:600;">Salesman</a> |
+      <a href="javascript:void(0)" onclick="quickFill('admin','admin123')" style="color:var(--accent);text-decoration:none;margin:0 4px;font-weight:600;">Admin</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── Add Agent Modal ── -->
+<div class="overlay" id="add-agent-modal" onclick="closeAddAgentModal(event)">
+  <div class="modal" style="width:460px;" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title">Create Salesman Account</div>
+      <button class="close-btn" onclick="document.getElementById('add-agent-modal').classList.remove('open')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="add-agent-error" style="display:none;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;padding:8px 12px;border-radius:8px;font-size:12px;margin-bottom:14px;"></div>
+      <form id="add-agent-form" onsubmit="submitAddAgent(event)" style="display:flex;flex-direction:column;gap:12px;">
+        <div>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">Full Name</label>
+          <input type="text" id="new-agent-name" required placeholder="e.g. Sarah - Technical Advisor" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;outline:none;">
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">Username</label>
+          <input type="text" id="new-agent-username" required placeholder="e.g. sarah" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;outline:none;">
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">Email</label>
+          <input type="email" id="new-agent-email" placeholder="sarah@keplertech.ae" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;outline:none;">
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">Password</label>
+          <input type="password" id="new-agent-password" required placeholder="••••••••" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;outline:none;">
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">Role</label>
+          <select id="new-agent-role" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;outline:none;">
+            <option value="salesman">Salesman (Live Sales Desk Takeover)</option>
+            <option value="admin">Administrator (Full Access)</option>
+          </select>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px;">
+          <button type="button" class="btn btn-ghost" onclick="document.getElementById('add-agent-modal').classList.remove('open')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Account</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Floating Toast Notifications Container -->
+<div id="toast-container"></div>
 
 <script>
   const CAT_LABELS = {
@@ -756,11 +936,12 @@
     document.getElementById('panel-' + name).classList.add('active');
     btn.classList.add('active');
     currentPanel = name;
-    const titles = { overview: 'Overview', sessions: 'Chat Sessions', leads: 'Leads', livedesk: 'Live Sales Desk' };
+    const titles = { overview: 'Overview', sessions: 'Chat Sessions', leads: 'Leads', livedesk: 'Live Sales Desk', team: 'Sales Team & Advisors' };
     document.getElementById('page-title').textContent = titles[name] || name;
     if (name === 'sessions' && document.getElementById('sessions-table-wrap').innerHTML.includes('Loading')) loadSessions();
     if (name === 'leads' && document.getElementById('leads-table-wrap').innerHTML.includes('Loading')) loadLeads();
     if (name === 'livedesk') loadLiveDeskQueue();
+    if (name === 'team') loadTeam();
   }
 
   /* ── Stats ── */
@@ -955,6 +1136,7 @@
     if (currentPanel === 'sessions') loadSessions();
     if (currentPanel === 'leads') loadLeads();
     if (currentPanel === 'livedesk') loadLiveDeskQueue();
+    if (currentPanel === 'team') loadTeam();
     document.getElementById('refresh-ts').textContent = new Date().toLocaleTimeString();
   }
 
@@ -1074,7 +1256,13 @@
 
       // Show composer and canned drawers
       if (cannedDrawer) cannedDrawer.style.display = 'flex';
-      if (composer) composer.style.display = 'flex';
+      if (composer) {
+        composer.style.display = 'flex';
+        const nameInput = document.getElementById('agent-name-input');
+        if (nameInput && currentAuthAgent && currentAuthAgent.name) {
+          nameInput.value = currentAuthAgent.name;
+        }
+      }
 
       // Render messages
       renderConsoleMessages(data.history || []);
@@ -1274,10 +1462,22 @@
     }
   }
 
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  /* ── Live Desk Actions ── */
   async function takeoverChat() {
     if (!activeLiveSessionId) return;
     const nameInput = document.getElementById('agent-name-input');
-    const agentName = nameInput ? nameInput.value.trim() : 'Sales Specialist';
+    let agentName = currentAuthAgent ? currentAuthAgent.name : (nameInput ? nameInput.value.trim() : 'Sales Specialist');
+    if (!agentName) agentName = 'Sales Specialist';
 
     try {
       const resp = await fetch('/api/admin/live-desk/takeover', {
@@ -1321,7 +1521,8 @@
     if (!input || !input.value.trim()) return;
 
     const message = input.value.trim();
-    const agentName = nameInput ? nameInput.value.trim() : 'Sales Specialist';
+    let agentName = currentAuthAgent ? currentAuthAgent.name : (nameInput ? nameInput.value.trim() : 'Sales Specialist');
+    if (!agentName) agentName = 'Sales Specialist';
     input.value = '';
 
     try {
@@ -1362,13 +1563,421 @@
     }
   }
 
+  /* ── Agent Authentication & Profile ── */
+  let currentAuthAgent = null;
+
+  async function checkAuth() {
+    try {
+      const resp = await fetch('/api/admin/auth/me');
+      const data = await resp.json();
+      if (data.authenticated && data.agent) {
+        currentAuthAgent = data.agent;
+        renderAuthUI(data.agent);
+        document.getElementById('login-overlay').style.display = 'none';
+      } else {
+        currentAuthAgent = null;
+        document.getElementById('agent-profile-wrap').style.display = 'none';
+        document.getElementById('login-overlay').style.display = 'flex';
+      }
+    } catch (e) {
+      console.error('checkAuth error:', e);
+    }
+  }
+
+  function renderAuthUI(agent) {
+    const wrap = document.getElementById('agent-profile-wrap');
+    if (wrap) wrap.style.display = 'flex';
+
+    const nameDisplay = document.getElementById('agent-name-display');
+    if (nameDisplay) nameDisplay.textContent = agent.name;
+
+    const statusSelect = document.getElementById('agent-status-select');
+    if (statusSelect) statusSelect.value = agent.status || 'online';
+
+    const agentNameInput = document.getElementById('agent-name-input');
+    if (agentNameInput) agentNameInput.value = agent.name;
+
+    // Admin vs Salesman permissions
+    const isSalesOnly = agent.role === 'salesman';
+    const navTeam = document.getElementById('nav-team');
+    const navTeamLabel = document.getElementById('nav-team-label');
+    const addAgentBtn = document.getElementById('add-agent-btn');
+    if (isSalesOnly) {
+      if (navTeam) navTeam.style.display = 'none';
+      if (navTeamLabel) navTeamLabel.style.display = 'none';
+      if (addAgentBtn) addAgentBtn.style.display = 'none';
+    } else {
+      if (navTeam) navTeam.style.display = 'flex';
+      if (navTeamLabel) navTeamLabel.style.display = 'block';
+      if (addAgentBtn) addAgentBtn.style.display = 'inline-block';
+    }
+  }
+
+  function quickFill(u, p) {
+    document.getElementById('login-username').value = u;
+    document.getElementById('login-password').value = p;
+  }
+
+  async function submitLogin(e) {
+    e.preventDefault();
+    const uInput = document.getElementById('login-username');
+    const pInput = document.getElementById('login-password');
+    const errBox = document.getElementById('login-error');
+    errBox.style.display = 'none';
+
+    try {
+      const resp = await fetch('/api/admin/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: uInput.value.trim(), password: pInput.value })
+      });
+      const data = await resp.json();
+      if (data.success && data.agent) {
+        currentAuthAgent = data.agent;
+        renderAuthUI(data.agent);
+        document.getElementById('login-overlay').style.display = 'none';
+        pInput.value = '';
+        if (currentPanel === 'livedesk') loadLiveDeskQueue();
+      } else {
+        errBox.textContent = data.error || 'Invalid username or password';
+        errBox.style.display = 'block';
+      }
+    } catch (err) {
+      errBox.textContent = 'Server error during sign in. Please try again.';
+      errBox.style.display = 'block';
+    }
+  }
+
+  async function handleLogout() {
+    try {
+      await fetch('/api/admin/auth/logout', { method: 'POST' });
+    } catch (e) {}
+    currentAuthAgent = null;
+    document.getElementById('agent-profile-wrap').style.display = 'none';
+    document.getElementById('login-overlay').style.display = 'flex';
+  }
+
+  async function changeAgentStatus(status) {
+    try {
+      const resp = await fetch('/api/admin/auth/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: status })
+      });
+      const data = await resp.json();
+      if (data.success && currentAuthAgent) {
+        currentAuthAgent.status = status;
+      }
+    } catch (e) {
+      console.error('changeAgentStatus error:', e);
+    }
+  }
+
+  /* ── Team Management ── */
+  async function loadTeam() {
+    const wrap = document.getElementById('team-table-wrap');
+    if (!wrap) return;
+    wrap.innerHTML = '<div class="loader"><div class="spinner"></div> Loading sales team…</div>';
+
+    try {
+      const resp = await fetch('/api/admin/agents');
+      const data = await resp.json();
+      if (!data.success) {
+        wrap.innerHTML = `<div class="empty">${data.error || 'Unable to load team list'}</div>`;
+        return;
+      }
+
+      const countLabel = document.getElementById('team-count-label');
+      if (countLabel) countLabel.textContent = `${data.agents.length} members`;
+
+      if (data.agents.length === 0) {
+        wrap.innerHTML = '<div class="empty">No sales agents registered yet</div>';
+        return;
+      }
+
+      const rows = data.agents.map(a => {
+        const statusBadge = a.status === 'online' ? '<span class="badge badge-green">🟢 Online</span>' :
+                            a.status === 'busy' ? '<span class="badge badge-amber">🟡 Busy</span>' :
+                            '<span class="badge badge-gray">⚪ Offline</span>';
+        const roleBadge = a.role === 'admin' ? '<span class="badge badge-purple">Admin</span>' : '<span class="badge badge-blue">Salesman</span>';
+        const lastSeen = a.last_seen ? new Date(a.last_seen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Never';
+
+        return `<tr>
+          <td>
+            <div style="font-weight:600;font-size:13px;">${escapeHtml(a.name)}</div>
+            <div style="font-size:11px;color:var(--muted);">${escapeHtml(a.email || 'No email')}</div>
+          </td>
+          <td style="font-family:monospace;font-size:12px;color:var(--muted);">@${escapeHtml(a.username)}</td>
+          <td>${roleBadge}</td>
+          <td>${statusBadge}</td>
+          <td style="font-size:12px;color:var(--muted);">${lastSeen}</td>
+          <td>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <select onchange="updateMemberStatus('${a.agent_id}', this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:11px;padding:3px 6px;outline:none;">
+                <option value="online" ${a.status === 'online' ? 'selected' : ''}>Online</option>
+                <option value="busy" ${a.status === 'busy' ? 'selected' : ''}>Busy</option>
+                <option value="offline" ${a.status === 'offline' ? 'selected' : ''}>Offline</option>
+              </select>
+              ${a.username !== 'admin' ? `<button class="btn btn-ghost" style="padding:2px 8px;font-size:11px;color:var(--red);" onclick="deleteAgentMember('${a.agent_id}', '${escapeHtml(a.name)}')">Delete</button>` : ''}
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+
+      wrap.innerHTML = `
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Agent Name</th>
+              <th>Username</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Last Active</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+      `;
+    } catch (e) {
+      wrap.innerHTML = '<div class="empty">Error loading sales agents</div>';
+    }
+  }
+
+  function openAddAgentModal() {
+    const errBox = document.getElementById('add-agent-error');
+    if (errBox) errBox.style.display = 'none';
+    const form = document.getElementById('add-agent-form');
+    if (form) form.reset();
+    document.getElementById('add-agent-modal').classList.add('open');
+  }
+
+  function closeAddAgentModal(e) {
+    if (e.target.id === 'add-agent-modal') {
+      document.getElementById('add-agent-modal').classList.remove('open');
+    }
+  }
+
+  async function submitAddAgent(e) {
+    e.preventDefault();
+    const errBox = document.getElementById('add-agent-error');
+    errBox.style.display = 'none';
+
+    const payload = {
+      name: document.getElementById('new-agent-name').value.trim(),
+      username: document.getElementById('new-agent-username').value.trim(),
+      email: document.getElementById('new-agent-email').value.trim(),
+      password: document.getElementById('new-agent-password').value,
+      role: document.getElementById('new-agent-role').value
+    };
+
+    try {
+      const resp = await fetch('/api/admin/agents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await resp.json();
+      if (data.success) {
+        document.getElementById('add-agent-modal').classList.remove('open');
+        document.getElementById('add-agent-form').reset();
+        loadTeam();
+      } else {
+        errBox.textContent = data.error || 'Failed to create agent';
+        errBox.style.display = 'block';
+      }
+    } catch (err) {
+      errBox.textContent = 'Network error creating agent.';
+      errBox.style.display = 'block';
+    }
+  }
+
+  async function updateMemberStatus(agentId, status) {
+    try {
+      await fetch(`/api/admin/agents/${agentId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: status })
+      });
+      loadTeam();
+    } catch (e) {
+      console.error('updateMemberStatus error:', e);
+    }
+  }
+
+  async function deleteAgentMember(agentId, name) {
+    if (!confirm(`Are you sure you want to remove agent "${name}"?`)) return;
+    try {
+      const resp = await fetch(`/api/admin/agents/${agentId}`, { method: 'DELETE' });
+      const data = await resp.json();
+      if (data.success) {
+        loadTeam();
+      } else {
+        alert(data.error || 'Could not delete agent');
+      }
+    } catch (e) {
+      console.error('deleteAgentMember error:', e);
+    }
+  }
+
+  /* ── Escalation Sound Alerts (Web Audio API Synthesizer) ── */
+  let audioContext = null;
+  let soundAlertsEnabled = true;
+
+  function toggleNotificationSound() {
+    soundAlertsEnabled = !soundAlertsEnabled;
+    const btn = document.getElementById('sound-toggle-btn');
+    if (btn) {
+      btn.textContent = soundAlertsEnabled ? '🔔' : '🔕';
+      btn.style.opacity = soundAlertsEnabled ? '1' : '0.5';
+    }
+  }
+
+  function playEscalationChime() {
+    if (!soundAlertsEnabled) return;
+    try {
+      if (!audioContext) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        audioContext = new AudioCtx();
+      }
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+      const now = audioContext.currentTime;
+
+      // Note 1: 880Hz (A5 chime)
+      const osc1 = audioContext.createOscillator();
+      const gain1 = audioContext.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(880, now);
+      gain1.gain.setValueAtTime(0.2, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc1.connect(gain1);
+      gain1.connect(audioContext.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.35);
+
+      // Note 2: 1320Hz (E6 pleasant harmonic response)
+      const osc2 = audioContext.createOscillator();
+      const gain2 = audioContext.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(1320, now + 0.12);
+      gain2.gain.setValueAtTime(0.2, now + 0.12);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+      osc2.connect(gain2);
+      gain2.connect(audioContext.destination);
+      osc2.start(now + 0.12);
+      osc2.stop(now + 0.55);
+    } catch (e) {
+      console.warn('Web Audio notification error:', e);
+    }
+  }
+
+  /* ── Escalation Notifications & Toasts ── */
+  let seenNotificationIds = new Set();
+  let firstPollDone = false;
+
+  async function pollEscalationNotifications() {
+    try {
+      const resp = await fetch('/api/admin/live-desk/notifications');
+      const data = await resp.json();
+      if (!data.success || !data.notifications) return;
+
+      const unhandled = data.notifications;
+      const count = unhandled.length;
+      const badge = document.getElementById('nav-attention-badge');
+      if (badge) {
+        if (count > 0) {
+          badge.textContent = count;
+          badge.style.display = 'inline-block';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+
+      let hasNew = false;
+      for (const notif of unhandled) {
+        if (!seenNotificationIds.has(notif.session_id)) {
+          seenNotificationIds.add(notif.session_id);
+          if (firstPollDone) {
+            hasNew = true;
+            showEscalationToast(notif);
+          }
+        }
+      }
+
+      if (hasNew) {
+        playEscalationChime();
+        if (currentPanel === 'livedesk') {
+          loadLiveDeskQueue();
+        }
+      }
+
+      firstPollDone = true;
+    } catch (e) {
+      // background poller fail-silent
+    }
+  }
+
+  function showEscalationToast(notif) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = 'escalation-toast';
+    toast.innerHTML = `
+      <div style="font-size:24px;">🚨</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;font-size:13px;display:flex;align-items:center;gap:6px;">
+          <span>Customer Requesting Human</span>
+          <span class="badge badge-amber" style="font-size:10px;">${escapeHtml(notif.reason || 'Escalation')}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text);margin-top:2px;font-weight:500;">
+          ${escapeHtml(notif.customer_name || 'Customer')} ${notif.customer_phone ? '· ' + escapeHtml(notif.customer_phone) : ''}
+        </div>
+        <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">
+          "${escapeHtml(notif.last_message || 'Human assistance requested')}"
+        </div>
+        <div style="margin-top:8px;display:flex;gap:6px;">
+          <button class="btn btn-primary" style="padding:4px 10px;font-size:11px;" onclick="toastTakeover('${notif.session_id}')">⚡ Take Over Now</button>
+          <button class="btn btn-ghost" style="padding:4px 8px;font-size:11px;" onclick="this.closest('.escalation-toast').remove()">Dismiss</button>
+        </div>
+      </div>
+    `;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        toast.style.transition = 'all 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }
+    }, 14000);
+  }
+
+  function toastTakeover(sessionId) {
+    const navBtn = document.getElementById('nav-livedesk');
+    if (navBtn) showPanel('livedesk', navBtn);
+    selectLiveDeskSession(sessionId);
+    const toasts = document.querySelectorAll('.escalation-toast');
+    toasts.forEach(t => t.remove());
+  }
+
   /* ── Init ── */
+  checkAuth();
   loadStats();
+  pollEscalationNotifications();
   document.getElementById('refresh-ts').textContent = new Date().toLocaleTimeString();
   setInterval(loadStats, 60000); // auto-refresh every 60s
   setInterval(() => {
     if (currentPanel === 'livedesk') loadLiveDeskQueue();
   }, 5000); // live queue refresh every 5s
+  setInterval(pollEscalationNotifications, 3000); // poll escalation alerts every 3s
 </script>
 </body>
 </html>

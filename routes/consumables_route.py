@@ -20,24 +20,39 @@ KNOWN_COLORS = [
 ]
 
 
-def sort_consumables_inks_first(cards: list) -> list:
+def sort_consumables_inks_first(cards: list, prefer_media: bool = False) -> list:
     """
-    Sorts consumable items so genuine inks/cartridges/bottles/ribbons come first,
-    followed by maintenance boxes, paper rolls, media, and other accessories.
+    Sorts consumable items. When prefer_media is True, Media & Paper items come first.
+    Otherwise, genuine inks/cartridges/bottles/ribbons come first,
+    followed by media/paper, and maintenance boxes/accessories last.
     """
     if not cards:
         return []
 
     def _rank(c: dict) -> int:
-        name = (str(c.get("name", "")) + " " + str(c.get("description", "")) + " " + str(c.get("badge", ""))).lower()
+        name = (str(c.get("name", "")) + " " + str(c.get("description", "")) + " " + str(c.get("badge", "")) + " " + str(c.get("category", ""))).lower()
         # Non-ink accessories (maintenance boxes, waste tanks, cutters, cleaning liquid) go last
         if any(w in name for w in ["maintenance box", "maintenance tank", "waste ink", "cleaning", "roller", "cutter", "blade"]):
             return 2
-        # Inks, cartridges, bottles, ribbons, toners go first
-        if any(w in name for w in ["ink", "cartridge", "tank", "bottle", "ribbon", "toner", "cyan", "magenta", "yellow", "black", "ds ink"]):
-            return 0
-        # Media / paper in between or after
-        return 1
+        is_media = (
+            any(w in name for w in ["media", "paper", "canvas", "roll", "sheet", "film", "luster", "glossy", "matte", "baryta", "velvet", "rag"])
+            or str(c.get("category", "")).lower() == "media & paper"
+            or c.get("badge") == "Print Media"
+        )
+        is_ink = any(w in name for w in ["ink", "cartridge", "tank", "bottle", "ribbon", "toner", "cyan", "magenta", "yellow", "black", "ds ink"])
+
+        if prefer_media:
+            if is_media:
+                return 0
+            if is_ink:
+                return 1
+            return 2
+        else:
+            if is_ink:
+                return 0
+            if is_media:
+                return 1
+            return 2
 
     return sorted(cards, key=_rank)
 
@@ -334,7 +349,8 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
         {"printer_identifier": target, "limit": 16}
     )
     all_consumables = res.get("consumable_cards", [])
-    all_consumables = sort_consumables_inks_first(all_consumables)
+    media_intent = any(k in raw_lower for k in ["paper", "media", "roll", "canvas", "luster", "glossy", "matte", "velvet", "sheet", "baryta"])
+    all_consumables = sort_consumables_inks_first(all_consumables, prefer_media=media_intent)
     product_cards = res.get("product_cards", [])
     printer_name = res.get("printer_name") or target
 
@@ -524,7 +540,10 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
 
     # Default: Return verified compatible consumables / media with clean bullet points
     items_list = "\n".join([format_consumable_bullet(c) for c in all_consumables[:6]])
-    reply = f"Here are the verified genuine consumables and media for **{printer_name}**:\n\n{items_list}"
+    if media_intent:
+        reply = f"Here are verified genuine media rolls and papers compatible with **{printer_name}**:\n\n{items_list}"
+    else:
+        reply = f"Here are the verified genuine consumables and media for **{printer_name}**:\n\n{items_list}"
 
     return RouteResult(
         reply=reply,

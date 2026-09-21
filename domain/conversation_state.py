@@ -53,6 +53,7 @@ class ConversationState:
 
     # ── Operational ──────────────────────────────────────────────────────
     awaiting_field: Optional[str] = None
+    pending_disambiguation_model: Optional[str] = None
     unresolved_field_turns: int = 0
     last_suggested_chips: List[str] = field(default_factory=list)
     history_turns: List[Dict[str, Any]] = field(default_factory=list)
@@ -106,6 +107,7 @@ class ConversationState:
             "active_consumable": self.active_consumable,
             "active_consumables": self.active_consumables,
             "awaiting_field": self.awaiting_field,
+            "pending_disambiguation_model": self.pending_disambiguation_model,
             "unresolved_field_turns": self.unresolved_field_turns,
             "last_suggested_chips": self.last_suggested_chips,
             "history_turns": self.history_turns,
@@ -156,6 +158,7 @@ class ConversationState:
             active_consumable=data.get("active_consumable"),
             active_consumables=data.get("active_consumables", []),
             awaiting_field=data.get("awaiting_field"),
+            pending_disambiguation_model=data.get("pending_disambiguation_model"),
             unresolved_field_turns=data.get("unresolved_field_turns", 0),
             last_suggested_chips=data.get("last_suggested_chips", []),
             history_turns=data.get("history_turns", []),

@@ -50,6 +50,14 @@ def resolve_subcategory(category: str, requirements: Dict[str, Any]) -> Optional
     # ── 2. Technical Large-Format ────────────────────────────────────────
     if category == "technical_large_format":
         width = requirements.get("print_width")
+        if width is None and requirements.get("paper_size"):
+            ps = str(requirements.get("paper_size", "")).lower()
+            if any(k in ps for k in ["24", "60cm", "610mm", "2ft", "2 feet", "a1"]):
+                width = 24
+            elif any(k in ps for k in ["36", "90cm", "914mm", "3ft", "3 feet", "a0"]):
+                width = 36
+            elif any(k in ps for k in ["44", "100cm", "110cm", "1118mm", "1m", "1 meter"]):
+                width = 44
         scanner_req = requirements.get("scanner_required")
 
         # 24-inch — NO scanner/MFP variant exists (SC-T3100 series is print-only)
