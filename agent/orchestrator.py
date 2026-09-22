@@ -196,6 +196,11 @@ class Orchestrator:
                 state.reset_category(detected_category)
                 if state.awaiting_field == "printer_model":
                     state.awaiting_field = None
+            elif state.category in ("scanners", "scanner") and detected_category is None and bool(re.search(r"\b(?:printers?|printing|plotters?|copiers?|mfp)\b", normalized_msg.lower())):
+                logger.info(f"[{session_id[:8]}] Customer in scanners requested printer; resetting category to None for qualification")
+                state.reset_category(None)
+                if state.awaiting_field:
+                    state.awaiting_field = None
 
         # Track previous state for natural conversational feedback
         prev_requirements = dict(state.requirements)
@@ -910,13 +915,33 @@ class Orchestrator:
                 )
 
             # Case 2: Active or mentioned hardware product
+            # Disambiguate: If the user query is a broad inquiry (e.g. "i want to buy a printer", "buy a scanner")
+            # without mentioning a specific model, or refers to a different category than the active product,
+            # do not bind to the active product.
+            low_msg = normalized_msg.lower()
+            is_broad_buy = bool(re.search(
+                r"\b(?:buy|purchase|order)\s+(?:a|an|the|some)?\s*(?:new\s+)?(?:printer|printers|scanner|scanners|machine|machines|plotter|plotters|copier|copiers)\b",
+                low_msg
+            )) and not any(k in low_msg for k in ["this", "that", "it", "these", "those"]) and not mentioned_products
+
             target_prod = None
             if mentioned_products:
                 target_prod = mentioned_products[0]
-            elif state.active_product:
-                target_prod = state.active_product
-            elif state.active_product_id:
-                target_prod = catalogue_loader.get_by_id(state.active_product_id)
+            elif not is_broad_buy:
+                act = state.active_product
+                act_cat = (act.get("main_category") or state.category or "").lower() if act else (state.category or "").lower()
+                conflicting = (
+                    ("printer" in low_msg and "scanner" in act_cat and not any(k in low_msg for k in ["this", "that", "it"]))
+                    or ("scanner" in low_msg and "printer" in act_cat and not any(k in low_msg for k in ["this", "that", "it", "with scanner", "integrated scanner"]))
+                )
+                if not conflicting:
+                    if state.active_product:
+                        target_prod = state.active_product
+                    elif state.active_product_id:
+                        target_prod = catalogue_loader.get_by_id(state.active_product_id)
+            else:
+                if state.category in ("scanners", "scanner") and bool(re.search(r"\b(?:printers?|printing|plotters?|copiers?|mfp)\b", low_msg)):
+                    state.reset_category(None)
 
             if target_prod:
                 from catalog.price_resolver import price_resolver
@@ -1565,10 +1590,10 @@ class Orchestrator:
         )
         if has_general_yield_pattern and not current_active:
             reply_text = (
-                "Yield and finishing patterns depend on the specific printer technology.\n\n"
-                "- **Citizen Photo Printers** use continuous dye-sub ribbons (yielding between 250 to 700 prints per roll depending on cut size).\n"
-                "- **Epson Large-Format Plotters** use individual UltraChrome ink cartridges (ranging from 110 ml to 1,600 ml packs with page yields determined by coverage and media type).\n\n"
-                "Which printer model would you like exact yield and pattern details for?"
+                "Here is an overview of **Yield & Capacity** and **Pattern & Finishing** across our catalogue:\n\n"
+                "- **Citizen Photo Printers:** Media yields between 250 to 700 prints per roll. Pattern changes use electronic **Thermal Overcoat Patterns** (Glossy, Matte, Fine Matte, Luster) without changing paper.\n"
+                "- **Epson Large-Format & Office Printers:** Cartridge yields up to 50,000 pages with automated **Nozzle Check Diagnostic Pattern** testing and automated head maintenance.\n\n"
+                "Which printer or scanner model would you like exact yield and pattern details for?"
             )
             chips_to_return = ["Citizen CX-02 Specs", "Citizen CY-02 Specs", "Citizen CZ-01 Specs", "Epson WF-C5890 Specs"]
             state.last_assistant_response = reply_text
@@ -2067,11 +2092,12 @@ class Orchestrator:
 
         # 7a. If category is still unknown, prompt for category
         if not state.category:
-            reply_text = "What will you primarily print—technical CAD drawings, office & business documents, professional photographs, sublimation merchandise (mugs & T-shirts), or event photos?"
+            reply_text = "What will you primarily print or scan—technical CAD drawings, office & business documents, professional photographs, professional scanners, sublimation merchandise (mugs & T-shirts), or event photos?"
             chips_to_return = [
                 "Office & Business Documents (A3 / A4)",
                 "Technical CAD Plotters",
                 "Professional Photography & Fine Art",
+                "Professional Scanners",
                 "Dye-Sublimation (T-Shirts & Mugs)",
                 "Event Photos (Photo Booth)",
             ]
@@ -2247,7 +2273,9 @@ class Orchestrator:
                         "Here are the updated matching printers ranked for your workload:"
                     )
             elif is_correction_turn and had_cards:
-                reply_text = f"Understood, I've updated your requirements. Here are the {len(valid_cards)} matching catalogue printers:"
+                is_scanners = state.category == "scanners" or any(c.get("main_category") == "scanners" for c in valid_cards)
+                item_word = "scanners" if is_scanners else "printers"
+                reply_text = f"Understood, I've updated your requirements. Here are the {len(valid_cards)} matching catalogue {item_word}:"
             elif subcategory == "a4_colour_multifunction":
                 try:
                     v_int = int(vol) if vol else 0
@@ -2277,6 +2305,15 @@ class Orchestrator:
                 reply_text = f"Based on your requirements, here are our recommended A3 multifunction printer{'s' if len(valid_cards) != 1 else ''}:"
             elif subcategory == "photo_64_production" or state.requirements.get("print_width") == 64:
                 reply_text = "Based on your requirements, here is our premier 64-inch production photo & fine art roll printer (64″ / 162.6 cm is our standard maximum roll width):"
+            elif state.category == "scanners" or subcategory in ("business_scanners", "photo_scanners", "hybrid_scanners") or any(c.get("main_category") == "scanners" for c in valid_cards):
+                if subcategory == "business_scanners":
+                    reply_text = f"Based on your requirements, here are our recommended business document scanner{'s' if len(valid_cards) != 1 else ''}:"
+                elif subcategory == "photo_scanners":
+                    reply_text = f"Based on your requirements, here are our recommended high-resolution photo & graphic scanner{'s' if len(valid_cards) != 1 else ''}:"
+                elif subcategory == "hybrid_scanners":
+                    reply_text = f"Based on your requirements, here are our recommended hybrid flatbed & ADF scanner{'s' if len(valid_cards) != 1 else ''}:"
+                else:
+                    reply_text = f"Based on your requirements, here are our recommended catalogue scanner{'s' if len(valid_cards) != 1 else ''}:"
             else:
                 reply_text = f"Based on your requirements, here are our recommended catalogue printer{'s' if len(valid_cards) != 1 else ''}:"
 
@@ -2284,7 +2321,7 @@ class Orchestrator:
                 bullets = []
                 for c in valid_cards[:4]:
                     title = c.get("title") or c.get("name") or c.get("id")
-                    speed = c.get("speed") or c.get("print_speed")
+                    speed = c.get("speed") or c.get("print_speed") or c.get("scan_speed")
                     desc = f" ({speed})" if speed else ""
                     bullets.append(f"• **{title}**{desc}")
                 if bullets:

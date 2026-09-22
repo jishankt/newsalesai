@@ -379,6 +379,14 @@ class ContextualSlotResolver:
                 reqs["category"] = "office_printer"
                 return reqs, corrections
 
+            # f. Professional Scanners
+            if any(k in text_l for k in [
+                "scanner", "scanners", "professional scanner", "professional scanners",
+                "document scanner", "photo scanner", "hybrid scanner", "flatbed scanner",
+            ]):
+                reqs["category"] = "scanners"
+                return reqs, corrections
+
 
         # 11. Relaxation State Handling
         if awaiting_field == "relaxation":
@@ -426,5 +434,35 @@ class ContextualSlotResolver:
                     reqs["scanner_required"] = False
                     corrections["paper_size"] = "a4"
                     return reqs, corrections
+
+        # 12. Scanner Intent / Subcategory
+        if awaiting_field in ("scanner_intent", "scanner_type", "subcategory") or (category in ("scanners", "scanner") and awaiting_field == "scanner_intent"):
+            # a. Both can do / Hybrid
+            if any(k in text_l for k in [
+                "both", "hybrid", "dual", "flatbed and adf", "flatbed + adf", "both can do",
+                "books and documents", "photos and documents", "both (flatbed + adf)", "flatbed with feeder",
+                "both (flatbed and adf)", "flatbed and sheetfed", "flatbed and feeder"
+            ]):
+                reqs["scanner_intent"] = "hybrid"
+                reqs["subcategory"] = "hybrid_scanners"
+                return reqs, corrections
+
+            # b. Photo / Film / High-Res
+            if any(k in text_l for k in [
+                "photo", "photos", "film", "slide", "slides", "negatives", "high-res", "high res",
+                "photo & film", "transparency", "fine art", "photo & film (high-res)", "12000xl"
+            ]):
+                reqs["scanner_intent"] = "photo"
+                reqs["subcategory"] = "photo_scanners"
+                return reqs, corrections
+
+            # c. Business / Document
+            if any(k in text_l for k in [
+                "business", "document", "documents", "business documents", "office",
+                "invoice", "invoices", "contracts", "receipts", "sheetfed", "portable", "mobile"
+            ]):
+                reqs["scanner_intent"] = "business"
+                reqs["subcategory"] = "business_scanners"
+                return reqs, corrections
 
         return {}, {}

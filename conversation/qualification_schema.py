@@ -95,6 +95,17 @@ CATEGORY_REQUIREMENT_SCHEMAS: Dict[str, Dict[str, List[str]]] = {
             "product_line",
             "media_handling",
         ]
+    },
+    "scanners": {
+        "mandatory": [
+            "scanner_intent",
+        ],
+        "optional": [
+            "paper_size",
+            "daily_volume",
+            "portability",
+            "connectivity",
+        ]
     }
 }
 
@@ -166,6 +177,11 @@ QUESTIONS_BY_FIELD: Dict[str, Dict[str, Any]] = {
     "usage_environment": {
         "question": "What is your operating environment—mobile photo booth, retail kiosk, or studio portraiture?",
         "pills": ["Mobile Photo Booth", "Unattended Retail Kiosk", "Studio Portraiture"]
+    },
+    # Professional Scanners
+    "scanner_intent": {
+        "question": "What type of scanner do you need—high-speed business document scanner, high-resolution photo & film scanner, or a versatile hybrid model with both a flatbed and ADF?",
+        "pills": ["Business Documents", "Photo & Film (High-Res)", "Both (Flatbed + ADF)"]
     }
 }
 
@@ -226,6 +242,14 @@ def get_missing_mandatory_fields(category: str, requirements: Dict[str, Any]) ->
             if val is None or val == "" or val == []:
                 missing.append(f)
         return missing
+
+    if category in ("scanners", "scanner"):
+        from catalog.subcategory_resolver import resolve_subcategory
+        if resolve_subcategory(category, requirements):
+            return []
+        if requirements.get("scanner_intent") or requirements.get("subcategory"):
+            return []
+        return ["scanner_intent"]
 
     mandatory = get_mandatory_fields(category)
     missing = []

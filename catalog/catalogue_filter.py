@@ -40,6 +40,9 @@ SUBCATEGORY_LABELS = {
     "citizen_8_inch": ("Citizen Photo", "8-inch Wide Event Photo"),
     "dye_sublimation_desktop": ("Dye Sublimation", "Desktop Dye-Sub Printer"),
     "dye_sublimation_24_inch": ("Dye Sublimation", "24\" Wide-Format Dye-Sublimation Roll Printer"),
+    "business_scanners": ("Scanners", "Business Document Scanners"),
+    "photo_scanners": ("Scanners", "High-Resolution Photo Scanners"),
+    "hybrid_scanners": ("Scanners", "Flatbed & ADF Document/Photo Scanners"),
 }
 
 # Explicit configuration relationship groupings: (model_family, base_id, variant_id, variant_trigger_key)
@@ -114,6 +117,7 @@ class CatalogueFilter:
                 or (cat_l in ("technical_large_format", "technical_cad") and p.get("catalogue") == "technical_large_format")
                 or (cat_l in ("citizen_photo", "citizen") and p.get("catalogue") == "citizen_photo")
                 or (cat_l in ("dye_sublimation", "sublimation") and p.get("catalogue") == "dye_sublimation")
+                or (cat_l in ("scanners", "scanner") and p.get("catalogue") == "scanners")
             ]
         else:
             cat_filtered = valid_products
@@ -423,17 +427,37 @@ class CatalogueFilter:
             clean_s = " and ".join(sizes_list[:2])
             match_reasons.append(f"Supports your requested {clean_s} prints")
 
+        if p.get("main_category") == "scanners":
+            if sub_key == "photo_scanners":
+                match_reasons.append("High-resolution photo, fine art & graphic scanning")
+            elif sub_key == "hybrid_scanners":
+                match_reasons.append("Dual flatbed glass & ADF for books, photos, and document stacks")
+            elif sub_key == "business_scanners":
+                match_reasons.append("High-speed sheetfed document scanning for business workflows")
+
         if not match_reasons:
             match_reasons.append(f"Catalogue-certified model matching your {sub_label} requirements")
 
         # Key features
         key_features = []
-        if p.get("colour_mode"):
-            key_features.append(f"{p['colour_mode'].title()} printing")
-        if p.get("functions"):
-            key_features.append("/".join([f.title() for f in p["functions"]]))
-        if p.get("source_catalogue"):
-            key_features.append("Official Kepler Tech Catalogue Certified")
+        if p.get("main_category") == "scanners":
+            if p.get("scan_speed"):
+                key_features.append(f"Speed: {p['scan_speed']}")
+            if p.get("dpi"):
+                key_features.append(f"Resolution: {p['dpi']}")
+            if p.get("adf_capacity"):
+                key_features.append(f"ADF: {p['adf_capacity']}")
+            elif p.get("optical_density"):
+                key_features.append(f"Dmax: {p['optical_density']}")
+            if p.get("source_catalogue"):
+                key_features.append("Official Kepler Tech Catalogue Certified")
+        else:
+            if p.get("colour_mode"):
+                key_features.append(f"{p['colour_mode'].title()} printing")
+            if p.get("functions"):
+                key_features.append("/".join([f.title() for f in p["functions"]]))
+            if p.get("source_catalogue"):
+                key_features.append("Official Kepler Tech Catalogue Certified")
 
         from catalog.price_resolver import price_resolver
         price_info = price_resolver.get_price_info(identifier=p.get("id"), prod=p)

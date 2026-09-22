@@ -367,13 +367,13 @@ class TestEnhancedComparisonCriteria(unittest.TestCase):
             self.assertIn(f, common_keys, f"Field '{f}' missing from COMMON_CRITERIA")
             self.assertIn(f, cross_keys, f"Field '{f}' missing from CROSS_CATEGORY_SHARED")
 
-    def test_all_43_catalogue_products_have_verified_technical_fields(self):
-        """Every single one of the 43 approved catalogue models must have resolved, verified specs."""
+    def test_all_catalogue_products_have_verified_technical_fields(self):
+        """Every single one of the 72 approved catalogue models must have resolved, verified specs."""
         from catalog.comparison_engine import _resolve_field
         products = catalogue_loader.products
-        self.assertEqual(len(products), 43)
+        self.assertEqual(len(products), 72)
 
-        keys_to_test = [
+        printer_keys_to_test = [
             "functions",
             "print_speed",
             "dpi",
@@ -384,8 +384,18 @@ class TestEnhancedComparisonCriteria(unittest.TestCase):
             "memory",
         ]
 
+        scanner_keys_to_test = [
+            "functions",
+            "scanner_type",
+            "scan_speed",
+            "optical_resolution",
+            "paper_size",
+            "warranty",
+        ]
+
         for p in products:
             pid = p["id"]
+            keys_to_test = scanner_keys_to_test if p.get("main_category") == "scanners" else printer_keys_to_test
             for k in keys_to_test:
                 val = _resolve_field(p, k)
                 self.assertNotEqual(

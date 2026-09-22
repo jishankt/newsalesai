@@ -19,9 +19,9 @@ class TestCatalogueScopeAndFilters(unittest.TestCase):
     def setUp(self):
         self.products = catalogue_loader.load_and_validate()
 
-    def test_catalogue_loader_exact_43_entries(self):
-        """Assert startup validation enforces exactly 43 active products."""
-        self.assertEqual(len(self.products), 43)
+    def test_catalogue_loader_exact_72_entries(self):
+        """Assert startup validation enforces exactly 72 active products (43 printers + 29 scanners)."""
+        self.assertEqual(len(self.products), 72)
         # Unique IDs
         ids = [p["id"] for p in self.products]
         self.assertEqual(len(ids), len(set(ids)))
@@ -33,6 +33,7 @@ class TestCatalogueScopeAndFilters(unittest.TestCase):
             "photography_and_fine_art",
             "citizen_photo",
             "dye_sublimation",
+            "scanners",
         }
         for p in self.products:
             self.assertTrue(p.get("active"))

@@ -151,4 +151,16 @@ class NextQuestionEngine:
                 }
             return None
 
+        # Scanners flow
+        if category in ("scanners", "scanner"):
+            from catalog.subcategory_resolver import resolve_subcategory
+            if not resolve_subcategory(category, reqs):
+                return {
+                    "field": "scanner_intent",
+                    "question": "What type of scanner do you need—high-speed business document scanner, high-resolution photo & film scanner, or a versatile hybrid model with both a flatbed and ADF?",
+                    "importance": "critical",
+                    "chips": ["Business Documents", "Photo & Film (High-Res)", "Both (Flatbed + ADF)"]
+                }
+            return None
+
         return None

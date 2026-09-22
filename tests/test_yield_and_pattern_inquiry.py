@@ -18,7 +18,7 @@ class TestYieldAndPatternInquiry(unittest.TestCase):
 
     def test_all_43_products_have_yield_and_pattern_fields(self):
         """Every approved catalogue product must have yield_capacity and pattern_and_finishing."""
-        self.assertEqual(len(self.products), 43)
+        self.assertEqual(len(self.products), 72)
         for p in self.products:
             pid = p["id"]
             self.assertIn("yield_capacity", p, f"{pid} is missing yield_capacity")

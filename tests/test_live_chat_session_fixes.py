@@ -122,6 +122,45 @@ class TestLiveChatSessionFixes(unittest.TestCase):
         self.assertTrue(len(t3["product_cards"]) > 0)
         self.assertEqual(t3["product_cards"][0]["id"], "epson-sc-p6500d")
 
+    def test_06_scanner_comparison_no_print_resolution_or_multifunction(self):
+        """Verify comparing standalone scanners omits Print Resolution and Multifunction claims."""
+        msg = "Compare Epson WorkForce WF DS-60000 Color Document Scanner and Epson WorkForce WF DS-60000N Color Document Scanner"
+        state = ConversationState(session_id="test-scanner-comp")
+        state.category = "scanners"
+        state.subcategory = "hybrid_scanners"
+        res = orchestrator.process_turn(raw_message=msg, session_id="test-scanner-comp", state=state)
+        reply = res.get("reply", "")
+        self.assertNotIn("Print Resolution (DPI)", reply)
+        self.assertNotIn("Multifunction: print, scan, copy", reply)
+        self.assertIn("Scanning Speed", reply)
+        self.assertIn("Optical Resolution", reply)
+
+    def test_07_scanner_recommendation_intro_dynamic_scanners(self):
+        """Verify recommendation intro for scanners says 'scanners' and not 'printers'."""
+        state = ConversationState(session_id="test-scanner-intro")
+        r1 = orchestrator.process_turn("i need scanner", session_id="test-scanner-intro", state=state)
+        self.assertEqual(state.category, "scanners")
+        r2 = orchestrator.process_turn("both", session_id="test-scanner-intro", state=state)
+        reply = r2.get("reply", "")
+        self.assertIn("scanners", reply.lower())
+        self.assertNotIn("catalogue printers", reply.lower())
+
+    def test_08_buy_printer_from_scanner_state_clears_active_scanner(self):
+        """Verify user saying 'i want to buy a printer' when active product is a scanner transitions cleanly to printer qualification."""
+        state = ConversationState(session_id="test-cat-switch-buy")
+        state.category = "scanners"
+        state.active_product = catalogue_loader.get_by_id("epson-workforce-ds-60000n")
+        state.active_product_id = "epson-workforce-ds-60000n"
+
+        res = orchestrator.process_turn("i want to buy a printer", session_id="test-cat-switch-buy", state=state)
+        reply = res.get("reply", "")
+        # Must not quote or display the DS-60000N scanner
+        self.assertNotIn("DS-60000N", reply)
+        self.assertIsNone(state.active_product)
+        # Must prompt for what they want to print
+        self.assertIn("print", reply.lower())
+        self.assertIsNone(state.category)
+
 
 if __name__ == "__main__":
     unittest.main()

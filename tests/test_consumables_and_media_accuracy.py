@@ -23,18 +23,26 @@ def repo():
 
 
 def test_all_catalogue_products_have_consumables():
-    """All 43 products in catalogue_products.json must have non-empty consumables lists."""
+    """All 72 products in catalogue_products.json must have valid media/urls, and 43 printers must have non-empty consumables."""
     cat_path = Path(__file__).resolve().parent.parent / "data" / "catalogue_products.json"
     assert cat_path.exists()
     with open(cat_path, "r", encoding="utf-8") as f:
         products = json.load(f)
 
-    assert len(products) == 43
-    for p in products:
+    assert len(products) == 72
+    printers = [p for p in products if p.get("main_category") != "scanners"]
+    scanners = [p for p in products if p.get("main_category") == "scanners"]
+    assert len(printers) == 43
+    assert len(scanners) == 29
+
+    for p in printers:
         p_id = p.get("id")
         consumables = p.get("consumables", [])
         assert isinstance(consumables, list), f"Product {p_id} consumables should be a list"
         assert len(consumables) > 0, f"Product {p_id} ({p.get('display_name')}) has empty consumables!"
+
+    for p in products:
+        p_id = p.get("id")
         # Check website url
         p_url = p.get("product_url")
         assert p_url and p_url.startswith("https://www.keplertechllc.com/"), f"Product {p_id} URL invalid: {p_url}"

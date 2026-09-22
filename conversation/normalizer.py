@@ -75,7 +75,44 @@ def normalize_category(raw_text: str, current_category: Optional[str] = None) ->
     ):
         return "dye_sublimation"
 
-    # 3. Technical / CAD / Plotters (including common typos like 'plottaer')
+    # 3. Professional Standalone Scanners
+    # (Business document scanners, high-res photo/film scanners, hybrid flatbed+ADF)
+    scanner_models = [
+        "12000xl", "ds-900", "ds-800", "es-580", "es-500", "ds-970", "ds-870",
+        "ds-790", "ds-770", "ds-730", "ds-530", "ds-410", "ds-30000", "ds-32000",
+        "ds-70", "ds-80w", "ds-310", "ds-360", "ds-1630", "ds-1660", "ds-6500",
+        "ds-7500", "ds-60000", "ds-70000"
+    ]
+    has_scanner_model = any(m in text_l for m in scanner_models)
+    is_printer_with_scanner = (
+        bool(re.search(r"\b(?:printers?|printing|print\s+and\s+scan|copier|mfp)\b", text_l))
+        and not bool(re.search(r"\b(?:photo\s+scanner|document\s+scanner|business\s+scanner|flatbed\s+scanner|sheetfed\s+scanner|portable\s+scanner)\b", text_l))
+        and not bool(re.search(r"\b(?:switch\s+to\s+scanner|i\s+want\s+a\s+scanner|i\s+need\s+a\s+scanner|buy\s+a\s+scanner|looking\s+for\s+a\s+scanner)\b", text_l))
+    )
+    is_explicit_scanner_intent = bool(re.search(
+        r"\b(?:switch\s+to|instead|change\s+to|dedicated\s+scanner|standalone\s+scanner|i\s+need\s+a\s+scanner|i\s+want\s+a\s+scanner|buy\s+a\s+scanner|looking\s+for\s+a\s+scanner|show\s+me\s+scanners?)\b",
+        text_l
+    ))
+    is_answering_printer_scanner = (
+        current_category in ("technical_large_format", "office_printer", "photography_large_format", "dye_sublimation", "citizen_photo")
+        and not is_explicit_scanner_intent
+        and not has_scanner_model
+    )
+
+    if (has_scanner_model or (
+        bool(re.search(r"\b(?:scanners?|photo\s+scanner|document\s+scanner|flatbed\s+scanner|sheetfed\s+scanner|portable\s+scanner|handheld\s+scanner|expression\s+scanner)\b", text_l))
+        and (not is_printer_with_scanner or is_explicit_scanner_intent)
+        and not is_answering_printer_scanner
+    ) or (
+        current_category in ("scanners", "scanner") and any(k in text_l for k in [
+            "business", "document", "documents", "photo", "photos", "film", "slide", "both", "hybrid", "flatbed", "adf", "portable", "mobile"
+        ]) and not bool(re.search(r"\b(?:printers?|printing|plotters?|copiers?|mfp)\b", text_l))
+    ) or (
+        bool(re.search(r"\b(?:professional\s+scanners?)\b", text_l))
+    )) and not is_answering_printer_scanner:
+        return "scanners"
+
+    # 4. Technical / CAD / Plotters (including common typos like 'plottaer')
     # Also matches single-word user replies that mirror the category question wording
     if any(k in text_l for k in [
         "cad", "cad drawing", "cad drawings",
@@ -94,7 +131,7 @@ def normalize_category(raw_text: str, current_category: Optional[str] = None) ->
     ):
         return "technical_large_format"
 
-    # 4. Large-Format / Photo check
+    # 5. Large-Format / Photo check
     # Also matches single-word replies from the category question ("professional", "photographs")
     if any(k in text_l for k in [
         "surecolor", "fine art", "fine-art",
@@ -120,7 +157,7 @@ def normalize_category(raw_text: str, current_category: Optional[str] = None) ->
     ):
         return "photography_large_format"
 
-    # 5. Office / Business Printer check (including A3 / A4 office printers)
+    # 6. Office / Business Printer check (including A3 / A4 office printers)
     # Also matches "documents", "office", "business" echoed back from the category question
     if any(k in text_l for k in [
         "office", "workforce", "copier", "copiers", "enterprise mfp",
@@ -141,6 +178,11 @@ def normalize_category(raw_text: str, current_category: Optional[str] = None) ->
         not current_category and bool(re.search(r"\b(?:a4|a3)\b", text_l)) and not bool(re.search(r"\ba3\+", text_l))
     ):
         return "office_printer"
+
+    # If currently in scanners, and user mentions printers/printing without scanner, reset category to None to trigger qualification
+    if current_category in ("scanners", "scanner"):
+        if bool(re.search(r"\b(?:printers?|printing|plotters?|copiers?|mfp)\b", text_l)) and not bool(re.search(r"\b(?:scanners?)\b", text_l)):
+            return None
 
     return current_category
 
@@ -369,6 +411,44 @@ def extract_deterministic_requirements(text: str, category: Optional[str] = None
         reqs["product_line"] = "surecolor_f"
         if is_correction:
             corrections["product_line"] = "surecolor_f"
+
+    # I. Expression (Photo Scanners)
+    elif any(k in text_l for k in ["expression scanner", "expression photo", "12000xl"]):
+        reqs["product_line"] = "expression"
+        reqs["subcategory"] = "photo_scanners"
+        reqs["scanner_intent"] = "photo"
+        if is_correction:
+            corrections["product_line"] = "expression"
+
+    # J. WorkForce Scanner
+    elif any(k in text_l for k in ["workforce scanner", "workforce document scanner"]) or (
+        category in ("scanners", "scanner") and "workforce" in text_l
+    ):
+        reqs["product_line"] = "workforce_scanner"
+        if is_correction:
+            corrections["product_line"] = "workforce_scanner"
+
+    # ── 7. Scanner Intent & Subcategory Resolution ───────────────────────
+    if category in ("scanners", "scanner") or awaiting_field in ("scanner_intent", "scanner_type"):
+        if any(k in text_l for k in [
+            "both", "hybrid", "dual", "flatbed and adf", "flatbed + adf", "both can do",
+            "books and documents", "photos and documents", "both (flatbed + adf)", "flatbed with feeder",
+            "flatbed and sheetfed"
+        ]):
+            reqs["scanner_intent"] = "hybrid"
+            reqs["subcategory"] = "hybrid_scanners"
+        elif any(k in text_l for k in [
+            "photo", "photos", "film", "slide", "slides", "negatives", "high-res", "high res",
+            "photo & film", "transparency", "fine art", "photo & film (high-res)", "12000xl"
+        ]):
+            reqs["scanner_intent"] = "photo"
+            reqs["subcategory"] = "photo_scanners"
+        elif any(k in text_l for k in [
+            "business", "document", "documents", "business documents", "office",
+            "invoice", "invoices", "contracts", "receipts", "sheetfed", "portable", "mobile"
+        ]):
+            reqs["scanner_intent"] = "business"
+            reqs["subcategory"] = "business_scanners"
 
     return reqs, corrections
 

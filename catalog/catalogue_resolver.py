@@ -51,6 +51,11 @@ def find_mentioned_catalogue_products(text: str) -> List[Dict[str, Any]]:
                 if fam in ("sc-p7500", "sc-p9500") and bool(re.search(r"\b(?:spectro|spectrophotometer)\b", text_lower)) and not bool(re.search(r"\b(?:without|standard)\b", text_lower)):
                     continue
 
+        # Guard Expression 12000XL base vs 12000XL Pro
+        if pid == "epson-expression-12000xl":
+            if bool(re.search(r"\b(?:pro|12000xl\s*pro)\b", text_lower)) and not bool(re.search(r"\b(?:without|standard|both|compare|versus|vs)\b", text_lower)):
+                continue
+
         patterns = [
             re.escape(pid),
             re.escape(fam),

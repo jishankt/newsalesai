@@ -186,6 +186,48 @@ def resolve_subcategory(category: str, requirements: Dict[str, Any]) -> Optional
 
         return None
 
+    # ── 6. Professional Scanners ─────────────────────────────────────────
+    if category in ("scanners", "scanner"):
+        # Explicit subcategory or intent
+        sub = requirements.get("subcategory")
+        if sub in ("business_scanners", "photo_scanners", "hybrid_scanners"):
+            return sub
+
+        intent = str(requirements.get("scanner_intent") or requirements.get("scanner_type") or "").lower()
+        app = str(requirements.get("application") or "").lower()
+        model_req = str(requirements.get("model") or "").lower()
+
+        # 1. Both can do / Hybrid (Flatbed + ADF)
+        # Checked before single photo/business if user mentioned "both" or "photos and documents"
+        if (
+            "both" in intent or "hybrid" in intent or "dual" in intent
+            or "flatbed and adf" in intent or "adf and flatbed" in intent
+            or "book" in intent or "bound" in intent
+            or any(k in app for k in ["both", "hybrid", "book", "books", "passport", "passports", "bound"])
+            or any(m in model_req for m in ["1630", "1660", "6500", "7500", "60000", "70000"])
+        ):
+            return "hybrid_scanners"
+
+        # 2. Photo / High-Res / Graphic / Film
+        if (
+            "photo" in intent or "film" in intent or "slide" in intent or "fine_art" in intent
+            or "graphic" in intent or "transparency" in intent
+            or any(k in app for k in ["photo", "film", "slide", "fine_art", "graphic", "transparency", "negative"])
+            or "12000" in model_req or "expression" in model_req
+        ):
+            return "photo_scanners"
+
+        # 3. Business / Document / Office / Sheetfed / Portable
+        if (
+            "business" in intent or "document" in intent or "office" in intent
+            or "sheetfed" in intent or "portable" in intent or "mobile" in intent
+            or any(k in app for k in ["business", "document", "office", "invoice", "receipt", "contract", "sheetfed", "portable", "mobile"])
+            or any(m in model_req for m in ["900wn", "800wn", "580w", "500w", "970", "870", "790wn", "770", "730n", "530", "410", "30000", "32000", "ds-70", "ds-80w", "ds-310", "ds-360w"])
+        ):
+            return "business_scanners"
+
+        return None
+
     return None
 
 

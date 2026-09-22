@@ -85,7 +85,35 @@ CATEGORY_CRITERIA: Dict[str, List[Tuple[str, str]]] = {
         ("applications_dyesub",   "Dye-Sub Applications"),
         ("colour_mode",           "Colour Mode"),
     ],
+    "scanners": [
+        ("scanner_type",          "Scanner Type"),
+        ("scan_speed",            "Scanning Speed"),
+        ("optical_resolution",    "Optical Resolution"),
+        ("paper_size",            "Supported Document Size"),
+        ("adf_capacity",          "ADF Capacity"),
+        ("daily_duty_cycle",      "Daily Duty Cycle"),
+        ("connectivity",          "Connectivity & Network"),
+        ("warranty",              "Warranty & Service"),
+    ],
 }
+
+# ── Scanner-specific common criteria (when comparing scanners) ──────────────
+SCANNER_COMMON_CRITERIA: List[Tuple[str, str]] = [
+    ("model",                "Model"),
+    ("functions",            "Functions"),
+    ("scanner_type",         "Scanner Type"),
+    ("scan_speed",           "Scanning Speed"),
+    ("optical_resolution",   "Optical Resolution"),
+    ("paper_size",           "Supported Document Size"),
+    ("adf_capacity",         "ADF Capacity"),
+    ("daily_duty_cycle",     "Daily Duty Cycle"),
+    ("connectivity",         "Connectivity & Network"),
+    ("main_category",        "Main Category"),
+    ("subcategory_key",      "Subcategory"),
+    ("applications",         "Primary Applications"),
+    ("match_reasons",        "Key Selling Points"),
+    ("warranty",             "Warranty & Service"),
+]
 
 # Cross-category: only these shared fields
 CROSS_CATEGORY_SHARED: List[Tuple[str, str]] = [
@@ -173,6 +201,9 @@ def _resolve_field(product: Dict[str, Any], key: str) -> str:
 
     if key == "functions":
         funcs = p.get("functions") or []
+        if p.get("main_category") == "scanners" or (funcs == ["scan"] and "print" not in funcs):
+            st = p.get("scanner_type")
+            return html.escape(f"Dedicated Scanner ({st})" if st else "Dedicated Document Scanner")
         base = ", ".join(f.replace("_", " ").title() for f in funcs) if funcs else ""
         integrated_parts = []
         if p.get("scanner_integrated"):
@@ -285,6 +316,8 @@ def _resolve_field(product: Dict[str, Any], key: str) -> str:
             "surecolor_p":          "SureColor P-Series",
             "surecolor_f":          "SureColor F-Series",
             "citizen":              "Citizen",
+            "workforce_scanner":    "WorkForce Scanner",
+            "expression":           "Expression Photo Scanner",
         }
         return html.escape(labels.get(pl, pl.replace("_", " ").title())) if pl else NOT_VERIFIED
 
@@ -309,13 +342,16 @@ def _resolve_field(product: Dict[str, Any], key: str) -> str:
     if key == "match_reasons":
         reasons = []
         funcs = p.get("functions") or []
-        if "scan" in funcs or "copy" in funcs:
+        if "print" in funcs and ("scan" in funcs or "copy" in funcs):
             reasons.append("Multifunction: print, scan, copy")
+        elif "scan" in funcs and "print" not in funcs:
+            if p.get("adf_capacity"):
+                reasons.append(f"ADF scanning ({p.get('adf_capacity')})")
         if p.get("dual_roll"):
             reasons.append("Dual-roll automatic media switching")
         if p.get("spectro"):
             reasons.append("Spectrophotometer for colour calibration")
-        if p.get("scanner_integrated") and "scan" not in funcs:
+        if p.get("scanner_integrated") and "scan" not in funcs and "print" in funcs:
             reasons.append("Integrated flatbed scanner")
         pl = p.get("product_line", "")
         pl_labels = {
@@ -325,6 +361,8 @@ def _resolve_field(product: Dict[str, Any], key: str) -> str:
             "surecolor_t":          "SureColor T — CAD/GIS technical plotting",
             "citizen":              "Citizen — instant dye-sub photo printing",
             "surecolor_f":          "SureColor F — dye-sublimation transfer printing",
+            "workforce_scanner":    "WorkForce — high-speed business document scanner",
+            "expression":           "Expression — high-resolution photo & graphic scanner",
         }
         if pl in pl_labels:
             reasons.append(pl_labels[pl])
@@ -333,6 +371,22 @@ def _resolve_field(product: Dict[str, Any], key: str) -> str:
     if key in ("applications_photo", "applications_citizen", "applications_dyesub"):
         apps = p.get("applications") or []
         return _safe(apps)
+
+    if key == "adf_capacity":
+        val = p.get("adf_capacity")
+        if val:
+            return html.escape(str(val))
+        if p.get("main_category") == "scanners":
+            return html.escape("Flatbed Only (No ADF)")
+        return NOT_VERIFIED
+
+    if key == "daily_duty_cycle":
+        val = p.get("daily_duty_cycle")
+        if val:
+            return html.escape(str(val))
+        if p.get("subcategory") == "photo_scanners" or "expression" in p.get("id", ""):
+            return html.escape("Professional Studio / Archival Grade")
+        return NOT_VERIFIED
 
     # Fallback: direct field lookup
     val = p.get(key)
@@ -392,10 +446,13 @@ def build_comparison(
         )
     else:
         primary_cat = main_cats[0]
-        cat_specific = CATEGORY_CRITERIA.get(primary_cat, [])
-        common_keys = {k for k, _ in COMMON_CRITERIA}
-        extra = [(k, l) for k, l in cat_specific if k not in common_keys]
-        criteria_keys = COMMON_CRITERIA + extra
+        if primary_cat == "scanners":
+            criteria_keys = SCANNER_COMMON_CRITERIA
+        else:
+            cat_specific = CATEGORY_CRITERIA.get(primary_cat, [])
+            common_keys = {k for k, _ in COMMON_CRITERIA}
+            extra = [(k, l) for k, l in cat_specific if k not in common_keys]
+            criteria_keys = COMMON_CRITERIA + extra
 
     # Resolve values for each criterion
     criteria_rows = []

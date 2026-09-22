@@ -58,8 +58,8 @@ class TestAllProductPrices(unittest.TestCase):
         cls.all_products = catalogue_loader.get_all()
 
     def test_total_catalogue_products_count(self):
-        """Must have exactly 43 catalogue products loaded."""
-        self.assertEqual(len(self.all_products), 43)
+        """Must have exactly 72 catalogue products loaded (43 printers + 29 scanners)."""
+        self.assertEqual(len(self.all_products), 72)
 
     def test_every_catalogue_product_price_and_cards(self):
         """Every single product in the catalogue must resolve to its exact verified price or quote_only."""
