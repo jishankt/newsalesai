@@ -46,15 +46,25 @@ class AgentRepository:
             logger.error(f"Failed to initialize agent database at {self.db_path}: {e}")
 
     def _seed_default_agents(self, conn: sqlite3.Connection):
-        """Seeds initial admin and salesman accounts."""
+        """Seeds initial admin and salesman accounts with securely generated random passwords."""
+        import secrets
         now = time.time()
+        admin_pass = os.getenv("INITIAL_ADMIN_PASSWORD") or secrets.token_urlsafe(16)
+        sales_pass = os.getenv("INITIAL_SALES_PASSWORD") or secrets.token_urlsafe(16)
+
+        # Clear startup log messages
+        logger.warning("==================================================================")
+        logger.warning(f"INITIAL ADMIN PASSWORD (change immediately): {admin_pass}")
+        logger.warning(f"INITIAL SALESMAN PASSWORD (change immediately): {sales_pass}")
+        logger.warning("==================================================================")
+
         agents = [
             (
                 "agent-admin-01",
                 "admin",
                 "Operations Admin",
                 "admin@keplertech.ae",
-                generate_password_hash("admin123"),
+                generate_password_hash(admin_pass),
                 "admin",
                 "active",
                 "offline",
@@ -65,7 +75,7 @@ class AgentRepository:
                 "sales",
                 "Tariq - Sales Specialist",
                 "tariq.sales@keplertech.ae",
-                generate_password_hash("sales123"),
+                generate_password_hash(sales_pass),
                 "salesman",
                 "active",
                 "offline",

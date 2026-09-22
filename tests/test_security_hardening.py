@@ -84,8 +84,8 @@ class TestSecurityHardening(unittest.TestCase):
         ready_res = self.client.get("/health/ready")
         self.assertEqual(ready_res.status_code, 200)
         ready_data = json.loads(ready_res.data)
-        # Status is "ready" or "not_ready" depending on Ollama availability
-        self.assertIn(ready_data["status"], ["ready", "not_ready"])
+        # Status is "ready", "not_ready", or "degraded" depending on Ollama availability and config
+        self.assertIn(ready_data["status"], ["ready", "not_ready", "degraded"])
         # Catalog must always be loaded regardless of Ollama state
         self.assertGreater(ready_data["catalog_count"], 0)
 

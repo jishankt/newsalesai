@@ -16,6 +16,8 @@ from config import (
     RATE_LIMIT_ENABLED,
     RATE_LIMIT_IP_PER_MINUTE,
     RATE_LIMIT_SESSION_PER_MINUTE,
+    RATE_LIMIT_LOGIN_ATTEMPTS,
+    RATE_LIMIT_LOGIN_WINDOW_SECONDS,
     TRUSTED_PROXY_COUNT,
     TRUST_CF_CONNECTING_IP,
 )
@@ -121,6 +123,58 @@ class SlidingWindowRateLimiter:
             if not sess_allowed:
                 return False, f"Too many requests for this conversation session. Please wait {retry_after} seconds.", retry_after
 
+        return True, None, 0
+
+    def is_login_blocked(self, ip: str) -> Tuple[bool, Optional[str], int]:
+        """Checks if the IP is currently locked out due to exceeding failed attempts."""
+        if not RATE_LIMIT_ENABLED:
+            return False, None, 0
+
+        now = time.time()
+        cutoff = now - RATE_LIMIT_LOGIN_WINDOW_SECONDS
+
+        with self._lock:
+            key = f"login:ip:{ip}"
+            timestamps = [ts for ts in self._storage.get(key, []) if ts > cutoff]
+            self._storage[key] = timestamps
+
+            if len(timestamps) >= RATE_LIMIT_LOGIN_ATTEMPTS:
+                oldest = timestamps[0]
+                retry_after = max(1, int(RATE_LIMIT_LOGIN_WINDOW_SECONDS - (now - oldest)))
+                return (
+                    True,
+                    f"Too many login attempts from this IP address. Please wait {retry_after} seconds.",
+                    retry_after,
+                )
+
+        return False, None, 0
+
+    def record_login_failure(self, ip: str):
+        """Records a failed login attempt for the IP."""
+        if not RATE_LIMIT_ENABLED:
+            return
+
+        now = time.time()
+        with self._lock:
+            key = f"login:ip:{ip}"
+            timestamps = self._storage.get(key, [])
+            timestamps.append(now)
+            self._storage[key] = timestamps
+
+    def record_login_success(self, ip: str):
+        """Clears failed login attempts for the IP upon successful authentication."""
+        with self._lock:
+            self._storage.pop(f"login:ip:{ip}", None)
+
+    def check_login_rate_limit(self, ip: str) -> Tuple[bool, Optional[str], int]:
+        """
+        Validates login attempt limits for an incoming request IP.
+        Returns:
+            (allowed: bool, error_message: Optional[str], retry_after: int)
+        """
+        blocked, msg, retry = self.is_login_blocked(ip)
+        if blocked:
+            return False, msg, retry
         return True, None, 0
 
     def reset(self):

@@ -209,10 +209,10 @@ class CanonicalEntityNormalizer:
         if not res.get("print_width"):
             unit_match = re.search(
                 r"\b(?:upto|up\s+to|around|max(?:imum)?\s+|min(?:imum)?\s+|width\s+of\s+|size\s+of\s+)?(\d+(?:\.\d+)?)\s*"
-                r"(inch(?:es)?|in|\"|″|feet|foot|ft|'|meters?|metres?|m(?![a-z])|centimeters?|centimetres?|cm|millimeters?|millimetres?|mm)\b",
+                r"(inch(?:es)?|in|\"|″|feet|foot|ft|'|meters?|metres?|m(?![a-z])|centimeters?|centimetres?|cm|millimeters?|millimetres?|mm)(?![a-zA-Z])",
                 text_l
             )
-            if unit_match and not is_explicit_vol:
+            if unit_match:
                 raw_num = float(unit_match.group(1))
                 unit_str = unit_match.group(2).lower()
                 w_in = cls.convert_unit_to_inches(raw_num, unit_str)

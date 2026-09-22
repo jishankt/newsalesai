@@ -855,11 +855,6 @@
       </div>
       <button type="submit" class="btn btn-primary" style="padding:10px;font-size:13px;font-weight:600;margin-top:4px;">Sign In</button>
     </form>
-    <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);text-align:center;">
-      Quick Fill:
-      <a href="javascript:void(0)" onclick="quickFill('sales','sales123')" style="color:var(--accent);text-decoration:none;margin:0 4px;font-weight:600;">Salesman</a> |
-      <a href="javascript:void(0)" onclick="quickFill('admin','admin123')" style="color:var(--accent);text-decoration:none;margin:0 4px;font-weight:600;">Admin</a>
-    </div>
   </div>
 </div>
 
@@ -1611,11 +1606,6 @@
       if (navTeamLabel) navTeamLabel.style.display = 'block';
       if (addAgentBtn) addAgentBtn.style.display = 'inline-block';
     }
-  }
-
-  function quickFill(u, p) {
-    document.getElementById('login-username').value = u;
-    document.getElementById('login-password').value = p;
   }
 
   async function submitLogin(e) {

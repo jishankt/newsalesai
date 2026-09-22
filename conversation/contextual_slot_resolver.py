@@ -172,15 +172,16 @@ class ContextualSlotResolver:
                 "p6500", "p7500", "p8500", "p9500", "p20500"
             ]):
                 reqs["photo_form_factor"] = "large"
-                if any(k in text_l for k in ["64", "65", "p20500"]):
-                    reqs["print_width"] = 64
-                    reqs["paper_size"] = "64-inch"
-                elif any(k in text_l for k in ["44", "p7500", "p8500", "p9500"]):
-                    reqs["print_width"] = 44
-                    reqs["paper_size"] = "44-inch"
-                elif any(k in text_l for k in ["24", "p6500"]):
-                    reqs["print_width"] = 24
-                    reqs["paper_size"] = "24-inch"
+                if not ("24" in text_l and "64" in text_l):
+                    if any(k in text_l for k in ["64", "65", "p20500"]):
+                        reqs["print_width"] = 64
+                        reqs["paper_size"] = "64-inch"
+                    elif any(k in text_l for k in ["44", "p7500", "p8500", "p9500"]):
+                        reqs["print_width"] = 44
+                        reqs["paper_size"] = "44-inch"
+                    elif any(k in text_l for k in ["24", "p6500"]):
+                        reqs["print_width"] = 24
+                        reqs["paper_size"] = "24-inch"
                 return reqs, corrections
 
         # 4. Photo Brand (Epson Fine Art vs Citizen Event)

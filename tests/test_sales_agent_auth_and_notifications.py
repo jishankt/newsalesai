@@ -10,6 +10,10 @@ from persistence.state_repository import state_repository
 from domain.conversation_state import ConversationState
 
 
+TEST_ADMIN_PASSWORD = "TestAdminPass123!"
+TEST_SALES_PASSWORD = "TestSalesPass123!"
+
+
 @pytest.fixture
 def client():
     app.config["TESTING"] = True
@@ -20,6 +24,8 @@ def client():
 @pytest.fixture(autouse=True)
 def init_test_db():
     agent_repository._init_db()
+    agent_repository.update_agent("agent-admin-01", password=TEST_ADMIN_PASSWORD)
+    agent_repository.update_agent("agent-sales-01", password=TEST_SALES_PASSWORD)
 
 
 def test_auth_login_failure(client):
@@ -39,7 +45,7 @@ def test_auth_login_and_me_success(client):
     """Test login succeeds for default salesman and sets session cookie."""
     resp = client.post(
         "/api/admin/auth/login",
-        data=json.dumps({"username": "sales", "password": "sales123"}),
+        data=json.dumps({"username": "sales", "password": TEST_SALES_PASSWORD}),
         content_type="application/json",
     )
     assert resp.status_code == 200
@@ -78,7 +84,7 @@ def test_admin_agent_crud(client):
     # Login as admin
     client.post(
         "/api/admin/auth/login",
-        data=json.dumps({"username": "admin", "password": "admin123"}),
+        data=json.dumps({"username": "admin", "password": TEST_ADMIN_PASSWORD}),
         content_type="application/json",
     )
 
@@ -135,7 +141,7 @@ def test_admin_agent_crud(client):
     # Switch back to admin to delete created agent
     client.post(
         "/api/admin/auth/login",
-        data=json.dumps({"username": "admin", "password": "admin123"}),
+        data=json.dumps({"username": "admin", "password": TEST_ADMIN_PASSWORD}),
         content_type="application/json",
     )
 
@@ -146,6 +152,13 @@ def test_admin_agent_crud(client):
 
 def test_live_desk_notifications_feed(client):
     """Test that customer escalation triggers appear in notification feed and disappear once taken over."""
+    # Authenticate as salesman to access live desk
+    client.post(
+        "/api/admin/auth/login",
+        data=json.dumps({"username": "sales", "password": TEST_SALES_PASSWORD}),
+        content_type="application/json",
+    )
+
     session_id = "test_escalation_sess_101"
     initial_state = ConversationState(session_id=session_id)
     initial_state.handover_triggered = True
@@ -195,7 +208,7 @@ def test_takeover_auto_binds_authenticated_salesman_name(client):
     # Log in as salesman
     client.post(
         "/api/admin/auth/login",
-        data=json.dumps({"username": "sales", "password": "sales123"}),
+        data=json.dumps({"username": "sales", "password": TEST_SALES_PASSWORD}),
         content_type="application/json",
     )
 
@@ -234,7 +247,7 @@ def test_admin_patch_agent_status(client):
     # Login as admin
     client.post(
         "/api/admin/auth/login",
-        data=json.dumps({"username": "admin", "password": "admin123"}),
+        data=json.dumps({"username": "admin", "password": TEST_ADMIN_PASSWORD}),
         content_type="application/json",
     )
 

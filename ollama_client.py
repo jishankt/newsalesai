@@ -50,6 +50,7 @@ class OllamaClient:
     def __init__(self, base_url: str = OLLAMA_BASE_URL, default_model: str = DEFAULT_MODEL):
         self.base_url = base_url.rstrip("/")
         self.default_model = default_model
+        self._offline_until = 0.0
 
     def startup_health_check(self) -> Dict[str, Any]:
         """
@@ -234,6 +235,17 @@ class OllamaClient:
             }
         """
         target_model = model or self.default_model
+        if time.time() < getattr(self, "_offline_until", 0.0):
+            return {
+                "success": False,
+                "result": {},
+                "source": "fallback",
+                "model": target_model,
+                "latency_ms": 0,
+                "fallback_used": True,
+                "error_kind": OllamaErrorKind.SERVER_UNAVAILABLE.value,
+            }
+
         temp = temperature if temperature is not None else OLLAMA_CLASSIFIER_TEMPERATURE
         retries = max_retries if max_retries is not None else OLLAMA_MAX_RETRIES
         payload = {
@@ -263,6 +275,7 @@ class OllamaClient:
                 latency_ms = int((time.time() - start) * 1000)
 
                 if resp.status_code == 200:
+                    self._offline_until = 0.0
                     data = resp.json()
                     content = data.get("message", {}).get("content", "")
                     try:
@@ -299,7 +312,8 @@ class OllamaClient:
                 kind = classify_request_error(e)
                 last_error_kind = kind.value
                 logger.warning(f"[{kind.value}] Ollama classify connection error on {endpoint} (attempt {attempt + 1}): {e}")
-                if kind in (OllamaErrorKind.CONNECTION_TIMEOUT, OllamaErrorKind.SERVER_UNAVAILABLE) and attempt >= retries:
+                if kind in (OllamaErrorKind.CONNECTION_TIMEOUT, OllamaErrorKind.SERVER_UNAVAILABLE):
+                    self._offline_until = time.time() + 10.0
                     break
 
         # All retries exhausted — return fallback
@@ -391,6 +405,17 @@ class OllamaClient:
         falling back to native /api/chat if needed.
         """
         target_model = model or self.default_model
+        if time.time() < getattr(self, "_offline_until", 0.0):
+            return {
+                "success": False,
+                "response": "",
+                "source": "fallback",
+                "model": target_model,
+                "latency_ms": 0,
+                "fallback_used": True,
+                "error_kind": OllamaErrorKind.SERVER_UNAVAILABLE.value,
+            }
+
         temp = temperature if temperature is not None else OLLAMA_RESPONSE_TEMPERATURE
         p_val = top_p if top_p is not None else OLLAMA_TOP_P
         retries = max_retries if max_retries is not None else OLLAMA_MAX_RETRIES
@@ -420,6 +445,7 @@ class OllamaClient:
                 latency_ms = int((time.time() - start) * 1000)
 
                 if resp.status_code == 200:
+                    self._offline_until = 0.0
                     data = resp.json()
                     content = data.get("message", {}).get("content", "").strip()
                     # Strip thinking tags if model emits them
@@ -445,7 +471,8 @@ class OllamaClient:
                 kind = classify_request_error(e)
                 last_error_kind = kind.value
                 logger.warning(f"[{kind.value}] Ollama compose error on {endpoint} (attempt {attempt + 1}): {e}")
-                if kind in (OllamaErrorKind.CONNECTION_TIMEOUT, OllamaErrorKind.SERVER_UNAVAILABLE) and attempt >= retries:
+                if kind in (OllamaErrorKind.CONNECTION_TIMEOUT, OllamaErrorKind.SERVER_UNAVAILABLE):
+                    self._offline_until = time.time() + 10.0
                     break
 
         # All retries exhausted

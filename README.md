@@ -105,6 +105,8 @@ For complete technical specifications, see [**DEVELOPER.md**](DEVELOPER.md).
 | `CORS_ORIGINS` | `localhost:5050` | Allowed CORS origins |
 | `MAX_REQUEST_BYTES` | `65536` | Maximum allowed request body size (64 KB) |
 | `REDIS_URL` | *(optional)* | Redis connection string for persistent session state |
+| `INITIAL_ADMIN_PASSWORD` | *(auto-generated)* | Initial password for admin account (randomly generated and logged on first run if unset) |
+| `INITIAL_SALES_PASSWORD` | *(auto-generated)* | Initial password for sales account (randomly generated and logged on first run if unset) |
 
 ---
 

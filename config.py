@@ -39,10 +39,16 @@ def validate_secret_key(secret_key=None, app_env=None, debug=None):
     """
     Validates that SECRET_KEY is set and non-default in production mode.
     Refuses startup if running in production with missing or default secret key.
+    Logs warning if DEBUG=False but APP_ENV is not explicitly production.
     """
     key = secret_key if secret_key is not None else SECRET_KEY
     env = (app_env if app_env is not None else APP_ENV).lower()
     is_debug = debug if debug is not None else DEBUG
+    if not is_debug and env not in ("production", "prod"):
+        import logging
+        logging.getLogger("config").warning(
+            "APP_ENV not set to 'production' — security gates for production may not be active."
+        )
     if env in ("production", "prod") and not is_debug:
         if not key or key.strip() in DEFAULT_SECRET_KEYS or len(key.strip()) < 16:
             raise RuntimeError(
@@ -59,15 +65,17 @@ ALLOWED_MODELS = os.getenv(
 ).split(",")
 CORS_ORIGINS = os.getenv(
     "CORS_ORIGINS",
-    "https://ai.kylesolutions.in,https://www.kylesolutions.in,http://localhost:5050,http://127.0.0.1:5050,http://localhost:5055,http://127.0.0.1:5055"
+    "http://localhost:5050,http://127.0.0.1:5050,http://localhost:5055,http://127.0.0.1:5055,https://keplertech.ae"
 ).split(",")
-MAX_REQUEST_BYTES = int(os.getenv("MAX_REQUEST_BYTES", 65536))  # 64 KB
+MAX_REQUEST_BYTES = int(os.getenv("MAX_REQUEST_BYTES", 64 * 1024))
 TIMEOUT_SECONDS = int(os.getenv("OLLAMA_TIMEOUT", "60"))
 
 # Rate Limiting Configuration
 RATE_LIMIT_ENABLED = os.getenv("RATE_LIMIT_ENABLED", "True").lower() == "true"
 RATE_LIMIT_IP_PER_MINUTE = int(os.getenv("RATE_LIMIT_IP_PER_MINUTE", "60"))
 RATE_LIMIT_SESSION_PER_MINUTE = int(os.getenv("RATE_LIMIT_SESSION_PER_MINUTE", "30"))
+RATE_LIMIT_LOGIN_ATTEMPTS = int(os.getenv("RATE_LIMIT_LOGIN_ATTEMPTS", "5"))
+RATE_LIMIT_LOGIN_WINDOW_SECONDS = int(os.getenv("RATE_LIMIT_LOGIN_WINDOW_SECONDS", "300"))
 TRUSTED_PROXY_COUNT = int(os.getenv("TRUSTED_PROXY_COUNT", "1"))
 TRUST_CF_CONNECTING_IP = os.getenv("TRUST_CF_CONNECTING_IP", "True").lower() == "true"
 

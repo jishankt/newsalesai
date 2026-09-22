@@ -51,6 +51,8 @@ logger = logging.getLogger("conversational_ai")
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = SECRET_KEY
+app.config["SESSION_COOKIE_SECURE"] = IS_PRODUCTION
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 CORS(app, resources={r"/api/*": {"origins": CORS_ORIGINS}})
 
 # Admin Dashboard Blueprint

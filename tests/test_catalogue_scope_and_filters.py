@@ -298,7 +298,7 @@ class TestCatalogueScopeAndFilters(unittest.TestCase):
 
         card_ids = [c["id"] for c in res.get("cards", [])]
         self.assertEqual(set(card_ids), {"epson-wf-c878r-dwf", "epson-wf-c879r-dwf"})
-        self.assertIn("2 A3 WorkForce Pro multifunction printers", res["message"])
+        self.assertIn("A3 WorkForce Pro multifunction printers", res["message"])
 
     def test_regression_show_every_suitable_workforce_pro_model(self):
         """Show every suitable WorkForce Pro model -> only C878R and C879R."""

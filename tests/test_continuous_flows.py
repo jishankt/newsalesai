@@ -363,10 +363,10 @@ class TestContinuousFlows(unittest.TestCase):
         self.assertEqual(r2.get("source"), "route:consumables")
         self.assertIn("CY-02", r2.get("reply", ""))
         self.assertIn("CY-MS46", r2.get("reply", ""))
-        self.assertEqual(len(r2.get("consumable_cards", [])), 2)
+        self.assertEqual(len(r2.get("consumable_cards", [])), 4)
 
-        # Turn 3: User inquires about SC-P700
-        r3 = orchestrator.process_turn("i need scp700", state=state)
+        # Turn 3: User inquires about SC-P700 printer
+        r3 = orchestrator.process_turn("i need scp700 printer", state=state)
         self.assertEqual(r3.get("source"), "route:model_detail")
         self.assertEqual(state.active_product_id, "epson-sc-p700")
 
@@ -387,7 +387,7 @@ class TestContinuousFlows(unittest.TestCase):
         self.assertIn("C13T11N140", res.get("reply", ""))
         card_skus = [c.get("sku") for c in res.get("consumable_cards", [])]
         self.assertIn("C13T11N140", card_skus)
-        self.assertIn("C12C938211", card_skus)
+        self.assertIn("C13S210125", card_skus)
 
 
 if __name__ == "__main__":

@@ -241,3 +241,20 @@ Processes a conversational turn.
 ### Health Probes
 - `GET /health/live`: Fast liveness check (`{"status": "alive"}`).
 - `GET /health/ready`: Readiness check verifying catalogue integrity and Ollama connectivity.
+
+---
+
+## Admin & Salesman Portal Security
+
+### Initial Seeded Credentials
+When initializing a new database on first run, default accounts (`admin` and `sales`) are created with securely generated random passwords using `secrets.token_urlsafe(16)`.
+- Passwords are printed **once** to the server startup logs:
+  ```
+  ==================================================================
+  INITIAL ADMIN PASSWORD (change immediately): <generated-password>
+  INITIAL SALESMAN PASSWORD (change immediately): <generated-password>
+  ==================================================================
+  ```
+- Plaintext passwords are never stored in the database or committed to source control.
+- You can optionally set pre-seeded passwords via the `INITIAL_ADMIN_PASSWORD` and `INITIAL_SALES_PASSWORD` environment variables before running initial migrations.
+- Change these credentials immediately after first login via the admin portal.

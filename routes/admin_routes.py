@@ -11,6 +11,7 @@ import logging
 from typing import Dict, Any, List, Optional
 from flask import Blueprint, jsonify, request, render_template, session
 from persistence.agent_repository import agent_repository
+from security.rate_limiter import rate_limiter, get_client_ip
 
 logger = logging.getLogger("admin_routes")
 
@@ -24,6 +25,43 @@ def _conn():
 
 
 admin_bp = Blueprint("admin", __name__)
+
+
+# ── Agent Authentication Helper & Guard ────────────────────────────────────
+def _current_agent() -> Optional[Dict[str, Any]]:
+    """Helper: resolves current authenticated agent from session."""
+    agent_id = session.get("agent_id")
+    if not agent_id:
+        return None
+    agent = agent_repository.get_by_id(agent_id)
+    if not agent or agent.status != "active":
+        return None
+    return {
+        "agent_id": agent.agent_id,
+        "username": agent.username,
+        "name": agent.name,
+        "email": agent.email,
+        "role": agent.role,
+        "online_status": agent.online_status,
+        "last_login": agent.last_login,
+    }
+
+
+@admin_bp.before_request
+def enforce_admin_agent_auth():
+    """Requires an authenticated agent session for all admin routes except login/me and public dashboard shell."""
+    exempt_paths = {
+        "/admin",
+        "/admin/",
+        "/api/admin/auth/login",
+        "/api/admin/auth/me",
+    }
+    if request.path in exempt_paths:
+        return None
+
+    agent = _current_agent()
+    if not agent:
+        return jsonify({"success": False, "error": "Authentication required"}), 401
 
 
 # ── Dashboard UI ────────────────────────────────────────────────────────────
@@ -459,36 +497,30 @@ def live_desk_notifications():
 
 
 # ── Agent Authentication & Session Management ──────────────────────────────
-def _current_agent() -> Optional[Dict[str, Any]]:
-    """Helper: resolves current authenticated agent from session."""
-    agent_id = session.get("agent_id")
-    if not agent_id:
-        return None
-    agent = agent_repository.get_by_id(agent_id)
-    if not agent or agent.status != "active":
-        return None
-    return {
-        "agent_id": agent.agent_id,
-        "username": agent.username,
-        "name": agent.name,
-        "email": agent.email,
-        "role": agent.role,
-        "online_status": agent.online_status,
-        "last_login": agent.last_login,
-    }
-
-
 @admin_bp.route("/api/admin/auth/login", methods=["POST"])
 def auth_login():
     """Salesman or admin logs in with username and password."""
+    client_ip = get_client_ip(request)
+    allowed, rate_err, retry_after = rate_limiter.check_login_rate_limit(client_ip)
+    if not allowed:
+        resp = jsonify({
+            "success": False,
+            "error": "Too many requests",
+            "message": rate_err or f"Too many login attempts from this IP address. Please wait {retry_after} seconds."
+        })
+        resp.headers["Retry-After"] = str(retry_after)
+        return resp, 429
+
     data = request.get_json(silent=True) or {}
     username = data.get("username", "").strip()
     password = data.get("password", "")
 
     agent = agent_repository.authenticate(username, password)
     if not agent:
+        rate_limiter.record_login_failure(client_ip)
         return jsonify({"success": False, "error": "Invalid username or password"}), 401
 
+    rate_limiter.record_login_success(client_ip)
     session["agent_id"] = agent.agent_id
     session["agent_name"] = agent.name
     session["agent_role"] = agent.role
@@ -527,12 +559,14 @@ def auth_me():
     return jsonify({"success": True, "logged_in": True, "authenticated": True, "agent": agent})
 
 
-@admin_bp.route("/api/admin/auth/status", methods=["POST"])
+@admin_bp.route("/api/admin/auth/status", methods=["GET", "POST"])
 def auth_status():
-    """Updates salesman availability: online, busy, offline."""
+    """Updates or retrieves salesman availability: online, busy, offline."""
     agent = _current_agent()
     if not agent:
-        return jsonify({"success": False, "error": "Not authenticated"}), 401
+        return jsonify({"success": False, "error": "Authentication required"}), 401
+    if request.method == "GET":
+        return jsonify({"success": True, "status": agent.get("online_status", "offline")})
     data = request.get_json(silent=True) or {}
     new_status = data.get("status")
     if new_status not in ("online", "busy", "offline"):

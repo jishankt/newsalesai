@@ -19,6 +19,10 @@ class TestLiveSalesDesk(unittest.TestCase):
 
     def setUp(self):
         self.client = app.test_client()
+        with self.client.session_transaction() as sess:
+            sess["agent_id"] = "agent-admin-01"
+            sess["agent_name"] = "Admin"
+            sess["agent_role"] = "admin"
         self.session_id = f"test-desk-{int(time.time() * 1000)}"
 
     def tearDown(self):
