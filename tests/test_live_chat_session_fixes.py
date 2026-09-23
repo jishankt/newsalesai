@@ -161,6 +161,27 @@ class TestLiveChatSessionFixes(unittest.TestCase):
         self.assertIn("print", reply.lower())
         self.assertIsNone(state.category)
 
+    def test_09_model_number_typo_fuzzy_resolution(self):
+        """Verify repeated-character and typo queries like 'wf c55890' resolve to WF-C5890 and override previous active product."""
+        # 1. Direct resolver check
+        prods = find_mentioned_catalogue_products("what is the price wf c55890")
+        self.assertEqual(len(prods), 1)
+        self.assertEqual(prods[0]["id"], "epson-wf-c5890-dwf")
+
+        # 2. End-to-end turn check where AM-C550 was previous active product
+        state = ConversationState(session_id="test-typo-c55890")
+        am_c550 = catalogue_loader.get_by_id("epson-am-c550")
+        state.active_product = am_c550
+        state.active_product_id = "epson-am-c550"
+
+        res = orchestrator.process_turn("what is the price wf c55890", session_id="test-typo-c55890", state=state)
+        reply = res.get("reply", "")
+        # Must resolve to WF-C5890 and AED 1,656
+        self.assertIn("WF-C5890", reply)
+        self.assertNotIn("AM-C550", reply)
+        self.assertIn("1,656", reply)
+        self.assertEqual(state.active_product_id, "epson-wf-c5890-dwf")
+
 
 if __name__ == "__main__":
     unittest.main()

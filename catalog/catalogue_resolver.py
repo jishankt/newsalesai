@@ -101,7 +101,74 @@ def find_mentioned_catalogue_products(text: str) -> List[Dict[str, Any]]:
             seen_ids.add(pid)
             matched.append(p)
 
+    if not matched:
+        # Fuzzy fallback for model code typos (e.g. repeated digits c55890 -> c5890, p9900 -> p900)
+        raw_words = text_lower.split()
+        clean_words = [re.sub(r"[^a-z0-9]", "", w) for w in raw_words]
+        tokens_to_check = set()
+        for idx, w in enumerate(clean_words):
+            if len(w) >= 4 and bool(re.search(r"[a-z]", w)) and bool(re.search(r"[0-9]", w)):
+                if not w.endswith(("inch", "in", "gsm", "ml", "mm", "cm", "dpi")):
+                    tokens_to_check.add(w)
+            if idx > 0:
+                bigram = clean_words[idx - 1] + w
+                if len(bigram) >= 5 and bool(re.search(r"[a-z]", bigram)) and bool(re.search(r"[0-9]", bigram)):
+                    if not bigram.endswith(("inch", "in", "gsm", "ml", "mm", "cm", "dpi")):
+                        tokens_to_check.add(bigram)
+
+        compressed_tokens = set()
+        for t in tokens_to_check:
+            compressed = re.sub(r"([a-z0-9])\1+", r"\1", t)
+            if compressed != t and len(compressed) >= 4:
+                compressed_tokens.add(compressed)
+        tokens_to_check.update(compressed_tokens)
+
+        if tokens_to_check:
+            scored_candidates = []
+            for p in sorted_prods:
+                pid = p["id"]
+                fam = p.get("model_family", "").lower().replace("sc-", "").replace("wf-", "").replace("am-", "").replace("em-", "")
+                clean_fam = re.sub(r"[^a-z0-9]", "", fam)
+                clean_pid = re.sub(r"[^a-z0-9]", "", pid.replace("epson-", "").replace("citizen-", ""))
+                clean_full = re.sub(r"[^a-z0-9]", "", p.get("display_name", "").lower().replace("epson", "").replace("workforce", "").replace("surecolor", ""))
+
+                cands = {c for c in [clean_fam, clean_pid, clean_full] if len(c) >= 4}
+                for cand in cands:
+                    for token in tokens_to_check:
+                        if token == cand:
+                            return [p]
+                        d = _levenshtein(token, cand)
+                        max_allowed = 1 if len(cand) <= 6 else 2
+                        if d <= max_allowed:
+                            scored_candidates.append((d, p))
+
+            if scored_candidates:
+                scored_candidates.sort(key=lambda x: x[0])
+                best_d = scored_candidates[0][0]
+                for d, prod in scored_candidates:
+                    if d == best_d and prod["id"] not in seen_ids:
+                        seen_ids.add(prod["id"])
+                        matched.append(prod)
+
     return matched
+
+
+def _levenshtein(s1: str, s2: str) -> int:
+    """Computes Levenshtein edit distance between two strings."""
+    if len(s1) < len(s2):
+        return _levenshtein(s2, s1)
+    if len(s2) == 0:
+        return len(s1)
+    prev = range(len(s2) + 1)
+    for i, c1 in enumerate(s1):
+        curr = [i + 1]
+        for j, c2 in enumerate(s2):
+            insertions = prev[j + 1] + 1
+            deletions = curr[j] + 1
+            substitutions = prev[j] + (c1 != c2)
+            curr.append(min(insertions, deletions, substitutions))
+        prev = curr
+    return prev[-1]
 
 
 def build_model_detail_response(product: Dict[str, Any]) -> Tuple[str, List[Dict[str, Any]]]:
