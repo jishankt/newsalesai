@@ -2747,6 +2747,10 @@ class Orchestrator:
             or source.startswith("interceptor:")
             or source.startswith("handover:")
             or source.startswith("route:memory_recall")
+            or source.startswith("route:purchase:")
+            or source.startswith("route:consumables")
+            or source.startswith("route:product_spec_attribute")
+            or source.startswith("route:cost_per_print")
             or "safe_refusal" in source
             or "refusal" in source
             or "error" in source
