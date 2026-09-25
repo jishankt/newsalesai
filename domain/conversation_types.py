@@ -58,16 +58,54 @@ PRODUCT_INTENTS = frozenset({
 # Dialogue Act (what the user is doing in the conversation)
 # ---------------------------------------------------------------------------
 class DialogueAct(str, Enum):
+    # Core conversational acts
+    GREETING = "greeting"
+    THANKING = "thanking"
+    COMPLAINING = "complaining"
+    CONFIRMING = "confirming"
+    REJECTING = "rejecting"
+    UNCLEAR = "unclear"
+    HUMAN_HANDOVER = "human_handover"
+
+    # General / legacy acts
     INFORMING = "informing"
     REQUESTING = "requesting"
     QUESTIONING = "questioning"
     CORRECTING = "correcting"
-    CONFIRMING = "confirming"
-    REJECTING = "rejecting"
-    GREETING = "greeting"
-    THANKING = "thanking"
-    COMPLAINING = "complaining"
     CLARIFYING = "clarifying"
+
+    # Requirements & Discovery
+    DISCOVERY_REQUEST = "discovery_request"
+    REQUIREMENT_ANSWER = "requirement_answer"
+    REQUIREMENT_UPDATE = "requirement_update"
+    REQUIREMENT_CORRECTION = "requirement_correction"
+
+    # Product Inquiries & Capabilities
+    PRODUCT_LOOKUP = "product_lookup"
+    PRODUCT_CAPABILITY_QUESTION = "product_capability_question"
+    PRODUCT_SPECIFICATION_QUESTION = "product_specification_question"
+    PRODUCT_SUITABILITY_QUESTION = "product_suitability_question"
+
+    # Recommendations & Alternatives
+    RECOMMENDATION_REQUEST = "recommendation_request"
+    RECOMMENDATION_EXPLANATION = "recommendation_explanation"
+    ALTERNATIVE_REQUEST = "alternative_request"
+
+    # Comparisons
+    COMPARISON_REQUEST = "comparison_request"
+    COMPARISON_FOLLOWUP = "comparison_followup"
+    CONFIGURATION_DIFFERENCE = "configuration_difference"
+
+    # Consumables
+    CONSUMABLE_REQUEST = "consumable_request"
+
+    # References & Memory
+    REFERENCE_FOLLOWUP = "reference_followup"
+    MEMORY_RECALL = "memory_recall"
+    MEDIA_REQUEST = "media_request"
+
+    # Navigation & Flow
+    TOPIC_SWITCH = "topic_switch"
 
 
 # ---------------------------------------------------------------------------
@@ -130,6 +168,20 @@ class LLMUnderstanding:
     requested_action: str = "ask_clarification"
     tool_request: Optional[Dict[str, Any]] = None
 
+    # Enhanced structured semantic fields
+    customer_goal: str = ""
+    requirements: Dict[str, Any] = field(default_factory=dict)
+    corrections: Dict[str, Any] = field(default_factory=dict)
+    mentioned_products: List[str] = field(default_factory=list)
+    references: List[str] = field(default_factory=list)
+    questions: List[str] = field(default_factory=list)
+    requested_attributes: List[str] = field(default_factory=list)
+    comparison_targets: List[str] = field(default_factory=list)
+    topic_switch: bool = False
+    confirmation: bool = False
+    rejection: bool = False
+    needs_clarification: bool = False
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "LLMUnderstanding":
         """Parse from LLM JSON output with fallback for invalid values."""
@@ -138,8 +190,9 @@ class LLMUnderstanding:
         except ValueError:
             intent = Intent.UNCLEAR
 
+        raw_da = str(data.get("dialogue_act", "informing")).lower().strip()
         try:
-            dialogue_act = DialogueAct(data.get("dialogue_act", "informing"))
+            dialogue_act = DialogueAct(raw_da)
         except ValueError:
             dialogue_act = DialogueAct.INFORMING
 
@@ -162,6 +215,18 @@ class LLMUnderstanding:
             requirement_updates=data.get("requirement_updates") or {},
             requested_action=str(data.get("requested_action", "ask_clarification")),
             tool_request=data.get("tool_request"),
+            customer_goal=str(data.get("customer_goal", "")),
+            requirements=dict(data.get("requirements") or {}),
+            corrections=dict(data.get("corrections") or {}),
+            mentioned_products=list(data.get("mentioned_products") or []),
+            references=list(data.get("references") or []),
+            questions=list(data.get("questions") or []),
+            requested_attributes=list(data.get("requested_attributes") or []),
+            comparison_targets=list(data.get("comparison_targets") or []),
+            topic_switch=bool(data.get("topic_switch", False)),
+            confirmation=bool(data.get("confirmation", False)),
+            rejection=bool(data.get("rejection", False)),
+            needs_clarification=bool(data.get("needs_clarification", False)),
         )
 
 

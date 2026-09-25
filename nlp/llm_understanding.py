@@ -32,29 +32,38 @@ class LLMUnderstandingEngine:
         recent_turns: List[Dict[str, str]],
         state_summary: Dict[str, Any],
         model: str = None,
+        raw_message: Optional[str] = None,
     ) -> LLMUnderstanding:
         """
         Classify the customer message using the local LLM.
+        Preserves raw message, normalized message, and structured semantic meaning.
 
         Returns a validated LLMUnderstanding. On any failure,
         returns intent=UNCLEAR with requested_action=ask_clarification.
         """
+        semantic_features = self._extract_semantic_features(
+            msg_l=(customer_message or "").lower(),
+            raw_msg=(raw_message or customer_message or "").lower(),
+            state_summary=state_summary
+        )
+
         if not self.client:
             logger.warning("No Ollama client configured — returning fallback understanding.")
-            return self._fallback(customer_message)
+            return self._fallback(customer_message, state_summary=state_summary, raw_message=raw_message, semantic_features=semantic_features)
 
         # Check fast path to bypass 12s LLM classify when answer is deterministic
         if self.is_deterministic_fast_path(customer_message, state_summary):
-            fast = self._fallback(customer_message)
+            fast = self._fallback(customer_message, state_summary=state_summary, raw_message=raw_message, semantic_features=semantic_features)
             if fast.intent != Intent.UNCLEAR:
                 logger.info(f"Fast-path classification (<1ms): intent={fast.intent.value} action={fast.requested_action}")
                 return fast
 
-        # Build messages for the classifier
+        # Build messages for the classifier with both raw and normalized text
         messages = build_understanding_messages(
             customer_message=customer_message,
             recent_turns=recent_turns,
             state_summary=state_summary,
+            raw_message=raw_message,
         )
 
         # Call Ollama structured output
@@ -66,7 +75,7 @@ class LLMUnderstandingEngine:
 
         if not result.get("success") or not result.get("result"):
             logger.warning("LLM classify failed or returned empty — using fallback.")
-            return self._fallback(customer_message)
+            return self._fallback(customer_message, state_summary=state_summary, raw_message=raw_message, semantic_features=semantic_features)
 
         raw = result["result"]
         logger.info(f"LLM understanding raw: intent={raw.get('intent')} "
@@ -76,6 +85,28 @@ class LLMUnderstandingEngine:
         # Parse and validate through the dataclass
         understanding = LLMUnderstanding.from_dict(raw)
 
+        # Backfill structured semantic features if omitted by model
+        if not understanding.customer_goal and semantic_features.get("customer_goal"):
+            understanding.customer_goal = semantic_features["customer_goal"]
+        if not understanding.requirements and semantic_features.get("requirements"):
+            understanding.requirements = semantic_features["requirements"]
+        if not understanding.corrections and semantic_features.get("corrections"):
+            understanding.corrections = semantic_features["corrections"]
+        if not understanding.requested_attributes and semantic_features.get("requested_attributes"):
+            understanding.requested_attributes = semantic_features["requested_attributes"]
+        if not understanding.references and semantic_features.get("references"):
+            understanding.references = semantic_features["references"]
+        if not understanding.questions and semantic_features.get("questions"):
+            understanding.questions = semantic_features["questions"]
+        if not understanding.comparison_targets and semantic_features.get("comparison_targets"):
+            understanding.comparison_targets = semantic_features["comparison_targets"]
+        if not understanding.topic_switch and semantic_features.get("topic_switch"):
+            understanding.topic_switch = True
+        if not understanding.confirmation and semantic_features.get("confirmation"):
+            understanding.confirmation = True
+        if not understanding.rejection and semantic_features.get("rejection"):
+            understanding.rejection = True
+
         # Safety: if confidence is very low, treat as unclear
         if understanding.confidence < 0.3 and understanding.intent != Intent.UNCLEAR:
             logger.info(f"Low confidence ({understanding.confidence}) — overriding to UNCLEAR")
@@ -83,6 +114,163 @@ class LLMUnderstandingEngine:
             understanding.requested_action = "ask_clarification"
 
         return understanding
+
+    def _extract_semantic_features(self, msg_l: str, raw_msg: Any = "", state_summary: Optional[Any] = None) -> Dict[str, Any]:
+        """Deterministically extracts rich semantic features from customer turn."""
+        import re
+        if not isinstance(raw_msg, str):
+            if hasattr(raw_msg, "__dict__") and state_summary is None:
+                state_summary = raw_msg
+            raw_msg = ""
+        state_summary = state_summary or {}
+        combined_text = (raw_msg or "") + " " + (msg_l or "")
+        low = combined_text.lower()
+
+        # 1. Requested attributes
+        req_attrs = []
+        if re.search(r"\b(?:scanner|scanning|scan)\b", low):
+            req_attrs.append("scanner")
+        if re.search(r"\b(?:wifi|wi-fi|wireless|network|ethernet|bluetooth)\b", low):
+            req_attrs.append("wifi")
+        if re.search(r"\b(?:ink|inks|cartridge|cartridges|consumable|consumables|ribbon|toner)\b", low):
+            req_attrs.append("compatible_ink")
+        if re.search(r"\b(?:speed|ppm|fast|faster|fastest|how\s+long\s+to\s+print)\b", low):
+            req_attrs.append("speed")
+        if re.search(r"\b(?:resolution|dpi|sharpness|clarity)\b", low):
+            req_attrs.append("resolution")
+        if re.search(r"\b(?:dimension|dimensions|footprint|size\s+of\s+printer|weight|how\s+heavy)\b", low):
+            req_attrs.append("dimensions")
+        if re.search(r"\b(?:price|cost|how\s+much|aed|pricing)\b", low):
+            req_attrs.append("price")
+        if re.search(r"\b(?:warranty|guarantee)\b", low):
+            req_attrs.append("warranty")
+        if re.search(r"\b(?:roll|dual\s+roll|roll\s+adapter)\b", low):
+            req_attrs.append("roll_support")
+        if re.search(r"\b(?:cut|cutter|auto-cut)\b", low):
+            req_attrs.append("cutter")
+
+        # 2. References
+        refs = []
+        for ref_term in [
+            "first one", "second one", "third one", "this one", "that one",
+            "the other one", "other one", "the other model", "previous one",
+            "last one", "last printer", "the one with scanner", "without scanner",
+            "the wider one", "the 36-inch one", "the 24-inch one", "the epson one",
+            "the citizen one", "the cheaper one", "this", "that", "it"
+        ]:
+            if re.search(rf"\b{re.escape(ref_term)}\b", low):
+                refs.append(ref_term)
+
+        # 3. Topic switch
+        topic_switch = bool(re.search(r"\b(?:forget\s+(?:this|that)|never\s*mind|now\s+i\s+need|switch\s+to|change\s+topic|actually\s+now|different\s+(?:printer|requirement|workflow))\b", low))
+
+        # 4. Confirmation / Rejection
+        confirmation = bool(re.search(r"^(?:yes|yep|yeah|sure|correct|affirmative|ok|okay)\b", low) or "yes scanner" in low)
+        rejection = bool(re.search(r"\b(?:not\s+this\s+one|not\s+that|reject|dont\s+want\s+this|don't\s+want\s+this|no\s+scanner|without\s+scanner)\b", low) or re.search(r"^(?:no|nope|nah)\b", low))
+
+        # 5. Corrections
+        corrections = {}
+        if re.search(r"\b(?:actually|instead|correction|my\s+bad|i\s+meant)\b", low):
+            if re.search(r"\b(?:a0|36[\s-]*(?:inch|in|\"))\b", low):
+                corrections["print_width"] = 36
+                corrections["paper_size"] = "A0"
+            elif re.search(r"\b(?:a1|24[\s-]*(?:inch|in|\"))\b", low):
+                corrections["print_width"] = 24
+                corrections["paper_size"] = "A1"
+            if re.search(r"\b(?:no\s+scan|without\s+scan|no\s+scanner|without\s+scanner|scan\s+not\s+needed|scanner\s+not\s+needed|scanner\s+not\s+important)\b", low):
+                corrections["scanner_required"] = False
+            elif re.search(r"\b(?:scanner\s+needed|need\s+scanner|with\s+scanner|yes\s+scanner)\b", low):
+                corrections["scanner_required"] = True
+            vol_corr = re.search(r"\b(?:maybe|around|about)?\s*(\d{1,4})\s*(?:drawings?|prints?|pages?|actually)?\b", low)
+            if vol_corr and "actually" in low:
+                try:
+                    num_val = int(vol_corr.group(1))
+                    if num_val not in (24, 36, 44, 64, 13, 17):
+                        corrections["daily_volume"] = num_val
+                except ValueError:
+                    pass
+
+        # 6. Requirements
+        reqs = {}
+        if re.search(r"\b(?:a0|36[\s-]*(?:inch|in|\")|36inch)\b", low):
+            reqs["print_width"] = 36
+            reqs["paper_size"] = "A0"
+        elif re.search(r"\b(?:a1|24[\s-]*(?:inch|in|\")|24inch)\b", low):
+            reqs["print_width"] = 24
+            reqs["paper_size"] = "A1"
+        elif re.search(r"\b(?:44[\s-]*(?:inch|in|\")|44inch)\b", low):
+            reqs["print_width"] = 44
+            reqs["paper_size"] = "44-inch"
+
+        # Scanner requirement with strict negation
+        if re.search(r"\b(?:do\s+not\s+need|don'?t\s+need|no\s+need|without|no)\b.*?\b(?:scanner|scanning|scan)\b", low) or re.search(r"\b(?:scanner|scan|scanning)\s+(?:not\s+(?:needed|required|important|necessary)|no\s+need)\b", low):
+            reqs["scanner_required"] = False
+        elif not bool(re.search(r"\b(?:does\s+(?:it|this)|can\s+(?:it|this)|has\s+(?:it|this)|is\s+there)\b.*?\bscanner", low)) and any(p in low for p in ["with scanner", "need scanner", "need a scanner", "scanner required", "integrated scanner"]):
+            reqs["scanner_required"] = True
+
+        # Volume
+        vol_m = re.search(r"\b(\d{1,4})\s*(?:drawings?|prints?|photos?|pages?|docs?|plans?)?\s*(?:per\s*day|a\s*day|daily|every\s*day)\b", low)
+        if vol_m:
+            try:
+                v = int(vol_m.group(1))
+                if v not in (24, 36, 44, 64):
+                    reqs["daily_volume"] = v
+            except ValueError:
+                pass
+
+        # Application
+        cad_negated = bool(re.search(r"\b(?:not\s+(?:for\s+)?(?:cad|technical|plotter|blueprint))\b", low))
+        if not cad_negated and any(k in low for k in ["cad", "architecture", "architect", "engineering", "blueprint", "drawing", "drawings", "plotter"]):
+            reqs["application"] = "architecture/CAD"
+        elif any(k in low for k in ["photo booth", "wedding", "events", "photobooth"]):
+            reqs["application"] = "photo_booth"
+
+        # 7. Customer Goal
+        customer_goal = ""
+        if topic_switch:
+            customer_goal = "switch_product_category"
+        elif corrections:
+            customer_goal = "correct_previous_requirement"
+        elif len(req_attrs) >= 1:
+            customer_goal = f"inquire_attributes: {', '.join(req_attrs)}"
+        elif reqs:
+            customer_goal = f"discover_product: {', '.join(f'{k}={v}' for k, v in reqs.items())}"
+        elif confirmation:
+            customer_goal = "confirm_selection"
+        elif rejection:
+            customer_goal = "reject_and_request_alternative"
+
+        # 8. Questions
+        questions = []
+        raw_parts = re.split(r"\?|\band\s+(?:what|how|does|can|is|which)\b", low)
+        for part in raw_parts:
+            cp = part.strip().strip(" ,;.-")
+            if len(cp.split()) >= 2:
+                questions.append(cp if cp.endswith("?") else cp + "?")
+
+        # 9. Comparison targets
+        comp_targets = []
+        from catalog.catalogue_resolver import find_mentioned_catalogue_products
+        cat_prods = find_mentioned_catalogue_products(low)
+        for cp in cat_prods:
+            name = cp.get("display_name") or cp.get("name") or cp.get("id")
+            if name not in comp_targets:
+                comp_targets.append(name)
+
+        return {
+            "requested_attributes": req_attrs,
+            "references": refs,
+            "topic_switch": topic_switch,
+            "confirmation": confirmation,
+            "rejection": rejection,
+            "corrections": corrections,
+            "requirements": reqs,
+            "customer_goal": customer_goal,
+            "questions": questions,
+            "comparison_targets": comp_targets,
+            "mentioned_products": [p.get("id") for p in cat_prods],
+            "needs_clarification": False,
+        }
 
     def is_deterministic_fast_path(self, customer_message: str, state_summary: Dict[str, Any] = None) -> bool:
         """Determines whether message can be resolved deterministically without a slow LLM classify call."""
@@ -144,9 +332,21 @@ class LLMUnderstandingEngine:
 
         return False
 
-    def _fallback(self, customer_message: str = "") -> LLMUnderstanding:
+    def _fallback(
+        self,
+        customer_message: str = "",
+        state_summary: Optional[Dict[str, Any]] = None,
+        raw_message: Optional[str] = None,
+        semantic_features: Optional[Dict[str, Any]] = None,
+    ) -> LLMUnderstanding:
         """Intelligent fallback when LLM is unavailable or times out."""
         msg_l = (customer_message or "").strip().lower()
+        if semantic_features is None:
+            semantic_features = self._extract_semantic_features(
+                msg_l=msg_l,
+                raw_msg=(raw_message or customer_message or "").lower(),
+                state_summary=state_summary
+            )
         entities = {}
         intent = Intent.UNCLEAR
         action = "ask_clarification"
@@ -161,8 +361,12 @@ class LLMUnderstandingEngine:
             if clean_cm not in [re.sub(r"[\s\-_]+", "", u.lower()) for u in unique_comp_models]:
                 unique_comp_models.append(cm.lower())
 
+        from catalog.catalogue_resolver import find_mentioned_catalogue_products
+        cat_mentioned_fb = find_mentioned_catalogue_products(msg_l)
+
         is_comp = (
-            len(unique_comp_models) >= 2
+            len(cat_mentioned_fb) >= 2
+            or len(unique_comp_models) >= 2
             or any(w in msg_l for w in [
                 "compare", " vs ", " versus ", "difference", "differences", "difference between",
                 "which is better", "which is best", "which one is better", "which one should i choose",
@@ -437,7 +641,11 @@ class LLMUnderstandingEngine:
             if clean_m not in [re.sub(r"[\s\-_]+", "", u.lower()) for u in unique_comp_models]:
                 unique_comp_models.append(m.lower())
 
-
+        from catalog.catalogue_resolver import find_mentioned_catalogue_products
+        cat_mentioned = find_mentioned_catalogue_products(msg_l)
+        if len(cat_mentioned) >= 2 or len(unique_comp_models) >= 2 or any(w in msg_l for w in ["compare", " vs ", " versus ", "difference between"]):
+            intent = Intent.PRODUCT_COMPARISON
+            action = "compare_products"
 
         # Consumables / Colors / Media
         has_ink_kw = any(re.search(rf"\b{re.escape(k)}\b", msg_l) for k in [
@@ -462,7 +670,19 @@ class LLMUnderstandingEngine:
             confidence=0.90 if intent != Intent.UNCLEAR else 0.0,
             entities=entities,
             requested_action=action,
-            product_related=intent in (Intent.PRODUCT_DISCOVERY, Intent.PRODUCT_QUESTION, Intent.CONSUMABLES_QUERY),
+            product_related=intent in (Intent.PRODUCT_DISCOVERY, Intent.PRODUCT_QUESTION, Intent.CONSUMABLES_QUERY, Intent.PRODUCT_COMPARISON),
+            customer_goal=semantic_features.get("customer_goal", ""),
+            requirements=semantic_features.get("requirements", {}),
+            corrections=semantic_features.get("corrections", {}),
+            mentioned_products=semantic_features.get("mentioned_products", []),
+            references=semantic_features.get("references", []),
+            questions=semantic_features.get("questions", []),
+            requested_attributes=semantic_features.get("requested_attributes", []),
+            comparison_targets=semantic_features.get("comparison_targets", []),
+            topic_switch=semantic_features.get("topic_switch", False),
+            confirmation=semantic_features.get("confirmation", False),
+            rejection=semantic_features.get("rejection", False),
+            needs_clarification=semantic_features.get("needs_clarification", False),
         )
 
 

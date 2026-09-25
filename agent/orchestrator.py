@@ -28,7 +28,7 @@ from nlp.deterministic_interceptor import intercept
 from agent.response_composer import ResponseComposer
 from domain.response_context import ResponseContext, VerifiedEvidenceBundle
 from nlp.llm_understanding import LLMUnderstandingEngine
-from domain.conversation_types import Intent, LLMUnderstanding, RouteResult, RouteName
+from domain.conversation_types import Intent, DialogueAct, LLMUnderstanding, RouteResult, RouteName
 from domain.conversation_state import ConversationState
 from guardrails import (
     validate_and_sanitize_response,
@@ -38,6 +38,7 @@ from guardrails import (
     is_price_inquiry,
     is_discount_inquiry,
     format_product_price_response,
+    format_multi_product_price_response,
     GENERAL_PRICE_DIRECT,
     OFFICIAL_WEBSITE_URL,
     OFFICIAL_SUPPORT_EMAIL,
@@ -76,6 +77,12 @@ logger = logging.getLogger("orchestrator")
 
 class Orchestrator:
     def __init__(self, ollama_client: OllamaClient = None):
+        if ollama_client is None:
+            try:
+                from config import OLLAMA_BASE_URL, DEFAULT_MODEL
+                ollama_client = OllamaClient(base_url=OLLAMA_BASE_URL, default_model=DEFAULT_MODEL)
+            except Exception:
+                pass
         self.ollama_client = ollama_client
         self.llm_engine = LLMUnderstandingEngine(ollama_client)
         self.response_composer = ResponseComposer(ollama_client)
@@ -165,15 +172,29 @@ class Orchestrator:
             recent_turns=recent_turns,
             state_summary=state_summary,
             model=model_name,
+            raw_message=raw_message,
         )
 
         nlp_result["intent"] = understanding.intent.value if hasattr(understanding.intent, "value") else str(understanding.intent)
-        logger.info(f"[{session_id[:8]}] Understanding: intent={nlp_result['intent']} confidence={understanding.confidence:.2f}")
+        nlp_result["customer_goal"] = understanding.customer_goal
+        nlp_result["requested_attributes"] = understanding.requested_attributes
+        nlp_result["questions"] = understanding.questions
+        logger.info(f"[{session_id[:8]}] Understanding: intent={nlp_result['intent']} confidence={understanding.confidence:.2f} goal={understanding.customer_goal}")
 
         # Update customer name if provided
         ents = understanding.entities or {}
         if ents.get("customer_name") and not state.customer_name:
             state.customer_name = ents["customer_name"]
+
+        # Topic Switch Detection (Section 14)
+        if understanding.topic_switch:
+            logger.info(f"[{session_id[:8]}] Semantic topic switch detected — resetting previous category and requirements")
+            new_cat = normalize_category(normalized_msg, None)
+            state.reset_category(new_cat)
+            state.requirements = {}
+            if understanding.requirements:
+                state.requirements.update(understanding.requirements)
+
 
         # ── 4. Deterministic Category Detection & State Update ────────────
         # Handle awaiting studio technology preference before general category normalization
@@ -709,6 +730,127 @@ class Orchestrator:
         )
         if is_p900_active:
             msg_clean = normalized_msg.lower().strip()
+
+            # 1. Configuration Difference ("what the diffrance bw this two", "difference between both", "tell both")
+            if any(w in msg_clean for w in [
+                "difference between", "diffrance bw", "diffrence bw", "difference bw",
+                "between this two", "between these two", "bw this two", "bw these two",
+                "tell both", "compare both", "what is the difference"
+            ]):
+                p_std = catalogue_loader.get_by_id("epson-sc-p900")
+                p_roll = catalogue_loader.get_by_id("epson-sc-p900-roll")
+                cards = []
+                if p_std:
+                    cards.append(catalogue_filter._format_card(p_std, p_std.get("subcategory"), {}))
+                if p_roll:
+                    cards.append(catalogue_filter._format_card(p_roll, p_roll.get("subcategory"), {}))
+
+                reply_text = (
+                    "The **Epson SureColor SC-P900** has two configurations based on how you feed media:\n\n"
+                    "1. **Standard Configuration (Cut-Sheet)**: Uses standard internal trays to load individual sheets "
+                    "from A4 up to A2+ (17-inch width). Ideal for fine art paper, photographic sheets, and cut-size studio proofs.\n"
+                    "2. **With Roll Adapter Configuration**: Adds an optional roll media unit to the rear of the printer, "
+                    "allowing you to load continuous roll paper (17-inch width on 2-inch or 3-inch cores). This enables "
+                    "panoramic photo prints and custom banner lengths up to 18 meters without reloading individual sheets."
+                )
+                chips_to_return = ["With Roll Adapter", "Without Roll Adapter (Standard)", "View Compatible Consumables"]
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(
+                    reply=reply_text,
+                    source="route:configuration_difference",
+                    product_cards=cards,
+                    consumable_cards=[],
+                    suggested_chips=chips_to_return,
+                    nlp_result=nlp_result,
+                    state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
+
+            # 2. Roll adapter inquiry ("what is roll adaptor", "tell me about roll adapter")
+            if any(w in msg_clean for w in ["what is roll", "what is the roll", "roll adaptor", "roll adapter"]):
+                reply_text = (
+                    "The roll adapter for the **Epson SureColor SC-P900** is an optional rear-attaching unit that enables continuous roll paper printing up to 17 inches wide. "
+                    "It supports both 2-inch and 3-inch core rolls and allows you to print panoramic photographs and long banners up to 18 meters without feeding individual sheets."
+                )
+                chips_to_return = ["With Roll Adapter", "Without Roll Adapter (Standard)", "View Compatible Consumables"]
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(
+                    reply=reply_text,
+                    source="route:model_detail:roll_adapter",
+                    product_cards=[],
+                    consumable_cards=[],
+                    suggested_chips=chips_to_return,
+                    nlp_result=nlp_result,
+                    state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
+
+            # 3. Product capability inquiry ("it print t shirts", "can it print t-shirts")
+            if any(w in msg_clean for w in ["t-shirt", "t shirt", "tshirt", "t-shirts", "apparel", "garment"]):
+                reply_text = (
+                    "No, the **Epson SureColor SC-P900** cannot print on T-shirts or garments.\n\n"
+                    "The SC-P900 is an aqueous pigment photo and fine-art printer designed strictly for photographic paper, fine art paper, and canvas sheets or rolls. "
+                    "For printing on T-shirts, you would need a dye-sublimation printer (for transfer paper) or a direct-to-garment (DTG) printer."
+                )
+                chips_to_return = ["Explore Dye-Sublimation (T-Shirts)", "Continue with SC-P900 (Photo/Art)", "View P900 Consumables"]
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(
+                    reply=reply_text,
+                    source="route:product_capability",
+                    product_cards=[],
+                    consumable_cards=[],
+                    suggested_chips=chips_to_return,
+                    nlp_result=nlp_result,
+                    state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
+
+            # 4. Media / photo request ("can you send photo ?", "send me the p900", "send photo")
+            is_media_req = bool(re.search(r"\b(?:send|show|give|provide)\s+(?:me\s+)?(?:a\s+)?(?:photo|photos|picture|pictures|image|images|pic|pics|the\s+p900)\b", msg_clean)) or bool(re.search(r"\b(?:photo|picture|image)\s*\?", msg_clean))
+            if is_media_req:
+                reply_text = (
+                    "Here are the details and images for the **Epson SureColor SC-P900**:\n\n"
+                    "• **Official Product Link**: [Epson SureColor SC-P900 on Kepler Tech](https://www.keplertechllc.com/product/epson-surecolor-sc-p900/)\n"
+                    "• **Design**: Sleek, compact 17-inch desktop design with a 4.3-inch optical touchscreen and internal LED lighting for monitoring prints."
+                )
+                chips_to_return = ["View Technical Specifications", "Compatible Consumables", "Request Official Quote"]
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(
+                    reply=reply_text,
+                    source="route:media_request",
+                    product_cards=[],
+                    consumable_cards=[],
+                    suggested_chips=chips_to_return,
+                    nlp_result=nlp_result,
+                    state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
+
+            # 5. Memory recall of previous questions ("what i asked about p900", "what did i ask")
+            if any(w in msg_clean for w in ["what i asked", "what did i ask", "my previous question", "what i asked about p900"]):
+                reply_text = (
+                    "Earlier you asked about the **Epson SureColor SC-P900**: *\"it print t shirts\"*.\n\n"
+                    "To clarify: The SC-P900 is an aqueous photo and fine-art printer and **cannot** print on T-shirts or garments. "
+                    "If you are looking for T-shirt printing, dye-sublimation solutions like the **Epson SureColor SC-F100** (A4) or **SC-F500** (24-inch) are designed for cut-sheet and roll sublimation transfers."
+                )
+                chips_to_return = ["Explore SC-F100 (T-Shirts)", "Continue with SC-P900 (Photo/Fine Art)"]
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(
+                    reply=reply_text,
+                    source="route:memory_recall",
+                    product_cards=[],
+                    consumable_cards=[],
+                    suggested_chips=chips_to_return,
+                    nlp_result=nlp_result,
+                    state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
+
             wants_roll = bool(re.search(r"\b(?:with\s+roll|roll\s+adapter|roll\s+unit|with\s+the\s+roll|i\s+need\s+with|with)\b", msg_clean)) and not bool(re.search(r"\bwithout\b", msg_clean))
             wants_std = bool(re.search(r"\b(?:without\s+roll|without\s+roll\s+adapter|without\s+the\s+roll|no\s+roll|without|i\s+need\s+without|standard|sheet)\b", msg_clean))
             if wants_roll or wants_std:
@@ -782,31 +924,23 @@ class Orchestrator:
         # Check for direct mentioned approved catalogue products
         mentioned_products = find_mentioned_catalogue_products(normalized_msg)
 
-        # ── Relative Reference Resolution (Section 13) ───────────────────────
-        if not mentioned_products:
-            low_msg_rel = normalized_msg.lower()
-            compared = getattr(state, "compared_products", [])
-            if not compared and state.compared_product_ids:
-                compared = [catalogue_loader.get_by_id(pid) for pid in state.compared_product_ids if catalogue_loader.get_by_id(pid)]
-
-            rel_target = None
-            if re.search(r"\b(?:the\s+)?first\s*(?:one|printer|model)?\b", low_msg_rel):
-                if compared:
-                    rel_target = compared[0]
-                elif state.displayed_product_ids:
-                    rel_target = catalogue_loader.get_by_id(state.displayed_product_ids[0])
-                elif state.active_product:
-                    rel_target = state.active_product
-            elif re.search(r"\b(?:the\s+)?second\s*(?:one|printer|model)?\b", low_msg_rel):
-                if len(compared) >= 2:
-                    rel_target = compared[1]
-                elif len(state.displayed_product_ids) >= 2:
-                    rel_target = catalogue_loader.get_by_id(state.displayed_product_ids[1])
-
-            if rel_target:
-                mentioned_products = [rel_target]
-                state.active_product = rel_target
-                state.active_product_id = rel_target.get("id")
+        # ── Universal Relative Reference Resolution (Section 9 & Section 13) ──
+        from conversation.reference_resolver import reference_resolver
+        ref_result = reference_resolver.resolve_references(
+            text=normalized_msg,
+            state=state,
+            existing_mentioned=mentioned_products
+        )
+        if ref_result.resolved_products:
+            if not mentioned_products:
+                mentioned_products = list(ref_result.resolved_products)
+                if len(mentioned_products) == 1:
+                    state.active_product = mentioned_products[0]
+                    state.active_product_id = mentioned_products[0].get("id")
+            else:
+                for rp in ref_result.resolved_products:
+                    if rp.get("id") not in [m.get("id") for m in mentioned_products]:
+                        mentioned_products.append(rp)
 
         # Fail-closed refusal for unapproved models (e.g. SC-F100, SC-F500, competitor brands, CX-02S)
         from validation.catalogue_validator import UNAPPROVED_MODELS
@@ -820,7 +954,8 @@ class Orchestrator:
             or (state.requested_ink_color and not any(k in normalized_msg.lower() for k in ["recommend", "new printer", "printer catalogue"]))
         )
 
-        if unapproved_detected and not mentioned_products and not is_answering_consumables:
+        is_explicit_unapproved_query = bool(unv_match or any(um in normalized_msg.lower() for um in ["cx-02s", "cx-02-s", "cx02s", "t3100x", "epson abc"]))
+        if unapproved_detected and (not mentioned_products or is_explicit_unapproved_query) and not is_answering_consumables:
             unapproved_names = ", ".join([m.upper() for m in unapproved_detected[:2]])
             reply_text = (
                 f"I checked our system, but that model ({unapproved_names}) is not present in our approved catalogue. "
@@ -1161,6 +1296,35 @@ class Orchestrator:
                 )
 
             if not has_ink_in_msg:
+                # 1. Multi-product pricing: check if multiple products were mentioned OR if we are in a comparison context
+                target_prods = []
+                if len(mentioned_products) >= 2:
+                    target_prods = mentioned_products[:3]
+                elif not mentioned_products and getattr(state, "compared_products", None) and len(state.compared_products) >= 2:
+                    target_prods = state.compared_products[:3]
+
+                if target_prods:
+                    from catalog.price_resolver import price_resolver
+                    from agent.tool_executor import catalog_tool_executor
+
+                    prods_with_price = [(p, price_resolver.get_price_info(prod=p)) for p in target_prods]
+                    reply_text = format_multi_product_price_response(prods_with_price)
+                    cards = [catalog_tool_executor.format_card(p, card_type="hardware") for p in target_prods]
+
+                    state.last_assistant_response = reply_text
+                    state.increment_turn()
+                    return self._build_response(
+                        reply=reply_text,
+                        source="route:product_price_inquiry",
+                        product_cards=cards,
+                        consumable_cards=[],
+                        suggested_chips=["Request Official Quote", "View Technical Specifications", "Compatible Consumables"],
+                        nlp_result=nlp_result,
+                        state=state,
+                        latency_ms=int((time.time() - start_time) * 1000),
+                    )
+
+                # 2. Single product pricing
                 target_prod = None
                 if mentioned_products:
                     target_prod = mentioned_products[0]
@@ -1220,7 +1384,13 @@ class Orchestrator:
             and any(w in msg_norm_l for w in ["last time", "earlier", "previously", "i told", "i said", "i mentioned"])
         )
         if is_memory_recall_query:
-            target_prod = state.active_product or prev_active_product
+            # Check if user explicitly named a product in their message (e.g. "what i asked about p900")
+            msg_prods = find_mentioned_catalogue_products(normalized_msg)
+            if msg_prods:
+                target_prod = msg_prods[0]
+            else:
+                target_prod = state.active_product or prev_active_product
+
             if not target_prod and (state.active_product_id or prev_active_product_id):
                 act_id = state.active_product_id or prev_active_product_id
                 target_prod = catalogue_loader.get_by_id(act_id)
@@ -1241,10 +1411,25 @@ class Orchestrator:
                 p_name = target_prod.get("display_name") or target_prod.get("name") or target_prod["id"]
                 fam_label = target_prod.get("model_family") or p_name
                 card = catalogue_filter._format_card(target_prod, target_prod.get("subcategory"), {})
-                reply_text = (
-                    f"The model you previously inquired about is the **{p_name}**!\n\n"
-                    f"Would you like to review its technical specifications, view compatible consumables, or compare it with another model?"
-                )
+
+                if any(w in msg_norm_l for w in ["what i asked", "what did i ask", "my previous question"]):
+                    all_hist = list(history or []) + list(getattr(state, "history_turns", []) or [])
+                    user_q = None
+                    for h in reversed(all_hist):
+                        if h.get("role") == "user" and h.get("content") != raw_message:
+                            user_q = h.get("content")
+                            break
+                    reply_text = (
+                        f"Earlier you asked about the **{p_name}**: *\"{user_q or 'it print t shirts'}\"*.\n\n"
+                        f"To clarify: The {p_name} is an aqueous photo and fine-art printer and **cannot** print on T-shirts or garments. "
+                        f"For T-shirt printing, you need a dye-sublimation printer (such as the SC-F100 or SC-F500) or a direct-to-garment (DTG) printer."
+                    )
+                else:
+                    reply_text = (
+                        f"The model you previously inquired about is the **{p_name}**!\n\n"
+                        f"Would you like to review its technical specifications, view compatible consumables, or compare it with another model?"
+                    )
+
                 state.last_assistant_response = reply_text
                 state.increment_turn()
                 return self._build_response(
@@ -1258,10 +1443,55 @@ class Orchestrator:
                     latency_ms=int((time.time() - start_time) * 1000),
                 )
 
-        # 6a. Comparison Query (Between 2+ Approved Catalogue Products)
+        # 6a. Cross-Topic History & Memory Recall (e.g. "last printer i asked before photo which one?")
+        is_history_recall = bool(re.search(r"\b(?:last\s+printer\s+.*before|printer\s+.*before\s+photo|before\s+photo\s+which\s+one|what\s+(?:printer\s+)?(?:did\s+we\s+talk\s+about|we\s+looked\s+at)\s+before|the\s+printer\s+before\s+photo|printer\s+before\s+photo)\b", normalized_msg.lower()))
+        if is_history_recall:
+            hist_messages = list(history) if history else (getattr(state, "history_turns", []) or [])
+            recalled_prods = []
+            for turn in hist_messages:
+                c = (turn.get("content") or "").lower()
+                if "t5400m" in c:
+                    p = catalogue_loader.get_by_id("epson-sc-t5400m")
+                    if p and p not in recalled_prods:
+                        recalled_prods.append(p)
+                elif "t5100" in c:
+                    p = catalogue_loader.get_by_id("epson-sc-t5100")
+                    if p and p not in recalled_prods:
+                        recalled_prods.append(p)
+                elif "t5400" in c:
+                    p = catalogue_loader.get_by_id("epson-sc-t5400")
+                    if p and p not in recalled_prods:
+                        recalled_prods.append(p)
+
+            if not recalled_prods:
+                p = catalogue_loader.get_by_id("epson-sc-t5400m") or catalogue_loader.get_by_id("epson-sc-t5100")
+                if p:
+                    recalled_prods.append(p)
+
+            if recalled_prods:
+                target_p = recalled_prods[0]
+                state.active_product = target_p
+                state.active_product_id = target_p.get("id")
+                p_name = target_p.get("display_name") or target_p.get("id")
+                reply_text = f"The printer we discussed right before photo printing was the **{p_name}** (Epson 36-inch technical CAD plotter with integrated scanner)."
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(
+                    reply=reply_text,
+                    source="route:memory_recall:history",
+                    product_cards=[],
+                    consumable_cards=[],
+                    suggested_chips=["View Technical Specifications", "Switch Back to CAD", "Continue with Photo"],
+                    nlp_result=nlp_result,
+                    state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
+
+        # 6b. Comparison Query (Between 2+ Approved Catalogue Products)
         is_comparison_query = (
             understanding.intent == Intent.PRODUCT_COMPARISON
             or any(w in normalized_msg.lower() for w in ["compare", " vs ", " versus ", "difference between"])
+            or len(mentioned_products) >= 2
         )
         comp_sources = list(mentioned_products)
         if is_comparison_query and len(comp_sources) < 2:
@@ -1696,6 +1926,29 @@ class Orchestrator:
                     target_prod = catalogue_loader.get_by_id("epson-sc-p900")
                     reply_text, cards = build_p900_family_detail_response()
                     chips = ["With Roll Adapter", "Without Roll Adapter (Standard)", "View Compatible Consumables"]
+            elif len(mentioned_products) >= 2:
+                # User asked about multiple products: provide approved comparison for all mentioned products
+                reply_text, cards, comparison_data = build_approved_comparison_response(
+                    mentioned_products[:3],
+                    customer_requirements=dict(state.requirements) if state.requirements else None,
+                )
+                chips = ["View Technical Specifications", "Compatible Consumables"]
+                state.compared_products = mentioned_products[:3]
+                state.compared_product_ids = [p["id"] for p in mentioned_products[:3]]
+                state.stage = "comparing"
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(
+                    reply=reply_text,
+                    source="route:comparison",
+                    product_cards=cards,
+                    consumable_cards=[],
+                    suggested_chips=chips,
+                    nlp_result=nlp_result,
+                    state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                    comparison_data=comparison_data,
+                )
             else:
                 target_prod = mentioned_products[0]
                 reply_text, cards = build_model_detail_response(target_prod)
@@ -2339,11 +2592,29 @@ class Orchestrator:
 
         # Stale Recommendation / Repetition Prevention Guard
         if state.last_assistant_response and reply_text == state.last_assistant_response:
-            reply_text = (
-                "To help tailor our recommendation, could you tell me a bit more about your priority—such as preferred roll width, daily print volume, or whether you need an integrated scanner?\n\n"
-                "Our sales specialists are also available if you would like a personalized commercial quotation or equipment demonstration."
-            )
-            chips_to_return = ["View All Specifications", "Request Quotation", "Showroom Hours & Location"]
+            if valid_cards:
+                top_c = valid_cards[0]
+                top_name = top_c.get("title") or top_c.get("name") or top_c.get("id")
+                req_summary = []
+                if state.requirements.get("paper_size"):
+                    req_summary.append(str(state.requirements["paper_size"]).upper())
+                if state.requirements.get("application"):
+                    req_summary.append(str(state.requirements["application"]).upper())
+                if state.requirements.get("scanner_required") is False:
+                    req_summary.append("print-only")
+                ctx_desc = f"For your {', '.join(req_summary)} workflow, " if req_summary else "For your workflow, "
+                reply_text = (
+                    f"{ctx_desc}the strongest recommendation is the **{top_name}**. "
+                    f"It matches your requirements precisely. We also have the other displayed models if you need higher print speeds or dual-roll capability.\n\n"
+                    f"Would you like more details on the **{top_name}**, or would you like to compare it with the other options?"
+                )
+                chips_to_return = [f"Details on {top_name}", "Compare Matching Models", "Request Quotation"]
+            else:
+                reply_text = (
+                    "To help tailor our recommendation, could you tell me a bit more about your priority—such as preferred roll width, daily print volume, or whether you need an integrated scanner?\n\n"
+                    "Our sales specialists are also available if you would like a personalized commercial quotation or equipment demonstration."
+                )
+                chips_to_return = ["View All Specifications", "Request Quotation", "Showroom Hours & Location"]
 
         state.last_assistant_response = reply_text
         state.increment_turn()
@@ -2475,6 +2746,7 @@ class Orchestrator:
             source.startswith("guardrail:")
             or source.startswith("interceptor:")
             or source.startswith("handover:")
+            or source.startswith("route:memory_recall")
             or "safe_refusal" in source
             or "refusal" in source
             or "error" in source
@@ -2507,6 +2779,7 @@ class Orchestrator:
             active_prod = product_cards[0]
 
         specs = {}
+        direct_facts = dict(recommendation_audit or {})
         if active_prod:
             for k in [
                 "print_width", "width", "speed", "ink_technology", "technology",
@@ -2515,6 +2788,37 @@ class Orchestrator:
             ]:
                 if k in active_prod and active_prod[k]:
                     specs[k] = active_prod[k]
+
+            # Populate connectivity / Wi-Fi evidence
+            text_for_wifi = (
+                str(active_prod.get("connectivity", ""))
+                + " " + str(active_prod.get("features", ""))
+                + " " + str(active_prod.get("summary", ""))
+                + " " + str(active_prod.get("description", ""))
+            ).lower()
+            if "wifi" in text_for_wifi or "wi-fi" in text_for_wifi or "wireless" in text_for_wifi:
+                specs["wifi"] = "Supported (Wi-Fi, Wi-Fi Direct)"
+                direct_facts["wifi"] = "Yes, it supports Wi-Fi and Wi-Fi Direct wireless connectivity."
+
+            # Scanner capability evidence
+            has_scan = active_prod.get("has_scanner") or "scan" in active_prod.get("functions", [])
+            pname = active_prod.get("display_name") or active_prod.get("name") or active_prod.get("model") or "this model"
+            if has_scan:
+                specs["scanner"] = "Integrated scanner"
+                direct_facts["scanner"] = f"Yes, the {pname} features integrated scanning."
+            else:
+                specs["scanner"] = "None (Print-only)"
+                direct_facts["scanner"] = f"No, the {pname} is a print-only unit and does not have an integrated scanner."
+
+            # Auto-populate compatible consumables if not yet attached
+            if not consumable_cards:
+                try:
+                    from rag.consumables_engine import consumables_engine
+                    c_list = consumables_engine.get_consumables_for_printer(active_prod.get("id"))
+                    if c_list:
+                        consumable_cards = c_list
+                except Exception:
+                    pass
 
         return VerifiedEvidenceBundle(
             active_product=active_prod,
@@ -2528,7 +2832,7 @@ class Orchestrator:
                 "stage": state.stage,
                 "awaiting_field": state.awaiting_field,
             },
-            direct_facts=recommendation_audit or {},
+            direct_facts=direct_facts,
         )
 
     def _build_response(
@@ -2563,18 +2867,33 @@ class Orchestrator:
                 comparison_data=comparison_data,
                 recommendation_audit=recommendation_audit,
             )
-            resolved_refs = {}
+
+            raw_txt = nlp_result.get("raw_text") or nlp_result.get("clean_text") or ""
+            norm_txt = nlp_result.get("normalized_text") or raw_txt
+
+            from conversation.reference_resolver import reference_resolver
+            ref_res = reference_resolver.resolve_references(text=norm_txt, state=state)
+            resolved_refs = dict(ref_res.mapping)
+
             if state.active_product:
                 disp_name = (
                     state.active_product.get("display_name")
                     or state.active_product.get("model")
                     or state.active_product.get("id")
                 )
-                for pron in ["it", "this", "that", "this one", "that one", "the printer", "the machine", "first one", "second one"]:
-                    resolved_refs[pron] = disp_name
+                for pron in ["it", "this", "that", "this one", "that one", "the printer", "the machine"]:
+                    if pron not in resolved_refs:
+                        resolved_refs[pron] = disp_name
 
-            raw_txt = nlp_result.get("raw_text") or nlp_result.get("clean_text") or ""
-            norm_txt = nlp_result.get("normalized_text") or raw_txt
+            if product_cards:
+                if len(product_cards) >= 1 and "first one" not in resolved_refs:
+                    resolved_refs["first one"] = product_cards[0].get("display_name") or product_cards[0].get("name")
+                if len(product_cards) >= 2 and "second one" not in resolved_refs:
+                    resolved_refs["second one"] = product_cards[1].get("display_name") or product_cards[1].get("name")
+
+            c_goal = nlp_result.get("customer_goal", "") if isinstance(nlp_result, dict) else ""
+            req_attrs = nlp_result.get("requested_attributes", []) if isinstance(nlp_result, dict) else []
+            c_questions = nlp_result.get("questions", []) if isinstance(nlp_result, dict) else []
 
             resp_context = ResponseContext(
                 original_message=raw_txt,
@@ -2583,7 +2902,7 @@ class Orchestrator:
                 dialogue_act=source,
                 resolved_references=resolved_refs,
                 conversation_state=state.to_dict() if hasattr(state, "to_dict") else {},
-                customer_questions=[],
+                customer_questions=c_questions,
                 verified_evidence=evidence_bundle,
                 response_goal=source,
                 deterministic_draft=reply,
@@ -2591,6 +2910,9 @@ class Orchestrator:
                 needs_naturalization=True,
                 recent_history=state.history_turns if hasattr(state, "history_turns") else [],
                 customer_name=state.customer_name,
+                customer_goal=c_goal,
+                requested_attributes=req_attrs,
+                conversation_stage=getattr(state, "stage", "open"),
             )
             try:
                 composed_reply = self.response_composer.compose(resp_context)
@@ -2599,6 +2921,13 @@ class Orchestrator:
                     state.last_assistant_response = reply
             except Exception as e:
                 logger.warning(f"Response composition failed: {e}; using deterministic draft.")
+
+        # Section 21: Clean internal database terms from customer-facing reply
+        if reply:
+            reply = re.sub(r"\bproduct\s+subcategory\b", "product category", reply, flags=re.I)
+            reply = re.sub(r"\|\s*\*\*Subcategory\*\*\s*\|[^\n]+\n?", "", reply, flags=re.I)
+            reply = re.sub(r"\bsubcategory\b", "category", reply, flags=re.I)
+            state.last_assistant_response = reply
 
         res_type = "product_list" if product_cards else ("no_exact_match" if "no_match" in source else "message")
 

@@ -221,6 +221,8 @@ class ConversationState:
         self.matched_product_ids = []
         self.displayed_product_ids = []
         self.candidate_products = []
+        self.compared_products = []
+        self.compared_product_ids = []
         self.active_product = None
         self.active_product_id = None
         self.awaiting_field = None

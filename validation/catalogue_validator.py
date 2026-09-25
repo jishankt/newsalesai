@@ -17,7 +17,8 @@ UNAPPROVED_MODELS = [
     "canon", "hp", "brother", "xerox", "ricoh",
     "designjet", "imageprograf", "surelab", "d1000", "d500",
     "wf-m", "et-", "l3150", "l805",
-    "dnp", "rx1", "dnprx1", "ds-rx1", "hiti", "hi-ti", "fuji", "mitsubishi"
+    "dnp", "rx1", "dnprx1", "ds-rx1", "hiti", "hi-ti", "fuji", "mitsubishi",
+    "cx-02s", "cx-02-s", "cx02s",  # Unverified Citizen variant (not in catalogue)
 ]
 
 

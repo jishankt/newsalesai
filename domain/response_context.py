@@ -99,3 +99,10 @@ class ResponseContext:
     recent_history: List[Dict[str, str]] = field(default_factory=list)
     customer_name: Optional[str] = None
     expected_length: str = "dynamic"  # "short", "medium", "detailed", "dynamic"
+    customer_goal: str = ""
+    requested_attributes: List[str] = field(default_factory=list)
+    requirement_updates: Dict[str, Any] = field(default_factory=dict)
+    rejected_products: List[str] = field(default_factory=list)
+    answer_coverage: Dict[str, bool] = field(default_factory=dict)
+    conversation_stage: str = "open"
+

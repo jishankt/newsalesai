@@ -226,9 +226,35 @@ class ResponseComposer:
 
         # 3. Follow-up Question Guard: If no allowed follow-up, forbid ending in a question
         if not context.allowed_followup and composed_text.strip().endswith("?"):
-            # If the user's question was asking something, the assistant shouldn't create a random qualification question
-            # Check if there are unallowed question marks
             if "?" in composed_text:
                 return False, ["unauthorized_followup_question"]
+
+        # 4. Answer Coverage Validation (Section 25)
+        # Ensure all requested attributes are answered or explicitly noted as unlisted
+        if context.requested_attributes:
+            text_lower = composed_text.lower()
+            missing = []
+            for attr in context.requested_attributes:
+                if attr == "scanner":
+                    if not re.search(r"\b(?:scanner|scan|scanning|mfp|multifunction|print-only|print\s+only)\b", text_lower):
+                        missing.append("coverage:scanner")
+                elif attr == "wifi":
+                    if not re.search(r"\b(?:wifi|wi-fi|wireless|network|ethernet|connect|connectivity)\b", text_lower) and "not listed" not in text_lower:
+                        missing.append("coverage:wifi")
+                elif attr in ("compatible_ink", "ink"):
+                    if not re.search(r"\b(?:ink|ultrachrome|durabrite|cartridge|c13|t\d{4}|ribbon|toner)\b", text_lower) and "not listed" not in text_lower:
+                        missing.append("coverage:ink")
+                elif attr == "speed":
+                    if not re.search(r"\b(?:speed|ppm|sec|second|fast|faster|minute)\b", text_lower) and "not listed" not in text_lower:
+                        missing.append("coverage:speed")
+                elif attr == "price":
+                    if not re.search(r"\b(?:aed|price|cost|quote|request|quotation)\b", text_lower):
+                        missing.append("coverage:price")
+                elif attr in ("dimensions", "size"):
+                    if not re.search(r"\b(?:dimension|dimensions|cm|mm|width|footprint|weight|kg)\b", text_lower) and "not listed" not in text_lower:
+                        missing.append("coverage:dimensions")
+
+            if missing:
+                return False, missing
 
         return True, []

@@ -22,6 +22,21 @@ def normalize_category(raw_text: str, current_category: Optional[str] = None) ->
     """Deterministically identifies or switches product category."""
     text_l = (raw_text or "").lower()
 
+    # Guard: If current category exists, do NOT hijack category for media requests, capability questions, or configuration inquiries
+    if current_category:
+        is_media_request = bool(re.search(r"\b(?:send|show|give|provide|share)\s+(?:me\s+)?(?:a\s+)?(?:photo|photos|picture|pictures|image|images|pic|pics)\b", text_l)) or bool(re.search(r"\b(?:photo|picture|image)\s*\?", text_l))
+        if is_media_request:
+            return current_category
+
+        is_config_query = bool(re.search(r"\b(?:difference\s+between|diffrance\s+bw|between\s+(?:this|these)\s+two|tell\s+both|compare\s+(?:this|these)\s+two|both\s+options)\b", text_l))
+        if is_config_query:
+            return current_category
+
+        is_cap_query = bool(re.search(r"\b(?:can\s+(?:i|it|this|we|you)|does\s+(?:it|this)|is\s+(?:it|this)|it\s+(?:print|prints|scan|scans|have|has|do|does|support|supports|fit|fits)|this\s+(?:print|prints|scan|scans|have|has|do|does))\b", text_l))
+        has_explicit_switch = any(w in text_l for w in ["instead", "switch to", "change to", "forget", "actually need", "i need", "looking for", "now need", "need a ", "need an "])
+        if is_cap_query and not has_explicit_switch:
+            return current_category
+
     # 0. Explicit size/model based overrides
     # 64-inch (and 65-inch approximations) is exclusively Photography Large Format (Epson SC-P20500)
     if bool(re.search(r"\b(?:6[45][\s-]*(?:inch|in|\"|'')|6[45]inch)\b", text_l)):
@@ -99,7 +114,20 @@ def normalize_category(raw_text: str, current_category: Optional[str] = None) ->
         and not has_scanner_model
     )
 
-    if (has_scanner_model or (
+    scanner_negated = bool(
+        re.search(r"\b(?:scanner|scan|scanning)\s+(?:is\s+)?(?:not\s+(?:needed|required|important|necessary)|no\s+need|unnecessary)\b", text_l)
+        or re.search(r"\b(?:do\s+not\s+need|don'?t\s+need|no\s+need\s+(?:for\s+)?|without|no|not)\b.*?\b(?:scanner|scanning|scan)\b", text_l)
+        or any(neg in text_l for neg in [
+            "no scanner", "without scanner", "not scanner", "don't need scanner",
+            "dont need scanner", "print only", "printer only", "only print",
+            "only printer", "printing only", "no scan", "no scanning", "just print", "just printer",
+            "only need printing", "only need print", "scanner not needed", "scan not needed",
+            "scanner not important", "scanner not necessary", "scanner no need", "scan no need",
+            "actually scan not needed", "actually no scanner", "scanner not critical"
+        ])
+    )
+
+    if not scanner_negated and (has_scanner_model or (
         bool(re.search(r"\b(?:scanners?|photo\s+scanner|document\s+scanner|flatbed\s+scanner|sheetfed\s+scanner|portable\s+scanner|handheld\s+scanner|expression\s+scanner)\b", text_l))
         and (not is_printer_with_scanner or is_explicit_scanner_intent)
         and not is_answering_printer_scanner
@@ -113,8 +141,9 @@ def normalize_category(raw_text: str, current_category: Optional[str] = None) ->
         return "scanners"
 
     # 4. Technical / CAD / Plotters (including common typos like 'plottaer')
-    # Also matches single-word user replies that mirror the category question wording
-    if any(k in text_l for k in [
+    # Guard: do not match if CAD or technical is negated (e.g. 'not for CAD', 'printer but not for CAD')
+    cad_negated = bool(re.search(r"\b(?:not\s+(?:for\s+)?(?:cad|technical|plotter|blueprint)|no\s+(?:cad|plotter)|don'?t\s+need\s+(?:cad|plotter))\b", text_l))
+    if not cad_negated and (any(k in text_l for k in [
         "cad", "cad drawing", "cad drawings",
         "blueprint", "blueprints",
         "plotter", "plotters", "plottaer", "plottaers", "platter",
@@ -128,7 +157,7 @@ def normalize_category(raw_text: str, current_category: Optional[str] = None) ->
         # "technical" or "drawings" alone, only when not already set to another category
         bool(re.search(r"\b(?:technical|drawings?)\b", text_l))
         and current_category not in ("office_printer", "photography_large_format", "citizen_photo", "dye_sublimation")
-    ):
+    )):
         return "technical_large_format"
 
     # 5. Large-Format / Photo check
@@ -261,7 +290,8 @@ def extract_deterministic_requirements(text: str, category: Optional[str] = None
             reqs["colour_mode"] = "colour"
 
     # ── 5. Application ───────────────────────────────────────────────────
-    if any(k in text_l for k in ["cad", "blueprint", "engineering", "architect", "gis", "technical", "drawings", "plans", "plotter", "plotters", "plottaer", "plottaers"]):
+    cad_negated = bool(re.search(r"\b(?:not\s+(?:for\s+)?(?:cad|technical|plotter|blueprint)|no\s+(?:cad|plotter)|don'?t\s+need\s+(?:cad|plotter))\b", text_l))
+    if not cad_negated and any(k in text_l for k in ["cad", "blueprint", "engineering", "architect", "gis", "technical", "drawings", "plans", "plotter", "plotters", "plottaer", "plottaers"]):
         reqs["application"] = "cad"
     elif any(k in text_l for k in ["photo booth", "booth", "event photo", "events", "mobile photo booth"]):
         reqs["application"] = "photo_booth"

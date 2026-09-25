@@ -115,6 +115,14 @@ class CatalogueLoader:
                 f"Expected exactly {EXPECTED_CATALOGUE_COUNT} active entries, found {active_count}"
             )
 
+        # Normalize: ensure every product has `name` and `model` fields so
+        # downstream code doing p.get("name") or p.get("model") never gets None.
+        for p in data:
+            if not p.get("name"):
+                p["name"] = p.get("display_name") or p.get("model_family") or p.get("id") or "Unknown"
+            if not p.get("model"):
+                p["model"] = p.get("model_family") or p.get("display_name") or p.get("id") or "Unknown"
+
         self.products = data
         self.products_by_id = {p["id"]: p for p in data}
         self.approved_ids = set(self.products_by_id.keys())

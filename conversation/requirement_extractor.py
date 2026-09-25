@@ -68,21 +68,42 @@ class RequirementExtractor:
 
 
         # ── 2. Scanner Requirement Extraction ────────────────────────────────
-        if any(neg in msg_lower for neg in [
-            "no scanner", "without scanner", "not scanner", "don't need scanner", 
-            "dont need scanner", "print only", "printer only", "only print", "only printer",
-            "printing only", "no scan", "no scanning", "just print", "just printer"
-        ]):
+        scanner_negated = bool(
+            re.search(r"\b(?:do\s+not\s+need|don'?t\s+need|no\s+need\s+(?:for\s+)?|without|no|not)\b.*?\b(?:scanner|scanning|scan)\b", msg_lower)
+            or re.search(r"\b(?:scanning|scanner|scan)\s+(?:is\s+)?(?:not\s+(?:needed|required|necessary|important|essential)|no\s+need|unnecessary)\b", msg_lower)
+            or any(neg in msg_lower for neg in [
+                "no scanner", "without scanner", "not scanner", "don't need scanner", 
+                "dont need scanner", "print only", "printer only", "only print", "only printer",
+                "printing only", "no scan", "no scanning", "just print", "just printer",
+                "scanner not needed", "scan not needed", "scanner not important", "scanner not necessary",
+                "scanner no need", "scan no need", "actually scan not needed", "actually no scanner",
+                "scanner not critical", "no need scanner"
+            ])
+        )
+
+        is_capability_q = bool(re.search(
+            r"\b(?:does\s+(?:it|this(?:\s+printer)?)\s+(?:have|feature|include|come\s+with|offer|support)|"
+            r"can\s+(?:it|this(?:\s+printer)?)\s+(?:scan|support|do)|"
+            r"has\s+(?:it|this)\s+(?:got|a\s+scanner|scanner)|"
+            r"is\s+there\s+a\s+scanner|has\s+scanner\?|scanner\?)",
+            msg_lower
+        ))
+
+        if scanner_negated:
             extracted["scan_required"] = False
-        elif any(pos in msg_lower for pos in [
-            "with scanner", "need scanner", "scanner required", "built-in scan", 
-            "integrated scan", "scanning as well", "scan as well", "multifunction", "mfp",
-            "both", "both printing and scanning", "both print and scan", "printing and scanning", 
-            "printing & scanning", "print and scan", "print & scan", "scannin", "scaning", "scanner too", "scanning too"
-        ]) or (state.awaiting_field == "scan_required" and any(k in msg_lower for k in ["yes", "yep", "yeah", "sure", "both", "need", "scanner", "scanning", "scannin", "scaning", "scan", "include"])):
+        elif not is_capability_q and (
+            bool(re.search(r"\b(?:must\s+have|need|require|requires?|want|include|with)\b.*?\b(?:scanner|scanning|scan)\b", msg_lower))
+            or bool(re.search(r"\b(?:scanner|scanning|scan)\s+(?:is\s+)?(?:required|needed|essential|must|included)\b", msg_lower))
+            or any(pos in msg_lower for pos in [
+                "with scanner", "need scanner", "need a scanner", "scanner required", "built-in scan", 
+                "integrated scan", "scanning as well", "scan as well", "multifunction", "mfp",
+                "both", "both printing and scanning", "both print and scan", "printing and scanning", 
+                "printing & scanning", "print and scan", "print & scan", "scannin", "scaning", "scanner too", "scanning too"
+            ]) or (state.awaiting_field == "scan_required" and any(k in msg_lower for k in ["yes", "yep", "yeah", "sure", "both", "need", "scanner", "scanning", "scannin", "scaning", "scan", "include"]))
+        ):
             extracted["scan_required"] = True
         elif state.awaiting_field == "scan_required" and any(k in msg_lower for k in [
-            "no", "nope", "print only", "printer only", "only print", "only printer", 
+            "no", "nope", "without", "print only", "printer only", "only print", "only printer", 
             "printing only", "no scanner", "just print", "just printer", "no scan"
         ]):
             extracted["scan_required"] = False
@@ -92,8 +113,8 @@ class RequirementExtractor:
         is_volume_context = (
             state.awaiting_field in ("daily_volume", "print_volume", "volume")
             or any(vkw in msg_lower for vkw in [
-                "volume", "per day", "a day", "daily", "per month", "monthly",
-                "drawings per", "pages per", "page per", "pages", "page",
+                "volume", "per day", "a day", "every day", "daily", "per month", "monthly",
+                "drawings per", "drawings", "pages per", "page per", "pages", "page",
                 "workload", "heavy duty", "production volume",
                 "photos at each event", "photos per event", "at each event", "each event",
                 "per event", "photos at", "prints at", "photos", "prints per", "photos per"

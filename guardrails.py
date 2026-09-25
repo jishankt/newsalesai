@@ -6,7 +6,7 @@ unauthorized discount promises, price bargaining, or budget interrogation.
 """
 
 import re
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List, Tuple
 
 OFFICIAL_SUPPORT_EMAIL = "sales@keplertech.ae"
 OFFICIAL_SUPPORT_PHONE = "+971 4 323 1008"
@@ -140,6 +140,24 @@ def format_product_price_response(prod: Dict[str, Any], price_info: Dict[str, An
             f"The **{name}** is an enterprise/large-format production system and its price is not listed for direct online checkout on our website.\n\n"
             f"Please contact our customer support and sales team directly at **{OFFICIAL_SUPPORT_EMAIL}** or **{OFFICIAL_SUPPORT_PHONE}** to receive an official commercial quotation and check availability."
         )
+
+
+def format_multi_product_price_response(prods_with_price: List[Tuple[Dict[str, Any], Dict[str, Any]]]) -> str:
+    """Formats official pricing response for multiple compared or mentioned catalogue products."""
+    lines = ["Here is the verified pricing for the models you requested:\n"]
+    for prod, price_info in prods_with_price:
+        name = prod.get("display_name") or prod.get("name") or prod.get("model") or prod.get("title") or "Product"
+        url = price_info.get("url") or prod.get("website_url") or prod.get("product_url") or OFFICIAL_WEBSITE_URL
+        if not price_info.get("is_request") and price_info.get("price"):
+            price_val = price_info.get("price")
+            price_str = price_info.get("price_str") or f"AED {price_val:,.2f}"
+            vat = price_info.get("vat_note") or "(Excl. VAT)"
+            lines.append(f"• **{name}**: **{price_str} {vat}**\n  Direct website checkout: {url}\n")
+        else:
+            lines.append(f"• **{name}**: **Price on Request**\n  Commercial quotation required for enterprise production systems. Details: {url}\n")
+
+    lines.append(f"For corporate commercial quotations, official tax invoices, or volume orders across the UAE, contact our sales desk directly at **{OFFICIAL_SUPPORT_EMAIL}** or **{OFFICIAL_SUPPORT_PHONE}**.")
+    return "\n".join(lines)
 
 
 def validate_and_sanitize_response(response_text: str, user_message: str) -> str:

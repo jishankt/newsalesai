@@ -5,7 +5,7 @@ that produces structured JSON understanding of customer messages.
 """
 
 from typing import Dict, Any, List, Optional
-from domain.conversation_types import Intent
+from domain.conversation_types import Intent, DialogueAct
 
 
 # JSON Schema for Ollama structured output (format parameter)
@@ -19,9 +19,7 @@ UNDERSTANDING_SCHEMA = {
         },
         "dialogue_act": {
             "type": "string",
-            "enum": ["informing", "requesting", "questioning", "correcting",
-                     "confirming", "rejecting", "greeting", "thanking",
-                     "complaining", "clarifying"],
+            "enum": [d.value for d in DialogueAct],
             "description": "What the customer is doing conversationally."
         },
         "product_related": {
@@ -66,6 +64,59 @@ UNDERSTANDING_SCHEMA = {
         "requirement_updates": {
             "type": "object",
             "description": "Fields to update in the conversation state requirements."
+        },
+        "customer_goal": {
+            "type": "string",
+            "description": "Summary of what the customer is trying to accomplish."
+        },
+        "requirements": {
+            "type": "object",
+            "description": "All explicit customer requirements extracted from this turn (e.g. print_width, scanner_required, daily_volume, application)."
+        },
+        "corrections": {
+            "type": "object",
+            "description": "Any corrected fields overriding previous values."
+        },
+        "mentioned_products": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Specific product model names or SKUs mentioned."
+        },
+        "references": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Contextual references used (e.g. 'this one', 'first one', 'the scanner model')."
+        },
+        "questions": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Discrete questions asked by the customer."
+        },
+        "requested_attributes": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Specific technical attributes inquired about (e.g. 'scanner', 'wifi', 'ink', 'speed', 'price')."
+        },
+        "comparison_targets": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Models being compared."
+        },
+        "topic_switch": {
+            "type": "boolean",
+            "description": "True if customer is changing the topic or category (e.g. from CAD to photo booth)."
+        },
+        "confirmation": {
+            "type": "boolean",
+            "description": "True if customer is confirming or saying yes."
+        },
+        "rejection": {
+            "type": "boolean",
+            "description": "True if customer is rejecting an option (e.g. 'not this one', 'no')."
+        },
+        "needs_clarification": {
+            "type": "boolean",
+            "description": "True if the customer query is genuinely ambiguous."
         },
         "requested_action": {
             "type": "string",
@@ -139,7 +190,7 @@ Your job is to analyze the customer's latest message and return a structured JSO
 4. If the customer corrects a previous answer (e.g., "actually A0", "no scanner"), intent = "correction".
 5. If the customer asks about printers/scanners/products, or asks for recommendations (e.g., "recommend now", "show options", "what do you recommend", "suggest options"), intent = "product_discovery" and requested_action = "search_products".
 6. If the customer asks about inks/cartridges/consumables, or provides a specific part number / SKU (e.g., C13T11C340, C13S210057, CX2.4x6, C13T800100), intent = "consumables_query" and requested_action = "show_consumables".
-7. If the customer asks to compare products, difference between models, or asks superlative / comparative questions across models or brands (e.g., "Which Citizen printer is the fastest?", "Which is more portable?", "Which printer has the highest capacity?", "CX-02 vs CY-02"), intent = "product_comparison" and requested_action = "compare_products". Do NOT classify these as "product_discovery" or trigger qualification questions!
+7. If the customer asks to compare products, difference between models, mentions multiple models (e.g., "f100 and f500", "i need f100 and f500", "CX-02 and CY-02", "T3100 or T5100"), or asks superlative / comparative questions across models or brands (e.g., "Which Citizen printer is the fastest?", "Which is more portable?", "Which printer has the highest capacity?", "CX-02 vs CY-02"), intent = "product_comparison" and requested_action = "compare_products". Do NOT classify these as "product_discovery" or "consumables_query", or trigger qualification questions!
 8. If the customer asks about business hours/location/contact, intent = "business_information".
 9. If the customer reports a printer problem, intent = "troubleshooting".
 10. If the message is a simple greeting, intent = "greeting".
@@ -147,6 +198,27 @@ Your job is to analyze the customer's latest message and return a structured JSO
 12. If the message is answering a pending question (like "A0", "yes", "around 60"), check the awaiting_field and classify appropriately.
 13. If the intent is genuinely unclear, use "unclear". NEVER default to "product_discovery" for unclear messages.
 14. Social messages (greetings, introductions, feedback) should set product_related = false.
+15. Capability inquiries on active/mentioned products (e.g., "it print t shirts", "does it have scanner?", "wifi?", "can it print on canvas?"):
+    - dialogue_act = "product_capability_question"
+    - intent = "product_question"
+    - requested_action = "show_product_specs"
+    - requested_attributes = ["t-shirts"] or ["scanner"] or ["wifi"]
+    - CRITICAL: Do NOT change category or add requirement_updates for capability questions! Asking "it print t shirts" about P900 is asking if P900 has that capability, NOT switching category to dye_sublimation.
+16. Visual / Photo requests (e.g., "can you send photo ?", "send me a picture", "show image"):
+    - dialogue_act = "media_request"
+    - intent = "product_question"
+    - CRITICAL: "can you send photo ?" means send a photo/picture of the product. Do NOT change category to photo_fine_art or start photo qualification!
+17. Configuration differences or multi-option follow-ups (e.g., "what the diffrance bw this two", "difference between both", "tell both"):
+    - dialogue_act = "configuration_difference"
+    - intent = "product_comparison"
+    - requested_action = "compare_products"
+18. Recalling previous questions (e.g., "what i asked about p900", "what was my question?"):
+    - dialogue_act = "memory_recall"
+    - intent = "product_question"
+19. Contextual short answers & ellipsis:
+    - Use awaiting_field and active product to interpret short tokens ("A0", "around 60", "yes", "wifi?").
+20. Strict negation priority:
+    - "no scanner", "without scanner", "scanner no need", "not for CAD", "not this one" must set negative requirements or rejection. Do not classify "not for CAD" as CAD.
 
 ## Entity Extraction
 - product_category rules:
@@ -173,9 +245,11 @@ def build_understanding_messages(
     recent_turns: List[Dict[str, str]],
     state_summary: Dict[str, Any],
     max_turns: int = 6,
+    raw_message: Optional[str] = None,
 ) -> list:
     """
     Builds the messages array for the Ollama classify() call.
+    Preserves both raw and normalized customer messages.
     """
     system_prompt = build_understanding_system_prompt(state_summary)
 
@@ -189,6 +263,11 @@ def build_understanding_messages(
             messages.append({"role": role, "content": content})
 
     # Add the current customer message
-    messages.append({"role": "user", "content": f"Classify this customer message: \"{customer_message}\""})
+    if raw_message and raw_message.strip() != customer_message.strip():
+        user_text = f"RAW CUSTOMER MESSAGE: \"{raw_message}\"\nNORMALIZED MESSAGE: \"{customer_message}\"\nClassify this customer message."
+    else:
+        user_text = f"Classify this customer message: \"{customer_message}\""
+
+    messages.append({"role": "user", "content": user_text})
 
     return messages

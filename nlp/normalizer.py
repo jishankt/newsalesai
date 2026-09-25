@@ -12,6 +12,8 @@ from nlp.multilingual import normalize_multilingual
 # Common English typo dictionary mapping misspelled terms to standard vocabulary
 TYPO_CORRECTIONS: Dict[str, str] = {
     # Common printer typos
+    r"\bprnt\b": "print",
+    r"\bprntr\b": "printer",
     r"\bpribter\b": "printer",
     r"\bpriner\b": "printer",
     r"\bpriners\b": "printers",
@@ -19,7 +21,6 @@ TYPO_CORRECTIONS: Dict[str, str] = {
     r"\bprinr\b": "printer",
     r"\bprintr\b": "printer",
     r"\bpeinter\b": "printer",
-    r"\bprntr\b": "printer",
     r"\bprentr\b": "printer",
     r"\baprinter\b": "a printer",
     r"\bofice\b": "office",
@@ -27,8 +28,13 @@ TYPO_CORRECTIONS: Dict[str, str] = {
     r"\bploter\b": "plotter",
     r"\bpltr\b": "plotter",
     r"\bcadd\b": "CAD",
+    r"\barchtect\b": "architect",
+    r"\barchtects\b": "architects",
     r"\barchitct\b": "architect",
     r"\barchitcture\b": "architecture",
+    r"\bdrwing\b": "drawing",
+    r"\bdrwings\b": "drawings",
+    r"\bdrwng\b": "drawing",
     r"\bblueprints?\b": "blueprint",
     r"\binova\b": "Innova",
     r"\bepsonn\b": "Epson",
@@ -38,6 +44,8 @@ TYPO_CORRECTIONS: Dict[str, str] = {
     r"\bcitizon\b": "Citizen",
     r"\bcitizone\b": "Citizen",
     r"\bcitizens\b": "Citizen",
+    r"\bcartage\b": "cartridge",
+    r"\bcartages\b": "cartridges",
     r"\bcartrige\b": "cartridge",
     r"\bcatridge\b": "cartridge",
     r"\bcartidges?\b": "cartridge",
@@ -50,9 +58,14 @@ TYPO_CORRECTIONS: Dict[str, str] = {
     r"\bsublimtion\b": "sublimation",
     r"\bcopire\b": "copier",
     r"\benterprize\b": "enterprise",
-    r"\bscannr\b": "scanner",
+    r"\bscnner\b": "scanner",
     r"\bscaner\b": "scanner",
+    r"\bscannr\b": "scanner",
     r"\bsacnners?\b": "scanners",
+    r"\brool\b": "roll",
+    r"\brools\b": "rolls",
+    r"\binsh\b": "inch",
+    r"\binshes\b": "inches",
     r"\bcxo2\b": "CX02",
     r"\bcxo-2\b": "CX-02",
     r"\bcx02w\b": "CX-02W",
@@ -84,14 +97,23 @@ TYPO_CORRECTIONS: Dict[str, str] = {
     r"\brecomended\b": "recommended",
     r"\brequirment\b": "requirement",
     r"\brequirments\b": "requirements",
+    r"\bcosumable\b": "consumable",
+    r"\bcosumables\b": "consumables",
     r"\bconsumbles\b": "consumables",
     r"\bconsumebles\b": "consumables",
+    r"\bconsumales\b": "consumables",
     r"\bnegosition\b": "negotiation",
+    r"\bdiffrance\b": "difference",
+    r"\bdiffernce\b": "difference",
+    r"\bdiffrence\b": "difference",
+    r"\bbw\b": "between",
+    r"\badaptor\b": "adapter",
+    r"\babour\b": "about",
 }
 
 # Regex to detect and protect model codes / SKUs during typo passes
 SKU_PROTECTION_PATTERN = re.compile(
-    r"\b(?:SC-[A-Z0-9]+|AM-[A-Z0-9]+|WF-[A-Z0-9]+|CX-[0-9A-Z]+|CY-[0-9A-Z]+|CZ-[0-9A-Z]+|EM-[0-9A-Z]+|DS-[A-Z0-9]+)\b",
+    r"\b(?:SC-[A-Z0-9]+|AM-[A-Z0-9]+|WF-[A-Z0-9]+|CX-[0-9A-Z]+|CY-[0-9A-Z]+|CZ-[0-9A-Z]+|EM-[0-9A-Z]+|DS-[A-Z0-9]+|C13[A-Z0-9]+)\b",
     re.IGNORECASE
 )
 
@@ -185,3 +207,13 @@ def normalize_text(text: str) -> Dict[str, Any]:
         "corrections_applied": applied_corrections,
         "canonical_sizes": canonical_sizes
     }
+
+
+def normalize_for_intent(text: str) -> str:
+    """Helper returning just the normalized text string."""
+    return normalize_text(text)["normalized_text"]
+
+
+def extract_clean_text(text: str) -> str:
+    """Helper returning just the cleaned raw text string."""
+    return normalize_text(text)["clean_text"]

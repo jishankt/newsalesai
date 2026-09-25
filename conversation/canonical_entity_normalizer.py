@@ -18,12 +18,15 @@ class CanonicalEntityNormalizer:
 
     # ── Dialogue Act Patterns ──────────────────────────────────────────────
     CAPABILITY_QUERY_PATTERN = re.compile(
-        r"\b(?:can\s+(?:i|it|this(?:\s+printer)?|we|you)\s+(?:print|cut|do|support|handle|fit|produce|take)\b|"
-        r"does\s+(?:it|this(?:\s+printer)?)\s+(?:support|print|cut|handle|do)\b|"
-        r"is\s+(?:it|this(?:\s+printer)?)\s+(?:able|capable)\b|"
-        r"can\s+we\s+do\b|is\s+there\s+support\b|support\s+(?:for\s+)?(?:2x6|4x6|a0|a1|a3|a4|roll|canvas)|"
+        r"\b(?:can\s+(?:i|it|this(?:\s+printer)?|we|you)\s+(?:print|cut|do|support|handle|fit|produce|take|scan)\b|"
+        r"does\s+(?:it|this(?:\s+printer)?)\s+(?:support|print|cut|handle|do|have|feature|include|come\s+with|offer)\b|"
+        r"is\s+(?:it|this(?:\s+printer)?)\s+(?:able|capable|equipped)\b|"
+        r"is\s+there\s+(?:a\s+)?(?:scanner|wifi|cutter|support)\b|"
+        r"has\s+(?:(?:it|this(?:\s+printer)?)\s+)?(?:got\s+)?(?:a\s+)?(?:scanner|wifi|cutter)\b|"
+        r"can\s+we\s+do\b|support\s+(?:for\s+)?(?:2x6|4x6|a0|a1|a3|a4|roll|canvas)|"
         r"(?:f100|f500|p900|p700|cx-02|cx-02w|cy-02|cz-01)\s+can\s+print\b|"
-        r"can\s+this\s+printer\b|possible\s+to\s+print)\b",
+        r"can\s+this\s+printer\b|possible\s+to\s+print|"
+        r"(?:scanner|wifi|bluetooth|cutter|auto-cut)\?)",
         re.IGNORECASE
     )
 
@@ -309,17 +312,21 @@ class CanonicalEntityNormalizer:
     def normalize_scanner_function(cls, text: str) -> Optional[Dict[str, Any]]:
         """
         Extracts scanner and function requirements with strict negation precedence.
+        Distinguishes capability queries ('does it have a scanner?') from requirements ('i need a scanner').
         """
         text_l = text.lower()
-        # Explicit negation first
+
+        # Explicit negation first (pre-noun, post-noun, and phrase lists)
         scanner_negated = bool(
-            re.search(r"\b(?:do\s+not\s+need|don'?t\s+need|no\s+need\s+for|without|no|not)\b.*?\b(?:scanner|scanning|scan)\b", text_l)
-            or re.search(r"\b(?:scanning|scanner)\s+(?:is\s+)?not\s+(?:needed|required)\b", text_l)
+            re.search(r"\b(?:do\s+not\s+need|don'?t\s+need|no\s+need\s+(?:for\s+)?|without|no|not)\b.*?\b(?:scanner|scanning|scan)\b", text_l)
+            or re.search(r"\b(?:scanning|scanner|scan)\s+(?:is\s+)?(?:not\s+(?:needed|required|necessary|important|essential)|no\s+need|unnecessary)\b", text_l)
             or any(neg in text_l for neg in [
                 "without scanner", "no scanner", "not scanner", "don't need scanner",
                 "dont need scanner", "print only", "printer only", "only print",
                 "only printer", "printing only", "no scan", "no scanning", "just print", "just printer",
-                "only need printing", "only need print"
+                "only need printing", "only need print", "scanner not needed", "scan not needed",
+                "scanner not important", "scanner not necessary", "scanner no need", "scan no need",
+                "actually scan not needed", "actually no scanner", "scanner not critical"
             ])
         )
 
@@ -329,13 +336,20 @@ class CanonicalEntityNormalizer:
                 "functions": ["print"]
             }
 
+        # Capability questions (e.g. 'does it have a scanner?', 'has it got wifi and scanner?')
+        # are inquiries about product capability, NOT customer requirements.
+        if cls.is_capability_query(text):
+            return None
+
         scanner_affirmed = bool(
-            re.search(r"\b(?:need\s+to\s+scan|need\s+(?:a\s+)?scanner|need\s+scanning|scanner\s+(?:integrated|required)|integrated\s+scanner|with\s+(?:an?\s+)?integrated\s+scanner)\b", text_l)
+            re.search(r"\b(?:must\s+have|need|require|requires?|want|include|with)\b.*?\b(?:scanner|scanning|scan)\b", text_l)
+            or re.search(r"\b(?:scanner|scanning|scan)\s+(?:is\s+)?(?:required|needed|essential|must|included)\b", text_l)
             or any(pos in text_l for pos in [
                 "with scanner", "need scanner", "need a scanner", "scanner required", "built-in scan",
                 "integrated scan", "scanner integrated", "scanning as well", "scan as well", "multifunction", "mfp",
                 "scan and copy", "print and scan", "printing and scanning", "copy and scan",
-                "print, scan and copy", "printing, scanning and copying", "make copies"
+                "print, scan and copy", "printing, scanning and copying", "make copies",
+                "scanner needed", "scan needed"
             ])
         )
 
@@ -346,3 +360,6 @@ class CanonicalEntityNormalizer:
             }
 
         return None
+
+
+canonical_normalizer = CanonicalEntityNormalizer()
