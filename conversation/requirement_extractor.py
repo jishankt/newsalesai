@@ -138,7 +138,10 @@ class RequirementExtractor:
                     try:
                         val = int(vol_match.group(1))
                         if any(mkw in msg_lower for mkw in ["month", "monthly", "per month", "a month", "/month"]):
+                            extracted["monthly_volume"] = val
                             val = max(1, val // 30)
+                        else:
+                            extracted["monthly_volume"] = val * 30
                         extracted["exact_daily_volume"] = val
 
                         if "under" in msg_lower and val <= 50:
