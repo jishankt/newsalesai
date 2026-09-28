@@ -723,10 +723,11 @@ class Orchestrator:
                     latency_ms=int((time.time() - start_time) * 1000),
                 )
 
-        # Check for SC-P900 configuration selection follow-up
+        # Check for SC-P900 configuration selection follow-up or direct query
         is_p900_active = (
             state.active_product_id in ("epson-sc-p900", "epson-sc-p900-roll")
             or (state.active_product and state.active_product.get("model_family") == "SC-P900")
+            or bool(re.search(r"\b(?:sc-?p900|p900)\b", normalized_msg.lower()))
         )
         if is_p900_active:
             msg_clean = normalized_msg.lower().strip()
@@ -789,6 +790,10 @@ class Orchestrator:
 
             # 3. Product capability inquiry ("it print t shirts", "can it print t-shirts")
             if any(w in msg_clean for w in ["t-shirt", "t shirt", "tshirt", "t-shirts", "apparel", "garment"]):
+                target_p = catalogue_loader.get_by_id("epson-sc-p900")
+                if target_p:
+                    state.active_product = target_p
+                    state.active_product_id = target_p["id"]
                 reply_text = (
                     "No, the **Epson SureColor SC-P900** cannot print on T-shirts or garments.\n\n"
                     "The SC-P900 is an aqueous pigment photo and fine-art printer designed strictly for photographic paper, fine art paper, and canvas sheets or rolls. "
@@ -941,6 +946,22 @@ class Orchestrator:
                 for rp in ref_result.resolved_products:
                     if rp.get("id") not in [m.get("id") for m in mentioned_products]:
                         mentioned_products.append(rp)
+        elif ref_result.needs_clarification and not mentioned_products and not (
+            any(w in normalized_msg.lower() for w in ["recommend", "options", "models", "what do you have", "show me"])
+        ):
+            reply_text = ref_result.clarification_question or "Could you clarify which model you are referring to?"
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="clarification:ambiguous_reference",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=["View Matching Models", "Filter by Requirements"],
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
 
         # Fail-closed refusal for unapproved models (e.g. SC-F100, SC-F500, competitor brands, CX-02S)
         from validation.catalogue_validator import UNAPPROVED_MODELS
@@ -1373,6 +1394,7 @@ class Orchestrator:
         msg_norm_l = normalized_msg.lower()
         is_memory_recall_query = bool(re.search(
             r"\b(?:"
+            r"what\s+(?:did\s+i|i)\s+(?:ask|asked|say|said|mention|mentioned|inquire|inquired)(?:\s+about)?|"
             r"(?:last|previous)\s*(?:time\s*)?(?:i\s*)?(?:told|mentioned|asked|said|chose|inquired|wanted)\s*(?:about\s*)?(?:one\s*)?(?:printer|model|machine)?|"
             r"which\s*(?:printer|model|machine|one)\s*(?:did\s*i|i\s*(?:told|said|mentioned|asked|chose|inquired))|"
             r"what\s*(?:was\s*)?(?:the\s*)?(?:last|previous)\s*(?:printer|model|machine)|"
@@ -2742,14 +2764,18 @@ class Orchestrator:
         """Determines whether a route response should be naturalized by the LLM composer."""
         if not reply or reply == STATIC_SAFE_REFUSAL:
             return False
+        if reply.startswith("Understood, I've updated"):
+            return False
         if (
             source.startswith("guardrail:")
             or source.startswith("interceptor:")
             or source.startswith("handover:")
             or source.startswith("route:memory_recall")
             or source.startswith("route:purchase:")
-            or source.startswith("route:consumables")
+            or source.startswith("route:consumable")
+            or source.startswith("route:product_price_inquiry")
             or source.startswith("route:product_spec_attribute")
+            or source.startswith("route:general_price_inquiry")
             or source.startswith("route:cost_per_print")
             or "safe_refusal" in source
             or "refusal" in source
@@ -2776,67 +2802,19 @@ class Orchestrator:
         consumable_cards: List[Dict[str, Any]],
         comparison_data: Optional[Dict[str, Any]],
         recommendation_audit: Optional[Dict[str, Any]],
+        raw_query: str = "",
+        nlp_result: Optional[Dict[str, Any]] = None,
     ) -> VerifiedEvidenceBundle:
-        """Assembles verified facts for the Grounded LLM Response Composer."""
-        active_prod = state.active_product
-        if not active_prod and product_cards:
-            active_prod = product_cards[0]
-
-        specs = {}
-        direct_facts = dict(recommendation_audit or {})
-        if active_prod:
-            for k in [
-                "print_width", "width", "speed", "ink_technology", "technology",
-                "functions", "paper_sizes", "print_sizes", "resolution", "connectivity",
-                "yield_capacity", "pattern_and_finishing", "key_features"
-            ]:
-                if k in active_prod and active_prod[k]:
-                    specs[k] = active_prod[k]
-
-            # Populate connectivity / Wi-Fi evidence
-            text_for_wifi = (
-                str(active_prod.get("connectivity", ""))
-                + " " + str(active_prod.get("features", ""))
-                + " " + str(active_prod.get("summary", ""))
-                + " " + str(active_prod.get("description", ""))
-            ).lower()
-            if "wifi" in text_for_wifi or "wi-fi" in text_for_wifi or "wireless" in text_for_wifi:
-                specs["wifi"] = "Supported (Wi-Fi, Wi-Fi Direct)"
-                direct_facts["wifi"] = "Yes, it supports Wi-Fi and Wi-Fi Direct wireless connectivity."
-
-            # Scanner capability evidence
-            has_scan = active_prod.get("has_scanner") or "scan" in active_prod.get("functions", [])
-            pname = active_prod.get("display_name") or active_prod.get("name") or active_prod.get("model") or "this model"
-            if has_scan:
-                specs["scanner"] = "Integrated scanner"
-                direct_facts["scanner"] = f"Yes, the {pname} features integrated scanning."
-            else:
-                specs["scanner"] = "None (Print-only)"
-                direct_facts["scanner"] = f"No, the {pname} is a print-only unit and does not have an integrated scanner."
-
-            # Auto-populate compatible consumables if not yet attached
-            if not consumable_cards:
-                try:
-                    from rag.consumables_engine import consumables_engine
-                    c_list = consumables_engine.get_consumables_for_printer(active_prod.get("id"))
-                    if c_list:
-                        consumable_cards = c_list
-                except Exception:
-                    pass
-
-        return VerifiedEvidenceBundle(
-            active_product=active_prod,
-            candidate_products=product_cards or [],
-            specifications=specs,
-            comparison=comparison_data,
-            consumables=consumable_cards or [],
-            customer_requirements=state.requirements if hasattr(state, "requirements") else {},
-            qualification={
-                "category": state.category,
-                "stage": state.stage,
-                "awaiting_field": state.awaiting_field,
-            },
-            direct_facts=direct_facts,
+        """Assembles verified facts for the Grounded LLM Response Composer using structured AnswerPlan."""
+        from agent.evidence_planner import evidence_planner
+        return evidence_planner.plan_and_retrieve(
+            raw_query=raw_query,
+            nlp_result=nlp_result or {},
+            state=state,
+            product_cards=product_cards,
+            consumable_cards=consumable_cards,
+            comparison_data=comparison_data,
+            recommendation_audit=recommendation_audit,
         )
 
     def _build_response(
@@ -2854,6 +2832,18 @@ class Orchestrator:
         comparison_data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Formats the standardized JSON response."""
+        # Sanitize suggested chips against commercial quote/handover leaks
+        sanitized_chips = []
+        for ch in (suggested_chips or []):
+            ch_l = ch.lower()
+            if any(forbidden in ch_l for forbidden in ["quote", "quotation", "sales desk", "contact sales", "handover", "discount", "order on website"]):
+                continue
+            if ch not in sanitized_chips:
+                sanitized_chips.append(ch)
+        if not sanitized_chips:
+            sanitized_chips = ["View Technical Specifications", "Compatible Consumables"]
+        suggested_chips = sanitized_chips
+
         state.last_suggested_chips = list(suggested_chips or [])
         if consumable_cards:
             state.active_consumable = consumable_cards[0]
@@ -2864,16 +2854,18 @@ class Orchestrator:
 
         # Grounded LLM Response Composition
         if self._should_naturalize_response(source, reply):
+            raw_txt = nlp_result.get("raw_text") or nlp_result.get("clean_text") or ""
+            norm_txt = nlp_result.get("normalized_text") or raw_txt
+
             evidence_bundle = self._build_evidence_bundle(
                 state=state,
                 product_cards=product_cards,
                 consumable_cards=consumable_cards,
                 comparison_data=comparison_data,
                 recommendation_audit=recommendation_audit,
+                raw_query=norm_txt,
+                nlp_result=nlp_result,
             )
-
-            raw_txt = nlp_result.get("raw_text") or nlp_result.get("clean_text") or ""
-            norm_txt = nlp_result.get("normalized_text") or raw_txt
 
             from conversation.reference_resolver import reference_resolver
             ref_res = reference_resolver.resolve_references(text=norm_txt, state=state)
@@ -2917,6 +2909,8 @@ class Orchestrator:
                 customer_goal=c_goal,
                 requested_attributes=req_attrs,
                 conversation_stage=getattr(state, "stage", "open"),
+                answer_plan=evidence_bundle.answer_plan,
+                displayed_product_order=evidence_bundle.displayed_product_order,
             )
             try:
                 composed_reply = self.response_composer.compose(resp_context)

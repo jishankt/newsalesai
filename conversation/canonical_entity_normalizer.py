@@ -18,15 +18,24 @@ class CanonicalEntityNormalizer:
 
     # ── Dialogue Act Patterns ──────────────────────────────────────────────
     CAPABILITY_QUERY_PATTERN = re.compile(
-        r"\b(?:can\s+(?:i|it|this(?:\s+printer)?|we|you)\s+(?:print|cut|do|support|handle|fit|produce|take|scan)\b|"
-        r"does\s+(?:it|this(?:\s+printer)?)\s+(?:support|print|cut|handle|do|have|feature|include|come\s+with|offer)\b|"
+        r"\b(?:"
+        r"can\s+(?:the\s+)?(?:[a-z0-9\-_]+\s+)?(?:i|it|this(?:\s+printer)?|we|you|[a-z0-9\-_]+)\s+(?:print|cut|do|support|handle|fit|produce|take|scan|work)\b|"
+        r"can\s+(?:the\s+)?[a-z0-9\-_]+\s+(?:print|cut|do|support|handle|fit|produce|take|scan|work)\b|"
+        r"does\s+(?:the\s+)?(?:[a-z0-9\-_]+\s+)?(?:it|this(?:\s+printer)?|[a-z0-9\-_]+)\s+(?:support|print|cut|handle|do|have|feature|include|come\s+with|offer)\b|"
+        r"does\s+(?:the\s+)?[a-z0-9\-_]+\s+(?:support|print|cut|handle|do|have|feature|include|come\s+with|offer)\b|"
+        r"is\s+(?:the\s+)?[a-z0-9\-_]+\s+(?:able|capable|equipped)\b|"
         r"is\s+(?:it|this(?:\s+printer)?)\s+(?:able|capable|equipped)\b|"
-        r"is\s+there\s+(?:a\s+)?(?:scanner|wifi|cutter|support)\b|"
-        r"has\s+(?:(?:it|this(?:\s+printer)?)\s+)?(?:got\s+)?(?:a\s+)?(?:scanner|wifi|cutter)\b|"
-        r"can\s+we\s+do\b|support\s+(?:for\s+)?(?:2x6|4x6|a0|a1|a3|a4|roll|canvas)|"
-        r"(?:f100|f500|p900|p700|cx-02|cx-02w|cy-02|cz-01)\s+can\s+print\b|"
+        r"is\s+there\s+(?:a\s+)?(?:scanner|wifi|wi-fi|cutter|support)\b|"
+        r"has\s+(?:(?:it|this(?:\s+printer)?)\s+)?(?:got\s+)?(?:a\s+)?(?:scanner|wifi|wi-fi|cutter)\b|"
+        r"has\s+(?:the\s+)?[a-z0-9\-_]+\s+(?:got\s+)?(?:a\s+)?(?:scanner|wifi|wi-fi|cutter)\b|"
+        r"can\s+we\s+do\b|support\s+(?:for\s+)?(?:2x6|4x6|a0|a1|a3|a4|roll|canvas|t-shirts?)|"
+        r"(?:f100|f500|p900|p700|cx-02|cx-02w|cy-02|cz-01|t3100|t5100|t5400)\s+can\s+print\b|"
         r"can\s+this\s+printer\b|possible\s+to\s+print|"
-        r"(?:scanner|wifi|bluetooth|cutter|auto-cut)\?)",
+        r"(?:scanner|wifi|wi-fi|bluetooth|cutter|auto-cut)\?|"
+        r"what\s+did\s+i\s+ask|what\s+i\s+asked|what\s+was\s+my\s+question|"
+        r"difference\s+between\s+(?:this|these)\s+two|diffrance\s+bw\s+(?:this|these)\s+two|"
+        r"send\s+(?:a\s+)?photo|show\s+(?:a\s+)?photo|picture\s+of\s+this|photo\s*\?"
+        r")",
         re.IGNORECASE
     )
 
@@ -246,12 +255,13 @@ class CanonicalEntityNormalizer:
             text_l
         ))
 
-        # 1. Monthly volume check (e.g. 6000 monthly -> daily = 6000 // 30 = 200)
+        # 1. Monthly volume check (Standard policy: 30 days/month, val // 30)
         monthly_match = re.search(r"(\d[\d,\s]*)\s*[^.\n,]*?\b(?:per\s*month|a\s*month|monthly|/month|every\s*month)\b", text_l)
         if monthly_match:
             raw_num = monthly_match.group(1).replace(",", "").replace(" ", "")
             try:
                 val = int(raw_num)
+                res["exact_monthly_volume"] = val
                 res["monthly_volume"] = val
                 res["daily_volume"] = max(1, val // 30)
                 return res
@@ -265,8 +275,10 @@ class CanonicalEntityNormalizer:
                 n1 = int(range_match.group(1))
                 n2 = int(range_match.group(2))
                 avg_val = (n1 + n2) // 2
+                res["exact_daily_volume"] = avg_val
                 res["daily_volume"] = avg_val
                 res["monthly_volume"] = avg_val * 30
+                res["exact_monthly_volume"] = avg_val * 30
                 return res
             except ValueError:
                 pass
@@ -285,8 +297,10 @@ class CanonicalEntityNormalizer:
                     daily = int(raw_num)
                     is_width = bool(re.search(rf"\b{daily}[\s-]*(?:inch|in|\")", text_l))
                     if not is_width:
+                        res["exact_daily_volume"] = daily
                         res["daily_volume"] = daily
                         res["monthly_volume"] = daily * 30
+                        res["exact_monthly_volume"] = daily * 30
                         return res
                 except ValueError:
                     pass
@@ -300,8 +314,10 @@ class CanonicalEntityNormalizer:
                     is_width = bool(re.search(rf"\b{n}[\s-]*(?:inch|in|\")", text_l))
                     if not is_width:
                         if is_explicit_vol or n not in (13, 17, 24, 36, 44, 64):
+                            res["exact_daily_volume"] = n
                             res["daily_volume"] = n
                             res["monthly_volume"] = n * 25
+                            res["exact_monthly_volume"] = n * 25
                             return res
                 except ValueError:
                     pass

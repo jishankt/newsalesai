@@ -27,12 +27,16 @@ class ReferenceResolutionResult:
         is_rejection: bool = False,
         is_alternative_request: bool = False,
         rejected_product: Optional[Dict[str, Any]] = None,
+        needs_clarification: bool = False,
+        clarification_question: Optional[str] = None,
     ):
         self.resolved_products = resolved_products
         self.mapping = mapping
         self.is_rejection = is_rejection
         self.is_alternative_request = is_alternative_request
         self.rejected_product = rejected_product
+        self.needs_clarification = needs_clarification
+        self.clarification_question = clarification_question
 
     def __getitem__(self, index):
         p = self.resolved_products[index]
@@ -76,22 +80,16 @@ class ReferenceResolver:
                     if clean_item in clean_id or clean_id in clean_item:
                         prod = p
                         break
+            if not prod:
+                rp = catalog_repository.get_by_id(item)
+                if rp:
+                    prod = rp.to_dict()
             if prod:
                 res_prod = dict(prod)
                 res_prod["id"] = item
                 return res_prod
-            p_dict = {"id": item, "name": item}
-            item_lower = item.lower()
-            if any(m in item_lower for m in ["t5400m", "t5100m", "t5700dm", "t3100m"]):
-                p_dict["has_scanner"] = True
-                p_dict["functions"] = ["print", "scan", "copy"]
-            if "t5" in item_lower:
-                p_dict["width"] = 36
-                p_dict["print_width"] = 36
-            elif "t3" in item_lower:
-                p_dict["width"] = 24
-                p_dict["print_width"] = 24
-            return p_dict
+            # Do NOT guess or infer scanner or dimensions from model suffix
+            return {"id": item, "name": item}
         if hasattr(item, "id"):
             prod = catalogue_loader.get_by_id(item.id)
             return prod if prod else {"id": item.id, "name": getattr(item, "name", item.id)}
@@ -236,6 +234,9 @@ class ReferenceResolver:
 
         ordered_list = valid_compared or valid_displayed or valid_candidate
 
+        needs_clarification = False
+        clarification_question = None
+
         if first_match and len(ordered_list) >= 1:
             p = ordered_list[0]
             if p not in resolved_prods:
@@ -244,13 +245,17 @@ class ReferenceResolver:
                 mapping["first one"] = pname
                 mapping["first printer"] = pname
 
-        if second_match and len(ordered_list) >= 2:
-            p = ordered_list[1]
-            if p not in resolved_prods:
-                resolved_prods.append(p)
-                pname = p.get("display_name") or p.get("name") or p.get("id")
-                mapping["second one"] = pname
-                mapping["second printer"] = pname
+        if second_match:
+            if len(ordered_list) >= 2:
+                p = ordered_list[1]
+                if p not in resolved_prods:
+                    resolved_prods.append(p)
+                    pname = p.get("display_name") or p.get("name") or p.get("id")
+                    mapping["second one"] = pname
+                    mapping["second printer"] = pname
+            else:
+                needs_clarification = True
+                clarification_question = "Which second model did you mean? There is only one printer currently in our conversation."
 
         if third_match and len(ordered_list) >= 3:
             p = ordered_list[2]
@@ -267,6 +272,28 @@ class ReferenceResolver:
                 pname = p.get("display_name") or p.get("name") or p.get("id")
                 mapping["last one"] = pname
                 mapping["last printer"] = pname
+
+        # "These two" / "both" resolution
+        both_match = bool(re.search(r"\b(?:these\s+two|both\s+(?:of\s+them|models|printers)?|the\s+two\s+models|difference\s+between\s+these\s+two)\b", text_l))
+        if both_match:
+            if len(ordered_list) >= 2:
+                for p in ordered_list[:2]:
+                    if p not in resolved_prods:
+                        resolved_prods.append(p)
+                p0 = ordered_list[0].get("display_name") or ordered_list[0].get("id")
+                p1 = ordered_list[1].get("display_name") or ordered_list[1].get("id")
+                mapping["these two"] = f"{p0} and {p1}"
+                mapping["both"] = f"{p0} and {p1}"
+            elif (active_prod and active_prod.get("id") in ("epson-sc-p900", "epson-sc-p900-roll")) or (getattr(state, "active_product_id", None) in ("epson-sc-p900", "epson-sc-p900-roll")):
+                p_cut = cls._to_prod_dict("epson-sc-p900")
+                p_roll = cls._to_prod_dict("epson-sc-p900-roll")
+                if p_cut and p_roll:
+                    if p_cut not in resolved_prods:
+                        resolved_prods.append(p_cut)
+                    if p_roll not in resolved_prods:
+                        resolved_prods.append(p_roll)
+                    mapping["these two"] = "SC-P900 standard cut-sheet and roll-adapter configurations"
+                    mapping["both"] = "SC-P900 standard cut-sheet and roll-adapter configurations"
 
         # ── 3. Attribute References ("the one with scanner", "without scanner") ─
         if re.search(r"\b(?:the\s+one\s+with\s+scanner|scanner\s+one|model\s+with\s+scanner|which\s+one\s+scanner)\b", text_l):
@@ -361,12 +388,18 @@ class ReferenceResolver:
         # ── 7. Deictic Demonstratives ("this", "this one", "that", "that one", "it") ──
         # In comparisons like "compare this with first one", "this" refers to active_product
         deictic_match = bool(re.search(r"\b(?:this|this\s+one|that|that\s+one|it)\b", text_l))
-        if deictic_match and active_prod:
-            if active_prod not in resolved_prods:
-                resolved_prods.insert(0, active_prod)
-            pname = active_prod.get("display_name") or active_prod.get("name") or active_prod.get("id")
-            for term in ["this", "this one", "that", "that one", "it"]:
-                mapping[term] = pname
+        if deictic_match:
+            if active_prod:
+                if active_prod not in resolved_prods:
+                    resolved_prods.insert(0, active_prod)
+                pname = active_prod.get("display_name") or active_prod.get("name") or active_prod.get("id")
+                for term in ["this", "this one", "that", "that one", "it"]:
+                    mapping[term] = pname
+            elif len(ordered_list) >= 2 and not resolved_prods:
+                needs_clarification = True
+                p0 = ordered_list[0].get("display_name") or ordered_list[0].get("id")
+                p1 = ordered_list[1].get("display_name") or ordered_list[1].get("id")
+                clarification_question = f"Could you clarify which model you mean—the {p0} or the {p1}?"
 
         # ── 8. Previous / Last Model Continuity ───────────────────────────────
         if re.search(r"\b(?:previous\s+one|last\s+one|last\s+printer|model\s+you\s+showed|the\s+one\s+before)\b", text_l):
@@ -397,6 +430,8 @@ class ReferenceResolver:
             is_rejection=is_rejection,
             is_alternative_request=is_alternative,
             rejected_product=rejected_prod,
+            needs_clarification=needs_clarification,
+            clarification_question=clarification_question,
         )
 
     @classmethod

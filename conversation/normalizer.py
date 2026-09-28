@@ -22,20 +22,28 @@ def normalize_category(raw_text: str, current_category: Optional[str] = None) ->
     """Deterministically identifies or switches product category."""
     text_l = (raw_text or "").lower()
 
-    # Guard: If current category exists, do NOT hijack category for media requests, capability questions, or configuration inquiries
-    if current_category:
-        is_media_request = bool(re.search(r"\b(?:send|show|give|provide|share)\s+(?:me\s+)?(?:a\s+)?(?:photo|photos|picture|pictures|image|images|pic|pics)\b", text_l)) or bool(re.search(r"\b(?:photo|picture|image)\s*\?", text_l))
-        if is_media_request:
-            return current_category
+    # Guard: Do NOT hijack or set category for media requests, capability questions, or configuration inquiries
+    is_media_request = bool(re.search(r"\b(?:send|show|give|provide|share)\s+(?:me\s+)?(?:a\s+)?(?:photo|photos|picture|pictures|image|images|pic|pics)\b", text_l)) or bool(re.search(r"\b(?:photo|picture|image)\s*\?", text_l))
+    if is_media_request and current_category:
+        return current_category
 
-        is_config_query = bool(re.search(r"\b(?:difference\s+between|diffrance\s+bw|between\s+(?:this|these)\s+two|tell\s+both|compare\s+(?:this|these)\s+two|both\s+options)\b", text_l))
-        if is_config_query:
-            return current_category
+    is_config_query = bool(re.search(r"\b(?:difference\s+between|diffrance\s+bw|between\s+(?:this|these)\s+two|tell\s+both|compare\s+(?:this|these)\s+two|both\s+options)\b", text_l))
+    if is_config_query and current_category:
+        return current_category
 
-        is_cap_query = bool(re.search(r"\b(?:can\s+(?:i|it|this|we|you)|does\s+(?:it|this)|is\s+(?:it|this)|it\s+(?:print|prints|scan|scans|have|has|do|does|support|supports|fit|fits)|this\s+(?:print|prints|scan|scans|have|has|do|does))\b", text_l))
-        has_explicit_switch = any(w in text_l for w in ["instead", "switch to", "change to", "forget", "actually need", "i need", "looking for", "now need", "need a ", "need an "])
-        if is_cap_query and not has_explicit_switch:
-            return current_category
+    is_cap_query = (
+        CanonicalEntityNormalizer.is_capability_query(text_l)
+        or bool(re.search(r"\b(?:can\s+(?:i|it|this|we|you|the)|does\s+(?:it|this|the)|is\s+(?:it|this|the)|it\s+(?:print|prints|scan|scans|have|has|do|does|support|supports)|this\s+(?:print|prints|scan|scans|have|has|do|does))\b", text_l))
+    )
+    has_explicit_switch = any(w in text_l for w in ["instead", "switch to", "change to", "forget", "actually need", "i need", "looking for", "now need", "need a ", "need an "])
+    if is_cap_query and not has_explicit_switch:
+        from catalog.catalogue_resolver import find_mentioned_catalogue_products
+        prods = find_mentioned_catalogue_products(text_l)
+        if prods:
+            p_obj = prods[0]
+            if p_obj:
+                return p_obj.get("main_category") or p_obj.get("category") or current_category
+        return current_category
 
     # 0. Explicit size/model based overrides
     # 64-inch (and 65-inch approximations) is exclusively Photography Large Format (Epson SC-P20500)

@@ -3,15 +3,15 @@ Grounded LLM Conversational Response Composer for Kepler Tech SalesAI.
 
 Transforms verified evidence, deterministic drafts, and contextual state into
 natural, professional, customer-attuned responses using local Ollama composition
-with strict deterministic validation and fail-closed fallback.
+with strict deterministic validation and fail-closed fallback to the verified answer plan.
 """
 
 import re
 import time
 import logging
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 
-from domain.response_context import ResponseContext
+from domain.response_context import ResponseContext, AnswerPlan
 from ollama_client import OllamaClient
 from prompts.response_prompt import build_composer_messages
 from validation.deterministic_validator import deterministic_validator
@@ -24,9 +24,10 @@ class ResponseComposer:
     """
     Question-Aware, Grounded Conversational Response Composer.
     Ensures that:
-    - Product truth comes solely from verified evidence.
+    - Product truth comes solely from verified evidence and explicit answer plan.
     - Wording is natural, concise, and directly answers what the customer asked.
     - Zero hallucination or unverified claims escape to the user.
+    - Fallback is strictly grounded in the verified plan rather than an inaccurate draft.
     """
 
     def __init__(self, ollama_client: Optional[OllamaClient] = None):
@@ -40,21 +41,30 @@ class ResponseComposer:
     ) -> str:
         """
         Composes a natural, grounded response from the provided ResponseContext.
-        Falls back safely to context.deterministic_draft on any failure.
+        Falls back safely to the verified AnswerPlan or deterministic_draft on failure.
         """
+        # Determine fallback text directly from verified answer plan if available
+        fallback_text = ""
+        if context.answer_plan:
+            fallback_text = context.answer_plan.render_deterministic_answer()
+        if not fallback_text and context.verified_evidence and context.verified_evidence.answer_plan:
+            fallback_text = context.verified_evidence.answer_plan.render_deterministic_answer()
+        if not fallback_text:
+            fallback_text = context.deterministic_draft or ""
+
         # 1. Deterministic Bypass
-        if not context.deterministic_draft:
+        if not fallback_text and not context.deterministic_draft:
             return ""
 
         if not context.needs_naturalization:
-            return context.deterministic_draft
+            return fallback_text
 
         if not self.ollama_client:
-            return context.deterministic_draft
+            return fallback_text
 
         now = time.time()
         if now < getattr(self, "_offline_cooldown_until", 0.0):
-            return context.deterministic_draft
+            return fallback_text
 
         # 2. Decompose Multi-Part Questions if not already explicitly provided
         if not context.customer_questions:
@@ -104,7 +114,7 @@ class ResponseComposer:
                     logger.info(f"Grounded response composed successfully ({comp_res.get('latency_ms')}ms)")
                     return composed_text
 
-                logger.warning(f"Composed reply failed validation: {violations}. Attempting 1 regeneration.")
+                logger.warning(f"Composed reply failed validation: {violations}. Attempting 1 bounded regeneration.")
 
                 # 6. Bounded Single Regeneration Attempt
                 retry_messages = list(messages)
@@ -113,8 +123,9 @@ class ResponseComposer:
                     "role": "user",
                     "content": (
                         f"Your previous answer had validation violations: {violations}. "
-                        f"Strictly adhere to VERIFIED_EVIDENCE. Fix these issues immediately and provide "
-                        f"a compliant, natural response."
+                        f"Strictly adhere to VERIFIED_ANSWER_PLAN and VERIFIED_EVIDENCE. "
+                        f"Do NOT invent unlisted attributes, do not present prices/discounts/quotes, "
+                        f"and fix these issues immediately."
                     ),
                 })
 
@@ -135,32 +146,37 @@ class ResponseComposer:
                         self._offline_cooldown_until = 0.0
                         logger.info("Regenerated response passed validation successfully.")
                         return regen_text
-                    logger.warning(f"Regenerated reply failed validation again: {violations_2}. Falling back to draft.")
+                    logger.warning(f"Regenerated reply failed validation again: {violations_2}. Falling back to verified plan.")
             else:
                 self._offline_cooldown_until = time.time() + 10.0
 
         except Exception as e:
             self._offline_cooldown_until = time.time() + 10.0
-            logger.warning(f"Error during response composition: {e}. Falling back to deterministic draft.")
+            logger.warning(f"Error during response composition: {e}. Falling back to verified plan.")
 
-        # Safe Fail-Closed Fallback
-        return context.deterministic_draft
+        # Safe Fail-Closed Fallback directly from verified plan
+        return fallback_text
 
     def _extract_customer_questions(self, message: str) -> List[str]:
         """
         Extracts individual clauses or questions from a single customer message.
+        Handles comma-separated queries e.g. "Wi-Fi, scanner, and ink?".
         """
-        text = message.strip()
+        text = (message or "").strip()
         if not text:
             return []
 
-        # Split by question marks or strong coordinating conjunctions with queries
+        # Check for compact comma-separated attribute query: "Wi-Fi, scanner, and ink?"
+        if re.search(r"^(?:does\s+it\s+have\s+)?(?:wi-?fi|scanner|scan|ink|speed|size|dimensions)(?:\s*,\s*(?:wi-?fi|scanner|scan|ink|speed|size|dimensions|\w+))+\s*\??$", text, re.I):
+            items = [re.sub(r"^(?:and|or)\s+", "", part.strip(), flags=re.I).strip(" ?.,") for part in text.split(",")]
+            return [f"Does it support {item}?" for item in items if item]
+
+        # Split by question marks or strong coordinating conjunctions
         raw_parts = re.split(r"\?|\band\s+(?:can|does|is|what|how|which|do|has)\b", text, flags=re.IGNORECASE)
         questions: List[str] = []
         for part in raw_parts:
             cleaned = part.strip().strip(" ,;.-")
             if cleaned and len(cleaned.split()) >= 2:
-                # Reconstruct question mark if it was a question
                 if not cleaned.endswith("?"):
                     cleaned += "?"
                 questions.append(cleaned)
@@ -171,14 +187,14 @@ class ResponseComposer:
 
     def _determine_expected_length(self, message: str, intent: str) -> str:
         """
-        Dynamically selects target response length based on the query depth.
+        Dynamically selects target response length based on query depth.
         """
-        words = message.strip().split()
+        words = (message or "").strip().split()
         word_count = len(words)
-        lower_msg = message.lower()
+        lower_msg = (message or "").lower()
 
-        # Extremely short queries: "wifi?", "scanner?", "price?", "a0?"
-        if word_count <= 3 and not any(w in lower_msg for w in ["why", "compare", "difference", "recommend"]):
+        # Extremely short queries: "wifi?", "scanner?", "t shirts?"
+        if word_count <= 4 and not any(w in lower_msg for w in ["why", "compare", "difference", "recommend"]):
             return "short"
 
         # Comprehensive overview queries
@@ -199,62 +215,134 @@ class ResponseComposer:
         self,
         composed_text: str,
         context: ResponseContext,
-        val_context: Dict[str, Any],
-    ) -> tuple[bool, List[str]]:
+        val_context: Optional[Dict[str, Any]] = None,
+    ) -> Tuple[bool, List[str]]:
         """
-        Validates the composed text using both deterministic catalog fact-checking
-        and conversational quality checks.
+        Validates the composed text using deterministic catalog fact-checking,
+        product policy enforcement, and AnswerPlan item coverage.
         """
+        if val_context is None:
+            val_context = {}
         if not composed_text or len(composed_text.strip()) < 3:
             return False, ["empty_or_too_short"]
 
-        # 1. Deterministic Catalog Fact Validator
+        text_lower = composed_text.lower()
+        violations: List[str] = []
+
+        # 1. Product Policy Guard (Rule 7: No prices, discounts, quote offers, or handover suggestions)
+        # Check for price / currency mentions
+        if re.search(r"\b(?:aed|\$|usd|eur|gbp)\s*\d+", text_lower) or re.search(r"\b\d+\s*(?:aed|usd|dollars|dirhams)\b", text_lower):
+            violations.append("prohibited_policy:price_leaked")
+
+        # Check for quotation offers
+        if re.search(r"\b(?:prepare\s+(?:an?\s+)?(?:official\s+)?quotation|prepare\s+(?:an?\s+)?quote|quote\s+for\s+you|official\s+quote\s+offer)\b", text_lower):
+            violations.append("prohibited_policy:quote_offered")
+
+        # Check for discount / negotiation promises
+        if re.search(r"\b(?:give\s+you\s+a\s+discount|offer\s+a\s+discount|negotiate\s+the\s+price|special\s+discount\s+for\s+you)\b", text_lower):
+            violations.append("prohibited_policy:discount_offered")
+
+        # Check for handover suggestions (unless user explicitly requested it)
+        if context.intent != "HUMAN_HANDOVER_REQUEST":
+            if re.search(r"\b(?:our\s+sales\s+desk\s+will\s+reach\s+out|sales\s+agent\s+will\s+contact|leave\s+your\s+contact\s+details)\b", text_lower):
+                violations.append("prohibited_policy:handover_suggested")
+
+        if violations:
+            return False, violations
+
+        # 2. Deterministic Catalog Fact Validator
         is_det_valid, det_violations = deterministic_validator.validate(
             composed_text, context=val_context
         )
         if not is_det_valid:
             return False, det_violations
 
-        # 2. Conversational Policy Validator (max 1 question, no unverified discounts)
-        conv_val = validate_response(
-            response=composed_text,
-            previous_response=context.recent_history[-1].get("content") if context.recent_history else None,
-            context_intent=context.intent,
-        )
-        if not conv_val.valid:
-            return False, conv_val.violations
-
         # 3. Follow-up Question Guard: If no allowed follow-up, forbid ending in a question
         if not context.allowed_followup and composed_text.strip().endswith("?"):
             if "?" in composed_text:
                 return False, ["unauthorized_followup_question"]
 
-        # 4. Answer Coverage Validation (Section 25)
-        # Ensure all requested attributes are answered or explicitly noted as unlisted
-        if context.requested_attributes:
-            text_lower = composed_text.lower()
-            missing = []
-            for attr in context.requested_attributes:
-                if attr == "scanner":
-                    if not re.search(r"\b(?:scanner|scan|scanning|mfp|multifunction|print-only|print\s+only)\b", text_lower):
-                        missing.append("coverage:scanner")
-                elif attr == "wifi":
-                    if not re.search(r"\b(?:wifi|wi-fi|wireless|network|ethernet|connect|connectivity)\b", text_lower) and "not listed" not in text_lower:
-                        missing.append("coverage:wifi")
-                elif attr in ("compatible_ink", "ink"):
-                    if not re.search(r"\b(?:ink|ultrachrome|durabrite|cartridge|c13|t\d{4}|ribbon|toner)\b", text_lower) and "not listed" not in text_lower:
-                        missing.append("coverage:ink")
-                elif attr == "speed":
-                    if not re.search(r"\b(?:speed|ppm|sec|second|fast|faster|minute)\b", text_lower) and "not listed" not in text_lower:
-                        missing.append("coverage:speed")
-                elif attr == "price":
-                    if not re.search(r"\b(?:aed|price|cost|quote|request|quotation)\b", text_lower):
-                        missing.append("coverage:price")
-                elif attr in ("dimensions", "size"):
-                    if not re.search(r"\b(?:dimension|dimensions|cm|mm|width|footprint|weight|kg)\b", text_lower) and "not listed" not in text_lower:
-                        missing.append("coverage:dimensions")
+        # 4. Answer Plan Item Validation (Field-Aware 3-Valued Logic Coverage)
+        plan = context.answer_plan or context.verified_evidence.answer_plan
+        if plan and plan.items:
+            for item in plan.items:
+                attr = item.attribute
+                status = item.status
 
-            if missing:
-                return False, missing
+                if status == "supported":
+                    if attr == "wifi":
+                        if not re.search(r"\b(?:wifi|wi-fi|wireless|wi-fi\s+direct)\b", text_lower):
+                            violations.append(f"plan_coverage_missing:wifi_supported")
+                        if re.search(r"\b(?:no\s+wi-?fi|not\s+support\s+wi-?fi|does\s+not\s+(?:have|support)\s+wi-?fi|ethernet\s+only)\b", text_lower):
+                            violations.append(f"unsupported_negative_claim:{attr}")
+
+                    elif attr == "scanner":
+                        if not re.search(r"\b(?:scanner|scan|scanning|mfp|multifunction)\b", text_lower):
+                            violations.append(f"plan_coverage_missing:scanner_supported")
+                        if re.search(r"\b(?:no\s+scanner|print-only|print\s+only|does\s+not\s+(?:have|support)\s+scanner)\b", text_lower):
+                            violations.append(f"unsupported_negative_claim:{attr}")
+
+                    elif attr == "t_shirt_capability":
+                        if not re.search(r"\b(?:dye-sublimation|dye\s+sublimation|transfer\s+paper|polyester|fabric|garment|t-shirt)\b", text_lower):
+                            violations.append("plan_coverage_missing:t_shirt_supported")
+
+                elif status == "unsupported":
+                    if attr == "t_shirt_capability":
+                        # Must make negative assertion
+                        if not re.search(r"\b(?:cannot|can't|does\s+not|not\s+designed|not\s+support|not\s+compatible|not\s+for\s+t-shirts|requires?\s+dye-sublimation|fine\s*art|paper)\b", text_lower):
+                            violations.append("missing_negative_claim_t_shirt")
+                        # Must NOT falsely claim it prints directly on t-shirts
+                        if re.search(r"\b(?:can\s+print\s+(?:directly\s+)?on\s+t-shirts|prints\s+t-shirts\s+directly)\b", text_lower):
+                            violations.append(f"unsupported_positive_claim:{attr}")
+
+                    elif attr == "scanner":
+                        # Must assert negative or print only
+                        if not re.search(r"\b(?:print-only|print\s+only|no\s+scanner|no\s+integrated\s+scanner|does\s+not\s+have\s+(?:a\s+)?scanner)\b", text_lower):
+                            violations.append("missing_negative_claim_scanner")
+                        if re.search(r"\b(?:includes?|features?|has|comes\s+with|equipped\s+with)\s+.*?\bscanner\b", text_lower) or re.search(r"\byes\b.*?\bscanner\b", text_lower):
+                            violations.append(f"unsupported_positive_claim:{attr}")
+
+                    elif attr == "wifi":
+                        # Must NOT claim built-in Wi-Fi
+                        if re.search(r"\b(?:supports?\s+wi-?fi|built-in\s+wi-?fi|features?\s+wi-?fi)\b", text_lower):
+                            violations.append(f"unsupported_positive_claim:{attr}")
+
+                elif status == "unknown":
+                    # Must acknowledge as unlisted / unknown / not confirmed
+                    if not re.search(r"\b(?:not\s+listed|unknown|not\s+specified|not\s+confirmed|unconfirmed|not\s+documented)\b", text_lower):
+                        violations.append(f"missing_unknown_acknowledgement:{attr}")
+                    # Must NOT falsely assert support or assume arbitrary default
+                    if attr == "wifi" and re.search(r"\b(?:supports?\s+wi-?fi|built-in\s+wi-?fi|ethernet\s+only)\b", text_lower):
+                        violations.append("invented_fact:unknown_wifi_asserted")
+                    if attr == "scanner" and re.search(r"\b(?:integrated\s+scanner|features?\s+a\s+scanner)\b", text_lower):
+                        violations.append("invented_fact:unknown_scanner_asserted")
+
+        # 5. Cross-Product Contamination Checks
+        active_prod = context.verified_evidence.active_product
+        if active_prod:
+            pid = str(active_prod.get("id", "")).lower()
+            true_width = active_prod.get("width") or active_prod.get("print_width") or active_prod.get("max_width_inches")
+            if true_width:
+                try:
+                    true_w_int = int(float(true_width))
+                    w_matches = re.findall(r"\b(13|17|24|36|44|64)[\s-]*(?:inch|in|\"|'')\b", text_lower)
+                    for wm in w_matches:
+                        if int(wm) != true_w_int and not any(k in text_lower for k in ["compare", "vs", "difference", "alternative", "other"]):
+                            violations.append("cross_product_spec_swap:width_mismatch")
+                            break
+                except (ValueError, TypeError):
+                    pass
+
+            if "cx-02" in pid and "cx-02w" not in pid:
+                # CX-02 must not claim 8x12 or 8x10 support or 700 prints (those belong to CY-02 or CX-02W)
+                if any(k in text_lower for k in ["8x10", "8x12", "8×10", "8×12", "700 prints"]) and not any(k in text_lower for k in ["compare", "vs", "difference", "cy-02", "cx-02w"]):
+                    violations.append("cross_product_contamination:cx02_assigned_cy02_specs")
+            elif "t5100m" in pid:
+                # SC-T5100M must not claim 5400m speed or dual roll
+                if "dual roll" in text_lower or "2 rolls" in text_lower:
+                    violations.append("cross_product_contamination:t5100m_assigned_dual_roll")
+
+        if violations:
+            return False, violations
 
         return True, []
