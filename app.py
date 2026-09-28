@@ -485,10 +485,10 @@ def chat():
             "raw_input": raw_message,
             "normalized_input": normalized_msg,
             "corrections": nlp_result.get("corrections", []),
-            "intent": detected_intent,
+            "intent": nlp_result.get("intent") or detected_intent,
             "brands": nlp_result.get("brands", []),
             "categories": nlp_result.get("categories", []),
-            "models": nlp_result.get("models", []),
+            "models": nlp_result.get("models") or [m for m, p in MODEL_PATTERNS.items() if re.search(p, raw_message.lower())],
             "sizes": nlp_result.get("sizes", [])
         },
         "grounding": {

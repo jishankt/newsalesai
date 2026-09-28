@@ -12,6 +12,7 @@ INTENT_DISCOUNT = "DISCOUNT_INQUIRY"
 INTENT_GREETING = "GREETING"
 INTENT_DISCOVERY = "PRODUCT_DISCOVERY"
 INTENT_COMPARISON = "PRODUCT_COMPARISON"
+INTENT_CHECK_SPECS = "CHECK_SPECS"
 INTENT_TROUBLESHOOTING = "TROUBLESHOOTING"
 INTENT_BUSINESS_INFO = "BUSINESS_INFORMATION"
 INTENT_SERVICE_INFO = "SERVICE_INFORMATION"
@@ -23,6 +24,10 @@ INTENT_UNCLEAR = "UNCLEAR_REQUEST"
 INTENT_RULES = [
     (INTENT_CONSUMABLES, [
         r"\b(?:consumable|consumables|ink|inks|cartridge|cartridges|toner|ribbon|paper roll|photo paper|maintenance box|maintenance tank|compatible with)\b"
+    ]),
+    (INTENT_CHECK_SPECS, [
+        r"\b(?:wi-?fi|wifi|wireless|scanner|integrated scanner|print speed|ppm|resolution|dpi|print width|max width|specifications?|specs?)\b",
+        r"\b(?:can (?:it|the [a-z0-9\-_]+) print|does (?:it|the [a-z0-9\-_]+) have|is (?:it|the [a-z0-9\-_]+) able to|able to print)\b",
     ]),
     (INTENT_DISCOUNT, [
         r"\b(?:discount|discounts|offer|offers|bargain|promo|coupon|deal|cheaper rate|best price)\b"
@@ -76,13 +81,13 @@ CATEGORY_PATTERNS = {
 }
 
 MODEL_PATTERNS = {
-    "Epson SureColor T3100": r"\b(?:t3100|t-3100)\b",
-    "Epson SureColor T5100": r"\b(?:t5100|t-5100)\b",
-    "Epson SureColor T5400": r"\b(?:t5400|t-5400|t5400m)\b",
-    "Epson SureColor P700": r"\b(?:p700|p-700)\b",
-    "Epson SureColor P900": r"\b(?:p900|p-900)\b",
-    "Epson SureColor P7500": r"\b(?:p7500|p-7500)\b",
-    "Epson SureColor P9500": r"\b(?:p9500|p-9500)\b",
+    "Epson SureColor T3100": r"\b(?:(?:sc-?)?t3100m?|t-3100)\b",
+    "Epson SureColor T5100": r"\b(?:(?:sc-?)?t5100m?|t-5100)\b",
+    "Epson SureColor T5400": r"\b(?:(?:sc-?)?t5400m?|t-5400)\b",
+    "Epson SureColor P700": r"\b(?:(?:sc-?)?p700|p-700)\b",
+    "Epson SureColor P900": r"\b(?:(?:sc-?)?p900|p-900)\b",
+    "Epson SureColor P7500": r"\b(?:(?:sc-?)?p7500|p-7500)\b",
+    "Epson SureColor P9500": r"\b(?:(?:sc-?)?p9500|p-9500)\b",
     "Epson WorkForce AM-C4000": r"\b(?:am-?c4000|c4000)\b",
     "Epson WorkForce AM-C550": r"\b(?:am-?c550|c550)\b",
     "Epson WorkForce WF-C879R": r"\b(?:c879r|wf-c879r)\b",
@@ -103,10 +108,14 @@ def analyze_input(text: str) -> dict:
 
     # 1. Intent Detection
     detected_intent = INTENT_DISCOVERY  # default intent
-    for intent_name, patterns in INTENT_RULES:
-        if any(re.search(p, lower_text) for p in patterns):
-            detected_intent = intent_name
-            break
+    from conversation.canonical_entity_normalizer import CanonicalEntityNormalizer
+    if CanonicalEntityNormalizer.is_capability_query(lower_text):
+        detected_intent = INTENT_CHECK_SPECS
+    else:
+        for intent_name, patterns in INTENT_RULES:
+            if any(re.search(p, lower_text) for p in patterns):
+                detected_intent = intent_name
+                break
 
     # 2. Entity Extraction
     extracted_brands = [b for b, p in BRAND_PATTERNS.items() if re.search(p, lower_text)]

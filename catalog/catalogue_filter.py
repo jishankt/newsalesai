@@ -436,7 +436,10 @@ class CatalogueFilter:
                 match_reasons.append("High-speed sheetfed document scanning for business workflows")
 
         if not match_reasons:
-            match_reasons.append(f"Catalogue-certified model matching your {sub_label} requirements")
+            if requirements:
+                match_reasons.append(f"Catalogue-certified model matching your {sub_label} requirements")
+            else:
+                match_reasons.append("Official Kepler Tech Catalogue Certified")
 
         # Key features
         key_features = []
@@ -485,8 +488,7 @@ class CatalogueFilter:
             "is_request": price_info.get("is_request", price_val is None),
             "actions": [
                 "View details",
-                "Compare",
-                "Lead"
+                "Compare"
             ]
         }
 

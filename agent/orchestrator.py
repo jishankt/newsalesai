@@ -946,6 +946,19 @@ class Orchestrator:
                 for rp in ref_result.resolved_products:
                     if rp.get("id") not in [m.get("id") for m in mentioned_products]:
                         mentioned_products.append(rp)
+
+        if mentioned_products:
+            nlp_result["models"] = [
+                p.get("display_name") or p.get("model") or p.get("name")
+                for p in mentioned_products if isinstance(p, dict)
+            ]
+        elif state.active_product:
+            nlp_result["models"] = [
+                state.active_product.get("display_name") or state.active_product.get("model") or state.active_product.get("name")
+            ]
+
+        if CanonicalEntityNormalizer.is_capability_query(normalized_msg):
+            nlp_result["intent"] = "CHECK_SPECS"
         elif ref_result.needs_clarification and not mentioned_products and not (
             any(w in normalized_msg.lower() for w in ["recommend", "options", "models", "what do you have", "show me"])
         ):
@@ -1659,7 +1672,7 @@ class Orchestrator:
                 source="route:product_spec_attribute",
                 product_cards=[catalogue_filter._format_card(act_p, act_p.get("subcategory"), state.requirements)],
                 consumable_cards=detail_c_cards,
-                suggested_chips=["View Compatible Consumables", "Request Official Quote"],
+                suggested_chips=["View Compatible Consumables", "View Technical Specifications"],
                 nlp_result=nlp_result,
                 state=state,
                 latency_ms=int((time.time() - start_time) * 1000),
@@ -1774,8 +1787,12 @@ class Orchestrator:
                 )
             # Connectivity / Wi-Fi inquiry
             elif any(w in normalized_msg.lower() for w in ["wifi", "wi-fi", "wireless", "ethernet", "bluetooth", "connectivity", "network"]):
-                conn = p_entry.get("connectivity") or "SuperSpeed USB 3.0, Gigabit Ethernet (1000Base-T), and Wi-Fi (IEEE 802.11b/g/n) with Wi-Fi Direct"
-                reply_text = f"Yes, the **{p_name}** includes full network connectivity featuring **{conn}**."
+                conn = p_entry.get("connectivity")
+                if not conn and "t5400" in str(act_id).lower():
+                    conn = "Wi-Fi, Wi-Fi Direct, Gigabit Ethernet, and SuperSpeed USB 3.0"
+                elif not conn:
+                    conn = "SuperSpeed USB 3.0, Gigabit Ethernet, and Wi-Fi Direct"
+                reply_text = f"Yes, the {p_name} supports {conn}."
             # Why this one / Recommendation rationale inquiry
             elif any(w in normalized_msg.lower() for w in ["why this one", "why this printer", "why choose", "why recommend"]) or normalized_msg.strip().lower() in ["why?", "why"]:
                 reasons = []
@@ -1824,7 +1841,7 @@ class Orchestrator:
                 source="route:product_spec_attribute",
                 product_cards=prod_cards,
                 consumable_cards=[],
-                suggested_chips=["View Technical Specifications", "Compatible Consumables", "Request Official Quote"],
+                suggested_chips=["View Technical Specifications", "Compatible Consumables"],
                 nlp_result=nlp_result,
                 state=state,
                 latency_ms=int((time.time() - start_time) * 1000),
@@ -2843,6 +2860,33 @@ class Orchestrator:
         if not sanitized_chips:
             sanitized_chips = ["View Technical Specifications", "Compatible Consumables"]
         suggested_chips = sanitized_chips
+
+        # Sanitize product cards and consumable cards per chatbot product policy
+        sanitized_prod_cards = []
+        for c in (product_cards or []):
+            if isinstance(c, dict):
+                c_clean = dict(c)
+                # Suppress "Price on Request" or raw prices on capability/spec/recommendation cards unless explicit price route
+                if not source.startswith("route:product_price_inquiry") and not source.startswith("route:consumable_price_inquiry"):
+                    c_clean["price"] = None
+                    c_clean["price_formatted"] = None
+                    c_clean["price_str"] = None
+                    c_clean["currency"] = None
+                    c_clean["vat_note"] = None
+                    c_clean["is_request"] = False
+                c_clean["actions"] = [
+                    a for a in c_clean.get("actions", [])
+                    if a.lower() not in ("lead", "handover", "quote")
+                ]
+                if not state.requirements or source.startswith("route:product_spec_attribute") or source.startswith("route:product_capability"):
+                    c_clean["match_reasons"] = [
+                        r for r in c_clean.get("match_reasons", [])
+                        if "matching your" not in r.lower()
+                    ] or ["Official Kepler Tech Catalogue Certified"]
+                sanitized_prod_cards.append(c_clean)
+            else:
+                sanitized_prod_cards.append(c)
+        product_cards = sanitized_prod_cards
 
         state.last_suggested_chips = list(suggested_chips or [])
         if consumable_cards:
