@@ -256,7 +256,12 @@ class CanonicalEntityNormalizer:
         ))
 
         # 1. Monthly volume check (Standard policy: 30 days/month, val // 30)
-        monthly_match = re.search(r"(\d[\d,\s]*)\s*[^.\n,]*?\b(?:per\s*month|a\s*month|monthly|/month|every\s*month)\b", text_l)
+        # Anchor the quantity beside its unit. A permissive gap used to read the
+        # '1' in A1 before '3000 drawings per month'.
+        monthly_match = re.search(
+            r"(?<![a-z0-9])(\d[\d,]*)\s*(?:[a-z-]+\s+){0,2}(?:pages?|drawings?|prints?|photos?|photographs?|plans?|docs?|sheets?|copies|items?)?\s*"
+            r"(?:per\s*month|a\s*month|monthly|/month|every\s*month)\b", text_l
+        )
         if monthly_match:
             raw_num = monthly_match.group(1).replace(",", "").replace(" ", "")
             try:

@@ -85,7 +85,8 @@ class ContextualSlotResolver:
             if cls.NEGATIVE_RE.search(text_l) or any(neg in text_l for neg in [
                 "print only", "printer only", "just print", "only print",
                 "without scanner", "no scanner", "no scan",
-                "don't need scanner", "dont need scanner", "not needed", "not required"
+                "don't need scanner", "dont need scanner", "do not need a scanner",
+                "do not need scanner", "not needed", "not required"
             ]):
                 reqs["scanner_required"] = False
                 reqs["functions"] = ["print"]

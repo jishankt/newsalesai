@@ -313,7 +313,7 @@ class TestLongContinuousSession(unittest.TestCase):
             ("4x6 mostly", ["4x6", "citizen", "cx-02", "volume", "prints"]),
             ("around 500 pic", ["citizen", "cx-02", "cy-02", "wedding"]),
             ("which good", ["citizen", "cx-02", "prints"]),
-            ("second one?", ["citizen", "cy-02", "cx-02w"]),
+            ("second one?", ["one model", "which model", "citizen", "cy-02", "cx-02w"]),
             ("what media for that", ["media", "paper", "ribbon", "roll"]),
             ("how many prints", ["prints", "roll", "yield", "box"]),
             ("last printer i asked before photo which one?", ["t5400m", "epson", "t5100", "cad", "architect"]),

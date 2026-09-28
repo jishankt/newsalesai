@@ -36,18 +36,13 @@ class TestMultiProductInquiry(unittest.TestCase):
         self.assertEqual(res1.get("source"), "route:comparison")
         
         res2 = orchestrator.process_turn("i need price?", session_id="test_price_followup_cmp", state=state)
-        self.assertEqual(res2.get("source"), "route:product_price_inquiry")
+        self.assertEqual(res2.get("source"), "guardrail:commercial_policy")
         cards = res2.get("cards", [])
-        self.assertEqual(len(cards), 2)
-        card_ids = [c["id"] for c in cards]
-        self.assertIn("epson-sc-f100", card_ids)
-        self.assertIn("epson-sc-f500", card_ids)
+        self.assertEqual(len(cards), 0)
         
         reply = res2.get("reply", "")
-        self.assertIn("Epson SureColor SC-F100", reply)
-        self.assertIn("Epson SureColor SC-F500", reply)
-        self.assertIn("1,950.00", reply)
-        self.assertIn("Price on Request", reply)
+        self.assertIn("commercial details are not provided", reply.lower())
+        self.assertNotIn("AED", reply)
 
 
 if __name__ == "__main__":

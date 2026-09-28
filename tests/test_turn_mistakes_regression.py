@@ -82,8 +82,8 @@ class TestSessionMistakesRegression(unittest.TestCase):
         self.assertNotIn("Black Ink", reply29)
         self.assertIn("Citizen CX-02W", reply29)
         self.assertIn("CX2W 812", reply29)
-        # Must include pricing / quotation guidance
-        self.assertTrue(any(w in reply29.lower() for w in ["pricing", "cost-per-print", "quote", "sales@keplertech.ae"]))
+        self.assertIn("commercial details are not provided", reply29.lower())
+        self.assertNotIn("AED", reply29)
 
     def test_turn31_cx02w_media_and_cost(self):
         """User asking 'i AM TALKING ABOUT CX-02W PRINT MEDIA AND ITS COST' returns CX-02W media and pricing guidance."""
@@ -96,7 +96,8 @@ class TestSessionMistakesRegression(unittest.TestCase):
         reply = resp["reply"]
         self.assertIn("Citizen CX-02W", reply)
         self.assertIn("CX2W 812", reply)
-        self.assertTrue(any(w in reply.lower() for w in ["pricing", "cost-per-print", "quote", "sales@keplertech.ae"]))
+        self.assertIn("commercial details are not provided", reply.lower())
+        self.assertNotIn("AED", reply)
 
     def test_turn33_capability_query_2x6_strip_on_cx02w(self):
         """User asking 'CAN I PRINT 2X6 STRIP IN THIS PRINTER?' when CX-02W is active must answer accurately and recommend Citizen CX-02."""
@@ -157,10 +158,10 @@ class TestSessionMistakesRegression(unittest.TestCase):
 
         r2 = self.orchestrator.process_turn("how can i buy this", session_id="test_buy_consumable", state=state)
         reply = r2["reply"]
-        self.assertEqual(r2.get("source"), "route:purchase:consumable")
+        self.assertEqual(r2.get("source"), "route:product_page")
         self.assertIn("Epson Dye Sublimation Yellow Ink", reply)
         self.assertIn("https://www.keplertechllc.com/product/c13t49n400-epson-dye-sublimation-yellow-ink/", reply)
-        self.assertIn("sales@keplertech.ae", reply)
+        self.assertNotIn("sales@keplertech.ae", reply)
         self.assertNotIn("matching catalogue printer", reply.lower())
         self.assertEqual(len(r2.get("product_cards", [])), 0)
         self.assertTrue(len(r2.get("consumable_cards", [])) >= 1)
@@ -173,11 +174,11 @@ class TestSessionMistakesRegression(unittest.TestCase):
 
         r2 = self.orchestrator.process_turn("how can i buy this", session_id="test_buy_hw", state=state)
         reply = r2["reply"]
-        self.assertEqual(r2.get("source"), "route:purchase:hardware")
+        self.assertEqual(r2.get("source"), "route:product_page")
         self.assertIn("Epson SureColor SC-T3100", reply)
-        self.assertIn("AED 3,880.00", reply)
-        self.assertIn("sales@keplertech.ae", reply)
-        self.assertTrue(len(r2.get("product_cards", [])) >= 1)
+        self.assertNotIn("AED", reply)
+        self.assertNotIn("sales@keplertech.ae", reply)
+        self.assertIn("keplertechllc.com/product/", reply)
 
     def test_how_much_is_this_consumable(self):
         """When a consumable is active and user asks 'how much is this', bot must return the official consumable price."""
@@ -186,9 +187,9 @@ class TestSessionMistakesRegression(unittest.TestCase):
 
         r2 = self.orchestrator.process_turn("how much is this", session_id="test_price_consumable", state=state)
         reply = r2["reply"]
-        self.assertEqual(r2.get("source"), "route:consumable_price_inquiry")
-        self.assertIn("AED 110.00", reply)
-        self.assertIn("Epson Dye Sublimation Yellow Ink", reply)
+        self.assertEqual(r2.get("source"), "guardrail:commercial_policy")
+        self.assertNotIn("AED 110.00", reply)
+        self.assertIn("commercial details are not provided", reply.lower())
 
 
 if __name__ == "__main__":

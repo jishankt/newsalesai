@@ -122,13 +122,10 @@ def test_other_model_media_price_inquiry():
     state = ConversationState(session_id="test_other_media_session")
     state.category = "citizen_photo"
     response = orchestrator.process_turn("what about other model media price?", state=state)
-    assert response.get("source") == "route:consumable_price_inquiry"
+    assert response.get("source") == "guardrail:commercial_policy"
     msg = response.get("message", "")
-    assert "625.00" in msg
-    assert "490.00" in msg
-    assert "975.00" in msg
-    assert "CY-MS46" in msg
-    assert "https://www.keplertechllc.com/product/citizen-cy-ms46-4x6/" in msg
+    assert "commercial details are not provided" in msg.lower()
+    assert "AED" not in msg
 
 
 def test_cost_per_print_orchestrator_route():
@@ -147,12 +144,13 @@ def test_cost_per_print_orchestrator_route():
         state=state
     )
 
-    assert response.get("source") == "route:cost_per_print"
-    # Must contain CPP information, NOT enterprise quote disclaimer
+    assert response.get("source") == "guardrail:commercial_policy"
+    assert "commercial details are not provided" in response["reply"].lower()
+    # Cost per print is a commercial detail and must not be estimated.
     msg = response.get("message", "").lower()
-    assert "cost-per-page" in msg or "cost per page" in msg or "cost per print" in msg
+    assert "commercial details are not provided" in msg
     assert "is not listed for direct online checkout" not in msg
-    assert "0.02" in msg
+    assert "0.02" not in msg
 
 
 def test_print_yield_orchestrator_route():
@@ -194,11 +192,10 @@ def test_warranty_orchestrator_route():
         state=state
     )
 
-    assert response.get("source") == "route:warranty_info"
+    assert response.get("source") == "route:product_spec_attribute:unknown"
     msg = response.get("message", "")
-    assert "1-Year On-Site Warranty" in msg or "Manufacturer Warranty" in msg
+    assert "does not specify" in msg.lower()
     # Must NOT return headquarters address or opening hours
     assert "Khalid Bin Waleed Road" not in msg
     assert "Abdulla Al Awar Building" not in msg
     assert "Monday – Friday: 8:30 AM" not in msg
-

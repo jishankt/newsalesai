@@ -259,10 +259,10 @@ class TestProductionReadiness(unittest.TestCase):
             history=[],
             state=state,
         )
-        self.assertIn("3,880.00", res["reply"])
-        self.assertIn("AED", res["reply"])
-        self.assertEqual(res["source"], "route:product_price_inquiry")
-        self.assertEqual(res["active_agent"]["id"], "product_specialist")
+        self.assertNotIn("3,880.00", res["reply"])
+        self.assertNotIn("AED", res["reply"])
+        self.assertEqual(res["source"], "guardrail:commercial_policy")
+        self.assertEqual(res["active_agent"]["id"], "receptionist")
 
     def test_discount_query_never_invokes_sales_lead_agent(self):
         """Discount and quote queries never invoke sales_lead_agent.handle_turn."""
@@ -275,7 +275,7 @@ class TestProductionReadiness(unittest.TestCase):
                 state=state,
             )
             mock_lead_turn.assert_not_called()
-            self.assertEqual(res["reply"], PRICE_REFUSAL)
+            self.assertIn("commercial details are not provided", res["reply"].lower())
 
     def test_sc_t5400m_url_not_corrupted_by_sanitization(self):
         """SC-T5400M product URL is not corrupted to SC-TM by phone regex."""

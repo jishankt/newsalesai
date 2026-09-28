@@ -145,7 +145,7 @@ class EvidencePlanner:
             attrs.append("compatible_ink")
         if any(w in msg_l for w in ["t-shirt", "t shirt", "tshirt", "t-shirts", "apparel", "garment", "fabric"]) and "t_shirt_capability" not in attrs:
             attrs.append("t_shirt_capability")
-        if any(w in msg_l for w in ["photo", "photos", "picture", "pictures", "image", "images", "pic", "pics"]) and any(w in msg_l for w in ["send", "show", "give", "provide", "share", "see", "view", "?"]) and "media_request" not in attrs:
+        if re.search(r"\b(?:send|show|share|see|view|provide)\b.{0,45}\b(?:photo|picture|image)\b|\b(?:photo|picture|image)\s+of\b", msg_l) and "media_request" not in attrs:
             attrs.append("media_request")
         if any(w in msg_l for w in ["difference between", "diffrance bw", "between this two", "between these two", "compare this two", "compare these two", "tell both"]) and "configuration_difference" not in attrs:
             attrs.append("configuration_difference")
@@ -514,6 +514,8 @@ class EvidencePlanner:
         wants_wifi = bool(re.search(r"\b(?:wi-?fi|wireless|connectivity)\b", q))
         wants_scanner = bool(re.search(r"\b(?:scanner|scan|scanning)\b", q))
         wants_media = bool(re.search(r"\b(?:paper|media|canvas)\b", q))
+        wants_tshirt = bool(re.search(r"\b(?:t[- ]?shirts?|garments?)\b", q))
+        wants_mugs = bool(re.search(r"\bmugs?\b", q))
         sections, ink_cards = [], []
         for prod in products:
             name = prod.get("display_name") or prod.get("model") or prod["id"]
@@ -540,6 +542,10 @@ class EvidencePlanner:
                     f"- Listed paper products: {', '.join(paper)}."
                     if paper else "- Media: Specific supported media types are not listed in the verified catalogue."
                 )
+            if wants_tshirt:
+                lines.append(f"- T-shirts: {cls._evaluate_tshirt(prod).display_claim}")
+            if wants_mugs:
+                lines.append("- Mugs: The verified catalogue does not explicitly confirm coated-mug transfer compatibility for this model.")
             sections.append("\n".join(lines))
         return "Here are the verified details for each model:\n\n" + "\n\n".join(sections), ink_cards
 
@@ -569,8 +575,7 @@ class EvidencePlanner:
             source="catalog:specifications",
             display_claim=(
                 f"No, the {p_name} is an aqueous pigment photo and fine-art printer designed for paper and canvas media; "
-                "it cannot print directly on T-shirts or garments. Apparel printing requires dye-sublimation printers "
-                "(such as the Epson SC-F100 or SC-F500) or direct-to-garment (DTG) systems."
+                "it cannot print directly on T-shirts or garments."
             ),
         )
 
@@ -580,7 +585,7 @@ class EvidencePlanner:
         p_name = prod.get("display_name") or prod.get("model") or pid
 
         img_url = prod.get("image_url")
-        prod_url = prod.get("product_url") or prod.get("website_url") or f"https://www.keplertechllc.com/product/{pid}/"
+        prod_url = prod.get("product_url") or prod.get("website_url")
 
         # Validate that image_url is an actual verified URL and not a generic placeholder
         is_valid_img = (
@@ -598,10 +603,16 @@ class EvidencePlanner:
                 status="supported",
                 value=img_url,
                 source="catalog:image_url",
-                display_claim=f"Verified product photograph for the {p_name} is available here: {img_url}. You can also explore full product details at {prod_url}.",
+                display_claim=f"Verified product photograph for the {p_name} is available here: {img_url}." + (f" Full product details: {prod_url}." if prod_url else ""),
             )
 
         # Verified URL only
+        if not prod_url:
+            return FieldFact(
+                product_id=pid, product_name=p_name, attribute="media_request",
+                status="unknown", value=None, source="none",
+                display_claim=f"A verified product image or product page for the {p_name} is not listed in the catalogue.",
+            )
         return FieldFact(
             product_id=pid,
             product_name=p_name,

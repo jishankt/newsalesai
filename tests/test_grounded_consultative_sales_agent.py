@@ -357,8 +357,8 @@ class TestGroundedConsultativeSalesAgent(unittest.TestCase):
         # 1. No discount promise or bargaining in reply
         self.assertNotIn("20%", reply1)
         self.assertNotIn("I can give you a discount", reply1)
-        # 2. Directs to verified website
-        self.assertIn("https://www.keplertechllc.com/", reply1)
+        # 2. Does not direct a commercial inquiry to a sales channel.
+        self.assertIn("commercial details are not provided", reply1.lower())
 
         # 3. Chips must not contain quotes or handover
         chips1 = resp1.get("suggested_chips", [])

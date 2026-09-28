@@ -229,11 +229,10 @@ def get_missing_mandatory_fields(category: str, requirements: Dict[str, Any]) ->
     if category == "technical_large_format":
         width = requirements.get("print_width")
 
-        # 24-inch CAD printers (SC-T3100 series) have NO scanner/MFP variant.
-        # Skip the scanner question entirely and route directly to products.
-        if width == 24:
-            requirements["scanner_required"] = False
-            requirements.setdefault("functions", ["print"])
+        # No approved 24-inch CAD MFP is listed. Never rewrite an explicit
+        # scanner requirement while deciding which fields are missing.
+        if width == 24 and requirements.get("scanner_required") is None:
+            return []
 
         mandatory = get_mandatory_fields(category)
         missing = []

@@ -112,12 +112,11 @@ class TestWebsitePricingFlow(unittest.TestCase):
         resp = self.orchestrator.process_turn("what is the price of sc-f100?", session_id="test_price_f100", state=state)
         
         reply = resp["reply"]
-        self.assertIn("1,950.00", reply)
-        self.assertIn("AED", reply)
+        self.assertNotIn("1,950.00", reply)
+        self.assertNotIn("AED", reply)
         self.assertIn("Epson SureColor SC-F100", reply)
-        self.assertIn("https://www.keplertechllc.com/product/epson-surecolor-sc-f100-printer/", reply)
-        self.assertEqual(len(resp["product_cards"]), 1)
-        self.assertEqual(resp["product_cards"][0]["price"], 1950.0)
+        self.assertEqual(resp["source"], "guardrail:commercial_policy")
+        self.assertEqual(len(resp["product_cards"]), 0)
 
     def test_orchestrator_directs_unpriced_model_to_support_team(self):
         """Asking for the price of SC-P7500 instructs user to contact customer support team."""
@@ -125,12 +124,11 @@ class TestWebsitePricingFlow(unittest.TestCase):
         resp = self.orchestrator.process_turn("what does the sc-p7500 cost?", session_id="test_price_p7500", state=state)
 
         reply = resp["reply"]
-        self.assertIn(OFFICIAL_SUPPORT_EMAIL, reply)
-        self.assertIn(OFFICIAL_SUPPORT_PHONE, reply)
+        self.assertNotIn(OFFICIAL_SUPPORT_EMAIL, reply)
+        self.assertNotIn(OFFICIAL_SUPPORT_PHONE, reply)
         self.assertIn("Epson SureColor SC-P7500", reply)
-        self.assertIn("commercial quotation", reply.lower())
-        self.assertEqual(len(resp["product_cards"]), 1)
-        self.assertTrue(resp["product_cards"][0]["is_request"])
+        self.assertIn("commercial details are not provided", reply.lower())
+        self.assertEqual(len(resp["product_cards"]), 0)
 
     def test_orchestrator_handles_discount_queries(self):
         """Asking for discounts directs user to official website and support team."""
@@ -144,9 +142,9 @@ class TestWebsitePricingFlow(unittest.TestCase):
             state = ConversationState(session_id="test_discount_flow")
             resp = self.orchestrator.process_turn(q, session_id="test_discount_flow", state=state)
             reply = resp["reply"]
-            self.assertIn("sales@keplertech.ae", reply)
-            self.assertIn("+971 4 323 1008", reply)
-            self.assertIn("keplertechllc.com", reply)
+            self.assertNotIn("sales@keplertech.ae", reply)
+            self.assertNotIn("+971 4 323 1008", reply)
+            self.assertIn("commercial details are not provided", reply.lower())
             # Ensure no discount was promised
             self.assertNotIn("i can give you", reply.lower())
             self.assertNotIn("we can offer a discount", reply.lower())
@@ -156,9 +154,9 @@ class TestWebsitePricingFlow(unittest.TestCase):
         state = ConversationState(session_id="test_gen_price")
         resp = self.orchestrator.process_turn("what are your prices?", session_id="test_gen_price", state=state)
         reply = resp["reply"]
-        self.assertIn("keplertechllc.com", reply)
-        self.assertIn(OFFICIAL_SUPPORT_EMAIL, reply)
-        self.assertIn(OFFICIAL_SUPPORT_PHONE, reply)
+        self.assertIn("commercial details are not provided", reply.lower())
+        self.assertNotIn(OFFICIAL_SUPPORT_EMAIL, reply)
+        self.assertNotIn(OFFICIAL_SUPPORT_PHONE, reply)
 
 
 if __name__ == "__main__":

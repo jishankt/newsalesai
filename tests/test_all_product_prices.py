@@ -176,10 +176,10 @@ class TestAllProductPrices(unittest.TestCase):
             resp = self.orchestrator.process_turn(query, session_id=session_id, state=state)
             
             reply = resp["reply"]
-            self.assertIn(expected_snippet, reply, f"Did not find {expected_snippet} in reply: {reply}")
-            self.assertIn("AED", reply)
-            self.assertGreaterEqual(len(resp["product_cards"]), 1)
-            self.assertEqual(resp["product_cards"][0]["price"], expected_price)
+            self.assertNotIn(expected_snippet, reply)
+            self.assertNotIn("AED", reply)
+            self.assertIn("Pricing and commercial details are not provided", reply)
+            self.assertEqual(resp["source"], "guardrail:commercial_policy")
 
 
 if __name__ == "__main__":

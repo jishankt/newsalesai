@@ -363,7 +363,8 @@ class TestContinuousFlows(unittest.TestCase):
         self.assertEqual(r2.get("source"), "route:consumables")
         self.assertIn("CY-02", r2.get("reply", ""))
         self.assertIn("CY-MS46", r2.get("reply", ""))
-        self.assertEqual(len(r2.get("consumable_cards", [])), 4)
+        self.assertEqual(len(r2.get("consumable_cards", [])), 2)
+        self.assertTrue(all(c.get("category") in ("Media & Paper", "Media", "Ribbon") for c in r2["consumable_cards"]))
 
         # Turn 3: User inquires about SC-P700 printer
         r3 = orchestrator.process_turn("i need scp700 printer", state=state)

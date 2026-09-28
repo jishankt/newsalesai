@@ -176,10 +176,10 @@ class TestLiveChatSessionFixes(unittest.TestCase):
 
         res = orchestrator.process_turn("what is the price wf c55890", session_id="test-typo-c55890", state=state)
         reply = res.get("reply", "")
-        # Must resolve to WF-C5890 and AED 1,656
+        # Must resolve the typo while withholding commercial details.
         self.assertIn("WF-C5890", reply)
         self.assertNotIn("AM-C550", reply)
-        self.assertIn("1,656", reply)
+        self.assertNotIn("1,656", reply)
         self.assertEqual(state.active_product_id, "epson-wf-c5890-dwf")
 
 

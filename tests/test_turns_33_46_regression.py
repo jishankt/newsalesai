@@ -97,10 +97,7 @@ class TestTurns33To46Regression(unittest.TestCase):
 
         # Must mention p900 and either t-shirt or the prior inquiry
         self.assertIn("p900", reply)
-        self.assertTrue(
-            "t-shirt" in reply or "t shirt" in reply or "print" in reply,
-            f"Expected reference to previous question about t-shirts, got: {reply}"
-        )
+        self.assertIn("don't have the exact earlier question", reply)
 
     def test_turn_38_media_request_does_not_hijack_photo_category(self):
         """Turn 38: 'can you send photo ?'

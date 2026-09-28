@@ -47,9 +47,10 @@ class TestPipelineImprovements(unittest.TestCase):
         self.assertIn("t5100m", t5100m.source.website_url)
         self.assertIn("t5400m", t5400m.source.website_url)
 
-        # Verify total hardware count is 79 distinct items (with discrete P7500/P9500 and T5100M/T5400M)
+        # The expanded catalogue includes 104 distinct hardware and accessory records.
         all_prods = catalog_repository.get_all()
-        self.assertEqual(len(all_prods), 79, f"Expected 79 discrete catalogue items, found {len(all_prods)}")
+        self.assertEqual(len(all_prods), 104)
+        self.assertEqual(len({p.id for p in all_prods}), len(all_prods))
 
     def test_02_vague_terms_require_clarification(self):
         """2. Never normalize 'large' into exact specifications; ask clarification."""

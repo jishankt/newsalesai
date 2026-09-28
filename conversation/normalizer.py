@@ -108,7 +108,7 @@ def normalize_category(raw_text: str, current_category: Optional[str] = None) ->
     ]
     has_scanner_model = any(m in text_l for m in scanner_models)
     is_printer_with_scanner = (
-        bool(re.search(r"\b(?:printers?|printing|print\s+and\s+scan|copier|mfp)\b", text_l))
+        bool(re.search(r"\b(?:printers?|printing|plotters?|cad|blueprints?|print\s+and\s+scan|copier|mfp)\b", text_l))
         and not bool(re.search(r"\b(?:photo\s+scanner|document\s+scanner|business\s+scanner|flatbed\s+scanner|sheetfed\s+scanner|portable\s+scanner)\b", text_l))
         and not bool(re.search(r"\b(?:switch\s+to\s+scanner|i\s+want\s+a\s+scanner|i\s+need\s+a\s+scanner|buy\s+a\s+scanner|looking\s+for\s+a\s+scanner)\b", text_l))
     )

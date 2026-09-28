@@ -45,6 +45,7 @@ class ConversationState:
     candidate_products: List[Dict[str, Any]] = field(default_factory=list)
     active_product: Optional[Dict[str, Any]] = None
     active_product_id: Optional[str] = None
+    last_explicit_product_id: Optional[str] = None
     compared_product_ids: List[str] = field(default_factory=list)
     active_printer_for_consumables: Optional[str] = None
     requested_ink_color: Optional[str] = None
@@ -100,6 +101,7 @@ class ConversationState:
             "catalogue_version": self.catalogue_version,
             "active_product": self.active_product,
             "active_product_id": self.active_product_id,
+            "last_explicit_product_id": self.last_explicit_product_id,
             "candidate_products": self.candidate_products,
             "compared_product_ids": self.compared_product_ids,
             "active_printer_for_consumables": self.active_printer_for_consumables,
@@ -151,6 +153,7 @@ class ConversationState:
             catalogue_version=data.get("catalogue_version", "41_approved_v1"),
             active_product=data.get("active_product"),
             active_product_id=data.get("active_product_id"),
+            last_explicit_product_id=data.get("last_explicit_product_id"),
             candidate_products=data.get("candidate_products", []),
             compared_product_ids=data.get("compared_product_ids", []),
             active_printer_for_consumables=data.get("active_printer_for_consumables"),
@@ -181,6 +184,15 @@ class ConversationState:
         Clears results_loaded if a filtering requirement changed so fresh cards are fetched.
         """
         changed = False
+        incoming = {**(corrections or {}), **(new_reqs or {})}
+        # Exact counts refer to what the customer stated. A changed monthly
+        # count supersedes an older exact daily statement and vice versa.
+        if "exact_monthly_volume" in incoming and "exact_daily_volume" not in incoming:
+            if self.requirements.pop("exact_daily_volume", None) is not None:
+                changed = True
+        elif "exact_daily_volume" in incoming and "exact_monthly_volume" not in incoming:
+            if self.requirements.pop("exact_monthly_volume", None) is not None:
+                changed = True
         if corrections:
             for k, v in corrections.items():
                 if self.requirements.get(k) != v:
