@@ -469,9 +469,9 @@ class CatalogueFilter:
         vat_note = price_info.get("vat_note", "(Excl. VAT)" if price_val else "")
 
         return {
-            "id": p["id"],
-            "model": p["display_name"],
-            "name": p["display_name"],
+            "id": p.get("id"),
+            "model": p.get("display_name") or p.get("model") or p.get("name") or "Catalogue Product",
+            "name": p.get("display_name") or p.get("name") or p.get("model") or "Catalogue Product",
             "image_url": p.get("image_url") or "/static/images/printer-placeholder.svg",
             "product_url": p.get("product_url") or "https://www.keplertechllc.com/",
             "category": cat_label,
