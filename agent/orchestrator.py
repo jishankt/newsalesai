@@ -1561,6 +1561,29 @@ class Orchestrator:
                         comp_products.append(p)
 
             if len(comp_products) >= 2:
+                # A compound question needs facts for both named models. The generic
+                # comparison draft does not distinguish their compatible ink SKUs.
+                if len(mentioned_products) >= 2 and re.search(
+                    r"\b(?:inks?|cartridges?|consumables?)\b", normalized_msg.lower(),
+                ):
+                    from agent.evidence_planner import evidence_planner
+                    reply_text, ink_cards = evidence_planner.describe_named_products(comp_products, normalized_msg)
+                    cards = [catalogue_filter._format_card(p, p.get("subcategory"), state.requirements) for p in comp_products]
+                    state.compared_products = comp_products
+                    state.compared_product_ids = [p["id"] for p in comp_products]
+                    state.stage = "comparing"
+                    state.last_assistant_response = reply_text
+                    state.increment_turn()
+                    return self._build_response(
+                        reply=reply_text,
+                        source="route:product_spec_attribute:multi",
+                        product_cards=cards,
+                        consumable_cards=ink_cards,
+                        suggested_chips=["View Technical Specifications", "Compare Models"],
+                        nlp_result=nlp_result,
+                        state=state,
+                        latency_ms=int((time.time() - start_time) * 1000),
+                    )
                 reply_text, cards, comparison_data = build_approved_comparison_response(
                     comp_products,
                     customer_requirements=dict(state.requirements) if state.requirements else None,
@@ -2866,13 +2889,9 @@ class Orchestrator:
         for c in (product_cards or []):
             if isinstance(c, dict):
                 c_clean = dict(c)
-                # Suppress "Price on Request" or raw prices on capability/spec/recommendation cards unless explicit price route
-                if not source.startswith("route:product_price_inquiry") and not source.startswith("route:consumable_price_inquiry"):
-                    c_clean["price"] = None
-                    c_clean["price_formatted"] = None
-                    c_clean["price_str"] = None
-                    c_clean["currency"] = None
-                    c_clean["vat_note"] = None
+                if not source.startswith(("route:product_price_inquiry", "route:consumable_price_inquiry")):
+                    for key in ("price", "price_formatted", "price_str", "currency", "vat_note"):
+                        c_clean[key] = None
                     c_clean["is_request"] = False
                 c_clean["actions"] = [
                     a for a in c_clean.get("actions", [])
@@ -2887,6 +2906,11 @@ class Orchestrator:
             else:
                 sanitized_prod_cards.append(c)
         product_cards = sanitized_prod_cards
+        consumable_cards = [
+            {k: v for k, v in card.items() if k not in ("price", "price_formatted", "price_str", "currency", "vat_note")}
+            if isinstance(card, dict) else card
+            for card in (consumable_cards or [])
+        ]
 
         state.last_suggested_chips = list(suggested_chips or [])
         if consumable_cards:

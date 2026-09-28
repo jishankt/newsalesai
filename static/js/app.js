@@ -453,17 +453,6 @@ document.addEventListener('DOMContentLoaded', () => {
           ? `<div class="card-configs-badge">⚙️ Configurations: ${p.available_configurations.join(', ')}</div>`
           : '';
 
-        // Product price row
-        let priceHtml = '';
-        if (p.price && Number(p.price) > 0 && !p.is_request) {
-          const formatted = p.price_formatted || ('AED ' + Number(p.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}));
-          priceHtml = `<div class="card-price-row"><span class="card-price-val">${formatted}</span> <span class="card-price-vat">${p.vat_note || '(Excl. VAT)'}</span></div>`;
-        } else if (p.price_formatted && p.price_formatted !== 'Price on Request' && !p.is_request) {
-          priceHtml = `<div class="card-price-row"><span class="card-price-val">${p.price_formatted}</span> <span class="card-price-vat">${p.vat_note || '(Excl. VAT)'}</span></div>`;
-        } else {
-          priceHtml = `<div class="card-price-row"><span class="card-price-request">Price on Request</span></div>`;
-        }
-
         card.innerHTML = `
           <div class="card-img-wrap" title="Click to view image">
             <img src="${cardImg}" alt="${modelName}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='/static/images/printer-placeholder.svg';">
@@ -472,27 +461,17 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="card-cat-badge">${subcategoryLabel || categoryLabel}</span>
           </div>
           <div class="card-title" title="${modelName}">${modelName}</div>
-          ${priceHtml}
           ${configsHtml}
           ${reasonsHtml}
           <div class="card-actions-row">
             <a href="${cardUrl}" target="_blank" rel="noopener noreferrer" class="card-action-btn btn-view-details">
               View Details ↗
             </a>
-            <button type="button" class="card-action-btn btn-lead-model btn-select-model" data-model="${modelName}">
-              Request Quote
-            </button>
             <button type="button" class="btn-compare-check" data-model="${modelName}" data-id="${p.id}">
               <span class="compare-box">☐</span> Compare
             </button>
           </div>
         `;
-
-        // Request Quote action
-        card.querySelector('.btn-lead-model').addEventListener('click', (e) => {
-          e.preventDefault();
-          sendMessage(`I would like to request an official quotation for ${modelName}`);
-        });
 
         // Compare action
         const compareBtn = card.querySelector('.btn-compare-check');
@@ -562,7 +541,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const cImg = c.image_url || c.image || 'https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png';
         const cUrl = c.source_url || c.url || c.website_url || '#';
         const cTitle = c.title || c.name;
-        const cPriceStr = c.price_formatted || (c.price ? 'AED ' + Number(c.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '');
 
         cCard.innerHTML = `
           <div class="consumable-img-wrap" title="Click to enlarge">
@@ -570,7 +548,6 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <div class="consumable-title" title="${cTitle}">${cTitle}</div>
           <div class="consumable-sku">${c.sku}</div>
-          ${cPriceStr ? `<div class="consumable-price-wrap"><span class="consumable-price-val">${cPriceStr}</span> <span class="card-price-vat">(Excl. VAT)</span></div>` : ''}
           <div class="consumable-actions" style="margin-top: auto; padding-top: 4px;">
             <a href="${cUrl}" target="_blank" class="card-btn" style="color: var(--chat-blue); font-size: 0.68rem; padding: 4px 6px; text-align: center; text-decoration: none; background: #f0f2f5;">
               View on Website ↗

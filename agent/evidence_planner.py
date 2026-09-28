@@ -463,19 +463,26 @@ class EvidencePlanner:
         pid = prod.get("id", "")
         p_name = prod.get("display_name") or prod.get("model") or pid
 
+        # The catalogue relationship contains paper and maintenance tanks as well as ink.
+        # Resolve each listed SKU against the product index before calling it ink.
+        from rag.retriever import rag_retriever
         consumables = []
-        try:
-            from rag.consumables_engine import consumables_engine
-            consumables = consumables_engine.get_consumables_for_printer(pid) or []
-        except Exception:
-            pass
-        if not consumables and prod.get("consumables"):
-            consumables = [{"name": str(c), "sku": str(c)} for c in prod["consumables"]]
+        for sku in prod.get("consumables") or []:
+            item = rag_retriever.get_by_sku(str(sku))
+            if item and item.get("category", "").lower() in ("ink cartridge", "inks", "ink"):
+                consumables.append({
+                    "sku": item["sku"], "name": item.get("name", item["sku"]),
+                    "category": item["category"],
+                    "image_url": item.get("image_url"),
+                    "source_url": item.get("source_url") or item.get("url"),
+                })
 
         ink_tech = prod.get("ink_technology") or prod.get("colour_specification") or prod.get("technology")
+        if not ink_tech and any("ink" in str(c).lower() for c in prod.get("consumables") or []):
+            ink_tech = next(str(c) for c in prod["consumables"] if "ink" in str(c).lower())
 
         if consumables or ink_tech:
-            tech_desc = ink_tech or "genuine manufacturer ink"
+            tech_desc = ink_tech or "manufacturer ink"
             skus = [c.get("sku") or c.get("part_number") for c in consumables if c.get("sku") or c.get("part_number")]
             sku_part = f" (compatible SKUs: {', '.join(skus[:6])})" if skus else ""
             return FieldFact(
@@ -485,7 +492,7 @@ class EvidencePlanner:
                 status="supported",
                 value={"technology": tech_desc, "skus": skus},
                 source="catalog:consumables",
-                display_claim=f"The {p_name} uses genuine {tech_desc}{sku_part}.",
+                display_claim=f"The {p_name} uses {tech_desc}{sku_part}.",
             ), consumables
 
         return FieldFact(
@@ -497,6 +504,44 @@ class EvidencePlanner:
             source="none",
             display_claim=f"Compatible consumables and ink specifications for the {p_name} are not listed in the verified catalogue and are unknown.",
         ), []
+
+    @classmethod
+    def describe_named_products(cls, products: List[Dict[str, Any]], question: str) -> Tuple[str, List[Dict[str, Any]]]:
+        """Answer explicitly requested fields for each named catalogue model separately."""
+        q = question.lower()
+        wants_ink = bool(re.search(r"\b(?:inks?|cartridges?|consumables?)\b", q))
+        wants_width = bool(re.search(r"\b(?:width|size|sizes|format|a2|a3)\b", q))
+        wants_wifi = bool(re.search(r"\b(?:wi-?fi|wireless|connectivity)\b", q))
+        wants_scanner = bool(re.search(r"\b(?:scanner|scan|scanning)\b", q))
+        wants_media = bool(re.search(r"\b(?:paper|media|canvas)\b", q))
+        sections, ink_cards = [], []
+        for prod in products:
+            name = prod.get("display_name") or prod.get("model") or prod["id"]
+            lines = [f"**{name}**"]
+            if wants_width:
+                width = prod.get("max_width_inches") or prod.get("print_width")
+                lines.append(f"- Maximum print width: {width} inches." if width else "- Maximum print width: Not listed in the verified catalogue.")
+                sizes = prod.get("supported_print_sizes") or []
+                if sizes:
+                    lines.append(f"- Listed print sizes: {', '.join(map(str, sizes))}.")
+            if wants_ink:
+                fact, cards = cls._evaluate_ink(prod)
+                lines.append(f"- Ink: {fact.display_claim}" if fact.status == "supported" else "- Ink: Compatibility is not documented in the verified catalogue.")
+                ink_cards.extend(cards)
+            if wants_wifi:
+                lines.append(f"- Connectivity: {cls._evaluate_wifi(prod).display_claim}")
+            if wants_scanner:
+                lines.append(f"- Scanner: {cls._evaluate_scanner(prod).display_claim}")
+            if wants_media:
+                from rag.retriever import rag_retriever
+                paper = [rag_retriever.get_by_sku(str(sku)) for sku in prod.get("consumables") or []]
+                paper = [item["name"] for item in paper if item and item.get("category", "").lower() == "media & paper"]
+                lines.append(
+                    f"- Listed paper products: {', '.join(paper)}."
+                    if paper else "- Media: Specific supported media types are not listed in the verified catalogue."
+                )
+            sections.append("\n".join(lines))
+        return "Here are the verified details for each model:\n\n" + "\n\n".join(sections), ink_cards
 
     @classmethod
     def _evaluate_tshirt(cls, prod: Dict[str, Any]) -> FieldFact:
