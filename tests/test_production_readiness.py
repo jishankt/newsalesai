@@ -84,15 +84,16 @@ class TestProductionReadiness(unittest.TestCase):
             self.assertTrue(res.is_eligible, f"CX-02 must be eligible for {sz}")
 
     def test_cy02_fails_6x9_and_matches_4x6_6x8(self):
-        """CY-02 matches 4x6, 5x7, 6x8, but fails 6x9."""
+        """CY-02 matches 4x6, 6x8, but fails 5x7 and 6x9 per Citizen official specifications."""
         cy02 = catalog_repository.get_by_id("citizen-cy-02")
         self.assertIsNotNone(cy02)
-        for sz in ["4x6", "5x7", "6x8"]:
+        for sz in ["4x6", "6x8"]:
             res = eligibility_engine.assess_product(cy02, {"print_size": sz})
             self.assertTrue(res.is_eligible, f"CY-02 must be eligible for {sz}")
 
-        res_6x9 = eligibility_engine.assess_product(cy02, {"print_size": "6x9"})
-        self.assertFalse(res_6x9.is_eligible, "CY-02 must fail 6x9")
+        for sz in ["5x7", "6x9"]:
+            res_fail = eligibility_engine.assess_product(cy02, {"print_size": sz})
+            self.assertFalse(res_fail.is_eligible, f"CY-02 must fail {sz} (unsupported size)")
 
     def test_a2_wide_format_eligibility(self):
         """Wide-format printers with max width >= 420mm support A2."""

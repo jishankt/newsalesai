@@ -140,6 +140,7 @@ class NormalizedProduct:
             "print_sizes": self.verified.max_width_label,
             "speed": getattr(self.verified, "speed", None),
             "print_speed": getattr(self.verified, "speed", None),
+            "dimensions": self.verified.dimensions,
             "weight": self.verified.weight,
             "capacity": self.verified.cartridge_capacities,
             "roll_capacity": self.verified.cartridge_capacities,

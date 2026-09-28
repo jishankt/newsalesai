@@ -197,7 +197,7 @@ APPROVED_CATALOGUE_EVIDENCE = {
         "url": "https://www.keplertechllc.com/product/citizen-cy-02-photo-printer/",
         "technology": "Dye sublimation thermal system with overcoat [VERIFIED]",
         "resolution": "Dual-mode 300 dpi High Speed (300x300 dpi) & 600 dpi High Quality (300x600 dpi) [VERIFIED]",
-        "speed": "4x6\": 12.4s; 5x7\": 19.9s; 6x8\": 21.9s [VERIFIED]",
+        "speed": "4x6\": 12.4s; 6x8\": 21.9s [VERIFIED]",
         "capacity": "700 prints per roll (4x6\"), 350 prints per roll (6x8\") [VERIFIED]",
         "weight": "13.8 kg (package: 16.5 kg) [VERIFIED]",
         "finishing": "Glossy and Matte [VERIFIED]",

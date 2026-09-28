@@ -308,11 +308,10 @@ class CatalogRepository:
                 "website_url": "https://www.keplertechllc.com/product/citizen-cy-02-photo-printer/",
                 "datasheet_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Citizen-CY-02-Photo-Printer-Datasheet.pdf",
                 "consumables": ["CY-MS46", "CY-MS68"],
-                "supported_print_sizes": ["4x6", "5x7", "6x8"],
+                "supported_print_sizes": ["4x6", "6x8"],
                 "structured_specs": {
                     "print_speed": {
                         "4x6": "12.4 seconds",
-                        "5x7": "19.9 seconds",
                         "6x8": "21.9 seconds",
                         "status": "verified"
                     },
@@ -348,9 +347,8 @@ class CatalogRepository:
                         "status": "verified"
                     },
                     "capacity": {
-                        "4x6": "700 sheets per roll",
-                        "5x7": "350 sheets per roll",
-                        "6x8": "350 sheets per roll",
+                        "4x6": "700 sheets per roll (1,400 sheets per 2-roll box)",
+                        "6x8": "350 sheets per roll (700 sheets per 2-roll box)",
                         "status": "verified"
                     },
                     "weight": {
@@ -489,7 +487,7 @@ class CatalogRepository:
                         "status": "verified"
                     },
                     "capacity": {
-                        "8x12": "110 sheets per roll",
+                        "8x12": "110 sheets per roll (220 sheets per 2-roll box)",
                         "status": "verified"
                     },
                     "weight": {
@@ -578,7 +576,7 @@ class CatalogRepository:
                     w_lbl_val = "4x6, 5x7, 6x8, 6x9 inches"
                 elif "cy-02" in pid:
                     w_mm_val = 152
-                    w_lbl_val = "4x6, 5x7, 6x8 inches"
+                    w_lbl_val = "4x6, 6x8 inches"
                 elif "cz-01" in pid:
                     w_mm_val = 114
                     w_lbl_val = "4x6, 4.5x8 inches"
@@ -671,7 +669,7 @@ class CatalogRepository:
                                 w_lbl = "4x6, 5x7, 6x8, 6x9 inches"
                                 w_mm = 152
                             elif "cy-02" in d_key:
-                                w_lbl = "4x6, 5x7, 6x8 inches"
+                                w_lbl = "4x6, 6x8 inches"
                                 w_mm = 152
                             elif "cz-01" in d_key:
                                 w_lbl = "4x6, 4.5x8 inches"
@@ -762,7 +760,7 @@ class CatalogRepository:
                         c_id = item.get("id")
                         if not c_id:
                             continue
-                        c_id_clean = re.sub(r"[\s\-_]+", "", c_id.lower()).replace("citizen", "").replace("epson", "")
+                        c_id_clean = re.sub(r"[\s\-_]+", "", c_id.lower()).replace("citizen", "").replace("epson", "").replace("sc", "").replace("wf", "")
                         consumables = item.get("consumables", [])
                         img = item.get("image_url")
                         web_url = item.get("product_url")
@@ -770,9 +768,9 @@ class CatalogRepository:
 
                         matched = False
                         for p in self.products_by_id.values():
-                            p_id_clean = re.sub(r"[\s\-_]+", "", p.id.lower()).replace("citizen", "").replace("epson", "")
-                            p_name_clean = re.sub(r"[\s\-_]+", "", p.name.lower()).replace("citizen", "").replace("epson", "")
-                            if p.id == c_id or p_id_clean == c_id_clean or (len(c_id_clean) >= 5 and c_id_clean in p_name_clean):
+                            p_id_clean = re.sub(r"[\s\-_]+", "", p.id.lower()).replace("citizen", "").replace("epson", "").replace("sc", "").replace("wf", "")
+                            p_name_clean = re.sub(r"[\s\-_]+", "", p.name.lower()).replace("citizen", "").replace("epson", "").replace("sc", "").replace("wf", "")
+                            if p.id == c_id or p_id_clean == c_id_clean:
                                 matched = True
                                 if consumables:
                                     existing_c = p.consumables or []
@@ -782,7 +780,17 @@ class CatalogRepository:
                                 if web_url and (not p.product_url or not p.source.website_url):
                                     p.product_url = web_url
                                     p.source.website_url = web_url
-                                break
+                                if item.get("weight"):
+                                    p.verified.weight = item["weight"]
+                                if item.get("dimensions"):
+                                    p.verified.dimensions = item["dimensions"]
+                                if item.get("print_speed"):
+                                    p.verified.speed = item["print_speed"]
+                                if item.get("supported_print_sizes"):
+                                    p.supported_print_sizes = list(item["supported_print_sizes"])
+                                    p.verified.supported_print_sizes = list(item["supported_print_sizes"])
+                                if item.get("scanner_integrated") is not None:
+                                    p.verified.has_scanner = bool(item.get("scanner_integrated"))
 
                         if not matched:
                             # Index item into catalog
@@ -793,7 +801,7 @@ class CatalogRepository:
                                 id=c_id,
                                 canonical_id=c_id,
                                 display_name=disp_name or item.get("model_family") or c_id,
-                                entity_type="printer",
+                                entity_type=item.get("entity_type", "printer"),
                                 product_url=web_url,
                                 brand=brand_val,
                                 model=item.get("model_family") or disp_name,
@@ -803,6 +811,10 @@ class CatalogRepository:
                                 verified=VerifiedSpecs(
                                     supported_print_sizes=list(p_sizes),
                                     max_width_label=f"{item.get('max_width_inches')} inches" if item.get("max_width_inches") else None,
+                                    weight=item.get("weight"),
+                                    dimensions=item.get("dimensions"),
+                                    speed=item.get("print_speed"),
+                                    has_scanner=bool(item.get("scanner_integrated")),
                                 ),
                                 source=ProductSource(website_url=web_url),
                                 image_url=img,

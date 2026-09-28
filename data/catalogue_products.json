@@ -41,8 +41,8 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "workforce_pro",
-    "print_speed": "25 ISO ppm black / 25 ISO ppm colour",
-    "dpi": "4,800 \u00d7 1,200 DPI",
+    "print_speed": "25 ISO ppm black / 25 ISO ppm colour (simplex); 16 ipm duplex",
+    "dpi": "4,800 × 1,200 DPI",
     "memory": "1,024 MB (1 GB) RAM",
     "total_colours": "4 Colours (Black, Cyan, Magenta, Yellow)",
     "colour_specification": "Epson DURABrite Ultra Pigment Inks (Water & highlighter resistant)",
@@ -60,7 +60,9 @@
       "C13T11E340",
       "C13T11E440",
       "C13S210125"
-    ]
+    ],
+    "weight": "18.7 kg (net printer weight excluding inks)",
+    "dimensions": "425 × 535 × 357 mm (W × D × H)"
   },
   {
     "id": "epson-em-c800",
@@ -105,7 +107,7 @@
     "active": true,
     "product_line": "workforce_pro",
     "print_speed": "25 ISO ppm black / 25 ISO ppm colour",
-    "dpi": "4,800 \u00d7 1,200 DPI",
+    "dpi": "4,800 × 1,200 DPI",
     "memory": "2,048 MB (2 GB) RAM",
     "total_colours": "4 Colours (Black, Cyan, Magenta, Yellow)",
     "colour_specification": "Epson DURABrite Pro Pigment Inks with PrecisionCore Heat-Free Technology",
@@ -123,7 +125,9 @@
       "C13T11P340",
       "C13T11P440",
       "C13S210125"
-    ]
+    ],
+    "weight": "19.3 kg (net printer weight)",
+    "dimensions": "425 × 535 × 413 mm (W × D × H)"
   },
   {
     "id": "epson-am-c400",
@@ -165,7 +169,7 @@
     "active": true,
     "product_line": "workforce_enterprise",
     "print_speed": "40 ISO ppm black / 40 ISO ppm colour",
-    "dpi": "600 \u00d7 2,400 DPI",
+    "dpi": "600 × 2,400 DPI",
     "memory": "4,096 MB (4 GB) RAM + 320 GB HDD",
     "total_colours": "4 Colours (Black, Cyan, Magenta, Yellow)",
     "colour_specification": "DURABrite Pro Aqueous Pigment Inks with PrecisionCore Line Head",
@@ -179,7 +183,9 @@
       "C13T08Q340",
       "C13T08Q440",
       "C12C937201"
-    ]
+    ],
+    "weight": "31.6 kg (net printer weight)",
+    "dimensions": "465 × 517 × 477 mm (W × D × H)"
   },
   {
     "id": "epson-am-c550",
@@ -221,7 +227,7 @@
     "active": true,
     "product_line": "workforce_enterprise",
     "print_speed": "55 ISO ppm black / 55 ISO ppm colour",
-    "dpi": "600 \u00d7 2,400 DPI",
+    "dpi": "600 × 2,400 DPI",
     "memory": "4,096 MB (4 GB) RAM + 320 GB HDD",
     "total_colours": "4 Colours (Black, Cyan, Magenta, Yellow)",
     "colour_specification": "DURABrite Pro Aqueous Pigment Inks with PrecisionCore Line Head",
@@ -235,7 +241,9 @@
       "C13T08Q340",
       "C13T08Q440",
       "C12C937201"
-    ]
+    ],
+    "weight": "31.6 kg (net printer weight)",
+    "dimensions": "465 × 517 × 477 mm (W × D × H)"
   },
   {
     "id": "epson-wf-c878r-dwf",
@@ -280,7 +288,7 @@
     "active": true,
     "product_line": "workforce_pro",
     "print_speed": "25 ISO ppm black / 24 ISO ppm colour",
-    "dpi": "4,800 \u00d7 1,200 DPI",
+    "dpi": "4,800 × 1,200 DPI",
     "memory": "1,536 MB (1.5 GB) RAM",
     "total_colours": "4 Colours (Black, Cyan, Magenta, Yellow)",
     "colour_specification": "Epson DURABrite Pro Pigment Inks (Archival & quick-drying)",
@@ -298,7 +306,9 @@
       "C13T05B300",
       "C13T05B400",
       "C13T671400"
-    ]
+    ],
+    "weight": "59.7 kg (net printer weight excluding ink packs)",
+    "dimensions": "621 × 652 × 641 mm (W × D × H)"
   },
   {
     "id": "epson-wf-c879r-dwf",
@@ -342,8 +352,8 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "workforce_pro",
-    "print_speed": "26 ISO ppm black / 25 ISO ppm colour",
-    "dpi": "4,800 \u00d7 1,200 DPI",
+    "print_speed": "26 ISO ppm black / 25 ISO ppm colour; Scan: up to 100 ipm single-pass duplex",
+    "dpi": "4,800 × 1,200 DPI",
     "memory": "3,072 MB (3 GB) RAM",
     "total_colours": "4 Colours (Black, Cyan, Magenta, Yellow)",
     "colour_specification": "Epson DURABrite Pro Pigment Inks",
@@ -361,7 +371,9 @@
       "C13T05B300",
       "C13T05B400",
       "C13T671400"
-    ]
+    ],
+    "weight": "75.6 kg (net printer weight excluding ink packs)",
+    "dimensions": "621 × 751 × 711 mm (W × D × H)"
   },
   {
     "id": "epson-am-c4000",
@@ -405,7 +417,7 @@
     "active": true,
     "product_line": "workforce_enterprise",
     "print_speed": "40 ISO ppm black / 40 ISO ppm colour",
-    "dpi": "600 \u00d7 2,400 DPI",
+    "dpi": "600 × 2,400 DPI",
     "memory": "8,192 MB (8 GB) RAM + 320 GB Self-Encrypting HDD",
     "total_colours": "4 Colours (Black, Cyan, Magenta, Yellow)",
     "colour_specification": "DURABrite Pro Aqueous Pigment Inks with PrecisionCore Line Head",
@@ -419,7 +431,9 @@
       "C13T08H300",
       "C13T08H400",
       "C12C937181"
-    ]
+    ],
+    "weight": "124.3 kg (base unit net weight)",
+    "dimensions": "586 × 690 × 1,060 mm (W × D × H)"
   },
   {
     "id": "epson-am-c5000",
@@ -463,7 +477,7 @@
     "active": true,
     "product_line": "workforce_enterprise",
     "print_speed": "50 ISO ppm black / 50 ISO ppm colour",
-    "dpi": "600 \u00d7 2,400 DPI",
+    "dpi": "600 × 2,400 DPI",
     "memory": "8,192 MB (8 GB) RAM + 320 GB Self-Encrypting HDD",
     "total_colours": "4 Colours (Black, Cyan, Magenta, Yellow)",
     "colour_specification": "DURABrite Pro Aqueous Pigment Inks with PrecisionCore Line Head",
@@ -477,7 +491,9 @@
       "C13T08G300",
       "C13T08G400",
       "C12C937181"
-    ]
+    ],
+    "weight": "124.3 kg (base unit net weight)",
+    "dimensions": "586 × 690 × 1,060 mm (W × D × H)"
   },
   {
     "id": "epson-am-c6000",
@@ -521,7 +537,7 @@
     "active": true,
     "product_line": "workforce_enterprise",
     "print_speed": "60 ISO ppm black / 60 ISO ppm colour",
-    "dpi": "600 \u00d7 2,400 DPI",
+    "dpi": "600 × 2,400 DPI",
     "memory": "8,192 MB (8 GB) RAM + 320 GB Self-Encrypting HDD",
     "total_colours": "4 Colours (Black, Cyan, Magenta, Yellow)",
     "colour_specification": "DURABrite Pro Aqueous Pigment Inks with PrecisionCore Line Head",
@@ -535,7 +551,9 @@
       "C13T08G300",
       "C13T08G400",
       "C12C937181"
-    ]
+    ],
+    "weight": "124.3 kg (base unit net weight)",
+    "dimensions": "586 × 690 × 1,060 mm (W × D × H)"
   },
   {
     "id": "epson-wf-c21000-d4tw",
@@ -579,7 +597,7 @@
     "active": true,
     "product_line": "workforce_enterprise",
     "print_speed": "100 ISO ppm black / 100 ISO ppm colour",
-    "dpi": "600 \u00d7 2,400 DPI",
+    "dpi": "600 × 2,400 DPI",
     "memory": "8,192 MB (8 GB) RAM + 320 GB HDD",
     "total_colours": "4 Colours (Black, Cyan, Magenta, Yellow)",
     "colour_specification": "DURABrite Pro Industrial Pigment Ink (Heat-Free PrecisionCore Array)",
@@ -593,7 +611,9 @@
       "C13T02Y300",
       "C13T02Y400",
       "C13T671300"
-    ]
+    ],
+    "weight": "177.1 kg (base unit net weight)",
+    "dimensions": "674 × 757 × 1,243 mm (W × D × H)"
   },
   {
     "id": "epson-sc-t3100",
@@ -635,14 +655,14 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_t",
-    "print_speed": "34 sec / A1 CAD line drawing (approx. 106 A1/hr)",
-    "dpi": "2,400 \u00d7 1,200 DPI",
+    "print_speed": "34 sec / A1 CAD line drawing on plain paper (approx. 106 A1/hr)",
+    "dpi": "2,400 × 1,200 DPI",
     "memory": "1,024 MB (1 GB) RAM",
     "total_colours": "4 Colours (Matte Black, Cyan, Magenta, Yellow)",
     "colour_specification": "Epson UltraChrome XD2 All-Pigment Inks (Water & smudge resistant)",
     "cartridge_sizes": "26ml, 50ml, and 80ml Cartridges",
-    "consumable_volume": "Approx. 100\u2013180 A1 CAD line drawings per black cartridge",
-    "yield_capacity": "Approx. 100\u2013180 A1 CAD line drawings per black cartridge (26ml, 50ml, and 80ml Cartridges)",
+    "consumable_volume": "Approx. 100–180 A1 CAD line drawings per black cartridge",
+    "yield_capacity": "Approx. 100–180 A1 CAD line drawings per black cartridge (26ml, 50ml, and 80ml Cartridges)",
     "pattern_and_finishing": "Plain paper, CAD bond paper, tracing paper, matte film, and coated presentation media; single roll and manual sheet feed; automated PrecisionCore nozzle check diagnostic pattern and head cleaning.",
     "consumables": [
       "C13S210057",
@@ -656,7 +676,9 @@
       "C13T40D440",
       "C13S041385",
       "C13S041595"
-    ]
+    ],
+    "weight": "38 kg (with stand) / 27 kg (desktop without stand)",
+    "dimensions": "970 × 696 × 913 mm (with stand) / 970 × 505 × 230 mm (without stand)"
   },
   {
     "id": "epson-sc-t3700e",
@@ -697,8 +719,8 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_t",
-    "print_speed": "16 sec / A1 CAD drawing (up to 130 m\u00b2/hour)",
-    "dpi": "2,400 \u00d7 1,200 DPI",
+    "print_speed": "16 sec / A1 CAD line drawing (approx. 130 m²/hr)",
+    "dpi": "2,400 × 1,200 DPI",
     "memory": "4,096 MB (4 GB) RAM + Optional 960 GB SSD",
     "total_colours": "6 Colours (Matte Black, Photo Black, Cyan, Magenta, Yellow, Red)",
     "colour_specification": "Epson UltraChrome XD3 Pigment Ink with Dedicated Chromatic Red",
@@ -723,7 +745,9 @@
       "C13T50UF00",
       "C13S041385",
       "C13S041595"
-    ]
+    ],
+    "weight": "118 kg (net weight)",
+    "dimensions": "1,365 × 829 × 975 mm (W × D × H)"
   },
   {
     "id": "epson-sc-t3700d",
@@ -764,8 +788,8 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_t",
-    "print_speed": "16 sec / A1 CAD drawing (up to 130 m\u00b2/hour)",
-    "dpi": "2,400 \u00d7 1,200 DPI",
+    "print_speed": "16 sec / A1 CAD line drawing (approx. 130 m²/hr)",
+    "dpi": "2,400 × 1,200 DPI",
     "memory": "4,096 MB (4 GB) RAM + Optional 960 GB SSD",
     "total_colours": "6 Colours (Matte Black, Photo Black, Cyan, Magenta, Yellow, Red)",
     "colour_specification": "Epson UltraChrome XD3 Pigment Ink with Dedicated Chromatic Red",
@@ -790,7 +814,9 @@
       "C13T50UF00",
       "C13S041385",
       "C13S041595"
-    ]
+    ],
+    "weight": "118 kg (net weight dual-roll)",
+    "dimensions": "1,365 × 829 × 975 mm (W × D × H)"
   },
   {
     "id": "epson-sc-t3700de",
@@ -831,8 +857,8 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_t",
-    "print_speed": "16 sec / A1 CAD drawing (up to 130 m\u00b2/hour)",
-    "dpi": "2,400 \u00d7 1,200 DPI",
+    "print_speed": "16 sec / A1 CAD line drawing (approx. 130 m²/hr)",
+    "dpi": "2,400 × 1,200 DPI",
     "memory": "4,096 MB (4 GB) RAM + Optional 960 GB SSD",
     "total_colours": "6 Colours (Matte Black, Photo Black, Cyan, Magenta, Yellow, Red)",
     "colour_specification": "Epson UltraChrome XD3 Pigment Ink with Dedicated Chromatic Red",
@@ -857,7 +883,9 @@
       "C13T50UF00",
       "C13S041385",
       "C13S041595"
-    ]
+    ],
+    "weight": "118 kg (net weight dual-roll)",
+    "dimensions": "1,365 × 829 × 975 mm (W × D × H)"
   },
   {
     "id": "epson-sc-t5100",
@@ -901,14 +929,14 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_t",
-    "print_speed": "31 sec / A1 CAD line drawing (approx. 106 A1/hr)",
-    "dpi": "2,400 \u00d7 1,200 DPI",
+    "print_speed": "31 sec / A1 CAD line drawing on plain paper",
+    "dpi": "2,400 × 1,200 DPI",
     "memory": "1,024 MB (1 GB) RAM",
     "total_colours": "4 Colours (Matte Black, Cyan, Magenta, Yellow)",
     "colour_specification": "Epson UltraChrome XD2 All-Pigment Inks (Water & smudge resistant)",
     "cartridge_sizes": "26ml, 50ml, and 80ml Cartridges",
-    "consumable_volume": "Approx. 120\u2013200 A1 CAD line drawings per black cartridge",
-    "yield_capacity": "Approx. 120\u2013200 A1 CAD line drawings per black cartridge (26ml, 50ml, and 80ml Cartridges)",
+    "consumable_volume": "Approx. 120–200 A1 CAD line drawings per black cartridge",
+    "yield_capacity": "Approx. 120–200 A1 CAD line drawings per black cartridge (26ml, 50ml, and 80ml Cartridges)",
     "pattern_and_finishing": "Plain paper, CAD bond paper, tracing paper, matte film, and coated presentation media; single roll and manual sheet feed; automated PrecisionCore nozzle check diagnostic pattern and head cleaning.",
     "consumables": [
       "C13S210057",
@@ -924,7 +952,9 @@
       "C13S041387",
       "C13S041595",
       "C13S041597"
-    ]
+    ],
+    "weight": "46 kg (with stand) / 33 kg (desktop without stand)",
+    "dimensions": "1,268 × 696 × 913 mm (with stand) / 1,268 × 505 × 230 mm (without stand)"
   },
   {
     "id": "epson-sc-t5405",
@@ -967,8 +997,8 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_t",
-    "print_speed": "22 sec / A1 CAD line drawing (approx. 140 A1/hr)",
-    "dpi": "2,400 \u00d7 1,200 DPI",
+    "print_speed": "22 sec / A1 CAD line drawing on plain paper",
+    "dpi": "2,400 × 1,200 DPI",
     "memory": "1,024 MB (1 GB) RAM",
     "total_colours": "4 Colours (Matte Black, Cyan, Magenta, Yellow)",
     "colour_specification": "Epson UltraChrome XD2 All-Pigment Inks",
@@ -989,7 +1019,9 @@
       "C13S041385",
       "C13S041387",
       "C13S041597"
-    ]
+    ],
+    "weight": "76 kg (with stand)",
+    "dimensions": "1,385 × 759 × 1,060 mm (W × D × H)"
   },
   {
     "id": "epson-sc-t5700d",
@@ -1032,8 +1064,8 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_t",
-    "print_speed": "16 sec / A1 CAD drawing (up to 130 m\u00b2/hour)",
-    "dpi": "2,400 \u00d7 1,200 DPI",
+    "print_speed": "16 sec / A1 CAD line drawing (approx. 130 m²/hr)",
+    "dpi": "2,400 × 1,200 DPI",
     "memory": "4,096 MB (4 GB) RAM + Optional 960 GB SSD",
     "total_colours": "6 Colours (Matte Black, Photo Black, Cyan, Magenta, Yellow, Red)",
     "colour_specification": "Epson UltraChrome XD3 Pigment Inks with Dedicated Chromatic Red",
@@ -1058,7 +1090,9 @@
       "C13T50UF00",
       "C13S041387",
       "C13S041597"
-    ]
+    ],
+    "weight": "145 kg (net weight dual-roll)",
+    "dimensions": "1,645 × 829 × 975 mm (W × D × H)"
   },
   {
     "id": "epson-sc-t5100m",
@@ -1103,14 +1137,14 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_t",
-    "print_speed": "31 sec / A1 CAD drawing; Scan: 1.5 ips colour / 4.5 ips mono",
-    "dpi": "2,400 \u00d7 1,200 DPI (Print) / 600 DPI (Scan)",
+    "print_speed": "31 sec / A1 CAD drawing; Scan: 1.5 ips colour / 4.5 ips mono at 200 DPI",
+    "dpi": "2,400 × 1,200 DPI (Print) / 600 DPI (Scan)",
     "memory": "1,024 MB (1 GB) RAM",
     "total_colours": "4 Colours (Matte Black, Cyan, Magenta, Yellow)",
     "colour_specification": "Epson UltraChrome XD2 All-Pigment Inks",
     "cartridge_sizes": "26ml, 50ml, and 80ml Cartridges",
-    "consumable_volume": "Approx. 120\u2013200 A1 CAD drawings per black cartridge",
-    "yield_capacity": "Approx. 120\u2013200 A1 CAD drawings per black cartridge (26ml, 50ml, and 80ml Cartridges)",
+    "consumable_volume": "Approx. 120–200 A1 CAD drawings per black cartridge",
+    "yield_capacity": "Approx. 120–200 A1 CAD drawings per black cartridge (26ml, 50ml, and 80ml Cartridges)",
     "pattern_and_finishing": "Plain paper, CAD bond paper, tracing paper, matte film, and coated presentation media; single roll and manual sheet feed; automated PrecisionCore nozzle check diagnostic pattern and head cleaning.",
     "consumables": [
       "C13S210057",
@@ -1125,7 +1159,9 @@
       "C13S041385",
       "C13S041387",
       "C13S041595"
-    ]
+    ],
+    "weight": "54 kg (with stand and integrated 36″ scanner)",
+    "dimensions": "1,268 × 696 × 974 mm (W × D × H)"
   },
   {
     "id": "epson-sc-t5400m",
@@ -1170,8 +1206,8 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_t",
-    "print_speed": "22 sec / A1 CAD drawing; Scan: 4.5 ips colour / 7.5 ips mono",
-    "dpi": "2,400 \u00d7 1,200 DPI (Print) / 600 DPI (Scan)",
+    "print_speed": "22 sec / A1 CAD drawing; Scan: 4.5 ips colour / 7.5 ips mono at 200 DPI",
+    "dpi": "2,400 × 1,200 DPI (Print) / 600 DPI (Scan)",
     "memory": "1,024 MB (1 GB) RAM",
     "total_colours": "4 Colours (Matte Black, Cyan, Magenta, Yellow)",
     "colour_specification": "Epson UltraChrome XD2 All-Pigment Inks",
@@ -1192,7 +1228,9 @@
       "C13S041385",
       "C13S041387",
       "C13S041597"
-    ]
+    ],
+    "weight": "88 kg (with stand and integrated 36″ scanner)",
+    "dimensions": "1,385 × 759 × 1,060 mm (W × D × H)"
   },
   {
     "id": "epson-sc-t5700dm",
@@ -1236,8 +1274,8 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_t",
-    "print_speed": "16 sec / A1 CAD drawing; Scan: 10 ips colour / 10 ips mono",
-    "dpi": "2,400 \u00d7 1,200 DPI (Print) / 600 DPI (Scan)",
+    "print_speed": "16 sec / A1 CAD drawing; Scan: integrated 36″ dual-light CIS scanner",
+    "dpi": "2,400 × 1,200 DPI (Print) / 600 DPI (Scan)",
     "memory": "4,096 MB (4 GB) RAM + 960 GB SSD",
     "total_colours": "6 Colours (Matte Black, Photo Black, Cyan, Magenta, Yellow, Red)",
     "colour_specification": "Epson UltraChrome XD3 Pigment Inks with Chromatic Red",
@@ -1262,7 +1300,9 @@
       "C13T50UF00",
       "C13S041387",
       "C13S041597"
-    ]
+    ],
+    "weight": "164 kg (with stand and integrated 36″ dual-light scanner)",
+    "dimensions": "1,645 × 829 × 975 mm (W × D × H)"
   },
   {
     "id": "epson-sc-t7700d",
@@ -1305,8 +1345,8 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_t",
-    "print_speed": "16 sec / A1 CAD drawing (up to 130 m\u00b2/hour)",
-    "dpi": "2,400 \u00d7 1,200 DPI",
+    "print_speed": "16 sec / A1 CAD line drawing (approx. 130 m²/hr)",
+    "dpi": "2,400 × 1,200 DPI",
     "memory": "4,096 MB (4 GB) RAM + Optional 960 GB SSD",
     "total_colours": "6 Colours (Matte Black, Photo Black, Cyan, Magenta, Yellow, Red)",
     "colour_specification": "Epson UltraChrome XD3 Pigment Inks with Chromatic Red",
@@ -1332,7 +1372,9 @@
       "C13S041387",
       "C13S041597",
       "C13S042138"
-    ]
+    ],
+    "weight": "155 kg (net weight dual-roll)",
+    "dimensions": "1,848 × 829 × 975 mm (W × D × H)"
   },
   {
     "id": "epson-sc-t7700dl",
@@ -1374,8 +1416,8 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_t",
-    "print_speed": "16 sec / A1 CAD drawing (up to 130 m\u00b2/hour)",
-    "dpi": "2,400 \u00d7 1,200 DPI",
+    "print_speed": "16 sec / A1 CAD line drawing (approx. 130 m²/hr)",
+    "dpi": "2,400 × 1,200 DPI",
     "memory": "4,096 MB (4 GB) RAM + 960 GB SSD",
     "total_colours": "6 Colours (Matte Black, Photo Black, Cyan, Magenta, Yellow, Red)",
     "colour_specification": "Epson UltraChrome XD3 Pigment Inks with Chromatic Red",
@@ -1395,7 +1437,9 @@
       "C13S041387",
       "C13S041597",
       "C13S042138"
-    ]
+    ],
+    "weight": "155 kg (net weight dual-roll bulk ink)",
+    "dimensions": "1,848 × 829 × 975 mm (W × D × H)"
   },
   {
     "id": "epson-sc-t7700dm",
@@ -1439,8 +1483,8 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_t",
-    "print_speed": "16 sec / A1 CAD drawing; Scan: 10 ips colour / 10 ips mono",
-    "dpi": "2,400 \u00d7 1,200 DPI (Print) / 600 DPI (Scan)",
+    "print_speed": "16 sec / A1 CAD drawing; Scan: integrated 36″ dual-light CIS scanner",
+    "dpi": "2,400 × 1,200 DPI (Print) / 600 DPI (Scan)",
     "memory": "4,096 MB (4 GB) RAM + 960 GB SSD",
     "total_colours": "6 Colours (Matte Black, Photo Black, Cyan, Magenta, Yellow, Red)",
     "colour_specification": "Epson UltraChrome XD3 Pigment Inks with Chromatic Red",
@@ -1466,7 +1510,9 @@
       "C13S041387",
       "C13S041597",
       "C13S042138"
-    ]
+    ],
+    "weight": "164 kg (with stand and integrated 36″ scanner)",
+    "dimensions": "1,848 × 829 × 975 mm (W × D × H)"
   },
   {
     "id": "epson-sc-p700",
@@ -1509,8 +1555,8 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_p",
-    "print_speed": "Approx. 90 sec for 8\u00d710\u2033 / 150 sec for 13\u00d719\u2033 fine art",
-    "dpi": "5,760 \u00d7 1,440 DPI",
+    "print_speed": "Approx. 90 sec for 8×10″ / 150 sec for 13×19″ (Premium Glossy Photo Paper)",
+    "dpi": "5,760 × 1,440 DPI",
     "memory": "1,024 MB (1 GB) RAM",
     "total_colours": "10 Colours (Photo Black, Matte Black, Cyan, Vivid Magenta, Yellow, Light Cyan, Vivid Light Magenta, Gray, Light Gray, Violet)",
     "colour_specification": "UltraChrome PRO10 Pigment Inks with Black Enhance Overcoat (BEO)",
@@ -1533,7 +1579,9 @@
       "C13S041785",
       "C13S042330",
       "C13S042300"
-    ]
+    ],
+    "weight": "12.6 kg (net weight excluding inks); package weight: 16.0 kg",
+    "dimensions": "515 × 368 × 185 mm (storage) / 515 × 769 × 420 mm (operating)"
   },
   {
     "id": "epson-sc-p900",
@@ -1575,8 +1623,8 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_p",
-    "print_speed": "Approx. 90 sec for 8\u00d710\u2033 / 150 sec for 13\u00d719\u2033 / 280 sec for 17\u00d722\u2033",
-    "dpi": "5,760 \u00d7 1,440 DPI",
+    "print_speed": "Approx. 90 sec for 8×10″ / 150 sec for 13×19″ / 280 sec for 17×22″ (Premium Glossy Photo Paper)",
+    "dpi": "5,760 × 1,440 DPI",
     "memory": "1,024 MB (1 GB) RAM",
     "total_colours": "10 Colours (Photo Black, Matte Black, Cyan, Vivid Magenta, Yellow, Light Cyan, Vivid Light Magenta, Gray, Light Gray, Violet)",
     "colour_specification": "UltraChrome PRO10 Pigment Inks with Black Enhance Overcoat (BEO)",
@@ -1600,7 +1648,9 @@
       "C13S042123",
       "C13S041725",
       "C13S041846"
-    ]
+    ],
+    "weight": "16.0 kg (net weight excluding inks); package weight: 21.0 kg",
+    "dimensions": "615 × 368 × 199 mm (storage) / 615 × 905 × 520 mm (operating)"
   },
   {
     "id": "epson-sc-p900-roll",
@@ -1641,8 +1691,8 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_p",
-    "print_speed": "Approx. 90 sec for 8\u00d710\u2033 / 150 sec for 13\u00d719\u2033 / 280 sec for 17\u00d722\u2033",
-    "dpi": "5,760 \u00d7 1,440 DPI",
+    "print_speed": "Approx. 90 sec for 8×10″ / 150 sec for 13×19″ / 280 sec for 17×22″ (Premium Glossy Photo Paper)",
+    "dpi": "5,760 × 1,440 DPI",
     "memory": "1,024 MB (1 GB) RAM",
     "total_colours": "10 Colours (Photo Black, Matte Black, Cyan, Vivid Magenta, Yellow, Light Cyan, Vivid Light Magenta, Gray, Light Gray, Violet)",
     "colour_specification": "UltraChrome PRO10 Pigment Inks with Black Enhance Overcoat (BEO)",
@@ -1666,7 +1716,9 @@
       "C13S042123",
       "C13S041725",
       "C13S041846"
-    ]
+    ],
+    "weight": "16.0 kg (base printer) / approx. 18.5 kg (with roll paper unit)",
+    "dimensions": "615 × 368 × 199 mm (storage) / 615 × 905 × 520 mm (operating)"
   },
   {
     "id": "epson-sc-p5300",
@@ -1706,8 +1758,8 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_p",
-    "print_speed": "Approx. 66 sec for 8\u00d710\u2033 / 140 sec for 13\u00d719\u2033 high-quality photo",
-    "dpi": "5,760 \u00d7 1,440 DPI",
+    "print_speed": "Approx. 66 sec for 8×10″ on Premium Glossy Photo Paper",
+    "dpi": "5,760 × 1,440 DPI",
     "memory": "1,024 MB (1 GB) RAM",
     "total_colours": "10 Colours (Photo Black, Matte Black, Cyan, Vivid Magenta, Yellow, Light Cyan, Vivid Light Magenta, Gray, Light Gray, Violet)",
     "colour_specification": "UltraChrome PRO10 Inks with Carbon Black mode & Violet channel",
@@ -1729,7 +1781,9 @@
       "C13T47AD00",
       "C13S041725",
       "C13S041846"
-    ]
+    ],
+    "weight": "52 kg (net weight)",
+    "dimensions": "863 × 766 × 405 mm (W × D × H)"
   },
   {
     "id": "epson-sc-p6500e",
@@ -1769,14 +1823,14 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_p",
-    "print_speed": "Up to 18 m\u00b2/hour on photo paper (up to 130 m\u00b2/hr draft)",
-    "dpi": "2,400 \u00d7 1,200 DPI",
+    "print_speed": "High-speed production fine art printing up to 18 m²/hr",
+    "dpi": "2,400 × 1,200 DPI",
     "memory": "4,096 MB (4 GB) RAM + Optional 960 GB SSD",
     "total_colours": "6 Colours (Photo Black, Matte Black, Cyan, Magenta, Yellow, Gray)",
     "colour_specification": "UltraChrome PRO6 Aqueous Pigment Ink with Dedicated Gray",
     "cartridge_sizes": "350ml and 700ml Tanks",
-    "consumable_volume": "Over 2,000 m\u00b2 high-capacity commercial photo and poster output",
-    "yield_capacity": "Over 2,000 m\u00b2 high-capacity commercial photo and poster output (350ml and 700ml Tanks)",
+    "consumable_volume": "Over 2,000 m² high-capacity commercial photo and poster output",
+    "yield_capacity": "Over 2,000 m² high-capacity commercial photo and poster output (350ml and 700ml Tanks)",
     "pattern_and_finishing": "Glossy, Semi-Gloss, Luster, Matte, Baryta, and Fine Art museum canvas media; sheet feed and manual fine art feed;  zero black-ink switching; automated PrecisionCore nozzle check diagnostic pattern.",
     "consumables": [
       "C13S210115",
@@ -1789,7 +1843,9 @@
       "C13T48ME00",
       "C13S041595",
       "C13S041847"
-    ]
+    ],
+    "weight": "118 kg (net weight)",
+    "dimensions": "1,365 × 829 × 975 mm (W × D × H)"
   },
   {
     "id": "epson-sc-p6500d",
@@ -1829,8 +1885,8 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_p",
-    "print_speed": "Up to 18 m\u00b2/hour on photo paper (up to 130 m\u00b2/hr draft)",
-    "dpi": "2,400 \u00d7 1,200 DPI",
+    "print_speed": "High-speed production fine art printing up to 18 m²/hr",
+    "dpi": "2,400 × 1,200 DPI",
     "memory": "4,096 MB (4 GB) RAM + Optional 960 GB SSD",
     "total_colours": "6 Colours (Photo Black, Matte Black, Cyan, Magenta, Yellow, Gray)",
     "colour_specification": "UltraChrome PRO6 Aqueous Pigment Ink with Dedicated Gray",
@@ -1849,7 +1905,9 @@
       "C13T48ME00",
       "C13S041595",
       "C13S041847"
-    ]
+    ],
+    "weight": "118 kg (net weight dual-roll)",
+    "dimensions": "1,365 × 829 × 975 mm (W × D × H)"
   },
   {
     "id": "epson-sc-p6500de",
@@ -1889,8 +1947,8 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_p",
-    "print_speed": "Up to 18 m\u00b2/hour on photo paper (up to 130 m\u00b2/hr draft)",
-    "dpi": "2,400 \u00d7 1,200 DPI",
+    "print_speed": "High-speed production fine art printing up to 18 m²/hr",
+    "dpi": "2,400 × 1,200 DPI",
     "memory": "4,096 MB (4 GB) RAM + Optional 960 GB SSD",
     "total_colours": "6 Colours (Photo Black, Matte Black, Cyan, Magenta, Yellow, Gray)",
     "colour_specification": "UltraChrome PRO6 Aqueous Pigment Ink with Dedicated Gray",
@@ -1909,7 +1967,9 @@
       "C13T48ME00",
       "C13S041595",
       "C13S041847"
-    ]
+    ],
+    "weight": "118 kg (net weight dual-roll)",
+    "dimensions": "1,365 × 829 × 975 mm (W × D × H)"
   },
   {
     "id": "epson-sc-p7500",
@@ -1949,8 +2009,8 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_p",
-    "print_speed": "Up to 21.9 m\u00b2/hr (Draft) / Approx. 1.6 min for A1 photo",
-    "dpi": "2,400 \u00d7 1,200 DPI",
+    "print_speed": "Fine art 24″ photo output: up to 12.5 m²/hr",
+    "dpi": "2,400 × 1,200 DPI",
     "memory": "2,048 MB (2 GB) RAM + Optional 320 GB HDD",
     "total_colours": "12 Colours (Photo Black, Matte Black, Cyan, Light Cyan, Vivid Magenta, Vivid Light Magenta, Yellow, Gray, Light Gray, Orange, Green, Violet)",
     "colour_specification": "UltraChrome PRO12 All-Pigment Inks with K3 Technology (99% Pantone)",
@@ -1977,7 +2037,9 @@
       "C13T44Q440",
       "C13S041595",
       "C13S041847"
-    ]
+    ],
+    "weight": "122 kg (net weight standard)",
+    "dimensions": "1,401 × 667 × 1,218 mm (W × D × H)"
   },
   {
     "id": "epson-sc-p7500-spectro",
@@ -2017,8 +2079,8 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_p",
-    "print_speed": "Up to 21.9 m\u00b2/hr; Automated colour calibration & certification",
-    "dpi": "2,400 \u00d7 1,200 DPI",
+    "print_speed": "Fine art 24″ photo output: up to 12.5 m²/hr",
+    "dpi": "2,400 × 1,200 DPI",
     "memory": "2,048 MB (2 GB) RAM + Optional 320 GB HDD",
     "total_colours": "12 Colours (Photo Black, Matte Black, Cyan, Light Cyan, Vivid Magenta, Vivid Light Magenta, Yellow, Gray, Light Gray, Orange, Green, Violet)",
     "colour_specification": "UltraChrome PRO12 All-Pigment Inks (99% Pantone Matching)",
@@ -2045,7 +2107,9 @@
       "C13T44Q440",
       "C13S041595",
       "C13S041847"
-    ]
+    ],
+    "weight": "138 kg (with factory-integrated SpectroProofer)",
+    "dimensions": "1,401 × 667 × 1,218 mm (W × D × H)"
   },
   {
     "id": "epson-sc-p8500d",
@@ -2086,8 +2150,8 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_p",
-    "print_speed": "Up to 18 m\u00b2/hour on photo paper (up to 130 m\u00b2/hr draft)",
-    "dpi": "2,400 \u00d7 1,200 DPI",
+    "print_speed": "Production photo output up to 25 m²/hr",
+    "dpi": "2,400 × 1,200 DPI",
     "memory": "4,096 MB (4 GB) RAM + Optional 960 GB SSD",
     "total_colours": "6 Colours (Photo Black, Matte Black, Cyan, Magenta, Yellow, Gray)",
     "colour_specification": "UltraChrome PRO6 Aqueous Pigment Ink with Dedicated Gray",
@@ -2106,7 +2170,9 @@
       "C13T48ME00",
       "C13S041597",
       "C13S041848"
-    ]
+    ],
+    "weight": "155 kg (net weight dual-roll)",
+    "dimensions": "1,848 × 829 × 975 mm (W × D × H)"
   },
   {
     "id": "epson-sc-p8500dm",
@@ -2149,8 +2215,8 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_p",
-    "print_speed": "Up to 18 m\u00b2/hr photo; Scan: 10 ips colour / 10 ips mono",
-    "dpi": "2,400 \u00d7 1,200 DPI (Print) / 600 DPI (Scan)",
+    "print_speed": "Production photo output up to 25 m²/hr; Scan: integrated 36″ scanner",
+    "dpi": "2,400 × 1,200 DPI (Print) / 600 DPI (Scan)",
     "memory": "4,096 MB (4 GB) RAM + 960 GB SSD",
     "total_colours": "6 Colours (Photo Black, Matte Black, Cyan, Magenta, Yellow, Gray)",
     "colour_specification": "UltraChrome PRO6 Aqueous Pigment Ink with Dedicated Gray",
@@ -2169,7 +2235,9 @@
       "C13T48ME00",
       "C13S041597",
       "C13S041848"
-    ]
+    ],
+    "weight": "164 kg (with stand and integrated 36″ scanner)",
+    "dimensions": "1,848 × 829 × 975 mm (W × D × H)"
   },
   {
     "id": "epson-sc-p9500",
@@ -2211,8 +2279,8 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_p",
-    "print_speed": "Up to 21.9 m\u00b2/hr (Draft) / Approx. 1.6 min for A1 photo",
-    "dpi": "2,400 \u00d7 1,200 DPI",
+    "print_speed": "Fine art 44″ photo output: up to 12.5 m²/hr",
+    "dpi": "2,400 × 1,200 DPI",
     "memory": "2,048 MB (2 GB) RAM + Optional 320 GB HDD",
     "total_colours": "12 Colours (Photo Black, Matte Black, Cyan, Light Cyan, Vivid Magenta, Vivid Light Magenta, Yellow, Gray, Light Gray, Orange, Green, Violet)",
     "colour_specification": "UltraChrome PRO12 All-Pigment Inks with K3 Technology (99% Pantone)",
@@ -2240,7 +2308,9 @@
       "C13S041597",
       "C13S041848",
       "C13S045259"
-    ]
+    ],
+    "weight": "154 kg (net weight standard)",
+    "dimensions": "1,909 × 667 × 1,218 mm (W × D × H)"
   },
   {
     "id": "epson-sc-p9500-spectro",
@@ -2281,8 +2351,8 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_p",
-    "print_speed": "Up to 21.9 m\u00b2/hr; Automated colour calibration & certification",
-    "dpi": "2,400 \u00d7 1,200 DPI",
+    "print_speed": "Fine art 44″ photo output: up to 12.5 m²/hr",
+    "dpi": "2,400 × 1,200 DPI",
     "memory": "2,048 MB (2 GB) RAM + Optional 320 GB HDD",
     "total_colours": "12 Colours (Photo Black, Matte Black, Cyan, Light Cyan, Vivid Magenta, Vivid Light Magenta, Yellow, Gray, Light Gray, Orange, Green, Violet)",
     "colour_specification": "UltraChrome PRO12 All-Pigment Inks (99% Pantone Matching)",
@@ -2310,7 +2380,9 @@
       "C13S041597",
       "C13S041848",
       "C13S045259"
-    ]
+    ],
+    "weight": "170 kg (with factory-integrated SpectroProofer)",
+    "dimensions": "1,909 × 667 × 1,218 mm (W × D × H)"
   },
   {
     "id": "epson-sc-p20500",
@@ -2349,14 +2421,14 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_p",
-    "print_speed": "Up to 19.2 m\u00b2/hour on glossy photo paper (up to 44.5 m\u00b2/hr production)",
-    "dpi": "2,400 \u00d7 1,200 DPI",
+    "print_speed": "64-inch production photo output up to 19.2 m²/hr (1.6L bulk ink system)",
+    "dpi": "2,400 × 1,200 DPI",
     "memory": "4,096 MB (4 GB) RAM + 960 GB SSD",
     "total_colours": "12 Colours (Photo Black, Matte Black, Cyan, Light Cyan, Vivid Magenta, Vivid Light Magenta, Yellow, Gray, Light Gray, Orange, Green, Violet)",
     "colour_specification": "UltraChrome PRO12 Aqueous Pigment Inks with Orange, Green & Violet",
     "cartridge_sizes": "1,600ml (1.6 Litre) High-Capacity Ink Packs",
-    "consumable_volume": "Bulk industrial photographic production (over 5,000 m\u00b2 yield)",
-    "yield_capacity": "Bulk industrial photographic production (over 5,000 m\u00b2 yield) (1,600ml (1.6 Litre) High-Capacity Ink Packs)",
+    "consumable_volume": "Bulk industrial photographic production (over 5,000 m² yield)",
+    "yield_capacity": "Bulk industrial photographic production (over 5,000 m² yield) (1,600ml (1.6 Litre) High-Capacity Ink Packs)",
     "pattern_and_finishing": "Glossy, Semi-Gloss, Luster, Matte, Baryta, and Fine Art museum canvas media; dual-roll continuous feed;  zero black-ink switching; automated PrecisionCore nozzle check diagnostic pattern.",
     "consumables": [
       "C13S210115",
@@ -2365,7 +2437,9 @@
       "C13S042138",
       "C13S042135",
       "C13S045065"
-    ]
+    ],
+    "weight": "260 kg (net weight)",
+    "dimensions": "2,415 × 700 × 1,145 mm (W × D × H)"
   },
   {
     "id": "citizen-cz-01",
@@ -2390,8 +2464,8 @@
     ],
     "supported_print_sizes": [
       "4x4",
-      "4.5x4.5",
       "4x6",
+      "4.5x4.5",
       "4.5x8"
     ],
     "scanner_integrated": false,
@@ -2405,21 +2479,23 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "citizen",
-    "print_speed": "18.8 sec per 4\u00d76\u2033 print (approx. 191 prints/hour)",
-    "dpi": "300 \u00d7 300 DPI (High-speed) / 300 \u00d7 600 DPI (High-resolution)",
+    "print_speed": "4×4″: 16.3s; 4×6″: 18.8s; 4.5×4.5″: 19.5s; 4.5×8″: 23.1s",
+    "dpi": "300 × 300 DPI (High-speed) / 300 × 600 DPI (High-resolution)",
     "memory": "64 MB Internal Image Buffer",
     "total_colours": "3 Colours + Overcoat (Yellow, Magenta, Cyan + Protective Laminate)",
     "colour_specification": "Thermal Dye-Sublimation with Driver-Selectable Glossy / Matte Finish",
-    "cartridge_sizes": "CZ-MS46 (4\u00d76\u2033) and CZ-MS458 (4.5\u00d78\u2033) Media Packs",
+    "cartridge_sizes": "CZ-MS46 (4×6″) and CZ-MS458 (4.5×8″) Media Packs",
     "consumable_volume": "150 prints/roll (300 prints per 2-roll box of CZ-MS46)",
-    "yield_capacity": "150 prints per roll (4\u00d76\u2033); 300 prints per 2-roll box of CZ-MS46",
+    "yield_capacity": "150 prints per roll (4×6″); 300 prints per 2-roll box of CZ-MS46",
     "pattern_and_finishing": "Glossy, Matte, and Partial Matte finishes managed via thermal printhead overcoat in the printer driver without changing media (Partial Matte enables selective texture patterns); ultra-compact drop-in roll loading; automated test pattern diagnostics.",
     "consumables": [
       "CZ-MS46",
       "CZ-MS458",
       "CZ01 Carry Bag",
       "Citizen Pen"
-    ]
+    ],
+    "weight": "5.8 kg (net weight excluding media); package weight: 8.5 kg",
+    "dimensions": "208 × 240 × 198 mm (20.8 × 24.0 × 19.8 cm)"
   },
   {
     "id": "citizen-cx-02",
@@ -2445,7 +2521,9 @@
     "supported_print_sizes": [
       "4x6",
       "5x7",
-      "6x8"
+      "6x8",
+      "6x9",
+      "2x6"
     ],
     "scanner_integrated": false,
     "dual_roll": false,
@@ -2458,21 +2536,23 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "citizen",
-    "print_speed": "13.8 sec per 4\u00d76\u2033 print (approx. 260 prints/hour)",
-    "dpi": "300 \u00d7 300 DPI (High-speed) / 300 \u00d7 600 DPI (High-resolution)",
+    "print_speed": "4×6″: 8.4s (High Speed) / 9.8s (High Quality); 5×7″: 14.2s; 6×8″: 15.6s; 6×9″: 20.8s",
+    "dpi": "300 × 300 DPI (High-speed) / 300 × 600 DPI (High-resolution)",
     "memory": "64 MB Internal Image Buffer",
     "total_colours": "3 Colours + Overcoat (Yellow, Magenta, Cyan + Protective Laminate)",
     "colour_specification": "Thermal Dye-Sublimation with Ribbon-Save Rewind & Glossy/Matte Control",
-    "cartridge_sizes": "CX2.4X6 (4\u00d76\u2033) and CX2.6X8 (6\u00d78\u2033) Media Packs",
+    "cartridge_sizes": "CX2.4X6 (4×6″) and CX2.6X8 (6×8″) Media Packs",
     "consumable_volume": "400 prints/roll (800 prints per 2-roll box of CX2.4X6)",
-    "yield_capacity": "400 prints per roll (4\u00d76\u2033) / 200 prints per roll (6\u00d78\u2033); 800 prints per 2-roll box of CX2.4X6",
+    "yield_capacity": "400 prints per roll (4×6″) / 200 prints per roll (6×8″); 800 prints per 2-roll box of CX2.4X6",
     "pattern_and_finishing": "Glossy and Matte finishes managed via thermal printhead overcoat in the printer driver without changing media (promotional overview also references a luster effect); ribbon rewind technology to prevent media waste; drop-in paper loading; automated test pattern diagnostics.",
     "consumables": [
       "CX2.4x6",
       "CX2.6X8",
       "Citizen CX-02 Bag",
       "Citizen Pen"
-    ]
+    ],
+    "weight": "12.0 kg (net weight excluding media); package weight: 13.5 kg",
+    "dimensions": "275 × 366 × 170 mm (27.5 × 36.6 × 17.0 cm)"
   },
   {
     "id": "citizen-cy-02",
@@ -2496,7 +2576,6 @@
     ],
     "supported_print_sizes": [
       "4x6",
-      "5x7",
       "6x8"
     ],
     "scanner_integrated": false,
@@ -2510,21 +2589,23 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "citizen",
-    "print_speed": "12.4 sec per 4\u00d76\u2033 print (approx. 290 prints/hour)",
-    "dpi": "300 \u00d7 300 DPI (High-speed) / 300 \u00d7 600 DPI (High-resolution)",
+    "print_speed": "4×6″: 12.4 sec (approx. 290 prints/hour); 6×8″: 21.9 sec (approx. 164 prints/hour)",
+    "dpi": "300 × 300 DPI (High-speed) / 300 × 600 DPI (High-resolution)",
     "memory": "64 MB Internal Image Buffer",
     "total_colours": "3 Colours + Overcoat (Yellow, Magenta, Cyan + Protective Laminate)",
     "colour_specification": "Thermal Dye-Sublimation with Commercial Overcoat Protection",
-    "cartridge_sizes": "CY-MS46 (4\u00d76\u2033) and CY-MS68 (6\u00d78\u2033) Media Packs",
+    "cartridge_sizes": "CY-MS46 (4×6″) and CY-MS68 (6×8″) Media Packs",
     "consumable_volume": "700 prints/roll (1,400 prints per 2-roll box of CY-MS46)",
-    "yield_capacity": "700 prints per roll (4\u00d76\u2033) / 350 prints per roll (6\u00d78\u2033); 1400 prints per 2-roll box of CY-MS46",
+    "yield_capacity": "700 prints per roll (4×6″) / 350 prints per roll (6×8″); 1,400 prints per 2-roll box of CY-MS46",
     "pattern_and_finishing": "Glossy and Matte finishes managed directly via thermal printhead overcoat in the printer driver without changing media rolls; rapid drop-in roll media loading; automated test pattern diagnostics.",
     "consumables": [
       "CY-MS46",
       "CY-MS68",
       "CY02Bag",
       "Citizen Pen"
-    ]
+    ],
+    "weight": "13.8 kg (net weight excluding media); package weight: 16.5 kg",
+    "dimensions": "322 × 351 × 281 mm (32.2 × 35.1 × 28.1 cm)"
   },
   {
     "id": "citizen-cx-02w",
@@ -2549,7 +2630,8 @@
     ],
     "supported_print_sizes": [
       "8x10",
-      "8x12"
+      "8x12",
+      "a4"
     ],
     "scanner_integrated": false,
     "dual_roll": false,
@@ -2562,19 +2644,21 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "citizen",
-    "print_speed": "19.5 sec per 8\u00d712\u2033 print (approx. 184 prints/hour)",
-    "dpi": "300 \u00d7 300 DPI (High-speed) / 300 \u00d7 600 DPI (High-resolution)",
+    "print_speed": "8×12″: 39.2 sec; A4: 38.4 sec",
+    "dpi": "300 × 300 DPI (High-speed) / 300 × 600 DPI (High-resolution)",
     "memory": "64 MB Internal Image Buffer",
     "total_colours": "3 Colours + Overcoat (Yellow, Magenta, Cyan + Protective Laminate)",
     "colour_specification": "Thermal Dye-Sublimation supporting Standard, Silver Pearl & Metallic media",
-    "cartridge_sizes": "CX2W 812 (8\u00d710\u2033 and 8\u00d712\u2033) Media Packs",
-    "consumable_volume": "110 prints/roll (220 prints per 2-roll box of CX2W 812)",
-    "yield_capacity": "110 prints per roll (8\u00d712\u2033); 220 prints per 2-roll box of CX2W 812",
+    "cartridge_sizes": "CX2W 812 (8×10″ and 8×12″) Media Packs",
+    "consumable_volume": "110 prints per roll (220 prints per 2-roll box of CX2W 812)",
+    "yield_capacity": "110 prints per roll (8×12″); 220 prints per 2-roll box of CX2W 812",
     "pattern_and_finishing": "Glossy and Matte finishes managed directly via thermal printhead overcoat in the printer driver without changing media rolls (supports standard, silver pearl & metallic photo media); drop-in roll loading; automated test pattern diagnostics.",
     "consumables": [
       "CX2W 812",
       "Citizen Pen"
-    ]
+    ],
+    "weight": "14.0 kg (without paper and ribbon); package weight: 16.5 kg",
+    "dimensions": "322 × 366 × 170 mm (32.2 × 36.6 × 17.0 cm)"
   },
   {
     "id": "epson-sc-f100",
@@ -2614,8 +2698,8 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_f",
-    "print_speed": "Approx. 65 sec per A4 transfer page",
-    "dpi": "600 \u00d7 1,200 DPI",
+    "print_speed": "Approx. 65 sec per A4 sublimation transfer page",
+    "dpi": "600 × 1,200 DPI",
     "memory": "1,024 MB (1 GB) RAM",
     "total_colours": "4 Colours (Cyan, Magenta, Yellow, High-Density Black)",
     "colour_specification": "Epson UltraChrome DS Dye-Sublimation Ink (OEKO-TEX ECO PASSPORT)",
@@ -2629,7 +2713,9 @@
       "C13T49N300",
       "C13T49N400",
       "C13S210125"
-    ]
+    ],
+    "weight": "4.6 kg (net weight excluding inks)",
+    "dimensions": "375 × 347 × 187 mm (W × D × H)"
   },
   {
     "id": "epson-sc-f500",
@@ -2672,8 +2758,8 @@
     "catalogue_verified": true,
     "active": true,
     "product_line": "surecolor_f",
-    "print_speed": "Approx. 70 sec per A1 transfer sheet",
-    "dpi": "2,400 \u00d7 1,200 DPI",
+    "print_speed": "Approx. 70 sec per A1 sublimation transfer sheet",
+    "dpi": "2,400 × 1,200 DPI",
     "memory": "1,024 MB (1 GB) RAM",
     "total_colours": "4 Colours (Cyan, Magenta, Yellow, High-Density Black)",
     "colour_specification": "Epson UltraChrome DS Dye-Sublimation Ink (Vibrant textiles & hard goods)",
@@ -2687,7 +2773,9 @@
       "C13T49N300",
       "C13T49N400",
       "C13S210057"
-    ]
+    ],
+    "weight": "29 kg (without stand) / 38 kg (with stand)",
+    "dimensions": "970 × 811 × 245 mm (without stand) / 970 × 811 × 913 mm (with stand)"
   },
   {
     "id": "epson-expression-12000xl-pro",
@@ -2730,7 +2818,7 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "12 s/page (Monochrome & Color)",
-    "dpi": "2,400 \u00d7 4,800 DPI",
+    "dpi": "2,400 × 4,800 DPI",
     "optical_resolution": "2,400 DPI x 4,800 DPI",
     "optical_density": "3.8 Dmax",
     "scanning_range": "310 mm x 437 mm (A3 format)",
@@ -2741,7 +2829,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-Expression-12000XL-Pro.-Photo-Scanner.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-expression-12000xl-pro-photo-scanner/",
     "yield_capacity": "Daily Duty Cycle: Up to 3,000 pages/day; Document Feeder: Flatbed platen",
-    "pattern_and_finishing": "High-Resolution A3 Graphic & Photo Scanner with Transparency Unit; Optical Resolution: 2,400 DPI x 4,800 DPI; Automated document feeder and finishing supported."
+    "pattern_and_finishing": "High-Resolution A3 Graphic & Photo Scanner with Transparency Unit; Optical Resolution: 2,400 DPI x 4,800 DPI; Automated document feeder and finishing supported.",
+    "weight": "20.5 kg (with TPU transparency unit) / 14.3 kg (main unit)",
+    "dimensions": "656 × 458 × 292 mm (W × D × H)"
   },
   {
     "id": "epson-expression-12000xl",
@@ -2781,7 +2871,7 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "12 s/page (Monochrome and Color)",
-    "dpi": "2,400 \u00d7 4,800 DPI",
+    "dpi": "2,400 × 4,800 DPI",
     "optical_resolution": "2,400 DPI x 4,800 DPI",
     "scanning_range": "310 mm x 437 mm (A3 format)",
     "scanner_type": "High-Resolution A3 Graphic & Photo Flatbed Scanner",
@@ -2791,7 +2881,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-Expression-12000XL-Photo-Scanner.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-expression-12000xl-photo-scanner/",
     "yield_capacity": "Daily Duty Cycle: Up to 3,000 pages/day; Document Feeder: Flatbed platen",
-    "pattern_and_finishing": "High-Resolution A3 Graphic & Photo Flatbed Scanner; Optical Resolution: 2,400 DPI x 4,800 DPI; Automated document feeder and finishing supported."
+    "pattern_and_finishing": "High-Resolution A3 Graphic & Photo Flatbed Scanner; Optical Resolution: 2,400 DPI x 4,800 DPI; Automated document feeder and finishing supported.",
+    "weight": "14.3 kg (net weight)",
+    "dimensions": "656 × 458 × 158 mm (W × D × H)"
   },
   {
     "id": "epson-workforce-ds-1630",
@@ -2832,7 +2924,7 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "25 ppm (mono/color)",
-    "dpi": "1,200 \u00d7 1,200 DPI",
+    "dpi": "1,200 × 1,200 DPI",
     "optical_resolution": "1,200 x 1,200 dpi",
     "scanner_type": "Flatbed Scanner with Automatic Document Feeder (ADF)",
     "adf_capacity": "50-sheet ADF",
@@ -2842,7 +2934,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/11/Epson-WorkForce-DS-1630-Flatbed-Color-Document-Scanner.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-workforce-ds-1630-flatbed-color-document-scanner/",
     "yield_capacity": "Daily Duty Cycle: Up to 3,000 pages/day; Document Feeder: 50-sheet ADF",
-    "pattern_and_finishing": "Flatbed Scanner with Automatic Document Feeder (ADF); Optical Resolution: 1,200 x 1,200 dpi; Automated document feeder and finishing supported."
+    "pattern_and_finishing": "Flatbed Scanner with Automatic Document Feeder (ADF); Optical Resolution: 1,200 x 1,200 dpi; Automated document feeder and finishing supported.",
+    "weight": "3.7 kg (net weight)",
+    "dimensions": "318 × 451 × 121 mm (W × D × H)"
   },
   {
     "id": "epson-workforce-ds-1660w",
@@ -2883,7 +2977,7 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "25 Pages/min (Mono and Color)",
-    "dpi": "1,200 \u00d7 1,200 DPI",
+    "dpi": "1,200 × 1,200 DPI",
     "optical_resolution": "1,200 dpi x 1,200 dpi",
     "scanner_type": "Flatbed Scanner with ADF & Wireless Connectivity",
     "adf_capacity": "50-sheet ADF",
@@ -2894,7 +2988,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/11/Epson-WorkForce-DS-1660W-Wi-Fi-flatbed-Color-Scanner.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-workforce-ds-1660w-wi-fi-flatbed-color-scanner/",
     "yield_capacity": "Daily Duty Cycle: Up to 3,000 pages/day; Document Feeder: 50-sheet ADF",
-    "pattern_and_finishing": "Flatbed Scanner with ADF & Wireless Connectivity; Optical Resolution: 1,200 dpi x 1,200 dpi; Automated document feeder and finishing supported."
+    "pattern_and_finishing": "Flatbed Scanner with ADF & Wireless Connectivity; Optical Resolution: 1,200 dpi x 1,200 dpi; Automated document feeder and finishing supported.",
+    "weight": "3.7 kg (net weight)",
+    "dimensions": "318 × 451 × 121 mm (W × D × H)"
   },
   {
     "id": "epson-workforce-ds-6500",
@@ -2934,7 +3030,7 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "25 pages per minute (50 ipm duplex)",
-    "dpi": "1,200 \u00d7 1,200 DPI",
+    "dpi": "1,200 × 1,200 DPI",
     "optical_resolution": "1,200 x 1,200 dpi",
     "scanner_type": "Flatbed Scanner with 100-page ADF",
     "adf_capacity": "100-page Automatic Document Feeder",
@@ -2945,7 +3041,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-6500-Color-Document-Scanner.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-workforce-ds-6500-color-document-scanner/",
     "yield_capacity": "Daily Duty Cycle: Up to 3,000 pages/day; Document Feeder: 100-page Automatic Document Feeder",
-    "pattern_and_finishing": "Flatbed Scanner with 100-page ADF; Optical Resolution: 1,200 x 1,200 dpi; Automated document feeder and finishing supported."
+    "pattern_and_finishing": "Flatbed Scanner with 100-page ADF; Optical Resolution: 1,200 x 1,200 dpi; Automated document feeder and finishing supported.",
+    "weight": "9.8 kg (net weight)",
+    "dimensions": "495 × 360 × 217 mm (W × D × H)"
   },
   {
     "id": "epson-workforce-ds-6500n",
@@ -2985,7 +3083,7 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "25 pages per minute (50 ipm duplex)",
-    "dpi": "1,200 \u00d7 1,200 DPI",
+    "dpi": "1,200 × 1,200 DPI",
     "optical_resolution": "1,200 x 1,200 dpi",
     "scanner_type": "Network-Ready Flatbed Scanner with 100-page ADF",
     "adf_capacity": "100-page Automatic Document Feeder",
@@ -2997,7 +3095,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-6500N-Color-Document-Scanner.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-workforce-ds-6500n-color-document-scanner/",
     "yield_capacity": "Daily Duty Cycle: Up to 3,000 pages/day; Document Feeder: 100-page Automatic Document Feeder",
-    "pattern_and_finishing": "Network-Ready Flatbed Scanner with 100-page ADF; Optical Resolution: 1,200 x 1,200 dpi; Automated document feeder and finishing supported."
+    "pattern_and_finishing": "Network-Ready Flatbed Scanner with 100-page ADF; Optical Resolution: 1,200 x 1,200 dpi; Automated document feeder and finishing supported.",
+    "weight": "9.8 kg (net weight)",
+    "dimensions": "495 × 360 × 217 mm (W × D × H)"
   },
   {
     "id": "epson-workforce-ds-7500",
@@ -3037,7 +3137,7 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "40 pages per minute (80 ipm duplex)",
-    "dpi": "1,200 \u00d7 1,200 DPI",
+    "dpi": "1,200 × 1,200 DPI",
     "optical_resolution": "1,200 x 1,200 dpi",
     "scanner_type": "High-Speed Flatbed Scanner with 100-page ADF",
     "adf_capacity": "100-page Automatic Document Feeder",
@@ -3048,7 +3148,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-7500-Color-Document-Scanner.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-workforce-ds-7500-color-document-scanner/",
     "yield_capacity": "Daily Duty Cycle: Up to 3,000 pages/day; Document Feeder: 100-page Automatic Document Feeder",
-    "pattern_and_finishing": "High-Speed Flatbed Scanner with 100-page ADF; Optical Resolution: 1,200 x 1,200 dpi; Automated document feeder and finishing supported."
+    "pattern_and_finishing": "High-Speed Flatbed Scanner with 100-page ADF; Optical Resolution: 1,200 x 1,200 dpi; Automated document feeder and finishing supported.",
+    "weight": "9.8 kg (net weight)",
+    "dimensions": "495 × 360 × 217 mm (W × D × H)"
   },
   {
     "id": "epson-workforce-ds-7500n",
@@ -3088,7 +3190,7 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "40 ppm / 80 ipm",
-    "dpi": "1,200 \u00d7 1,200 DPI",
+    "dpi": "1,200 × 1,200 DPI",
     "optical_resolution": "1,200 x 1,200 dpi",
     "scanner_type": "Network Departmental Flatbed Scanner with 100-page ADF",
     "adf_capacity": "100-page Automatic Document Feeding",
@@ -3100,7 +3202,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-7500N-Color-Document-Scanner.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-workforce-ds-7500n-color-document-scanner/",
     "yield_capacity": "Daily Duty Cycle: Up to 3,000 pages/day; Document Feeder: 100-page Automatic Document Feeding",
-    "pattern_and_finishing": "Network Departmental Flatbed Scanner with 100-page ADF; Optical Resolution: 1,200 x 1,200 dpi; Automated document feeder and finishing supported."
+    "pattern_and_finishing": "Network Departmental Flatbed Scanner with 100-page ADF; Optical Resolution: 1,200 x 1,200 dpi; Automated document feeder and finishing supported.",
+    "weight": "9.8 kg (net weight)",
+    "dimensions": "495 × 360 × 217 mm (W × D × H)"
   },
   {
     "id": "epson-workforce-ds-60000",
@@ -3142,7 +3246,7 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "40 ppm (Monochrome and Color)",
-    "dpi": "600 \u00d7 600 DPI",
+    "dpi": "600 × 600 DPI",
     "optical_resolution": "600 DPI x 600 DPI",
     "scanner_type": "Flatbed Scanner, Sheetfed Scanner (A3 Departmental)",
     "adf_capacity": "200-sheet ADF",
@@ -3152,7 +3256,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-60000-Color-Document-Scanner.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-workforce-ds-60000-color-document-scanner/",
     "yield_capacity": "Daily Duty Cycle: Up to 3,000 pages/day; Document Feeder: 200-sheet ADF",
-    "pattern_and_finishing": "Flatbed Scanner, Sheetfed Scanner (A3 Departmental); Optical Resolution: 600 DPI x 600 DPI; Automated document feeder and finishing supported."
+    "pattern_and_finishing": "Flatbed Scanner, Sheetfed Scanner (A3 Departmental); Optical Resolution: 600 DPI x 600 DPI; Automated document feeder and finishing supported.",
+    "weight": "26.9 kg (net weight)",
+    "dimensions": "640 × 522 × 289 mm (W × D × H)"
   },
   {
     "id": "epson-workforce-ds-60000n",
@@ -3194,7 +3300,7 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "40 ppm (Mono & Color)",
-    "dpi": "600 \u00d7 600 DPI",
+    "dpi": "600 × 600 DPI",
     "optical_resolution": "600 DPI x 600 DPI (Horizontal x Vertical)",
     "scanner_type": "Flatbed Scanner, Sheetfed Scanner (A3 Network Departmental)",
     "adf_capacity": "200-sheet ADF",
@@ -3205,7 +3311,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-60000N-Color-Document-Scanner.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-workforce-ds-60000n-color-document-scanner/",
     "yield_capacity": "Daily Duty Cycle: Up to 3,000 pages/day; Document Feeder: 200-sheet ADF",
-    "pattern_and_finishing": "Flatbed Scanner, Sheetfed Scanner (A3 Network Departmental); Optical Resolution: 600 DPI x 600 DPI (Horizontal x Vertical); Automated document feeder and finishing supported."
+    "pattern_and_finishing": "Flatbed Scanner, Sheetfed Scanner (A3 Network Departmental); Optical Resolution: 600 DPI x 600 DPI (Horizontal x Vertical); Automated document feeder and finishing supported.",
+    "weight": "26.9 kg (net weight)",
+    "dimensions": "640 × 522 × 289 mm (W × D × H)"
   },
   {
     "id": "epson-workforce-ds-70000",
@@ -3247,7 +3355,7 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "70 ppm / 140 ipm",
-    "dpi": "600 \u00d7 600 DPI",
+    "dpi": "600 × 600 DPI",
     "optical_resolution": "600 DPI x 600 DPI",
     "scanner_type": "Flatbed Scanner, Sheetfed Scanner (A3 Document Business Scanner)",
     "adf_capacity": "200-sheet ADF",
@@ -3258,7 +3366,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-70000-Color-Document-Scanner.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-workforce-ds-70000-color-document-scanner/",
     "yield_capacity": "Daily Duty Cycle: Up to 3,000 pages/day; Document Feeder: 200-sheet ADF",
-    "pattern_and_finishing": "Flatbed Scanner, Sheetfed Scanner (A3 Document Business Scanner); Optical Resolution: 600 DPI x 600 DPI; Automated document feeder and finishing supported."
+    "pattern_and_finishing": "Flatbed Scanner, Sheetfed Scanner (A3 Document Business Scanner); Optical Resolution: 600 DPI x 600 DPI; Automated document feeder and finishing supported.",
+    "weight": "26.9 kg (net weight)",
+    "dimensions": "640 × 522 × 289 mm (W × D × H)"
   },
   {
     "id": "epson-workforce-ds-70000n",
@@ -3300,7 +3410,7 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "70 ppm (Mono and Color)",
-    "dpi": "600 \u00d7 600 DPI",
+    "dpi": "600 × 600 DPI",
     "optical_resolution": "600 DPI x 600 DPI",
     "scanner_type": "Flatbed Scanner, Sheetfed Scanner (A3 Network-Ready)",
     "adf_capacity": "200-sheet ADF",
@@ -3311,7 +3421,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-70000N-Color-Document-Scanner.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-workforce-ds-70000n-color-document-scanner/",
     "yield_capacity": "Daily Duty Cycle: Up to 3,000 pages/day; Document Feeder: 200-sheet ADF",
-    "pattern_and_finishing": "Flatbed Scanner, Sheetfed Scanner (A3 Network-Ready); Optical Resolution: 600 DPI x 600 DPI; Automated document feeder and finishing supported."
+    "pattern_and_finishing": "Flatbed Scanner, Sheetfed Scanner (A3 Network-Ready); Optical Resolution: 600 DPI x 600 DPI; Automated document feeder and finishing supported.",
+    "weight": "26.9 kg (net weight)",
+    "dimensions": "640 × 522 × 289 mm (W × D × H)"
   },
   {
     "id": "epson-workforce-ds-900wn",
@@ -3351,7 +3463,7 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "70ppm / 140ipm",
-    "dpi": "600 \u00d7 600 DPI",
+    "dpi": "600 × 600 DPI",
     "optical_resolution": "600 dpi x 600 dpi",
     "daily_duty_cycle": "11,000 pages",
     "adf_capacity": "100-sheet ADF with single-pass duplex scanning",
@@ -3363,7 +3475,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2026/05/WorkForce-DS-900WN-scaled.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-workforce-ds-900wn-high-speed-network-document-scanner/",
     "yield_capacity": "Daily Duty Cycle: 11,000 pages; Document Feeder: 100-sheet ADF with single-pass duplex scanning",
-    "pattern_and_finishing": "Sheetfed Scanner (High-Speed Network); Optical Resolution: 600 dpi x 600 dpi; Automated document feeder and finishing supported."
+    "pattern_and_finishing": "Sheetfed Scanner (High-Speed Network); Optical Resolution: 600 dpi x 600 dpi; Automated document feeder and finishing supported.",
+    "weight": "3.7 kg (net weight)",
+    "dimensions": "296 × 212 × 217 mm (W × D × H)"
   },
   {
     "id": "epson-workforce-ds-800wn",
@@ -3403,7 +3517,7 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "50ppm / 100ipm",
-    "dpi": "600 \u00d7 600 DPI",
+    "dpi": "600 × 600 DPI",
     "optical_resolution": "600 dpi x 600 dpi",
     "daily_duty_cycle": "8,000 pages",
     "adf_capacity": "100-sheet ADF with single-pass duplex scanning",
@@ -3415,7 +3529,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2026/05/WorkForce-DS-800WN-scaled.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-workforce-ds-800wn-document-scanner/",
     "yield_capacity": "Daily Duty Cycle: 8,000 pages; Document Feeder: 100-sheet ADF with single-pass duplex scanning",
-    "pattern_and_finishing": "Sheetfed Scanner (Network Document Scanner); Optical Resolution: 600 dpi x 600 dpi; Automated document feeder and finishing supported."
+    "pattern_and_finishing": "Sheetfed Scanner (Network Document Scanner); Optical Resolution: 600 dpi x 600 dpi; Automated document feeder and finishing supported.",
+    "weight": "3.7 kg (net weight)",
+    "dimensions": "296 × 212 × 217 mm (W × D × H)"
   },
   {
     "id": "epson-workforce-es-580w",
@@ -3455,17 +3571,19 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "35 pages/min (Mono and Color)",
-    "dpi": "600 \u00d7 600 DPI",
+    "dpi": "600 × 600 DPI",
     "optical_resolution": "600 dpi x 600 dpi",
     "scanner_type": "Sheetfed Scanner (Wireless Business Scanner)",
     "connectivity": "Wireless Wi-Fi, USB",
-    "features": "Standalone scanning without a PC\u2014ideal for modern workplaces. 10.9 cm color LCD touchscreen, A4 auto-duplex scanning at 35 ppm, Epson's Image Processing Technology.",
+    "features": "Standalone scanning without a PC—ideal for modern workplaces. 10.9 cm color LCD touchscreen, A4 auto-duplex scanning at 35 ppm, Epson's Image Processing Technology.",
     "warranty": "12 months On-site service",
     "consumables": [],
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-ES-580W-Wireless-Touchscreen-Desktop-Document-Scanner.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-workforce-es-580w-wireless-touchscreen-scanner/",
     "yield_capacity": "Daily Duty Cycle: Up to 3,000 pages/day; Document Feeder: Flatbed platen",
-    "pattern_and_finishing": "Sheetfed Scanner (Wireless Business Scanner); Optical Resolution: 600 dpi x 600 dpi; Automated document feeder and finishing supported."
+    "pattern_and_finishing": "Sheetfed Scanner (Wireless Business Scanner); Optical Resolution: 600 dpi x 600 dpi; Automated document feeder and finishing supported.",
+    "weight": "3.7 kg (net weight)",
+    "dimensions": "300 × 169 × 167 mm (W × D × H)"
   },
   {
     "id": "epson-workforce-es-500wii",
@@ -3505,7 +3623,7 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "35 pages/min (mono/color)",
-    "dpi": "600 \u00d7 600 DPI",
+    "dpi": "600 × 600 DPI",
     "optical_resolution": "600 dpi x 600 dpi",
     "scanner_type": "Sheetfed Scanner (Compact Wireless)",
     "connectivity": "Wireless and USB",
@@ -3515,7 +3633,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-ES-500W-II-Wireless-Duplex-Desktop-Document-Scanner.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-workforce-es-500w-ii-wireless-duplex-scanner/",
     "yield_capacity": "Daily Duty Cycle: Up to 3,000 pages/day; Document Feeder: Flatbed platen",
-    "pattern_and_finishing": "Sheetfed Scanner (Compact Wireless); Optical Resolution: 600 dpi x 600 dpi; Automated document feeder and finishing supported."
+    "pattern_and_finishing": "Sheetfed Scanner (Compact Wireless); Optical Resolution: 600 dpi x 600 dpi; Automated document feeder and finishing supported.",
+    "weight": "3.7 kg (net weight)",
+    "dimensions": "300 × 169 × 167 mm (W × D × H)"
   },
   {
     "id": "epson-workforce-ds-970",
@@ -3555,7 +3675,7 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "85 pages/min (170 ipm duplex, Mono & Color)",
-    "dpi": "600 \u00d7 600 DPI",
+    "dpi": "600 × 600 DPI",
     "optical_resolution": "600 DPI x 600 DPI",
     "scanner_type": "Sheetfed Scanner (High Capacity Heavy-Duty)",
     "features": "Powerful scanning for demanding workplaces. Blazing speed up to 85 pages/min (170 ipm in duplex), ReadyScan LED technology, high capacity.",
@@ -3564,7 +3684,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-530II-Color-Duplex-Document-Scanner.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-workforce-ds-530ii-color-duplex-document-scanner/",
     "yield_capacity": "Daily Duty Cycle: Up to 3,000 pages/day; Document Feeder: Flatbed platen",
-    "pattern_and_finishing": "Sheetfed Scanner (High Capacity Heavy-Duty); Optical Resolution: 600 DPI x 600 DPI; Automated document feeder and finishing supported."
+    "pattern_and_finishing": "Sheetfed Scanner (High Capacity Heavy-Duty); Optical Resolution: 600 DPI x 600 DPI; Automated document feeder and finishing supported.",
+    "weight": "3.6 kg (net weight)",
+    "dimensions": "296 × 169 × 167 mm (W × D × H)"
   },
   {
     "id": "epson-workforce-ds-870",
@@ -3604,7 +3726,7 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "65 pages/min (Mono and Color)",
-    "dpi": "600 \u00d7 600 DPI",
+    "dpi": "600 × 600 DPI",
     "optical_resolution": "600 dpi x 600 dpi",
     "scanner_type": "Sheetfed Scanner (Touchscreen Duplex)",
     "features": "Powerful scanning for seamless business workflows. 10.9 cm color LCD touchscreen, Epson's Image Processing Technology, A4 auto-duplex scanning.",
@@ -3613,7 +3735,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-530II-Color-Duplex-Document-Scanner.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-workforce-ds-530ii-color-duplex-document-scanner/",
     "yield_capacity": "Daily Duty Cycle: Up to 3,000 pages/day; Document Feeder: Flatbed platen",
-    "pattern_and_finishing": "Sheetfed Scanner (Touchscreen Duplex); Optical Resolution: 600 dpi x 600 dpi; Automated document feeder and finishing supported."
+    "pattern_and_finishing": "Sheetfed Scanner (Touchscreen Duplex); Optical Resolution: 600 dpi x 600 dpi; Automated document feeder and finishing supported.",
+    "weight": "3.6 kg (net weight)",
+    "dimensions": "296 × 169 × 167 mm (W × D × H)"
   },
   {
     "id": "epson-workforce-ds-790wn",
@@ -3653,7 +3777,7 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "45 ppm / 90 ipm",
-    "dpi": "600 \u00d7 600 DPI",
+    "dpi": "600 × 600 DPI",
     "optical_resolution": "600 dpi x 600 dpi",
     "scanner_type": "Sheetfed Scanner (Network & Wi-Fi Touchscreen)",
     "connectivity": "Network LAN, Wi-Fi, USB",
@@ -3663,7 +3787,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-7500N-Color-Document-Scanner.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-workforce-ds-7500n-color-document-scanner/",
     "yield_capacity": "Daily Duty Cycle: Up to 3,000 pages/day; Document Feeder: Flatbed platen",
-    "pattern_and_finishing": "Sheetfed Scanner (Network & Wi-Fi Touchscreen); Optical Resolution: 600 dpi x 600 dpi; Automated document feeder and finishing supported."
+    "pattern_and_finishing": "Sheetfed Scanner (Network & Wi-Fi Touchscreen); Optical Resolution: 600 dpi x 600 dpi; Automated document feeder and finishing supported.",
+    "weight": "3.7 kg (net weight)",
+    "dimensions": "296 × 212 × 217 mm (W × D × H)"
   },
   {
     "id": "epson-workforce-ds-770ii",
@@ -3703,7 +3829,7 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "45 ppm / 90 ipm",
-    "dpi": "600 \u00d7 600 DPI",
+    "dpi": "600 × 600 DPI",
     "optical_resolution": "600 DPI x 600 DPI",
     "scanner_type": "Sheetfed Scanner (High Capacity Single-Pass)",
     "adf_capacity": "100-sheet ADF",
@@ -3713,7 +3839,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-530II-Color-Duplex-Document-Scanner.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-workforce-ds-530ii-color-duplex-document-scanner/",
     "yield_capacity": "Daily Duty Cycle: Up to 3,000 pages/day; Document Feeder: 100-sheet ADF",
-    "pattern_and_finishing": "Sheetfed Scanner (High Capacity Single-Pass); Optical Resolution: 600 DPI x 600 DPI; Automated document feeder and finishing supported."
+    "pattern_and_finishing": "Sheetfed Scanner (High Capacity Single-Pass); Optical Resolution: 600 DPI x 600 DPI; Automated document feeder and finishing supported.",
+    "weight": "3.7 kg (net weight)",
+    "dimensions": "296 × 169 × 167 mm (W × D × H)"
   },
   {
     "id": "epson-workforce-ds-730n",
@@ -3753,7 +3881,7 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "40 ppm / 80 ipm",
-    "dpi": "600 \u00d7 600 DPI",
+    "dpi": "600 × 600 DPI",
     "optical_resolution": "600 DPI x 600 DPI",
     "daily_duty_cycle": "6,500 pages per day",
     "scanner_type": "Sheetfed Scanner (Network Color)",
@@ -3764,7 +3892,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-DS-730N-Network-Color-Document-Scanner.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-wf-ds-730n-network-color-document-scanner/",
     "yield_capacity": "Daily Duty Cycle: 6,500 pages per day; Document Feeder: Flatbed platen",
-    "pattern_and_finishing": "Sheetfed Scanner (Network Color); Optical Resolution: 600 DPI x 600 DPI; Automated document feeder and finishing supported."
+    "pattern_and_finishing": "Sheetfed Scanner (Network Color); Optical Resolution: 600 DPI x 600 DPI; Automated document feeder and finishing supported.",
+    "weight": "3.6 kg (net weight)",
+    "dimensions": "296 × 169 × 167 mm (W × D × H)"
   },
   {
     "id": "epson-workforce-ds-530ii",
@@ -3804,7 +3934,7 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "35 ppm / 70 ipm",
-    "dpi": "600 \u00d7 600 DPI",
+    "dpi": "600 × 600 DPI",
     "optical_resolution": "600x600 dpi",
     "adf_capacity": "50-page auto-document feeder",
     "scanner_type": "Sheetfed document scanning (Innovative Business)",
@@ -3814,7 +3944,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-530II-Color-Duplex-Document-Scanner.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-workforce-ds-530ii-color-duplex-document-scanner/",
     "yield_capacity": "Daily Duty Cycle: Up to 3,000 pages/day; Document Feeder: 50-page auto-document feeder",
-    "pattern_and_finishing": "Sheetfed document scanning (Innovative Business); Optical Resolution: 600x600 dpi; Automated document feeder and finishing supported."
+    "pattern_and_finishing": "Sheetfed document scanning (Innovative Business); Optical Resolution: 600x600 dpi; Automated document feeder and finishing supported.",
+    "weight": "3.7 kg (net weight)",
+    "dimensions": "296 × 169 × 167 mm (W × D × H)"
   },
   {
     "id": "epson-workforce-ds-410",
@@ -3854,7 +3986,7 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "26 pages/min (Monochrome and Color)",
-    "dpi": "600 \u00d7 600 DPI",
+    "dpi": "600 × 600 DPI",
     "optical_resolution": "600 dpi x 600 dpi",
     "adf_capacity": "50-sheet Automatic Document Feed",
     "scanner_type": "A4 Sheet-Fed Business Scanner",
@@ -3864,7 +3996,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-410-Document-Scanner.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-workforce-ds-410-document-scanner/",
     "yield_capacity": "Daily Duty Cycle: Up to 3,000 pages/day; Document Feeder: 50-sheet Automatic Document Feed",
-    "pattern_and_finishing": "A4 Sheet-Fed Business Scanner; Optical Resolution: 600 dpi x 600 dpi; Automated document feeder and finishing supported."
+    "pattern_and_finishing": "A4 Sheet-Fed Business Scanner; Optical Resolution: 600 dpi x 600 dpi; Automated document feeder and finishing supported.",
+    "weight": "2.5 kg (net weight)",
+    "dimensions": "297 × 152 × 154 mm (W × D × H)"
   },
   {
     "id": "epson-workforce-ds-30000",
@@ -3906,7 +4040,7 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "70 ppm / 140 ipm",
-    "dpi": "600 \u00d7 600 DPI",
+    "dpi": "600 × 600 DPI",
     "optical_resolution": "600 DPI x 600 DPI (Horizontal x Vertical)",
     "scanner_type": "Sheetfed Scanner (A3 Large-Format)",
     "adf_capacity": "120-sheet ADF",
@@ -3916,7 +4050,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-30000-Large-format-Document-Scanner.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-workforce-ds-30000-large-format-document-scanner/",
     "yield_capacity": "Daily Duty Cycle: Up to 3,000 pages/day; Document Feeder: 120-sheet ADF",
-    "pattern_and_finishing": "Sheetfed Scanner (A3 Large-Format); Optical Resolution: 600 DPI x 600 DPI (Horizontal x Vertical); Automated document feeder and finishing supported."
+    "pattern_and_finishing": "Sheetfed Scanner (A3 Large-Format); Optical Resolution: 600 DPI x 600 DPI (Horizontal x Vertical); Automated document feeder and finishing supported.",
+    "weight": "5.8 kg (net weight)",
+    "dimensions": "371 × 208 × 219 mm (W × D × H)"
   },
   {
     "id": "epson-workforce-ds-32000",
@@ -3958,7 +4094,7 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "90 ppm / 180 ipm",
-    "dpi": "600 \u00d7 600 DPI",
+    "dpi": "600 × 600 DPI",
     "optical_resolution": "600 DPI x 600 DPI (Horizontal x Vertical)",
     "scanner_type": "Sheetfed Scanner (A3 Large-Format Production)",
     "duplex_scan": "Duplex Scan: Yes",
@@ -3969,7 +4105,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-30000-Large-format-Document-Scanner.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-workforce-ds-30000-large-format-document-scanner/",
     "yield_capacity": "Daily Duty Cycle: Up to 3,000 pages/day; Document Feeder: Flatbed platen",
-    "pattern_and_finishing": "Sheetfed Scanner (A3 Large-Format Production); Optical Resolution: 600 DPI x 600 DPI (Horizontal x Vertical); Automated document feeder and finishing supported."
+    "pattern_and_finishing": "Sheetfed Scanner (A3 Large-Format Production); Optical Resolution: 600 DPI x 600 DPI (Horizontal x Vertical); Automated document feeder and finishing supported.",
+    "weight": "6.9 kg (net weight)",
+    "dimensions": "371 × 208 × 219 mm (W × D × H)"
   },
   {
     "id": "epson-workforce-ds-70",
@@ -4010,7 +4148,7 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "5.5 seconds per page",
-    "dpi": "600 \u00d7 600 DPI",
+    "dpi": "600 × 600 DPI",
     "optical_resolution": "600 dpi x 600 dpi (Horizontal x Vertical)",
     "scanner_type": "A4 Mobile Business Scanner (Portable)",
     "connectivity": "USB connectivity",
@@ -4020,7 +4158,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/11/Epson-WorkForce-DS-70-Business-Scanner.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-workforce-ds-70-business-scanner/",
     "yield_capacity": "Daily Duty Cycle: Up to 3,000 pages/day; Document Feeder: Flatbed platen",
-    "pattern_and_finishing": "A4 Mobile Business Scanner (Portable); Optical Resolution: 600 dpi x 600 dpi (Horizontal x Vertical); Automated document feeder and finishing supported."
+    "pattern_and_finishing": "A4 Mobile Business Scanner (Portable); Optical Resolution: 600 dpi x 600 dpi (Horizontal x Vertical); Automated document feeder and finishing supported.",
+    "weight": "270 g (0.27 kg net weight)",
+    "dimensions": "272 × 47 × 34 mm (W × D × H)"
   },
   {
     "id": "epson-workforce-ds-80w",
@@ -4061,7 +4201,7 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "4 sec/page (Monochrome & Color)",
-    "dpi": "600 \u00d7 600 DPI",
+    "dpi": "600 × 600 DPI",
     "optical_resolution": "600 dpi x 600 dpi",
     "scanner_type": "Wi-Fi mobile business scanner (Integrated Battery)",
     "connectivity": "Wi-Fi, USB",
@@ -4071,7 +4211,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/11/Epson-WorkForce-DS-80W-Wireless-Portable-Scanner.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-workforce-ds-80w-wireless-portable-scanner/",
     "yield_capacity": "Daily Duty Cycle: Up to 3,000 pages/day; Document Feeder: Flatbed platen",
-    "pattern_and_finishing": "Wi-Fi mobile business scanner (Integrated Battery); Optical Resolution: 600 dpi x 600 dpi; Automated document feeder and finishing supported."
+    "pattern_and_finishing": "Wi-Fi mobile business scanner (Integrated Battery); Optical Resolution: 600 dpi x 600 dpi; Automated document feeder and finishing supported.",
+    "weight": "300 g (0.30 kg net weight)",
+    "dimensions": "272 × 47 × 34 mm (W × D × H)"
   },
   {
     "id": "epson-workforce-ds-310",
@@ -4112,7 +4254,7 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "25 pages/min (Color and Monochrome)",
-    "dpi": "300 \u00d7 300 DPI",
+    "dpi": "300 × 300 DPI",
     "optical_resolution": "300 dpi (Color and Monochrome)",
     "scanner_type": "Portable Sheet-fed Document Scanner with 20-page ADF",
     "adf_capacity": "20-page automatic document feeder",
@@ -4123,7 +4265,9 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/11/Epson-WorkForce-DS-310-Portable-Sheet-fed-Document-Scanner.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-workforce-ds-310-portable-scanner/",
     "yield_capacity": "Daily Duty Cycle: Up to 3,000 pages/day; Document Feeder: 20-page automatic document feeder",
-    "pattern_and_finishing": "Portable Sheet-fed Document Scanner with 20-page ADF; Optical Resolution: 300 dpi (Color and Monochrome); Automated document feeder and finishing supported."
+    "pattern_and_finishing": "Portable Sheet-fed Document Scanner with 20-page ADF; Optical Resolution: 300 dpi (Color and Monochrome); Automated document feeder and finishing supported.",
+    "weight": "1.1 kg (net weight)",
+    "dimensions": "288 × 89 × 51 mm (W × D × H)"
   },
   {
     "id": "epson-workforce-ds-360w",
@@ -4164,7 +4308,7 @@
     "catalogue_verified": true,
     "active": true,
     "scan_speed": "25 pages/min (Monochrome and Color)",
-    "dpi": "300 \u00d7 300 DPI",
+    "dpi": "300 × 300 DPI",
     "optical_resolution": "300 dpi (Monochrome and Color)",
     "scanner_type": "Portable Wi-Fi Scanner with Battery & 20-page ADF",
     "adf_capacity": "20-page automatic document feeder",
@@ -4175,6 +4319,8 @@
     "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/12/Epson-WorkForce-DS-360W-Wi-Fi-Portable-Sheet-fed-Document-Scanner.webp",
     "product_url": "https://www.keplertechllc.com/product/epson-workforce-ds-360w-wi-fi-portable-scanner/",
     "yield_capacity": "Daily Duty Cycle: Up to 3,000 pages/day; Document Feeder: 20-page automatic document feeder",
-    "pattern_and_finishing": "Portable Wi-Fi Scanner with Battery & 20-page ADF; Optical Resolution: 300 dpi (Monochrome and Color); Automated document feeder and finishing supported."
+    "pattern_and_finishing": "Portable Wi-Fi Scanner with Battery & 20-page ADF; Optical Resolution: 300 dpi (Monochrome and Color); Automated document feeder and finishing supported.",
+    "weight": "1.3 kg (net weight)",
+    "dimensions": "288 × 89 × 67 mm (W × D × H)"
   }
 ]

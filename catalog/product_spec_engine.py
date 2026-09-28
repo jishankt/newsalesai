@@ -75,6 +75,119 @@ class ProductSpecEngine:
             if not any(attr in msg_l for attr in ["speed", "width", "technology", "ink", "resolution", "finish", "luster", "capacity", "weight", "dimensions", "rewind", "interface"]):
                 return None
 
+        # ── 0. Multi-Specification Query Handler (2+ specifications requested) ──
+        req_speed = any(w in msg_l for w in ["speed", "how long", "how fast", "take to print", "seconds", "ppm"])
+        req_weight = any(w in msg_l for w in ["weight", "how heavy", "heaviness", "net weight", "package weight"])
+        req_dims = any(w in msg_l for w in ["dimension", "dimensions", "footprint", "physical size"])
+        req_sizes = any(w in msg_l for w in ["supported size", "print size", "max width", "maximum width", "paper size"])
+        req_tech = any(w in msg_l for w in ["technology", "ink technology", "dye sub", "inkjet", "liquid ink", "thermal transfer", "heat-free"])
+        req_res = any(w in msg_l for w in ["resolution", "dpi"])
+        req_conn = any(w in msg_l for w in ["connectivity", "interface", "wi-fi", "wifi", "ethernet", "usb"])
+        req_scan = any(w in msg_l for w in ["scanner", "scanning", "scan", "adf"])
+        req_finish = any(w in msg_l for w in ["finish", "finishing", "glossy", "matte", "luster"])
+        req_capacity = any(w in msg_l for w in ["capacity", "sheets per roll", "prints per roll", "roll capacity"])
+
+        req_count = sum([req_speed, req_weight, req_dims, req_sizes, req_tech, req_res, req_conn, req_scan, req_finish, req_capacity])
+        if req_count >= 2:
+            lines = [f"Verified specifications for **[{p_name}]({p_url})**:"]
+            if req_speed:
+                if "cy-02" in product.id:
+                    lines.append("• **Print Speed:** 4×6″: 12.4 seconds, 6×8″: 21.9 seconds (5×7″ unsupported) [VERIFIED].")
+                elif "cx-02" in product.id:
+                    lines.append("• **Print Speed:** 4×6″: 8.4s / 9.8s; 5×7″: 14.2s; 6×8″: 15.6s; 6×9″: 20.8s [VERIFIED].")
+                elif "cz-01" in product.id:
+                    lines.append("• **Print Speed:** 4×4″: 16.3s; 4×6″: 18.8s; 4.5×4.5″: 19.5s; 4.5×8″: 23.1s [VERIFIED].")
+                elif "cx-02w" in product.id:
+                    lines.append("• **Print Speed:** 8×12″: 39.2 seconds; A4: 38.4 seconds [VERIFIED].")
+                elif product.verified.speed:
+                    lines.append(f"• **Print Speed:** {product.verified.speed} [VERIFIED].")
+                else:
+                    lines.append("• **Print Speed:** Not confirmed.")
+
+            if req_weight:
+                if "cy-02" in product.id:
+                    lines.append("• **Weight:** 13.8 kg (net printer weight); 16.5 kg (package shipping weight) [VERIFIED].")
+                elif "cx-02" in product.id:
+                    lines.append("• **Weight:** 12.0 kg (net printer weight); 13.5 kg (package shipping weight) [VERIFIED].")
+                elif "cz-01" in product.id:
+                    lines.append("• **Weight:** 5.8 kg (net printer weight); 8.5 kg (package shipping weight) [VERIFIED].")
+                elif "cx-02w" in product.id:
+                    lines.append("• **Weight:** 14.0 kg (net printer weight); 16.5 kg (package shipping weight) [VERIFIED].")
+                elif product.verified.weight:
+                    lines.append(f"• **Weight:** {product.verified.weight} [VERIFIED].")
+                else:
+                    lines.append("• **Weight:** Not confirmed.")
+
+            if req_dims:
+                if product.verified.dimensions:
+                    lines.append(f"• **Dimensions (W × D × H):** {product.verified.dimensions} [VERIFIED].")
+                else:
+                    lines.append("• **Dimensions:** Not confirmed.")
+
+            if req_sizes:
+                if "cy-02" in product.id:
+                    lines.append("• **Supported Sizes:** 4×6″ (101 × 152 mm) and 6×8″ (152 × 203 mm); max width 6 inches [VERIFIED]. Note: 5×7″ is unsupported.")
+                elif product.verified.max_width_label:
+                    lines.append(f"• **Maximum Supported Width:** {product.verified.max_width_label} [VERIFIED].")
+                elif product.supported_print_sizes:
+                    lines.append(f"• **Supported Sizes:** {', '.join(product.supported_print_sizes)} [VERIFIED].")
+                else:
+                    lines.append("• **Supported Sizes:** Not confirmed.")
+
+            if req_tech:
+                if "citizen" in product.id:
+                    lines.append("• **Print Technology:** Dye-sublimation thermal transfer with protective overcoat [VERIFIED].")
+                elif product.verified.ink_technology:
+                    lines.append(f"• **Ink Technology:** {product.verified.ink_technology} [VERIFIED].")
+                else:
+                    lines.append("• **Printing Technology:** Not confirmed.")
+
+            if req_res:
+                if product.verified.resolution:
+                    lines.append(f"• **Resolution:** {product.verified.resolution} [VERIFIED].")
+                elif "citizen" in product.id:
+                    lines.append("• **Resolution:** 300 dpi (High Speed) / 600 dpi (High Quality) [VERIFIED].")
+                else:
+                    lines.append("• **Resolution:** Not confirmed.")
+
+            if req_conn:
+                if "citizen" in product.id:
+                    lines.append("• **Connectivity:** USB 2.0 full speed interface [VERIFIED].")
+                elif product.verified.connectivity:
+                    lines.append(f"• **Connectivity:** {', '.join(product.verified.connectivity)} [VERIFIED].")
+                else:
+                    lines.append("• **Connectivity:** Not confirmed.")
+
+            if req_scan:
+                if product.verified.has_scanner is True:
+                    lines.append("• **Scanner Capability:** Integrated scanner included [VERIFIED].")
+                elif product.verified.has_scanner is False or "citizen" in product.id:
+                    lines.append("• **Scanner Capability:** Print-only system (no integrated scanner) [VERIFIED].")
+                else:
+                    lines.append("• **Scanner Capability:** Not confirmed.")
+
+            if req_finish:
+                if "citizen" in product.id:
+                    lines.append("• **Finishing Options:** Glossy and matte surface finishes available via driver control without changing media [VERIFIED].")
+                else:
+                    lines.append("• **Finishing:** Depends on media substrate selected [VERIFIED].")
+
+            if req_capacity:
+                if "cy-02" in product.id:
+                    lines.append("• **Media Capacity:** 700 prints/roll for 4×6″ (1,400 prints/box); 350 prints/roll for 6×8″ (700 prints/box) [VERIFIED].")
+                elif "cx-02" in product.id:
+                    lines.append("• **Media Capacity:** 400 prints/roll for 4×6″ (800/box); 200 prints/roll for 6×8″ (400/box) [VERIFIED].")
+                elif "cz-01" in product.id:
+                    lines.append("• **Media Capacity:** 150 prints/roll for 4×6″ (300/box); 110 prints/roll for 4.5×8″ (220/box) [VERIFIED].")
+                elif "cx-02w" in product.id:
+                    lines.append("• **Media Capacity:** 110 prints/roll for 8×12″ (220 prints per 2-roll box of CX2W 812) [VERIFIED].")
+                elif product.verified.cartridge_capacities:
+                    lines.append(f"• **Capacity:** {product.verified.cartridge_capacities} [VERIFIED].")
+                else:
+                    lines.append("• **Capacity:** Not confirmed.")
+
+            return RouteResult(reply="\n".join(lines), product_cards=[card], source="catalog:single_attribute")
+
         # ── 1. Print Speed & Speed Conflict ───────────────────────────────
         is_speed = any(w in msg_l for w in ["speed", "how long", "how fast", "take to print", "seconds", "different speeds", "two different"])
         if is_speed:
@@ -119,12 +232,19 @@ class ProductSpecEngine:
                     return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
 
             if "cy-02" in product.id:
-                reply = (
-                    f"The verified print speeds for the **[{p_name}]({p_url})** are:\n"
-                    f"• 4×6 inches: **12.4 seconds** [VERIFIED]\n"
-                    f"• 5×7 inches: **19.9 seconds** [VERIFIED]\n"
-                    f"• 6×8 inches: **21.9 seconds** [VERIFIED]"
-                )
+                if "4x6" in msg_l or "4×6" in msg_l:
+                    reply = f"The verified print speed for a 4×6-inch photo on the **[{p_name}]({p_url})** is **12.4 seconds** [VERIFIED]."
+                elif "6x8" in msg_l or "6×8" in msg_l:
+                    reply = f"The verified print speed for a 6×8-inch photo on the **[{p_name}]({p_url})** is **21.9 seconds** [VERIFIED]."
+                elif "5x7" in msg_l or "5×7" in msg_l:
+                    reply = f"The **[{p_name}]({p_url})** does not support 5×7-inch printing [VERIFIED]. Supported formats are 4×6″ (12.4s) and 6×8″ (21.9s)."
+                else:
+                    reply = (
+                        f"The verified print speeds for the **[{p_name}]({p_url})** are:\n"
+                        f"• 4×6 inches: **12.4 seconds** [VERIFIED]\n"
+                        f"• 6×8 inches: **21.9 seconds** [VERIFIED]\n"
+                        f"*(Note: 5×7″ and 6×9″ are not supported by the CY-02.)*"
+                    )
                 return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
 
             if "cz-01" in product.id:
@@ -152,7 +272,7 @@ class ProductSpecEngine:
                 )
 
         # ── 2. Maximum Width & Supported Sizes ─────────────────────────────
-        is_width = any(w in msg_l for w in ["maximum width", "max width", "maximum supported print width", "widest", "print 6x9", "6x9 photos", "support 6x9", "print 8x12"])
+        is_width = any(w in msg_l for w in ["maximum width", "max width", "maximum supported", "widest", "print 6x9", "6x9 photos", "support 6x9", "print 8x12", "paper size", "paper sizes", "print size", "print sizes", "photo size", "photo sizes", "supported size", "supported sizes"])
         if is_width:
             if "cx-02" in product.id and ("6x9" in msg_l or "6×9" in msg_l):
                 reply = f"Yes, the **[{p_name}]({p_url})** supports **6×9 inches** (152 × 229 mm) [VERIFIED], producing up to 180 prints per roll at a verified speed of 20.8 seconds per print [VERIFIED]."
@@ -163,7 +283,7 @@ class ProductSpecEngine:
                 return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
 
             if "cy-02" in product.id:
-                reply = f"The **[{p_name}]({p_url})** supports 4×6″, 5×7″, and 6×8″ media [VERIFIED], with a maximum print width of **6 inches** [INFERRED from listed 6×8 media size]."
+                reply = f"The **[{p_name}]({p_url})** supports 4×6″ (101 × 152 mm) and 6×8″ (152 × 203 mm) media [VERIFIED], with a maximum print width of **6 inches** [VERIFIED]. Note that 5×7″ and 6×9″ media are not supported on the CY-02."
                 return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
 
             if "cz-01" in product.id:
@@ -265,9 +385,9 @@ class ProductSpecEngine:
             if "cy-02" in product.id:
                 reply = (
                     f"Verified print roll capacities for the **[{p_name}]({p_url})**:\n"
-                    f"• 4×6 inches: **700 sheets per roll** [VERIFIED]\n"
-                    f"• 5×7 inches: **350 sheets per roll** [VERIFIED]\n"
-                    f"• 6×8 inches: **350 sheets per roll** [VERIFIED]"
+                    f"• 4×6 inches: **700 sheets per roll** (1,400 prints per 2-roll box of CY-MS46) [VERIFIED]\n"
+                    f"• 6×8 inches: **350 sheets per roll** (700 prints per 2-roll box of CY-MS68) [VERIFIED]\n"
+                    f"*(Note: 5×7″ media is not supported on the CY-02.)*"
                 )
                 return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
 
@@ -275,14 +395,14 @@ class ProductSpecEngine:
                 reply = (
                     f"Verified print roll capacities for the **[{p_name}]({p_url})**:\n"
                     f"• 4×4 inches: **150 sheets per roll** [VERIFIED]\n"
-                    f"• 4×6 inches: **150 sheets per roll** [VERIFIED]\n"
+                    f"• 4×6 inches: **150 sheets per roll** (300 prints per 2-roll box of CZ-MS46) [VERIFIED]\n"
                     f"• 4.5×4.5 inches: **110 sheets per roll** [VERIFIED]\n"
-                    f"• 4.5×8 inches: **110 sheets per roll** [VERIFIED]"
+                    f"• 4.5×8 inches: **110 sheets per roll** (220 prints per 2-roll box of CZ-MS458) [VERIFIED]"
                 )
                 return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
 
             if "cx-02w" in product.id:
-                reply = f"The verified print capacity for the **[{p_name}]({p_url})** is **110 sheets per roll** (8×12-inch) [VERIFIED]."
+                reply = f"The verified print capacity for the **[{p_name}]({p_url})** is **110 sheets per roll** (220 sheets per 2-roll box of CX2W 812 media) [VERIFIED]."
                 return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
 
         # ── 8. Dimensions and Weight ───────────────────────────────────────
@@ -328,8 +448,23 @@ class ProductSpecEngine:
                 )
                 return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
 
+            # Generic verified weight and dimensions for all other approved models
+            p_weight = getattr(product.verified, "weight", None) or card.get("weight")
+            p_dims = getattr(product.verified, "dimensions", None) or card.get("dimensions")
+            if p_weight or p_dims:
+                lines = [f"Verified dimensions and weight for the **[{p_name}]({p_url})**:"]
+                if p_weight:
+                    lines.append(f"• **Printer Weight:** {p_weight} [VERIFIED]")
+                if p_dims:
+                    lines.append(f"• **Dimensions (W × D × H):** {p_dims} [VERIFIED]")
+                reply = "\n".join(lines)
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+            else:
+                reply = f"The physical dimensions and weight for **[{p_name}]({p_url})** are not confirmed in our verified catalogue."
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
         # ── 9. Main Interface / Connectivity ───────────────────────────────
-        is_interface = any(w in msg_l for w in ["interface", "connectivity", "usb", "port"])
+        is_interface = any(w in msg_l for w in ["interface", "connectivity", "usb"]) or bool(re.search(r"\bports?\b", msg_l))
         if is_interface:
             if "citizen" in product.id:
                 reply = f"The **[{p_name}]({p_url})** uses a **USB 2.0 full speed** main interface [VERIFIED]."
@@ -342,14 +477,13 @@ class ProductSpecEngine:
                     source="catalog:single_attribute"
                 )
 
-        # ── 10. Media Cross-Compatibility ──────────────────────────────────
-        if "cy-ms46" in msg_l and "cx-02" in product.id:
-            reply = "Kepler lists CY-MS46 for CY-02 and CX2-MS46 for CX-02. Cross-compatibility is not confirmed on the website, so use only the media listed for each model."
-            return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
-
-        if "cz-ms46" in msg_l and ("cy-02" in product.id or "cx-02" in product.id):
-            reply = "Kepler lists CZ-MS46 for CZ-01 and CY-MS46 for CY-02. Cross-compatibility is not listed as compatible on the website."
-            return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+        # ── 10. SKU & Consumable Compatibility Check ───────────────────────
+        from catalog.consumable_registry import consumable_registry
+        sku_match = re.search(r"\b(cy-ms46|cy-ms68|cx2\.4x6|cx2-ms46|cx2\.6x8|cx2-ms68|cx2w[\s\-_]*812|cz-ms46|cz-ms458|c13t[0-9a-z]{6}|c12c[0-9a-z]{6}|c13s[0-9a-z]{6})\b", msg_l)
+        if sku_match:
+            sku_found = sku_match.group(1).upper()
+            status, explanation = consumable_registry.check_sku_compatibility(sku_found, product.id)
+            return RouteResult(reply=explanation, product_cards=[card], source="catalog:single_attribute")
 
         return None
 
@@ -874,7 +1008,7 @@ class ProductSpecEngine:
                     "The **Citizen CX-02** is the fastest Citizen photo printer, producing a **4x6-inch photo in just 9.8 seconds** in high-speed mode (13.8 seconds in standard mode).\n\n"
                     "Here is the verified print speed across the Citizen lineup:\n"
                     "• **[Citizen CX-02](https://www.keplertechllc.com/product/citizen-cx-02-photo-printer/)**: **9.8 seconds** (4x6\") / 15.6s (6x8\") — *Fastest overall & portable event standard*\n"
-                    "• **[Citizen CY-02](https://www.keplertechllc.com/product/citizen-cy-02-photo-printer/)**: **12.4 seconds** (4x6\") / 19.9s (6x8\") — *High-speed heavy-duty kiosk workhorse (700 prints/roll)*\n"
+                    "• **[Citizen CY-02](https://www.keplertechllc.com/product/citizen-cy-02-photo-printer/)**: **12.4 seconds** (4x6\") / 21.9s (6x8\") — *High-speed heavy-duty kiosk workhorse (700 prints/roll)*\n"
                     "• **[Citizen CZ-01](https://www.keplertechllc.com/product/citizen-cz-01-photo-printer/)**: **18.8 seconds** (4x6\") — *Ultra-compact mobile printer (5.8 kg)*\n"
                     "• **[Citizen CX-02W](https://www.keplertechllc.com/product/citizen-cx-02w-large-photo-printer/)**: **~39 seconds** (8x12\") — *Large-format 8-inch wide photo printer*\n\n"
                     "If rapid turnaround at photo booths or live events is your top priority, the **Citizen CX-02** is the definitive choice."
