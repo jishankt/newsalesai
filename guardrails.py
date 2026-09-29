@@ -15,7 +15,7 @@ OFFICIAL_WEBSITE_URL = "https://www.keplertechllc.com/"
 DISCOUNT_REFUSAL = (
     "For pricing details, special discounts, bulk promotions, or commercial offers, please check our official website at "
     f"{OFFICIAL_WEBSITE_URL} or contact our customer support team directly at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}.\n\n"
-    "I am here to help you with verified technical specifications, model recommendations, and consumable compatibility from our authorized catalogue."
+    "Commercial details are not provided directly in this chat, but I am here to help you with verified technical specifications, model recommendations, and consumable compatibility from our authorized catalogue."
 )
 PRICE_REFUSAL = DISCOUNT_REFUSAL
 

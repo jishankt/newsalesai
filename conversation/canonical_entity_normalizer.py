@@ -122,6 +122,18 @@ class CanonicalEntityNormalizer:
     @classmethod
     def extract_photo_sizes(cls, text: str) -> List[str]:
         """Extracts canonical photo sizes in order-agnostic format."""
+        # Check if the user is contrasting an existing model's limitation against their actual request
+        req_match = re.search(r"\b(?:my\s+request\s+to\s+print|i\s+(?:asked|wanted|requested|need)\s+to\s+print)\s+([0-9\s*x×]+)", text, re.I)
+        if req_match:
+            sub_text = req_match.group(0)
+            target_sizes = []
+            for pattern, canonical in cls.PHOTO_SIZE_RULES:
+                if pattern.search(sub_text):
+                    if canonical not in target_sizes:
+                        target_sizes.append(canonical)
+            if target_sizes:
+                return target_sizes
+
         found: List[str] = []
         for pattern, canonical in cls.PHOTO_SIZE_RULES:
             if pattern.search(text):

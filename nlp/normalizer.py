@@ -109,6 +109,12 @@ TYPO_CORRECTIONS: Dict[str, str] = {
     r"\bbw\b": "between",
     r"\badaptor\b": "adapter",
     r"\babour\b": "about",
+    r"\better\b": "better",
+    r"\b0r\b": "or",
+    r"\bcx[\s\-_]*0?2[\s\-_]*w\b": "CX-02W",
+    r"\bcx[\s\-_]*0?2\b": "CX-02",
+    r"\bcy[\s\-_]*0?2\b": "CY-02",
+    r"\bcz[\s\-_]*0?1\b": "CZ-01",
 }
 
 # Regex to detect and protect model codes / SKUs during typo passes

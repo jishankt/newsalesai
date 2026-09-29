@@ -139,8 +139,7 @@ UNDERSTANDING_SCHEMA = {
             "description": "Optional tool call suggestion (Python will validate before executing)."
         }
     },
-    "required": ["intent", "dialogue_act", "product_related", "confidence",
-                  "sentiment", "entities", "requested_action"]
+    "required": ["intent", "dialogue_act", "product_related", "confidence", "requested_action"]
 }
 
 
@@ -237,7 +236,7 @@ Your job is to analyze the customer's latest message and return a structured JSO
 - Extract customer names from introductions
 - Extract correction field and value when intent is "correction"
 
-Return valid JSON matching the required schema. Do not add explanation text."""
+Return valid JSON matching the schema. Only include fields and entities relevant to the customer message; omit empty or unmentioned fields to keep response compact. Do not add explanation text."""
 
 
 def build_understanding_messages(

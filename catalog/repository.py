@@ -675,11 +675,12 @@ class CatalogRepository:
                                 w_lbl = "4x6, 4.5x8 inches"
                                 w_mm = 114
 
+                            ent_type = media_entry.get("entity_type") or ("scanner" if cat_val == "scanner" or "ds-" in d_key or "12000xl" in d_key else "printer")
                             new_prod = NormalizedProduct(
                                 id=d_key,
                                 canonical_id=media_entry.get("canonical_id") or d_key,
                                 display_name=media_entry.get("display_name") or d_info.get("title", d_key),
-                                entity_type=media_entry.get("entity_type", "printer"),
+                                entity_type=ent_type,
                                 product_url=media_entry.get("website_url") or d_info.get("url"),
                                 datasheet_url=media_entry.get("datasheet_url"),
                                 structured_specs=media_entry.get("structured_specs", {}),
@@ -690,10 +691,12 @@ class CatalogRepository:
                                 sku=sku_val,
                                 verified=VerifiedSpecs(
                                     ink_technology="Dye-Sublimation Thermal Transfer" if "citizen" in d_key else None,
-                                    applications=["Photo Booth", "Event Photography", "Studio"] if "citizen" in d_key else [],
+                                    applications=["Photo Booth", "Event Photography", "Studio"] if "citizen" in d_key else (["Document Scanning", "Archiving", "Business Invoices"] if cat_val == "scanner" else []),
                                     max_width_label=w_lbl,
                                     max_width_mm=w_mm,
                                     supported_print_sizes=list(media_entry.get("supported_print_sizes", [])),
+                                    weight="3.7 kg (net weight)" if "ds-530" in d_key else media_entry.get("weight"),
+                                    has_scanner=True if cat_val == "scanner" else None,
                                 ),
                                 source=ProductSource(website_url=media_entry.get("website_url") or d_info.get("url")),
                                 full_description=d_info.get("full_description"),

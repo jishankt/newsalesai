@@ -51,6 +51,10 @@ class OllamaClient:
         self.base_url = base_url.rstrip("/")
         self.default_model = default_model
         self._offline_until = 0.0
+        self.session = requests.Session()
+        adapter = requests.adapters.HTTPAdapter(pool_connections=10, pool_maxsize=20)
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
 
     def startup_health_check(self) -> Dict[str, Any]:
         """
@@ -75,7 +79,7 @@ class OllamaClient:
 
         # Step 1: Connectivity & tags
         try:
-            resp = requests.get(
+            resp = self.session.get(
                 f"{self.base_url}/api/tags",
                 timeout=(OLLAMA_CONNECT_TIMEOUT, 5.0)
             )
@@ -121,7 +125,7 @@ class OllamaClient:
             "options": {"num_predict": 1}
         }
         try:
-            ping_resp = requests.post(
+            ping_resp = self.session.post(
                 f"{self.base_url}/api/chat",
                 json=ping_payload,
                 timeout=(OLLAMA_CONNECT_TIMEOUT, OLLAMA_READ_TIMEOUT)
@@ -178,7 +182,7 @@ class OllamaClient:
 
         for attempt in range(1 + OLLAMA_MAX_RETRIES):
             try:
-                resp = requests.post(
+                resp = self.session.post(
                     endpoint, json=payload,
                     timeout=(OLLAMA_CONNECT_TIMEOUT, OLLAMA_READ_TIMEOUT)
                 )
@@ -258,7 +262,7 @@ class OllamaClient:
                 "temperature": temp,
                 "top_p": OLLAMA_TOP_P,
                 "num_ctx": OLLAMA_NUM_CTX,
-                "num_predict": 300,
+                "num_predict": 180,
             }
         }
 
@@ -268,7 +272,7 @@ class OllamaClient:
         for attempt in range(1 + retries):
             try:
                 start = time.time()
-                resp = requests.post(
+                resp = self.session.post(
                     endpoint, json=payload,
                     timeout=(OLLAMA_CONNECT_TIMEOUT, OLLAMA_READ_TIMEOUT)
                 )
@@ -351,7 +355,7 @@ class OllamaClient:
         for attempt in range(1 + retries):
             try:
                 start = time.time()
-                resp = requests.post(
+                resp = self.session.post(
                     endpoint, json=payload,
                     headers={"Content-Type": "application/json"},
                     timeout=(OLLAMA_CONNECT_TIMEOUT, OLLAMA_READ_TIMEOUT)
@@ -438,7 +442,7 @@ class OllamaClient:
         for attempt in range(1 + retries):
             try:
                 start = time.time()
-                resp = requests.post(
+                resp = self.session.post(
                     endpoint, json=payload,
                     timeout=(OLLAMA_CONNECT_TIMEOUT, OLLAMA_READ_TIMEOUT)
                 )

@@ -92,6 +92,21 @@ def _build_known_valid_slugs() -> Set[str]:
                     slugs.add(m.group(1))
     except Exception as exc:
         logger.warning("Could not build dynamic KNOWN_VALID_SLUGS from catalogue: %s", exc)
+
+    try:
+        import json, os
+        prod_json_path = os.path.join(os.path.dirname(__file__), "..", "data", "products.json")
+        if os.path.exists(prod_json_path):
+            with open(prod_json_path, "r", encoding="utf-8") as f:
+                prods_data = json.load(f)
+                for item in prods_data:
+                    url = item.get("website_url") or item.get("web_url") or item.get("product_url")
+                    if url:
+                        m = re.search(r"https?://www\.keplertechllc\.com/product/([a-zA-Z0-9\-_]+)/?", url)
+                        if m:
+                            slugs.add(m.group(1))
+    except Exception as exc:
+        logger.warning("Could not build KNOWN_VALID_SLUGS from products.json: %s", exc)
     return slugs
 
 

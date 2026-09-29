@@ -374,9 +374,26 @@ class LLMUnderstandingEngine:
             ])
         )
 
-        # Direct Consumable / Part Number SKU check (e.g. C13T11C340, C13S210057, CX2.4x6)
+        if is_comp:
+            comp_targets = [p.get("display_name") or p.get("name") or p.get("id") for p in cat_mentioned_fb]
+            if not comp_targets and unique_comp_models:
+                comp_targets = list(unique_comp_models)
+            logger.info(f"Fallback NLU: classified as intent=product_comparison action=compare_products targets={comp_targets}")
+            return LLMUnderstanding(
+                intent=Intent.PRODUCT_COMPARISON,
+                dialogue_act="questioning",
+                product_related=True,
+                confidence=0.95,
+                sentiment="neutral",
+                language="en",
+                entities=entities,
+                comparison_targets=comp_targets,
+                requested_action="compare_products",
+            )
+
+        # Direct Consumable / Part Number SKU check (e.g. C13T11C340, C13S210057, CX2.4x6, CY-MS46)
         from rag.retriever import rag_retriever
-        sku_cand_matches = re.findall(r"\b(c1[123][a-z0-9]{5,9}|c13s\d+|c12c\d+|ifa\s*\d+|olm\s*\d+|cx2[a-z0-9.\-]+|cy[a-z0-9.\-]+|cx2w\s*812)\b", msg_l)
+        sku_cand_matches = re.findall(r"\b(c1[123][a-z0-9]{5,9}|c13s\d+|c12c\d+|ifa\s*\d+|olm\s*\d+|cx2\.[a-z0-9.\-]+|cy-?ms[a-z0-9.\-]+|cy2\.[a-z0-9.\-]+|cx2w\s*812)\b", msg_l)
         if not sku_cand_matches:
             for tok in re.findall(r"\b[a-z0-9\.\-]{5,15}\b", msg_l):
                 if re.search(r"\d", tok) and tok not in ["epson", "citizen", "printer", "scanner", "plotter", "cartridge", "please"]:
@@ -475,18 +492,6 @@ class LLMUnderstandingEngine:
             "check website", "website specifications"
         ])
 
-        if is_comp:
-            logger.info("Fallback NLU: classified as intent=product_comparison action=compare_products reason=direct_comparison_inquiry")
-            return LLMUnderstanding(
-                intent=Intent.PRODUCT_COMPARISON,
-                dialogue_act="questioning",
-                product_related=True,
-                confidence=0.95,
-                sentiment="neutral",
-                language="en",
-                entities=entities,
-                requested_action="compare_products",
-            )
 
         if is_superlative_attribute or is_general_web_spec_query:
             logger.info("Fallback NLU: classified as intent=product_question action=answer_product_attribute reason=superlative_or_spec_inquiry")

@@ -51,9 +51,9 @@ def handle(understanding: LLMUnderstanding, state: ConversationState) -> RouteRe
             state.requirements = {}
             state.category = None
         if state.customer_name:
-            reply = f"Hello, {state.customer_name}! It's a pleasure to assist you. What can I help you find across our printing systems and genuine consumables today?"
+            reply = f"Hello, {state.customer_name}! Great to connect with you. How can I help you find the right printing setup or consumables today?"
         else:
-            reply = "Hello and welcome to Kepler Tech! I'm here to help you find the ideal professional printing equipment, genuine consumables, or technical specifications. What printing application or project can I assist you with today?"
+            reply = "Hello and welcome to Kepler Tech! Whether you're upgrading your studio, scaling up CAD blueprints, or looking for reliable office printing, I'm here to find the perfect solution for you. What project or equipment can I help you with today?"
 
         return RouteResult(
             reply=reply,
@@ -65,7 +65,7 @@ def handle(understanding: LLMUnderstanding, state: ConversationState) -> RouteRe
 
     # ── Positive feedback ────────────────────────────────────────────────
     if intent == Intent.POSITIVE_FEEDBACK:
-        reply = "You're very welcome! I'm glad I could help. Please let me know if you need any further specifications, consumable pricing, or model comparisons."
+        reply = "Delighted to help! Whenever you're ready to dive deeper into technical specifications, media choices, or genuine supplies, I'm right here."
         return RouteResult(reply=reply, source="route:social")
 
     # ── Negative feedback ────────────────────────────────────────────────
@@ -74,12 +74,12 @@ def handle(understanding: LLMUnderstanding, state: ConversationState) -> RouteRe
         pending = state.pending_question
 
         if state.frustration_count >= 2:
-            reply = "I apologize for the experience. Let me be more helpful."
+            reply = "I completely understand your frustration, and I apologize for missing the mark. Let me step back and give you exactly what you need."
             if pending:
                 reply += f" {pending}"
                 state.consume_pending_question()
         else:
-            reply = "Fair point — I'll try to be more helpful. What would you like to know?"
+            reply = "I hear you, and appreciate the feedback. Let's get straight to the solution—how can I best assist you right now?"
 
         return RouteResult(reply=reply, source="route:social")
 
@@ -88,12 +88,12 @@ def handle(understanding: LLMUnderstanding, state: ConversationState) -> RouteRe
         state.record_frustration()
 
         if state.frustration_count >= 3:
-            reply = "I sincerely apologize. Let me get straight to helping you."
+            reply = "I sincerely apologize for the inconvenience. Let me skip the formalities and focus directly on solving this for you."
         elif "repeat" in (understanding.entities.get("complaint", "") or "").lower() or \
              state.frustration_count >= 2:
-            reply = "You're right, I should not have repeated that. Let me continue from what you've already told me."
+            reply = "You're completely right, and I apologize for repeating myself. Moving forward with what you've shared so far:"
         else:
-            reply = "I understand your frustration. Let me adjust my approach."
+            reply = "I understand your point completely. Let me adjust my approach and focus directly on what you need."
 
         # Don't ask a new question when frustrated — just acknowledge
         return RouteResult(reply=reply, source="route:social")

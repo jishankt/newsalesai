@@ -267,6 +267,7 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
             card = catalog_tool_executor.format_card(item, card_type="consumable")
             p_name = item.get("name", sku)
             state.active_printer_for_consumables = None
+            state.active_consumable = card
             return RouteResult(
                 reply=f"Here is the verified genuine consumable for **{p_name}** (SKU: {sku}):",
                 consumable_cards=[card],

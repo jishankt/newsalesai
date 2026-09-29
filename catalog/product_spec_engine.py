@@ -71,8 +71,8 @@ class ProductSpecEngine:
         card = catalog_tool_executor.format_card(product.to_dict(), card_type="hardware")
 
         # If user is asking for general overview, specs sheet, or tell me about, return None (handled by detailed specs)
-        if any(w in msg_l for w in ["tell me about", "what is the", "what is citizen", "overview", "full description", "spec sheet", "all specs", "complete specs"]):
-            if not any(attr in msg_l for attr in ["speed", "width", "technology", "ink", "resolution", "finish", "luster", "capacity", "weight", "dimensions", "rewind", "interface"]):
+        if any(w in msg_l for w in ["tell me about", "what is the", "what is citizen", "overview", "full description", "spec sheet", "all specs", "complete specs", "how does"]):
+            if not any(attr in msg_l for attr in ["speed", "width", "technology", "ink", "resolution", "finish", "luster", "capacity", "weight", "dimensions", "rewind", "interface", "yield", "pattern"]):
                 return None
 
         # ── 0. Multi-Specification Query Handler (2+ specifications requested) ──
@@ -85,7 +85,9 @@ class ProductSpecEngine:
         req_conn = any(w in msg_l for w in ["connectivity", "interface", "wi-fi", "wifi", "ethernet", "usb"])
         req_scan = any(w in msg_l for w in ["scanner", "scanning", "scan", "adf"])
         req_finish = any(w in msg_l for w in ["finish", "finishing", "glossy", "matte", "luster"])
-        req_capacity = any(w in msg_l for w in ["capacity", "sheets per roll", "prints per roll", "roll capacity"])
+        req_capacity = any(w in msg_l for w in ["capacity", "sheets per roll", "prints per roll", "roll capacity", "yield"])
+        if req_capacity and any(w in msg_l for w in ["yield capacity", "roll capacity", "print capacity"]):
+            req_speed = False
 
         req_count = sum([req_speed, req_weight, req_dims, req_sizes, req_tech, req_res, req_conn, req_scan, req_finish, req_capacity])
         if req_count >= 2:
@@ -328,8 +330,8 @@ class ProductSpecEngine:
                     reply = f"The **[{p_name}]({p_url})** supports resolutions of **300 dpi** (High Speed mode) and **600 dpi** (High Quality mode)."
                 return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
 
-        # ── 5. Finishing Options & Luster ──────────────────────────────────
-        is_finish = any(w in msg_l for w in ["finish", "finishes", "finishing", "luster", "matte", "glossy"])
+        # ── 5. Finishing Options & Luster & Pattern ────────────────────────
+        is_finish = any(w in msg_l for w in ["finish", "finishes", "finishing", "luster", "matte", "glossy", "pattern"])
         if is_finish:
             if "cx-02" in product.id:
                 if "luster" in msg_l:
@@ -338,7 +340,7 @@ class ProductSpecEngine:
                     reply = f"The **[{p_name}]({p_url})** specification table supports **Glossy and Matte** finishing options via overcoat thermal control."
                 return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
             elif "cz-01" in product.id:
-                reply = f"The **[{p_name}]({p_url})** offers **Glossy, Matte, and Partial Matte** finishing options [VERIFIED]."
+                reply = f"The **[{p_name}]({p_url})** offers **Glossy, Matte, and Partial Matte** finishing options without changing media, achieved electronically via thermal printhead overcoat control [VERIFIED]."
                 return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
             elif "cy-02" in product.id or "cx-02w" in product.id:
                 reply = f"The **[{p_name}]({p_url})** offers **Glossy and Matte** finishing options [VERIFIED]."
@@ -365,27 +367,27 @@ class ProductSpecEngine:
         if is_capacity:
             if "cx-02" in product.id:
                 if "4x6" in msg_l or "4×6" in msg_l:
-                    reply = f"The **[{p_name}]({p_url})** produces **400 sheets** of 4×6-inch prints per roll [VERIFIED]."
+                    reply = f"The **[{p_name}]({p_url})** produces **400 prints per roll** of 4×6-inch prints (800 prints per 2-roll box of CX2.4X6 media) [VERIFIED]."
                 elif "5x7" in msg_l or "5×7" in msg_l:
-                    reply = f"The verified 5×7-inch media capacity for the **[{p_name}]({p_url})** is **230 sheets per roll** [VERIFIED]."
+                    reply = f"The verified 5×7-inch media capacity for the **[{p_name}]({p_url})** is **230 sheets per roll** (CX2.5X7) [VERIFIED]."
                 elif "6x8" in msg_l or "6×8" in msg_l:
-                    reply = f"The verified 6×8-inch media capacity for the **[{p_name}]({p_url})** is **200 sheets per roll** [VERIFIED]."
+                    reply = f"The verified 6×8-inch media capacity for the **[{p_name}]({p_url})** is **200 sheets per roll** (CX2.6X8) [VERIFIED]."
                 elif "6x9" in msg_l or "6×9" in msg_l:
-                    reply = f"The verified 6×9-inch media capacity for the **[{p_name}]({p_url})** is **180 sheets per roll** [VERIFIED]."
+                    reply = f"The verified 6×9-inch media capacity for the **[{p_name}]({p_url})** is **180 sheets per roll** (CX2.6X9) [VERIFIED]."
                 else:
                     reply = (
                         f"Verified print roll capacities for the **[{p_name}]({p_url})**:\n"
-                        f"• 4×6 inches: **400 sheets** [VERIFIED]\n"
-                        f"• 5×7 inches: **230 sheets per roll** [VERIFIED]\n"
-                        f"• 6×8 inches: **200 sheets per roll** [VERIFIED]\n"
-                        f"• 6×9 inches: **180 sheets per roll** [VERIFIED]"
+                        f"• 4×6 inches: **400 prints per roll** (800 prints per 2-roll box of CX2.4X6) [VERIFIED]\n"
+                        f"• 5×7 inches: **230 sheets per roll** (CX2.5X7) [VERIFIED]\n"
+                        f"• 6×8 inches: **200 sheets per roll** (CX2.6X8) [VERIFIED]\n"
+                        f"• 6×9 inches: **180 sheets per roll** (CX2.6X9) [VERIFIED]"
                     )
                 return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
 
             if "cy-02" in product.id:
                 reply = (
                     f"Verified print roll capacities for the **[{p_name}]({p_url})**:\n"
-                    f"• 4×6 inches: **700 sheets per roll** (1,400 prints per 2-roll box of CY-MS46) [VERIFIED]\n"
+                    f"• 4×6 inches: **700 prints per roll** (1,400 prints per 2-roll box of CY-MS46) [VERIFIED]\n"
                     f"• 6×8 inches: **350 sheets per roll** (700 prints per 2-roll box of CY-MS68) [VERIFIED]\n"
                     f"*(Note: 5×7″ media is not supported on the CY-02.)*"
                 )
@@ -667,6 +669,7 @@ class ProductSpecEngine:
         return {
             "product": p_dict,
             "product_card": card,
+            "product_cards": [card],
             "reply": reply,
             "p_name": p_name,
             "p_url": p_url,

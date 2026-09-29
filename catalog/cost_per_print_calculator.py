@@ -245,7 +245,7 @@ class CostPerPrintCalculator:
                     f"• **Sold Pack Contents:** Box of {m_info['rolls_per_box']} rolls + {m_info['rolls_per_box']} matched ribbons ({m_info['prints_per_roll']:,} prints/roll = **{total_prints:,} usable prints** per box)\n"
                     f"• **Verified Pack Price:** AED {box_price:,.2f} Excl. VAT\n"
                     f"• **Calculation Formula:** AED {box_price:,.2f} ÷ {total_prints:,} prints = **AED {cost_per_print:.2f} per print** ({cost_per_print_exact:.4f} AED exact)\n"
-                    f"*(Source: Kepler Tech official media price catalogue, September 2026. Hardware selling prices withheld per company commercial policy.)*"
+                    f"*(Source: Kepler Tech official media price catalogue, September 2026. Hardware selling prices and commercial details are not provided in this chat per company commercial policy.)*"
                 )
 
                 return CostCalculationResult(

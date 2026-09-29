@@ -137,7 +137,8 @@ class Orchestrator:
             r"\b(?:cost\s*per\s*(?:print|page|copy)|per\s*(?:print|page|copy)\s*cost|cpp|running\s*cost(?:s)?|printing\s*cost(?:s)?)\b",
             msg_l
         ))
-        is_commercial = not is_cpp_inquiry and (is_price_inquiry(normalized_msg) or is_discount_inquiry(normalized_msg) or bool(re.search(r"\b(?:quotes?|quotations?|discounts?)\b", msg_l)))
+        has_media_price = bool(re.search(r"\b(?:media|inks?|cartridges?|ribbons?|paper|consumables?)\b.*\b(?:cost|price)\b", msg_l)) or bool(re.search(r"\b(?:cost|price)\b.*\b(?:media|inks?|cartridges?|ribbons?|paper|consumables?)\b", msg_l))
+        is_commercial = (has_media_price or not is_cpp_inquiry) and (is_price_inquiry(normalized_msg) or is_discount_inquiry(normalized_msg) or bool(re.search(r"\b(?:quotes?|quotations?|discounts?|cost)\b", msg_l)))
         requested_supplies = bool(re.search(r"\b(?:inks?|cartridges?|ribbons?|media|paper|consumables?)\b", msg_l))
         if is_commercial and requested_supplies:
             supply_candidates = find_mentioned_catalogue_products(normalized_msg)
@@ -164,11 +165,16 @@ class Orchestrator:
             if len(named) == 1:
                 state.active_product = named[0]
                 state.active_product_id = named[0]["id"]
-            label = (f" for the **{named[0].get('display_name') or named[0]['id']}**" if named else "")
-            reply_text = f"I can help with verified product specifications and compatibility{label}. Pricing and commercial details are not provided in this chat."
+            if is_discount_inquiry(normalized_msg) or bool(re.search(r"\b(?:discounts?|bargain|negotiat)\b", msg_l)):
+                reply_text = DISCOUNT_REFUSAL
+                source = "guardrail:discount_refusal"
+            else:
+                label = (f" for the **{named[0].get('display_name') or named[0]['id']}**" if named else "")
+                reply_text = f"I can help with verified product specifications and compatibility{label}. Pricing and commercial details are not provided in this chat. Official pricing and quotations are available on our official website (https://www.keplertechllc.com/)."
+                source = "guardrail:commercial_policy"
             state.last_assistant_response = reply_text
             state.increment_turn()
-            return self._build_response(reply_text, "guardrail:commercial_policy", [], [],
+            return self._build_response(reply_text, source, [], [],
                                         ["View Technical Specifications", "Compatible Consumables"],
                                         nlp_result, state, int((time.time() - start_time) * 1000))
 
@@ -1764,7 +1770,10 @@ class Orchestrator:
         # 6b. Comparison Query (Between 2+ Approved Catalogue Products)
         is_comparison_query = (
             understanding.intent == Intent.PRODUCT_COMPARISON
-            or any(w in normalized_msg.lower() for w in ["compare", " vs ", " versus ", "difference between"])
+            or any(w in normalized_msg.lower() for w in [
+                "compare", " vs ", " versus ", "difference between",
+                "which is better", "which is best", "which one is better", "which one should i choose"
+            ])
             or len(mentioned_products) >= 2
         )
         comp_sources = list(mentioned_products)
@@ -1891,7 +1900,13 @@ class Orchestrator:
                 )
 
         # 6a-2. Specific Specification / Capability Query on Active Product or Mentioned Product (e.g., "print speed?", "CAN I PRINT 2X6 STRIP IN THIS PRINTER?", "resolution?", "yield capacity?", "pattern change?")
-        current_active = (mentioned_products[0] if mentioned_products else None) or state.active_product or prev_active_product
+        current_active = (
+            (mentioned_products[0] if mentioned_products else None)
+            or state.active_product
+            or prev_active_product
+            or (catalogue_loader.get_by_id(state.last_explicit_product_id) if getattr(state, "last_explicit_product_id", None) else None)
+            or (catalogue_loader.get_by_id(state.displayed_product_ids[0]) if getattr(state, "displayed_product_ids", None) and len(state.displayed_product_ids) == 1 else None)
+        )
         current_active_id = (current_active.get("id") if isinstance(current_active, dict) else None) or state.active_product_id or prev_active_product_id
 
         # Multi-Part Capability Query (Section 7)
@@ -1967,6 +1982,53 @@ class Orchestrator:
                         state=state,
                         latency_ms=int((time.time() - start_time) * 1000),
                     )
+                else:
+                    is_detailed_specs_query = (
+                        bool(re.search(
+                            r"\b(?:details?|more\s+details?|view\s+details?|specs?|specifications?|overview|tell\s+me\s+about|full\s+specs?|datasheet|brochure|all\s+specs?|features?)\b",
+                            normalized_msg.lower()
+                        ))
+                        or getattr(understanding, "requested_action", "") in ("show_product_specs", "show_details")
+                    ) and not CanonicalEntityNormalizer.is_capability_query(normalized_msg) and not bool(re.search(r"\bcan\s+(?:i|it)\b", normalized_msg.lower()))
+                    if is_detailed_specs_query:
+                        detail_specs = product_spec_engine.get_product_detailed_specs(spec_target_id, normalized_msg)
+                        if detail_specs and detail_specs.get("reply"):
+                            reply_text = detail_specs["reply"]
+                            p_card = catalogue_filter._format_card(spec_target_cand, spec_target_cand.get("subcategory"), state.requirements)
+                            cards = [p_card]
+
+                            from validation.deterministic_validator import deterministic_validator
+                            is_val, viols = deterministic_validator.validate(
+                                reply_text, context={"product_id": spec_target_id, "source": "catalog"}
+                            )
+                            if not is_val:
+                                logger.warning(f"Detailed specs reply failed validation: {viols}. Attempting regeneration.")
+                                reply_text = self._build_canonical_structured_reply(
+                                    product_id=spec_target_id, state=state
+                                )
+                                is_val_2, viols_2 = deterministic_validator.validate(
+                                    reply_text, context={"product_id": spec_target_id, "source": "catalog"}
+                                )
+                                if not is_val_2:
+                                    logger.error(f"Regenerated detailed specs failed validation: {viols_2}. Returning STATIC_SAFE_REFUSAL.")
+                                    reply_text = STATIC_SAFE_REFUSAL
+                                    cards = []
+
+                            state.active_product = spec_target_cand
+                            state.active_product_id = spec_target_id
+                            state.active_printer_for_consumables = spec_target_cand.get("display_name")
+                            state.last_assistant_response = reply_text
+                            state.increment_turn()
+                            return self._build_response(
+                                reply=reply_text,
+                                source="route:product_spec_attribute:detailed",
+                                product_cards=cards,
+                                consumable_cards=[],
+                                suggested_chips=["View Compatible Consumables", "Compare with Another Model", "Request Quotation"],
+                                nlp_result=nlp_result,
+                                state=state,
+                                latency_ms=int((time.time() - start_time) * 1000),
+                            )
 
         is_capability_query = (
             current_active is not None
@@ -3128,6 +3190,7 @@ class Orchestrator:
             or source.startswith("recommendation:catalogue_list")
             or source.startswith("route:general_price_inquiry")
             or source.startswith("route:cost_per_print")
+            or source.startswith("route:yield_pattern_general")
             or source.startswith("route:product_or_consumable_disambiguation")
             or "safe_refusal" in source
             or "refusal" in source
@@ -3183,9 +3246,10 @@ class Orchestrator:
         recommendation_audit: Optional[Dict[str, Any]] = None,
         comparison_data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """Formats the standardized JSON response."""
-        if source.startswith(("route:product_price_inquiry", "route:consumable_price_inquiry", "route:general_price_inquiry", "guardrail:discount_refusal")):
-            reply = "I can help with verified product specifications and compatibility. Commercial details are not provided in this chat."
+        if source.startswith("guardrail:discount_refusal"):
+            reply = DISCOUNT_REFUSAL
+        elif source.startswith(("route:product_price_inquiry", "route:consumable_price_inquiry", "route:general_price_inquiry")):
+            reply = "I can help with verified product specifications and compatibility. Pricing and commercial details are not provided in this chat. Official pricing and quotations are available on our official website (https://www.keplertechllc.com/)."
         # Sanitize suggested chips against commercial quote/handover leaks
         sanitized_chips = []
         for ch in (suggested_chips or []):
@@ -3310,10 +3374,11 @@ class Orchestrator:
                 reply = re.sub(r"\bPrice on Request\b", "", reply, flags=re.I)
             reply = re.sub(r"\b[\w.+-]+@(?:keplertech\.ae|keplertechllc\.com)\b", "", reply, flags=re.I)
             reply = re.sub(r"\+971[\d\s-]{7,16}", "", reply)
-            reply = "\n".join(
-                line for line in reply.splitlines()
-                if not re.search(r"\b(?:contact (?:our|the) (?:sales|support)|sales desk|commercial quotation|bulk delivery quotes|ask for (?:a )?quote|commercial sales|corporate financing|verified pricing|phone:|email:)\b", line, re.I)
-            ).strip()
+            if not source.startswith("guardrail:") and not source.startswith(("route:product_price", "route:consumable_price", "route:general_price")):
+                reply = "\n".join(
+                    line for line in reply.splitlines()
+                    if not re.search(r"\b(?:contact (?:our|the) (?:sales|support)|sales desk|commercial quotation|bulk delivery quotes|ask for (?:a )?quote|commercial sales|corporate financing|verified pricing|phone:|email:)\b", line, re.I)
+                ).strip()
             reply = re.sub(r"\n{3,}", "\n\n", reply)
             reply = re.sub(r"\bproduct\s+subcategory\b", "product category", reply, flags=re.I)
             reply = re.sub(r"\|\s*\*\*Subcategory\*\*\s*\|[^\n]+\n?", "", reply, flags=re.I)

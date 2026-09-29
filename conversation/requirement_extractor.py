@@ -30,8 +30,13 @@ class RequirementExtractor:
             extracted["print_size"] = "A4"
         elif re.search(r"\b(?:44\s*inch|44\"|44inch|large format production)\b", msg_lower):
             extracted["print_size"] = "44-inch"
-        elif re.search(r"\b(?:4x6|5x7|6x8|8x10|8x12|4\s*x\s*6|5\s*x\s*7|6\s*x\s*8|8\s*x\s*10|8\s*x\s*12)\b", msg_lower):
-            raw_sz = re.search(r"\b(?:4x6|5x7|6x8|8x10|8x12|4\s*x\s*6|5\s*x\s*7|6\s*x\s*8|8\s*x\s*10|8\s*x\s*12)\b", msg_lower).group(0)
+        elif re.search(r"\b(?:2x6|6x2|4x6|5x7|6x8|8x10|8x12|2\s*x\s*6|6\s*x\s*2|4\s*x\s*6|5\s*x\s*7|6\s*x\s*8|8\s*x\s*10|8\s*x\s*12)\b", msg_lower):
+            req_match = re.search(r"\b(?:my\s+request\s+to\s+print|i\s+(?:asked|wanted|requested|need)\s+to\s+print)\s+([0-9\s*x×]+)", msg_lower)
+            if req_match:
+                m_sub = re.search(r"\b(?:2x6|6x2|4x6|5x7|6x8|8x10|8x12|2\s*x\s*6|6\s*x\s*2|4\s*x\s*6|5\s*x\s*7|6\s*x\s*8|8\s*x\s*10|8\s*x\s*12)\b", req_match.group(1))
+                raw_sz = m_sub.group(0) if m_sub else req_match.group(1)
+            else:
+                raw_sz = re.search(r"\b(?:2x6|6x2|4x6|5x7|6x8|8x10|8x12|2\s*x\s*6|6\s*x\s*2|4\s*x\s*6|5\s*x\s*7|6\s*x\s*8|8\s*x\s*10|8\s*x\s*12)\b", msg_lower).group(0)
             norm_sz = re.sub(r"\s+", "", raw_sz)
             extracted["print_size"] = f"{norm_sz} inches"
         else:
