@@ -2106,7 +2106,7 @@ class Orchestrator:
             or (state.candidate_products[0] if getattr(state, "candidate_products", []) else None)
         )
         has_multi_prod_compare = len(mentioned_products) >= 2 or any(w in normalized_msg.lower() for w in ["recommend", "which printer", "which model", " vs ", " versus ", "difference between", "what about other"])
-        if spec_target_cand and not has_multi_prod_compare:
+        if spec_target_cand and not has_multi_prod_compare and not is_correction_turn:
             spec_target_id = spec_target_cand.get("id") or spec_target_cand.get("canonical_id")
             if spec_target_id:
                 from catalog.product_spec_engine import product_spec_engine
