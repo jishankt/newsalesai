@@ -1956,8 +1956,42 @@ class Orchestrator:
             if len(comp_products) >= 2:
                 # A compound question needs facts for both named models. The generic
                 # comparison draft does not distinguish their compatible ink SKUs.
+                is_ink_q = bool(re.search(r"\b(?:inks?|cartridges?|consumables?)\b", normalized_msg.lower()))
+                if len(mentioned_products) >= 2 and is_ink_q:
+                    all_c_cards = []
+                    sections = []
+                    for p in comp_products:
+                        p_name_i = p.get("display_name") or p.get("name") or p.get("id", "")
+                        p_cards = consumables_engine.get_printer_consumables(p_name_i, limit=15)
+                        if p_cards:
+                            all_c_cards.extend(p_cards)
+                            items_lines = []
+                            for card in p_cards:
+                                c_title = card.get("title") or card.get("name") or "Consumable Item"
+                                c_sku = card.get("sku")
+                                sku_text = f" (SKU: `{c_sku}`)" if c_sku else ""
+                                c_url = card.get("url") or card.get("website_url")
+                                link_title = f"[{c_title}]({c_url})" if c_url else f"**{c_title}**"
+                                items_lines.append(f"• **{link_title}**{sku_text}")
+                            sections.append(f"### 📦 **{p_name_i}**\n" + "\n".join(items_lines))
+                        else:
+                            sections.append(f"### 📦 **{p_name_i}**\n• No specific consumables listed in catalogue for this model.")
+
+                    state.active_consumables = all_c_cards
+                    reply_text = "Here are the verified compatible consumables for each model:\n\n" + "\n\n".join(sections)
+                    return self._build_response(
+                        reply=reply_text,
+                        source="route:consumables:multi_product",
+                        product_cards=[],
+                        consumable_cards=all_c_cards,
+                        suggested_chips=["Order Consumables", "View Printer Specifications", "Compare Models"],
+                        nlp_result=nlp_result,
+                        state=state,
+                        latency_ms=int((time.time() - start_time) * 1000),
+                    )
+
                 if len(mentioned_products) >= 2 and re.search(
-                    r"\b(?:inks?|cartridges?|consumables?|width|sizes?|mugs?|t[- ]?shirts?)\b", normalized_msg.lower(),
+                    r"\b(?:width|sizes?|mugs?|t[- ]?shirts?)\b", normalized_msg.lower(),
                 ):
                     from agent.evidence_planner import evidence_planner
                     reply_text, ink_cards = evidence_planner.describe_named_products(comp_products, normalized_msg)
@@ -2610,6 +2644,47 @@ class Orchestrator:
         if is_consumables_query:
             if matched_ink_color:
                 state.requested_ink_color = matched_ink_color
+
+            # Multi-product consumables check (e.g. "consumables for CY-02 and CZ-01", "consumables list separately")
+            multi_prods = mentioned_products if len(mentioned_products) >= 2 else []
+            msg_low = normalized_msg.lower()
+            if not multi_prods and any(k in msg_low for k in ["separately", "each", "both", "all", "these", "this"]) and (len(getattr(state, "compared_product_ids", [])) >= 2 or len(getattr(state, "displayed_product_ids", [])) >= 2):
+                pids = state.compared_product_ids if len(state.compared_product_ids) >= 2 else state.displayed_product_ids
+                multi_prods = [catalogue_loader.get_by_id(pid) for pid in pids if catalogue_loader.get_by_id(pid)]
+
+            if len(multi_prods) >= 2:
+                all_c_cards = []
+                sections = []
+                for p in multi_prods:
+                    p_name_i = p.get("display_name") or p.get("name") or p.get("id", "")
+                    p_cards = consumables_engine.get_printer_consumables(p_name_i, limit=15)
+                    if p_cards:
+                        all_c_cards.extend(p_cards)
+                        items_lines = []
+                        for card in p_cards:
+                            c_title = card.get("title") or card.get("name") or "Consumable Item"
+                            c_sku = card.get("sku")
+                            sku_text = f" (SKU: `{c_sku}`)" if c_sku else ""
+                            c_url = card.get("url") or card.get("website_url")
+                            link_title = f"[{c_title}]({c_url})" if c_url else f"**{c_title}**"
+                            items_lines.append(f"• **{link_title}**{sku_text}")
+                        sections.append(f"### 📦 **{p_name_i}**\n" + "\n".join(items_lines))
+                    else:
+                        sections.append(f"### 📦 **{p_name_i}**\n• No specific consumables listed in catalogue for this model.")
+
+                state.awaiting_field = None
+                state.active_consumables = all_c_cards
+                reply_text = "Here are the verified compatible consumables for each model:\n\n" + "\n\n".join(sections)
+                return self._build_response(
+                    reply=reply_text,
+                    source="route:consumables:multi_product",
+                    product_cards=[],
+                    consumable_cards=all_c_cards,
+                    suggested_chips=["Order Consumables", "View Printer Specifications", "Compare Models"],
+                    nlp_result=nlp_result,
+                    state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
 
             p_name = ""
             if mentioned_products:
