@@ -109,11 +109,11 @@ def normalize_category(raw_text: str, current_category: Optional[str] = None) ->
     has_scanner_model = any(m in text_l for m in scanner_models)
     is_printer_with_scanner = (
         bool(re.search(r"\b(?:printers?|printing|plotters?|cad|blueprints?|print\s+and\s+scan|copier|mfp)\b", text_l))
-        and not bool(re.search(r"\b(?:photo\s+scanner|document\s+scanner|business\s+scanner|flatbed\s+scanner|sheetfed\s+scanner|portable\s+scanner)\b", text_l))
-        and not bool(re.search(r"\b(?:switch\s+to\s+scanner|i\s+want\s+a\s+scanner|i\s+need\s+a\s+scanner|buy\s+a\s+scanner|looking\s+for\s+a\s+scanner)\b", text_l))
+        and not bool(re.search(r"\b(?:photo\s+scann?e?r?s?|document\s+scann?e?r?s?|business\s+scann?e?r?s?|flatbed\s+scann?e?r?s?|sheetfed\s+scann?e?r?s?|portable\s+scann?e?r?s?|scann?e?r?s?\s+for\s+(?:photo|photos|document|documents))\b", text_l))
+        and not bool(re.search(r"\b(?:switch\s+to\s+scann?e?r?s?|i\s+(?:want|need|would\s+like)\s+(?:a\s+)?scann?e?r?s?|buy\s+(?:a\s+)?scann?e?r?s?|looking\s+for\s+(?:a\s+)?scann?e?r?s?)\b", text_l))
     )
     is_explicit_scanner_intent = bool(re.search(
-        r"\b(?:switch\s+to|instead|change\s+to|dedicated\s+scanner|standalone\s+scanner|i\s+need\s+a\s+scanner|i\s+want\s+a\s+scanner|buy\s+a\s+scanner|looking\s+for\s+a\s+scanner|show\s+me\s+scanners?)\b",
+        r"\b(?:switch\s+to|instead|change\s+to|dedicated\s+scann?e?r?s?|standalone\s+scann?e?r?s?|i\s+(?:need|want|would\s+like|am\s+looking\s+for)\s+(?:a\s+)?scann?e?r?s?|buy\s+(?:a\s+)?scann?e?r?s?|looking\s+for\s+(?:a\s+)?scann?e?r?s?|show\s+me\s+scann?e?r?s?|scann?e?r?s?\s+for\s+(?:photo|photos|document|documents|business)|photo\s+scann?e?r?s?|document\s+scann?e?r?s?|flatbed\s+scann?e?r?s?|sheetfed\s+scann?e?r?s?|portable\s+scann?e?r?s?)\b",
         text_l
     ))
     is_answering_printer_scanner = (
@@ -136,7 +136,7 @@ def normalize_category(raw_text: str, current_category: Optional[str] = None) ->
     )
 
     if not scanner_negated and (has_scanner_model or (
-        bool(re.search(r"\b(?:scanners?|photo\s+scanner|document\s+scanner|flatbed\s+scanner|sheetfed\s+scanner|portable\s+scanner|handheld\s+scanner|expression\s+scanner)\b", text_l))
+        bool(re.search(r"\b(?:scann?e?r?s?|photo\s+scann?e?r?s?|document\s+scann?e?r?s?|business\s+scann?e?r?s?|flatbed\s+scann?e?r?s?|sheetfed\s+scann?e?r?s?|portable\s+scann?e?r?s?|handheld\s+scann?e?r?s?|expression\s+scann?e?r?s?)\b", text_l))
         and (not is_printer_with_scanner or is_explicit_scanner_intent)
         and not is_answering_printer_scanner
     ) or (
