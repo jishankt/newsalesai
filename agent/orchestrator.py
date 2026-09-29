@@ -2613,7 +2613,7 @@ class Orchestrator:
 
             p_name = ""
             if mentioned_products:
-                p_name = mentioned_products[0]["display_name"]
+                p_name = mentioned_products[0].get("display_name") or mentioned_products[0].get("name") or mentioned_products[0].get("id", "")
             elif state.active_product:
                 p_name = state.active_product.get("display_name") or state.active_product.get("name")
             elif prev_active_product:
@@ -2626,6 +2626,16 @@ class Orchestrator:
                     state.active_product = cand
             elif state.active_printer_for_consumables:
                 p_name = state.active_printer_for_consumables
+            elif getattr(state, "compared_product_ids", None) and state.compared_product_ids:
+                cand = catalogue_loader.get_by_id(state.compared_product_ids[0])
+                if cand:
+                    p_name = cand.get("display_name") or cand.get("name")
+                    state.active_product = cand
+            elif getattr(state, "displayed_product_ids", None) and state.displayed_product_ids:
+                cand = catalogue_loader.get_by_id(state.displayed_product_ids[0])
+                if cand:
+                    p_name = cand.get("display_name") or cand.get("name")
+                    state.active_product = cand
             else:
                 m_match = re.search(r"\b(?:sc[-\s]?)?(?:[tpf]\d{3,5}(?:[a-z]{1,4})?|cx[-\s]?02w?|cy[-\s]?02|cz[-\s]?01|am[-\s]?c\d{3,4}|wf[-\s]?c\d{3,5}(?:[a-z]{1,4})?|em[-\s]?c\d{3,4}|f100|f500)\b", normalized_msg.lower())
                 if m_match:

@@ -1,15 +1,15 @@
 [
   {
     "test_name": "TEST 1: Continuity & Anaphoric Reference Resolution ('it', 'this machine', memory recall)",
-    "session_id": "test-cont-1790139808",
+    "session_id": "test-cont-1790675409",
     "turns": [
       {
         "turn": 1,
         "user": "I need Epson SureColor SC-P6500D",
         "agent": "Product & Catalog Specialist",
         "route": "route:model_detail",
-        "elapsed": 52.78531622886658,
-        "reply": "The Epson SureColor SC-P6500D is a dedicated print-only model with a maximum print width of 24 inches. It supports continuous dual-roll commercial photo & poster production using 350ml and 700ml ink tanks. The printer handles various media types including Glossy, Semi-Gloss, Luster, Matte, Baryta, and Fine Art museum canvas.\n\n*(Verified from official catalogue: LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf)*",
+        "elapsed": 23.78621768951416,
+        "reply": "The Epson SureColor SC-P6500D is a dedicated print-only model designed for Photography and Fine Art, specifically for Photo 24 Professional use. It supports dual-roll media switching with automatic switching between two rolls, making it ideal for continuous commercial photo and poster production.\n\n\u2022 **Maximum Print Width:** 24 inches\n\u2022 **Paper Formats:** Supports 24-inch wide paper formats.\n\u2022 **Dual Roll:** Automatic dual-roll media switching is supported.\n\u2022 **Yield & Capacity:** Equipped with 350ml and 700ml ink tanks for continuous production.\n\u2022 **Finishing & Pattern:** Capable of printing on various media types including glossy, semi-gloss, luster, matte, baryta, and fine art museum canvas. It also features zero black-ink switching and automated PrecisionCore nozzle check diagnostic patterns.\n\n*(Verified from official catalogue: LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf)*\n\nIf you have any specific requirements or need further details on this model, feel free to let me know!",
         "cards": [
           "Epson SureColor SC-P6500D"
         ],
@@ -23,15 +23,14 @@
         "user": "does it support wifi?",
         "agent": "Product & Catalog Specialist",
         "route": "route:product_spec_attribute",
-        "elapsed": 28.95432758331299,
-        "reply": "The Epson SureColor SC-P6500D includes full network connectivity, featuring SuperSpeed USB 3.0, Gigabit Ethernet (1000Base-T), and Wi-Fi (IEEE 802.11b/g/n) with Wi-Fi Direct.",
+        "elapsed": 19.205054759979248,
+        "reply": "Wi-Fi connectivity is not listed in the verified catalogue specifications for the Epson SureColor SC-P6500D and is unknown.",
         "cards": [
           "Epson SureColor SC-P6500D"
         ],
         "chips": [
           "View Technical Specifications",
-          "Compatible Consumables",
-          "Request Official Quote"
+          "Compatible Consumables"
         ]
       },
       {
@@ -39,8 +38,8 @@
         "user": "what ink does this machine use?",
         "agent": "Front Desk / Receptionist",
         "route": "route:consumables",
-        "elapsed": 35.92845129966736,
-        "reply": "The Epson SureColor SC-P6500D uses the following inks:\n\n- UltraChrome Pro 6 Photo Black Ink (SKU: C13T48M100)\n- UltraChrome Pro 6 Cyan Ink (SKU: C13T48M200)\n- UltraChrome Pro 6 Magenta Ink (SKU: C13T48M300)\n- UltraChrome Pro 6 Yellow Ink (SKU: C13T48M400)\n- UltraChrome Pro 6 Matte Black Ink (SKU: C13T48M800)\n- UltraChrome Pro 6 Gray Ink (SKU: C13T48ME00)",
+        "elapsed": 3.6404478549957275,
+        "reply": "Certainly! Here are the verified inks and media compatible with **Epson SureColor SC-P6500D**:\n\n\u2022 **[Epson Singlepack UltraChrome Pro 6 Photo Black Ink](https://www.keplertechllc.com/product/c13t48m100-epson-singlepack-photo-black-ink/)** (SKU: `C13T48M100`)\n\u2022 **[Epson Singlepack UltraChrome Pro 6 Cyan Ink](https://www.keplertechllc.com/product/c13t48m200-singlepack-cyan-700ml-ink/)** (SKU: `C13T48M200`)\n\u2022 **[Epson Singlepack UltraChrome Pro 6 Magenta Ink](https://www.keplertechllc.com/product/c13t48m300-epson-singlepack-ultrachrome-pro-6-magenta-ink/)** (SKU: `C13T48M300`)\n\u2022 **[Epson Singlepack UltraChrome Pro 6 Yellow Ink](https://www.keplertechllc.com/product/c13t48m400-epson-singlepack-yellow-ink/)** (SKU: `C13T48M400`)\n\u2022 **[Epson Singlepack UltraChrome Pro 6 Matte Black Ink](https://www.keplertechllc.com/product/c13t48m800-epson-singlepack-matte-black-ink/)** (SKU: `C13T48M800`)\n\u2022 **[Epson Singlepack UltraChrome Pro 6 Gray Ink](https://www.keplertechllc.com/product/c13t48me00-epson-singlepack-gray-ink/)** (SKU: `C13T48ME00`)",
         "cards": [],
         "chips": [
           "Order Consumables",
@@ -52,8 +51,8 @@
         "user": "the last time I told one printer which one?",
         "agent": "Product & Catalog Specialist",
         "route": "route:conversational_memory_recall",
-        "elapsed": 24.997711896896362,
-        "reply": "The model you previously inquired about is the Epson SureColor SC-P6500D.",
+        "elapsed": 22.49456214904785,
+        "reply": "The model you previously inquired about is the **Epson SureColor SC-P6500D**!",
         "cards": [
           "Epson SureColor SC-P6500D"
         ],
@@ -67,15 +66,15 @@
   },
   {
     "test_name": "TEST 2: Category Switching (Scanner -> Printer discovery)",
-    "session_id": "test-switch-cat-1790139808",
+    "session_id": "test-switch-cat-1790675409",
     "turns": [
       {
         "turn": 1,
         "user": "i need scanner",
         "agent": "Front Desk / Receptionist",
         "route": "qualification:next_question",
-        "elapsed": 10.545865058898926,
-        "reply": "What type of scanner do you need\u2014high-speed business document scanner, high-resolution photo & film scanner, or a versatile hybrid model with both a flatbed and ADF?",
+        "elapsed": 11.409669160842896,
+        "reply": "To better assist you, what type of scanner do you need\u2014high-speed business document scanner, high-resolution photo & film scanner, or a versatile hybrid model with both a flatbed and ADF?",
         "cards": [],
         "chips": [
           "Business Documents",
@@ -88,8 +87,8 @@
         "user": "both",
         "agent": "Product & Catalog Specialist",
         "route": "recommendation:catalogue_list",
-        "elapsed": 14.774144172668457,
-        "reply": "Based on your requirements, here are our recommended hybrid flatbed & ADF scanners:\n\n\u2022 Epson WorkForce WF DS-1630 Flatbed Color Document Scanner\n\u2022 Epson WorkForce WF DS-1660W Wi-Fi Flatbed Color Scanner\n\u2022 Epson WorkForce WF DS-6500 Color Document Scanner\n\nThese models include both a flatbed and an ADF, suitable for scanning books, photos, and document stacks.",
+        "elapsed": 0.09324121475219727,
+        "reply": "Based on your requirements, here are our recommended hybrid flatbed & ADF scanners:\n\n\u2022 **Epson WorkForce WF DS-1630 Flatbed Color Document Scanner**\n\u2022 **Epson WorkForce WF DS-1660W Wi-Fi Flatbed Color Scanner**\n\u2022 **Epson WorkForce WF DS-6500 Color Document Scanner**\n\u2022 **Epson WorkForce WF DS-6500N Color Document Scanner**",
         "cards": [
           "Epson WorkForce WF DS-1630 Flatbed Color Document Scanner",
           "Epson WorkForce WF DS-1660W Wi-Fi Flatbed Color Scanner",
@@ -113,8 +112,8 @@
         "user": "i want to buy a printer",
         "agent": "Front Desk / Receptionist",
         "route": "qualification:category_prompt",
-        "elapsed": 5.9271628856658936,
-        "reply": "What will you primarily print or scan\u2014technical CAD drawings, office & business documents, professional photographs, sublimation merchandise (like mugs & T-shirts), or event photos?",
+        "elapsed": 7.539892196655273,
+        "reply": "To help narrow down the best printer for your needs, could you please let me know what you will primarily be printing or scanning\u2014technical CAD drawings, office and business documents, professional photographs, sublimation merchandise like mugs and T-shirts, or event photos?",
         "cards": [],
         "chips": [
           "Office & Business Documents (A3 / A4)",
@@ -129,15 +128,15 @@
   },
   {
     "test_name": "TEST 3: Product & Consumable Switching ('what about P900')",
-    "session_id": "test-switch-prod-1790139808",
+    "session_id": "test-switch-prod-1790675409",
     "turns": [
       {
         "turn": 1,
         "user": "i need consumable for f100",
         "agent": "Front Desk / Receptionist",
         "route": "route:consumables",
-        "elapsed": 31.61756157875061,
-        "reply": "Here are the verified consumables for the Epson SureColor SC-F100:\n\n- **Epson Dye Sublimation Black Ink** (SKU: C13T49N100): AED 110.00 (Excl. VAT)\n- **Epson Dye Sublimation Cyan Ink** (SKU: C13T49N200): AED 110.00 (Excl. VAT)\n- **Epson Dye Sublimation Magenta Ink** (SKU: C13T49N300): AED 110.00 (Excl. VAT)\n- **Epson Dye Sublimation Yellow Ink** (SKU: C13T49N400): AED 110.00 (Excl. VAT)\n- **Epson Maintenance Box** (SKU: C13S210125): AED 210.00 (Excl. VAT)",
+        "elapsed": 5.2966907024383545,
+        "reply": "Certainly! Here are the verified inks and media compatible with **Epson SureColor SC-F100**:\n\n\u2022 **[Epson Dye Sublimation Black Ink](https://www.keplertechllc.com/product/epson-dye-sublimation-black-t49n100-ink/)** (SKU: `C13T49N100`)\n\u2022 **[Epson Dye Sublimation Cyan Ink](https://www.keplertechllc.com/product/c13t49n200-epson-dye-sublimation-cyan-ink/)** (SKU: `C13T49N200`)\n\u2022 **[Epson Dye Sublimation Magenta Ink](https://www.keplertechllc.com/product/epson-dye-sublimation-magenta-t49n300-ink/)** (SKU: `C13T49N300`)\n\u2022 **[Epson Dye Sublimation Yellow Ink](https://www.keplertechllc.com/product/c13t49n400-epson-dye-sublimation-yellow-ink/)** (SKU: `C13T49N400`)\n\u2022 **[Epson Maintenance Box](https://www.keplertechllc.com/product/c13s210125-epson-maintenance-box/)** (SKU: `C13S210125`)",
         "cards": [],
         "chips": [
           "Order Consumables",
@@ -149,7 +148,7 @@
         "user": "what about p900",
         "agent": "Product & Catalog Specialist",
         "route": "route:product_or_consumable_disambiguation",
-        "elapsed": 11.659879446029663,
+        "elapsed": 0.07350802421569824,
         "reply": "I'd be happy to help with the **Epson SureColor SC-P900**! Just to ensure I give you the exact details you need\u2014are you looking to purchase the **Epson SureColor SC-P900 printer itself**, or do you need **compatible consumables (inks & media)** for this model?",
         "cards": [],
         "chips": [
@@ -161,15 +160,15 @@
   },
   {
     "test_name": "TEST 4: Out-of-Catalogue Inquiry (Canon TM-300 vs TX-3100)",
-    "session_id": "test-out-of-cat-1790139808",
+    "session_id": "test-out-of-cat-1790675409",
     "turns": [
       {
         "turn": 1,
         "user": "Can someone help me choose between TM-300 and TX-3100?",
         "agent": "Front Desk / Receptionist",
         "route": "qualification:category_prompt",
-        "elapsed": 12.581647157669067,
-        "reply": "To help you choose between the TM-300 and TX-3100, it would be useful to know what you will primarily print or scan\u2014technical CAD drawings, office & business documents, professional photographs, professional scanners, sublimation merchandise (mugs & T-shirts), or event photos?",
+        "elapsed": 13.43550705909729,
+        "reply": "To help you choose between the TM-300 and TX-3100, it would be useful to know what you will primarily print or scan\u2014technical CAD drawings, office & business documents, professional photographs, professional scanners, sublimation merchandise (mugs & T-shirts), or event photos? This information can guide us in selecting the best option for your specific needs.",
         "cards": [],
         "chips": [
           "Office & Business Documents (A3 / A4)",

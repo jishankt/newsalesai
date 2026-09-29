@@ -3,10 +3,10 @@
     "category": "High Volume Production Recommendation",
     "question": "sorry i i have 3000 print per day, what you suggest?",
     "success": true,
-    "elapsed": 12.785832405090332,
+    "elapsed": 13.875253915786743,
     "agent": "Front Desk / Receptionist",
     "route": "qualification:category_prompt",
-    "reply": "Given your daily volume of 3000 prints, we need to ensure the printer can handle that workload efficiently. Could you let me know what you will primarily print or scan\u2014technical CAD drawings, office & business documents, professional photographs, sublimation merchandise (mugs & T-shirts), or event photos?",
+    "reply": "Given that you need to handle 3000 prints per day, it's important to choose a printer that can manage high-volume output efficiently. To provide the best recommendation, could you please specify what type of content you will primarily be printing or scanning\u2014technical CAD drawings, office & business documents, professional photographs, sublimation merchandise (mugs & T-shirts), or event photos?",
     "cards": [],
     "consumables": [],
     "chips": [
@@ -22,10 +22,10 @@
     "category": "Office Printing Discovery",
     "question": "i am looking for an office printer",
     "success": true,
-    "elapsed": 9.037378787994385,
+    "elapsed": 10.47870659828186,
     "agent": "Front Desk / Receptionist",
     "route": "qualification:next_question",
-    "reply": "What maximum document size do you need\u2014standard A4 or large A3?",
+    "reply": "For an office printer, we can recommend several models depending on your specific needs. What maximum document size do you need\u2014standard A4 or large A3? This will help us narrow down the best options for you.",
     "cards": [],
     "consumables": [],
     "chips": [
@@ -37,10 +37,10 @@
     "category": "Scanner Ingestion & Category Routing",
     "question": "i need scanner",
     "success": true,
-    "elapsed": 9.748443841934204,
+    "elapsed": 10.485337734222412,
     "agent": "Front Desk / Receptionist",
     "route": "qualification:next_question",
-    "reply": "What type of scanner do you need\u2014high-speed business document scanner, high-resolution photo & film scanner, or a versatile hybrid model with both a flatbed and ADF?",
+    "reply": "To better assist you, what type of scanner do you need\u2014high-speed business document scanner, high-resolution photo & film scanner, or a versatile hybrid model with both a flatbed and ADF?",
     "cards": [],
     "consumables": [],
     "chips": [
@@ -53,10 +53,10 @@
     "category": "Direct Model Comparison",
     "question": "Compare SC-T5100M and SC-T5700DM",
     "success": true,
-    "elapsed": 70.55692148208618,
+    "elapsed": 0.07228446006774902,
     "agent": "Technical RAG & Comparison",
     "route": "route:comparison",
-    "reply": "Here is a side-by-side comparison of the **Epson SureColor SC-T5700DM** and **Epson SureColor SC-T5100M** to help you select the ideal model for your workflow, both from the same product subcategory.\n\n| Specification | Epson SureColor SC-T5700DM | Epson SureColor SC-T5100M |\n| :--- | :--- | :--- |\n| **Model** | Epson SureColor SC-T5700DM | Epson SureColor SC-T5100M |\n| **Functions & Integrated Features** | Print, Scan, Copy (Integrated 36\u2033 Scanner, Integrated Dual-Roll Media) | Print, Scan, Copy (Integrated 36\u2033 Scanner) |\n| **Print Speed** | 16 sec / A1 CAD drawing; Scan: 10 ips colour / 10 ips mono | 31 sec / A1 CAD drawing; Scan: 1.5 ips colour / 4.5 ips mono |\n| **Print Resolution (DPI)** | 2,400 \u00d7 1,200 DPI (Print) / 600 DPI (Scan) | 2,400 \u00d7 1,200 DPI (Print) / 600 DPI (Scan) |\n| **Colour Specification & Ink Tech** | Epson UltraChrome XD3 Pigment Inks with Chromatic Red | Epson UltraChrome XD2 All-Pigment Inks |\n| **Total Colours** | 6 Colours (Matte Black, Photo Black, Cyan, Magenta, Yellow, Red) | 4 Colours (Matte Black, Cyan, Magenta, Yellow) |\n| **Cartridge Sizes / Capacities** | 350ml and 700ml Tanks | 26ml, 50ml, and 80ml Cartridges |\n| **Consumable Volume & Page Yield** | Over 2,500 A1 CAD drawings per 700ml set | Approx. 120\u2013200 A1 CAD drawings per black cartridge |\n| **Memory & Storage** | 4,096 MB (4 GB) RAM + 960 GB SSD | 1,024 MB (1 GB) RAM |\n| **Maximum Output Size** | 36-inch / 36-INCH | 36-inch / 36-INCH |\n| **Main Category** | Technical Large Format | Technical Large Format |\n| **Subcategory** | Technical 36 Multifunction | Technical 36 Multifunction |\n| **Primary Applications** | Production Cad Mfp, Dual Roll Scanning, Enterprise Aec | Cad, Blueprint Scanning, Copying Technical Drawings, Aec |\n| **Key Selling Points** | Multifunction: print, scan, copy; Dual-roll automatic media switching; SureColor T \u2014 CAD/GIS technical plotting | Multifunction: print, scan, copy; SureColor T \u2014 CAD/GIS technical plotting |\n| **Maximum Print Width** | 36 inches | 36 inches |\n| **Integrated Scanner** | Yes \u2014 integrated flatbed scanner | Yes \u2014 integrated flatbed scanner |\n| **Dual-Roll Media** | Yes \u2014 automatic dual-roll switching | No \u2014 single roll |\n| **CAD / GIS / AEC Applications** | Not verified in the approved catalogue. | Cad, Aec |\n| **Colour Mode** | Colour | Colour |\n| **Supported Output Sizes** | 36-inch, 24-inch, A0, A1, A2, A3, A4 | 36-inch, 24-inch, A0, A1, A2, A3, A4 |",
+    "reply": "Here is a side-by-side comparison of the **Epson SureColor SC-T5700DM** and **Epson SureColor SC-T5100M** to help you select the ideal model for your workflow, both from the same product category.\n\n| Specification | Epson SureColor SC-T5700DM | Epson SureColor SC-T5100M |\n| :--- | :--- | :--- |\n| **Model** | Epson SureColor SC-T5700DM | Epson SureColor SC-T5100M |\n| **Functions & Integrated Features** | Print, Scan, Copy (Integrated 36\u2033 Scanner, Integrated Dual-Roll Media) | Print, Scan, Copy (Integrated 36\u2033 Scanner) |\n| **Print Speed** | 16 sec / A1 CAD drawing; Scan: integrated 36\u2033 dual-light CIS scanner | 31 sec / A1 CAD drawing; Scan: 1.5 ips colour / 4.5 ips mono at 200 DPI |\n| **Print Resolution (DPI)** | 2,400 \u00d7 1,200 DPI (Print) / 600 DPI (Scan) | 2,400 \u00d7 1,200 DPI (Print) / 600 DPI (Scan) |\n| **Colour Specification & Ink Tech** | Epson UltraChrome XD3 Pigment Inks with Chromatic Red | Epson UltraChrome XD2 All-Pigment Inks |\n| **Total Colours** | 6 Colours (Matte Black, Photo Black, Cyan, Magenta, Yellow, Red) | 4 Colours (Matte Black, Cyan, Magenta, Yellow) |\n| **Cartridge Sizes / Capacities** | 350ml and 700ml Tanks | 26ml, 50ml, and 80ml Cartridges |\n| **Consumable Volume & Page Yield** | Over 2,500 A1 CAD drawings per 700ml set | Approx. 120\u2013200 A1 CAD drawings per black cartridge |\n| **Memory & Storage** | 4,096 MB (4 GB) RAM + 960 GB SSD | 1,024 MB (1 GB) RAM |\n| **Maximum Output Size** | 36-inch / 36-INCH | 36-inch / 36-INCH |\n| **Main Category** | Technical Large Format | Technical Large Format |\n| **Primary Applications** | Production Cad Mfp, Dual Roll Scanning, Enterprise Aec | Cad, Blueprint Scanning, Copying Technical Drawings, Aec |\n| **Key Selling Points** | Multifunction: print, scan, copy; Dual-roll automatic media switching; SureColor T \u2014 CAD/GIS technical plotting | Multifunction: print, scan, copy; SureColor T \u2014 CAD/GIS technical plotting |\n| **Maximum Print Width** | 36 inches | 36 inches |\n| **Integrated Scanner** | Yes \u2014 integrated flatbed scanner | Yes \u2014 integrated flatbed scanner |\n| **Dual-Roll Media** | Yes \u2014 automatic dual-roll switching | No \u2014 single roll |\n| **CAD / GIS / AEC Applications** | Not verified in the approved catalogue. | Cad, Aec |\n| **Colour Mode** | Colour | Colour |\n| **Supported Output Sizes** | 36-inch, 24-inch, A0, A1, A2, A3, A4 | 36-inch, 24-inch, A0, A1, A2, A3, A4 |",
     "cards": [
       "Epson SureColor SC-T5700DM",
       "Epson SureColor SC-T5100M"
@@ -71,10 +71,10 @@
     "category": "Specific Model Ingestion & Specs",
     "question": "I need Epson SureColor SC-P6500D",
     "success": true,
-    "elapsed": 38.659618616104126,
+    "elapsed": 20.97761058807373,
     "agent": "Product & Catalog Specialist",
     "route": "route:model_detail",
-    "reply": "The Epson SureColor SC-P6500D is a dedicated print-only model with a maximum print width of 24 inches. It supports continuous dual-roll commercial photo & poster production using 350ml and 700ml ink tanks. The printer handles various media types including Glossy, Semi-Gloss, Luster, Matte, Baryta, and Fine Art museum canvas.\n\n*(Verified from official catalogue: LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf)*",
+    "reply": "The Epson SureColor SC-P6500D is a dedicated print-only model designed for Photography and Fine Art, specifically the Photo 24 Professional category. It supports a maximum print width of 24 inches and can handle various paper formats including glossy, semi-gloss, luster, matte, baryta, and fine art museum canvas media.\n\nThe SC-P6500D features automatic dual-roll media switching with continuous feed capability, using 350ml and 700ml ink tanks for high-volume commercial photo and poster production. It also includes zero black-ink switching and an automated PrecisionCore nozzle check diagnostic pattern to ensure consistent print quality.\n\n*(Verified from official catalogue: LARGE FORMAT PRINTERS FOR PHOTOGRAPHY_CATALOG.pdf)*",
     "cards": [
       "Epson SureColor SC-P6500D"
     ],
@@ -88,31 +88,27 @@
     "category": "Consumables & Cartridges",
     "question": "can ii have the replacement cartridges details of AM-C5000",
     "success": true,
-    "elapsed": 35.871066093444824,
-    "agent": "Front Desk / Receptionist",
-    "route": "route:consumables",
-    "reply": "Here are the replacement cartridge details for the Epson WorkForce Enterprise AM-C5000:\n\n- **Epson WorkForce Enterprise Black Ink** (SKU: C13T08G100): AED 220.00 (Excl. VAT)\n- **Epson WorkForce AM-C5000/ C6000 Cyan Ink** (SKU: C13T08G200): AED 220.00 (Excl. VAT)\n- **Epson WorkForce Enterprise Magenta Ink** (SKU: C13T08G300): AED 220.00 (Excl. VAT)\n- **Epson WorkForce AM-C5000/6000 Yellow Ink** (SKU: C13T08G400): AED 220.00 (Excl. VAT)\n- **Epson Maintenance Box (AM-C4000/C5000/C6000) - C12C937181**: AED 180.00 (Excl. VAT)\n\nLet me know if you need any more information!",
-    "cards": [],
-    "consumables": [
-      "C13T08G100 Epson WorkForce Enterprise Black Ink",
-      "C13T08G200 Epson WorkForce AM-C5000/ C6000 Cyan Ink",
-      "C13T08G300 Epson WorkForce Enterprise Magenta Ink",
-      "C13T08G400 Epson WorkForce AM-C5000/6000 Yellow Ink",
-      "Epson Maintenance Box (AM-C4000/C5000/C6000) - C12C937181"
+    "elapsed": 5.516347408294678,
+    "agent": "Product & Catalog Specialist",
+    "route": "route:product_spec_attribute:detailed",
+    "reply": "Here are the verified specifications and product details for **[Epson WorkForce Enterprise AM-C5000](https://www.keplertechllc.com/product/epson-workforce-enterprise-am-c5000-printer/)** from Kepler Tech LLC:\n\n**Overview:** \n\n**Verified Technical Specifications:**\n\u2022 **Technology:** PrecisionCore Heat-Free Enterprise Linehead Inkjet\n\u2022 **Print / Copy Speed:** 50 ISO ppm black / 50 ISO ppm colour\n\u2022 **Supported Media Sizes:** 13.0 inches\n\u2022 **Resolution:** 300 \u00d7 600 dpi\n\u2022 **Weight / Build:** 124.3 kg (base unit net weight)\n\u2022 **Consumables:** Genuine high-capacity supplies available (see cards below)",
+    "cards": [
+      "Epson WorkForce Enterprise AM-C5000"
     ],
+    "consumables": [],
     "chips": [
-      "Order Consumables",
-      "View Printer Specifications"
+      "View Compatible Consumables",
+      "Compare with Another Model"
     ]
   },
   {
     "category": "Dimension & Form Factor Query",
     "question": "looking for 36\" one",
     "success": true,
-    "elapsed": 13.53381609916687,
+    "elapsed": 12.171576261520386,
     "agent": "Front Desk / Receptionist",
     "route": "qualification:category_prompt",
-    "reply": "You're looking for a printer that can handle 36\" prints, which is perfect for A0-sized projects. To better assist you, could you let me know what you'll primarily be printing or scanning\u2014technical CAD drawings, office & business documents, professional photographs, sublimation merchandise (like mugs & T-shirts), or event photos?",
+    "reply": "We have commercial printing solutions that support a 36\" print width, which is ideal for A0-sized papers. Could you let me know what you will primarily be printing or scanning\u2014technical CAD drawings, office & business documents, professional photographs, sublimation merchandise (mugs & T-shirts), or event photos?",
     "cards": [],
     "consumables": [],
     "chips": [
@@ -128,10 +124,10 @@
     "category": "Multi-Part Technical Query",
     "question": "does SC-T5700DM have scanner, can it print A0 and what ink does it use?",
     "success": true,
-    "elapsed": 22.26167893409729,
+    "elapsed": 7.4909422397613525,
     "agent": "Product & Catalog Specialist",
     "route": "route:product_spec_attribute",
-    "reply": "The Epson SureColor SC-T5700DM includes an integrated large-format scanner and supports print widths up to 36 inches, which covers A0 size. It uses genuine Epson UltraChrome archival pigment inks.",
+    "reply": "Here is the verified information for the **Epson SureColor SC-T5700DM**:\n\n\u2022 **Integrated Scanner:** Yes, the **Epson SureColor SC-T5700DM** includes integrated large-format scanning and copying.\n\u2022 **Maximum print width:** 36.0 inches.\n\u2022 **Inks & Cartridges:** The Epson SureColor SC-T5700DM uses Epson UltraChrome XD3 Pigment Inks with Chromatic Red (compatible SKUs: C13T50M100, C13T50M200, C13T50M300, C13T50M400, C13T50M800, C13T50MF00).",
     "cards": [
       "Epson SureColor SC-T5700DM"
     ],
@@ -142,14 +138,16 @@
       "C13T50M400 Epson Singlepack UltraChrome XD3 Yellow Ink",
       "C13T50M800 Epson Singlepack UltraChrome XD3 Matte Black Ink",
       "C13T50MF00 Epson Singlepack UltraChrome XD3 Red Ink",
-      "C13S041387 Epson Double Weight Matte Paper Roll 44\"x25M",
-      "C13S041597 Epson Enhanced Matte Paper 44\"X30.5M",
-      "C13S210115 Epson Maintenance Box (Tx700/Px500)",
-      "C13S210116 Epson Borderless Maintenance Box"
+      "C13T50U100 Epson Singlepack UltraChrome XD3 Photo Black Ink",
+      "C13T50U200 Epson Singlepack UltraChrome XD3 Cyan Ink",
+      "C13T50U300 Epson Singlepack UltraChrome XD3 Magenta Ink",
+      "C13T50U400 Epson Singlepack UltraChrome XD3 Yellow Ink",
+      "C13T50U80N Epson Singlepack UltraChrome XD3 Matte Black Ink",
+      "C13T50UF00 Epson Singlepack UltraChrome XD3 Red Ink"
     ],
     "chips": [
       "View Compatible Consumables",
-      "Request Official Quote"
+      "View Technical Specifications"
     ]
   }
 ]
