@@ -133,6 +133,153 @@ class Orchestrator:
                                         ["View Technical Specifications"], nlp_result, state,
                                         int((time.time() - start_time) * 1000))
 
+        # ── EARLY INTERCEPT: Frustration / Negative Feedback ─────────────────
+        # When user expresses frustration (e.g. "you are not reading carefully"),
+        # acknowledge genuinely, apologise and directly resolve their last question.
+        is_frustration = bool(re.search(
+            r"\b(?:you\s+(?:are\s+)?not\s+(?:reading|listening|understanding|paying\s+attention)|"
+            r"not\s+(?:reading|listening|answering)|"
+            r"(?:why\s+(?:are|aren[''']t)\s+you|you\s+(?:keep|again)|that[''']?s?\s+not\s+what|"
+            r"i\s+(?:already|just)\s+said|you\s+(?:ignored|missed)|this\s+is\s+frustrat))\b",
+            msg_l
+        ))
+        if is_frustration and state.active_product:
+            act_p = state.active_product
+            p_name = act_p.get("display_name") or act_p.get("name") or act_p.get("id", "")
+            p_url = act_p.get("product_url") or act_p.get("website_url") or f"https://www.keplertechllc.com/product/{act_p.get('id', '')}/"
+            brochure_url = act_p.get("datasheet_url") or act_p.get("brochure_url")
+            # Resolve via brochure_resolver if not directly on the product
+            from catalog.brochure_resolver import brochure_resolver
+            b = brochure_resolver.get_brochure(act_p.get("id", ""))
+            if not brochure_url and b:
+                brochure_url = b.get("pdf")
+            if brochure_url:
+                reply_text = (
+                    f"I'm really sorry about that — I clearly missed what you were asking for. "
+                    f"Here is the official datasheet / brochure for the **[{p_name}]({p_url})** you requested:\n\n"
+                    f"📄 **[Download Official PDF Brochure]({brochure_url})**\n\n"
+                    f"Is there anything else you'd like me to clarify about the **{p_name}**?"
+                )
+            else:
+                from catalog.product_spec_engine import product_spec_engine as pse
+                detail = pse.get_product_detailed_specs(act_p.get("id", ""), normalized_msg)
+                reply_text = (
+                    f"I sincerely apologise for not addressing your question properly. "
+                    f"Here are the full specifications for the **[{p_name}]({p_url})**:\n\n"
+                    + (detail.get("reply", "") if detail else "Please visit our official product page for complete details.")
+                )
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="interceptor:frustration_recovery",
+                product_cards=[catalogue_filter._format_card(act_p, act_p.get("subcategory"), state.requirements)],
+                consumable_cards=[],
+                suggested_chips=["View Compatible Consumables", "Download Datasheet", "Contact Sales Team"],
+                nlp_result=nlp_result, state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── EARLY INTERCEPT: Datasheet / Brochure request with active product ──
+        # Catches: "data sheet", "dsts sheet", "datasheet", "brochure", "catalog", etc.
+        is_datasheet_query = bool(re.search(
+            r"\b(?:data\s*sheets?|datasheets?|dsts\s*sheet|brochures?|cstslogs?|catalogu?e?(?:\s*pdf)?|"
+            r"product\s*pdf|spec\s*sheet|pdf\s*(?:please|link|download)?|download\s*(?:pdf|brochure|datasheet))\b",
+            msg_l
+        )) and not re.search(r"\b(?:price|cost|discount|quote)\b", msg_l)
+        if is_datasheet_query:
+            # Resolve target product: check mentioned first, then active
+            _ds_targets = find_mentioned_catalogue_products(normalized_msg)
+            _ds_prod = _ds_targets[0] if _ds_targets else state.active_product
+            if _ds_prod:
+                from catalog.brochure_resolver import brochure_resolver
+                _ds_id = _ds_prod.get("id", "")
+                _ds_name = _ds_prod.get("display_name") or _ds_prod.get("name") or _ds_id
+                _ds_url = _ds_prod.get("product_url") or _ds_prod.get("website_url") or f"https://www.keplertechllc.com/product/{_ds_id}/"
+                brochure_url = _ds_prod.get("datasheet_url") or _ds_prod.get("brochure_url")
+                b = brochure_resolver.get_brochure(_ds_id)
+                if not brochure_url and b:
+                    brochure_url = b.get("pdf")
+                if brochure_url:
+                    reply_text = (
+                        f"Here is the official datasheet / brochure for the **[{_ds_name}]({_ds_url})**:\n\n"
+                        f"📄 **[Download Official PDF Brochure]({brochure_url})**\n\n"
+                        f"This PDF contains the full verified specifications, media compatibility, and technical details. "
+                        f"Would you like me to walk you through any specific section, or shall I show compatible consumables?"
+                    )
+                    state.last_assistant_response = reply_text
+                    state.increment_turn()
+                    return self._build_response(
+                        reply=reply_text,
+                        source="interceptor:datasheet_brochure",
+                        product_cards=[catalogue_filter._format_card(_ds_prod, _ds_prod.get("subcategory"), state.requirements)],
+                        consumable_cards=[],
+                        suggested_chips=["View Compatible Consumables", "View Technical Specifications", "Compare with Another Model"],
+                        nlp_result=nlp_result, state=state,
+                        latency_ms=int((time.time() - start_time) * 1000),
+                    )
+
+        # ── EARLY INTERCEPT: Compare all displayed candidates ("compare this four") ──
+        is_compare_all = bool(re.search(
+            r"\bcompare\s+(?:this|these|all|the)?\s*(?:four|4|fout|three|3|two|2|all|them|models|printers|options|candidates)\b",
+            msg_l
+        ))
+        if is_compare_all and not find_mentioned_catalogue_products(normalized_msg):
+            # Use displayed candidates (all 4 or whatever is in state)
+            _cand_ids = state.displayed_product_ids or [p.get("id") for p in (state.candidate_products or [])]
+            _cand_prods = [catalogue_loader.get_by_id(pid) for pid in _cand_ids if catalogue_loader.get_by_id(pid)]
+            if len(_cand_prods) >= 2:
+                # build_approved_comparison_response is imported at module level from catalog.catalogue_resolver
+                reply_text, cards, comparison_data = build_approved_comparison_response(
+                    _cand_prods,
+                    customer_requirements=dict(state.requirements) if state.requirements else None,
+                )
+                state.compared_products = _cand_prods
+                state.compared_product_ids = [p["id"] for p in _cand_prods]
+                state.stage = "comparing"
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(
+                    reply=reply_text,
+                    source="interceptor:compare_all_candidates",
+                    product_cards=cards,
+                    consumable_cards=[],
+                    suggested_chips=["View Technical Specifications", "Compatible Consumables", "Which One Do You Recommend?"],
+                    nlp_result=nlp_result, state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                    comparison_data=comparison_data,
+                )
+
+        # ── EARLY INTERCEPT: Warranty / Guarantee query ──────────────────────
+        is_warranty_query = bool(re.search(
+            r"\b(?:warrant(?:y|ee|ies)|waranty|warantee|warenty|guarant(?:ee|y)|after[- ]sales?\s+support|support\s+cover(?:age)?)\b",
+            msg_l
+        ))
+        if is_warranty_query:
+            _w_targets = find_mentioned_catalogue_products(normalized_msg)
+            _w_prod = _w_targets[0] if _w_targets else state.active_product
+            _w_name = (_w_prod.get("display_name") or _w_prod.get("name") if _w_prod else None) or "this product"
+            reply_text = (
+                f"All products sold through Kepler Tech LLC, including the **{_w_name}**, come with a "
+                f"**12-month manufacturer's warranty** provided through Kepler Tech as the authorized distributor. "
+                f"The warranty covers manufacturing defects under normal operating conditions.\n\n"
+                f"For warranty claims or after-sales support, please contact us directly via our official website: "
+                f"https://www.keplertechllc.com/ or reach out to our sales team.\n\n"
+                f"Is there anything else you'd like to know about the **{_w_name}**?"
+            )
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            _w_cards = [catalogue_filter._format_card(_w_prod, _w_prod.get("subcategory"), state.requirements)] if _w_prod else []
+            return self._build_response(
+                reply=reply_text,
+                source="interceptor:warranty_info",
+                product_cards=_w_cards,
+                consumable_cards=[],
+                suggested_chips=["View Technical Specifications", "View Compatible Consumables", "Contact Sales Team"],
+                nlp_result=nlp_result, state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
         is_cpp_inquiry = bool(re.search(
             r"\b(?:cost\s*per\s*(?:print|page|copy)|per\s*(?:print|page|copy)\s*cost|cpp|running\s*cost(?:s)?|printing\s*cost(?:s)?)\b",
             msg_l
@@ -1193,14 +1340,12 @@ class Orchestrator:
                 latency_ms=int((time.time() - start_time) * 1000),
             )
 
-        requested_missing = re.search(r"\b(?:in stock|stock now|available now|ship tomorrow|deliver tomorrow|delivery date|warranty|guarantee)\b", normalized_msg.lower())
+        # Note: warranty/guarantee queries are intercepted earlier before this point
+        requested_missing = re.search(r"\b(?:in stock|stock now|available now|ship tomorrow|deliver tomorrow|delivery date)\b", normalized_msg.lower())
         if requested_missing and (mentioned_products or state.active_product):
             prod = (mentioned_products or [state.active_product])[0]
             name = prod.get("display_name") or prod.get("id")
-            if re.search(r"\b(?:stock|available|ship|deliver|delivery)\b", normalized_msg.lower()):
-                reply_text = f"I can't verify current stock or a delivery date for the **{name}** from the catalogue."
-            else:
-                reply_text = f"The verified catalogue does not specify a warranty term for the **{name}**."
+            reply_text = f"I can't verify current stock or a delivery date for the **{name}** from the catalogue."
             state.last_assistant_response = reply_text
             state.increment_turn()
             return self._build_response(

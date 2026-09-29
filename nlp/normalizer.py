@@ -111,6 +111,21 @@ TYPO_CORRECTIONS: Dict[str, str] = {
     r"\babour\b": "about",
     r"\better\b": "better",
     r"\b0r\b": "or",
+    r"\bso+rry\b": "sorry",
+    r"\bsoory\b": "sorry",
+    r"\bwarantee\b": "warranty",
+    r"\bwarenty\b": "warranty",
+    r"\bwaranty\b": "warranty",
+    r"\bseoratly\b": "separately",
+    r"\bseperatly\b": "separately",
+    r"\bseparatley\b": "separately",
+    r"\bamd\b": "and",
+    r"\bper\s*da\b": "per day",
+    r"\bdsts\s*sheets?\b": "data sheet",
+    r"\bdsts\b": "data sheet",
+    r"\bcstslogs?\b": "catalog",
+    r"\bcstalogs?\b": "catalog",
+    r"\bfout\b": "four",
     r"\bcx[\s\-_]*0?2[\s\-_]*w\b": "CX-02W",
     r"\bcx[\s\-_]*0?2\b": "CX-02",
     r"\bcy[\s\-_]*0?2\b": "CY-02",
@@ -170,6 +185,8 @@ def normalize_text(text: str) -> Dict[str, Any]:
     clean = clean.replace("×", "x")
     # Replace multiple spaces/newlines
     clean = re.sub(r"\s+", " ", clean)
+    # Split glued word-number patterns (e.g. its100 -> its 100, is1000 -> is 1000)
+    clean = re.sub(r"\b(it['’]?s|is|it)(\d+)\b", r"\1 \2", clean, flags=re.IGNORECASE)
 
     applied_corrections: List[str] = []
 

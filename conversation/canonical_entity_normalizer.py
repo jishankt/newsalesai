@@ -41,8 +41,8 @@ class CanonicalEntityNormalizer:
 
     CORRECTION_PATTERN = re.compile(
         r"\b(?:actually|instead|changed my mind|correction|i meant|no scanner needed|"
-        r"sorry|apologies|my bad|my mistake|make that|change to|update to|switch to|"
-        r"rather|incorrect|wrong|not\s+\w+)\b",
+        r"so+rry|soory|apologies|my bad|my mistake|make that|change to|update to|switch to|"
+        r"rather|incorrect|wrong|not\s+\w+|no\b)\b",
         re.IGNORECASE
     )
 
@@ -304,7 +304,8 @@ class CanonicalEntityNormalizer:
         daily_patterns = [
             r"(?:daily\s+volume|volume\s+daily|volume\s+per\s+day|volume\s+is|expect|produce|process|print)\s*(?:is\s+)?(?:approximately|around|about|~|more\s+than)?\s*(\d[\d,\s]*)\s*(?:pages?|drawings?|prints?|photos?|photographs?|plans?|docs?)?\s*(?:per\s*day|a\s*day|every\s*day|daily|/day|per\s*event)",
             r"(\d[\d,\s]*)\s*(?:pages?|drawings?|prints?|photos?|photographs?|plans?|docs?)?\s*(?:per\s*day|a\s*day|every\s*day|daily|/day|per\s*event)",
-            r"(?:around|about|approx|approximately|~|more\s+than)\s*(\d[\d,\s]*)\s*(?:pages?|drawings?|prints?|photos?|photographs?|plans?|docs?)\s*(?:a\s*day|per\s*day|every\s*day|daily|per\s*event)?",
+            r"(?:around|about|approx|approximately|~|more\s+than)\s*(\d[\d,\s]*)\s*(?:pages?|drawings?|prints?|photos?|plans?|docs?)\s*(?:a\s*day|per\s*day|every\s*day|daily|per\s*event)?",
+            r"\b(?:it['’]?s|is|maybe|think\s+it['’]?s|i\s+think\s+it['’]?s|actually|make\s+that)\s*(\d+)\b",
         ]
         for pat in daily_patterns:
             daily_match = re.search(pat, text_l)
@@ -322,8 +323,9 @@ class CanonicalEntityNormalizer:
                 except ValueError:
                     pass
 
-        # 4. Short utterance numeric fallback (e.g. "20")
-        if len(text_l.split()) <= 5:
+        # 4. Short utterance numeric fallback (e.g. "20", "sorry i think its 100")
+        words = text_l.split()
+        if len(words) <= 7 or any(w in text_l for w in ["think", "sorry", "its", "it's", "actually", "around", "maybe", "per"]):
             single_match = re.search(r"\b(\d+)\b", text_l)
             if single_match:
                 try:
