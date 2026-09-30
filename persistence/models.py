@@ -15,6 +15,7 @@ class SessionRecord:
     customer_name: Optional[str] = None
     state_json: str = "{}"
     history_json: str = "[]"
+    version: int = 1
 
 
 @dataclass
@@ -64,7 +65,8 @@ CREATE TABLE IF NOT EXISTS conversation_sessions (
     customer_name TEXT,
     customer_id TEXT,
     state_json TEXT NOT NULL,
-    history_json TEXT NOT NULL
+    history_json TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
 );
 CREATE INDEX IF NOT EXISTS idx_sessions_updated ON conversation_sessions (updated_at);
 

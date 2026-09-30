@@ -173,7 +173,9 @@ class StateManager:
         with self._lock:
             now = time.time()
             existing_history = self._store.get(sid, {}).get("history", [])
-            saved_history = history if history is not None else existing_history
+            from persistence.state_repository import state_repository
+            incoming = history if history is not None else (state.history_turns or [])
+            saved_history = state_repository.merge_histories(existing_history, incoming)
             self._store[sid] = {
                 "state": state,
                 "history": saved_history,
@@ -182,8 +184,7 @@ class StateManager:
 
         # SQLite persistence
         try:
-            from persistence.state_repository import state_repository
-            state_repository.save_session(sid, state, saved_history or state.history_turns)
+            state_repository.save_session(sid, state, saved_history)
         except Exception as e:
             logger.error(f"SQLite save failed for {sid}: {e}")
 
@@ -313,4 +314,60 @@ class StateManager:
 
 
 state_manager = StateManager()
+
+
+class SessionLockManager:
+    """
+    Per-session locking mechanism with lock.acquire(timeout=30).
+    Includes bounded periodic cleanup of idle locks to prevent memory leaks.
+    """
+    def __init__(self, default_timeout: float = 30.0, max_idle_seconds: float = 600.0):
+        self.default_timeout = default_timeout
+        self.max_idle_seconds = max_idle_seconds
+        self._mutex = threading.Lock()
+        self._locks: Dict[str, Dict[str, Any]] = {}
+
+    def acquire(self, session_id: str, timeout: Optional[float] = None) -> bool:
+        t = timeout if timeout is not None else self.default_timeout
+        now = time.time()
+        with self._mutex:
+            self._cleanup_idle_locked(now)
+            if session_id not in self._locks:
+                self._locks[session_id] = {
+                    "lock": threading.Lock(),
+                    "last_active": now,
+                    "active_holders": 0
+                }
+            entry = self._locks[session_id]
+            entry["active_holders"] += 1
+            entry["last_active"] = now
+            lock = entry["lock"]
+
+        acquired = lock.acquire(timeout=t)
+        if not acquired:
+            with self._mutex:
+                entry["active_holders"] = max(0, entry["active_holders"] - 1)
+        return acquired
+
+    def release(self, session_id: str) -> None:
+        with self._mutex:
+            entry = self._locks.get(session_id)
+            if entry:
+                entry["last_active"] = time.time()
+                entry["active_holders"] = max(0, entry["active_holders"] - 1)
+                try:
+                    entry["lock"].release()
+                except RuntimeError:
+                    pass
+
+    def _cleanup_idle_locked(self, now: float) -> None:
+        to_del = [
+            sid for sid, e in self._locks.items()
+            if e["active_holders"] == 0 and (now - e["last_active"]) > self.max_idle_seconds
+        ]
+        for sid in to_del:
+            del self._locks[sid]
+
+
+session_lock_manager = SessionLockManager()
 

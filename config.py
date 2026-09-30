@@ -102,8 +102,9 @@ OLLAMA_MANDATORY_FOR_READY = os.getenv("OLLAMA_MANDATORY_FOR_READY", "False").lo
 
 
 # Advanced Ollama settings for /api/chat methods
+LLM_TIMEOUT_SECONDS = float(os.getenv("LLM_TIMEOUT_SECONDS", "20.0"))
 OLLAMA_CONNECT_TIMEOUT = float(os.getenv("OLLAMA_CONNECT_TIMEOUT", "2.5"))
-OLLAMA_READ_TIMEOUT = float(os.getenv("OLLAMA_READ_TIMEOUT", "30"))
+OLLAMA_READ_TIMEOUT = float(os.getenv("OLLAMA_READ_TIMEOUT", str(LLM_TIMEOUT_SECONDS)))
 OLLAMA_MAX_RETRIES = int(os.getenv("OLLAMA_MAX_RETRIES", "1"))
 raw_keep_alive = os.getenv("OLLAMA_KEEP_ALIVE", "24h").strip()
 OLLAMA_KEEP_ALIVE = -1 if raw_keep_alive in ("-1", "-1s") else raw_keep_alive

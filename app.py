@@ -12,6 +12,7 @@ import time
 import uuid
 import re
 import logging
+import requests
 from config import (
     PORT,
     DEBUG,
@@ -31,6 +32,7 @@ from config import (
     OLLAMA_MANDATORY_FOR_READY,
     RATE_LIMIT_ENABLED,
     TRUSTED_PROXY_COUNT,
+    LLM_TIMEOUT_SECONDS,
 )
 from prompts import build_system_prompt, format_generate_prompt, format_evidence_grounded_prompt
 from guardrails import check_user_intent_for_pricing_or_discount, validate_and_sanitize_response, PRICE_REFUSAL, DISCOUNT_REFUSAL
@@ -39,7 +41,7 @@ from nlp.intent_extractor import analyze_input, INTENT_PRICE, INTENT_DISCOUNT
 from nlp.grounding_validator import validate_grounding
 from nlp.discovery_engine import is_broad_query, get_discovery_question
 from domain.conversation_state import ConversationState
-from domain.state_store import state_manager
+from domain.state_store import state_manager, session_lock_manager
 from agent.orchestrator import orchestrator as new_orchestrator
 from rag.consumables_engine import consumables_engine
 from agents import list_agent_metadata
@@ -331,6 +333,22 @@ def chat():
     session_prefix = session_id[:8] if session_id else "unknown"
     turn_start_time = time.time()
 
+    # Per-session lock around read-state -> process -> save-state critical section
+    acquired = session_lock_manager.acquire(session_id)
+    if not acquired:
+        return jsonify({
+            "success": False,
+            "error": "Still working on your previous message, please wait a moment.",
+            "message": "Still working on your previous message, please wait a moment."
+        }), 429
+
+    try:
+        return _process_chat_turn(raw_message, session_id, model_name, request_id, session_prefix, turn_start_time)
+    finally:
+        session_lock_manager.release(session_id)
+
+
+def _process_chat_turn(raw_message, session_id, model_name, request_id, session_prefix, turn_start_time):
     # 1. NLP Analysis: Normalization, Intent Classification, Entity Extraction
     nlp_result = analyze_input(raw_message)
     normalized_msg = nlp_result["normalized_text"]
@@ -439,13 +457,36 @@ def chat():
         logger.info(f"[{session_prefix}] req_id={request_id} incoming_chat intent={detected_intent} msg_len={len(raw_message)}")
 
     # Process conversational turn through new orchestrator pipeline
-    orchestrator_res = new_orchestrator.process_turn(
-        raw_message=raw_message,
-        session_id=session_id,
-        history=history,
-        state=state,
-        model_name=model_name
-    )
+    try:
+        orchestrator_res = new_orchestrator.process_turn(
+            raw_message=raw_message,
+            session_id=session_id,
+            history=history,
+            state=state,
+            model_name=model_name
+        )
+    except Exception as e:
+        is_timeout = isinstance(e, (TimeoutError, requests.exceptions.Timeout, requests.exceptions.ReadTimeout)) or "timeout" in str(e).lower()
+        if is_timeout:
+            logger.warning(f"[{session_prefix}] LLM call timed out after {LLM_TIMEOUT_SECONDS}s: {e}")
+            fallback_msg = (
+                "I apologize for the delay, but our assistant is taking longer than expected to process your request. "
+                "Please try asking again, or let me know if you would like me to connect you with our sales team."
+            )
+            orchestrator_res = {
+                "reply": fallback_msg,
+                "source": "fallback:llm_timeout",
+                "product_cards": [],
+                "consumable_cards": [],
+                "suggested_chips": ["View Technical Specifications", "Talk to Sales Specialist"],
+                "grounding": {"status": "timeout_fallback", "is_grounded": True, "notes": ["LLM timeout fallback"]},
+                "nlp": {"intent": detected_intent, "normalized_text": normalized_msg},
+                "state": state,
+                "retrieved_items": [],
+                "active_agent": "Front Desk",
+            }
+        else:
+            raise e
 
     assistant_reply = orchestrator_res["reply"]
     source = orchestrator_res["source"]
