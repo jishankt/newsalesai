@@ -18,9 +18,11 @@ if not (raw_ollama_url.startswith("http://") or raw_ollama_url.startswith("https
 OLLAMA_BASE_URL = raw_ollama_url
 DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:32b")
 
-# Environment Configuration
 APP_ENV = os.getenv("APP_ENV") or os.getenv("FLASK_ENV") or os.getenv("ENVIRONMENT") or "development"
 IS_PRODUCTION = APP_ENV.lower() in ("production", "prod")
+
+# Customer Authentication & Chat History Feature Flag (default False)
+CUSTOMER_LOGIN_ENABLED = os.getenv("CUSTOMER_LOGIN_ENABLED", "False").lower() in ("true", "1", "yes")
 
 # Security Configuration
 DEFAULT_SECRET_KEYS = {

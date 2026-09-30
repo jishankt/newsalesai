@@ -88,6 +88,10 @@ def handle_customer_onboarding(
     Checks and advances customer onboarding state if currently in an active step.
     Returns response dict if handled, or None if normal conversation should proceed.
     """
+    import config
+    if not getattr(config, "CUSTOMER_LOGIN_ENABLED", False):
+        return None
+
     status = state.lead_prompt_status
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -288,6 +292,9 @@ def should_trigger_opt_in_prompt(state: ConversationState) -> bool:
     - Opt-in has not been offered or declined before
     - At least 1 turn has occurred (customer has interacted)
     """
+    import config
+    if not getattr(config, "CUSTOMER_LOGIN_ENABLED", False):
+        return False
     if state.customer_id:
         return False
     if state.lead_prompt_status is not None:

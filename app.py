@@ -23,6 +23,7 @@ from config import (
     SECRET_KEY,
     APP_ENV,
     IS_PRODUCTION,
+    CUSTOMER_LOGIN_ENABLED,
     LOG_SENSITIVE_DATA,
     EXPOSE_DEBUG_STATE,
     OLLAMA_MANDATORY_FOR_READY,
@@ -325,12 +326,13 @@ def chat():
     history = state_manager.get_history(session_id)
 
     # Attach logged-in customer profile to state if present in session
-    cust_id = session.get("customer_id")
-    if cust_id and not state.customer_id:
-        state.customer_id = cust_id
-        if session.get("customer_name") and not state.customer_name:
-            state.customer_name = session.get("customer_name")
-        customer_repository.link_session(session_id, cust_id, state.customer_name)
+    if CUSTOMER_LOGIN_ENABLED:
+        cust_id = session.get("customer_id")
+        if cust_id and not state.customer_id:
+            state.customer_id = cust_id
+            if session.get("customer_name") and not state.customer_name:
+                state.customer_name = session.get("customer_name")
+            customer_repository.link_session(session_id, cust_id, state.customer_name)
 
     # Detect customer request for live human sales assistance (typo-tolerant and phrase-flexible)
     escalation_pattern = re.compile(
@@ -566,6 +568,9 @@ def api_compare():
 @app.route("/api/customer/auth/login", methods=["POST"])
 def customer_login():
     """Customer logs in with Name (username) and Phone/Email (password)."""
+    if not CUSTOMER_LOGIN_ENABLED:
+        return jsonify({"error": "Customer login is disabled"}), 404
+
     data = request.get_json(silent=True) or {}
     username = data.get("username", "").strip()
     password = data.get("password", "").strip()
@@ -612,6 +617,9 @@ def customer_login():
 @app.route("/api/customer/auth/me", methods=["GET"])
 def customer_auth_me():
     """Returns profile of currently logged-in customer."""
+    if not CUSTOMER_LOGIN_ENABLED:
+        return jsonify({"error": "Customer login is disabled"}), 404
+
     customer_id = session.get("customer_id")
     if not customer_id:
         return jsonify({"success": True, "logged_in": False, "customer": None})
@@ -638,6 +646,9 @@ def customer_auth_me():
 @app.route("/api/customer/auth/logout", methods=["POST"])
 def customer_logout():
     """Logs out customer."""
+    if not CUSTOMER_LOGIN_ENABLED:
+        return jsonify({"error": "Customer login is disabled"}), 404
+
     session.pop("customer_id", None)
     session.pop("customer_name", None)
     return jsonify({"success": True, "message": "Logged out successfully."})
@@ -646,6 +657,9 @@ def customer_logout():
 @app.route("/api/customer/sessions", methods=["GET"])
 def get_customer_sessions():
     """Returns past conversation sessions for the logged-in customer."""
+    if not CUSTOMER_LOGIN_ENABLED:
+        return jsonify({"error": "Customer login is disabled"}), 404
+
     customer_id = session.get("customer_id")
     if not customer_id:
         return jsonify({"success": False, "error": "Login required to access chat history."}), 401
@@ -660,6 +674,9 @@ def get_customer_sessions():
 @app.route("/api/customer/sessions/<session_id>", methods=["GET"])
 def get_customer_session_detail(session_id: str):
     """Retrieves full conversation history and state for a specific session."""
+    if not CUSTOMER_LOGIN_ENABLED:
+        return jsonify({"error": "Customer login is disabled"}), 404
+
     customer_id = session.get("customer_id")
     if not customer_id:
         return jsonify({"success": False, "error": "Login required to view session details."}), 401
