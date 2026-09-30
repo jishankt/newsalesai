@@ -6,6 +6,8 @@ enforces strict commercial guardrails, and guarantees zero-hallucination groundi
 
 from flask import Flask, render_template, request, jsonify, session
 from flask_cors import CORS
+from datetime import timedelta
+from werkzeug.middleware.proxy_fix import ProxyFix
 import time
 import uuid
 import re
@@ -28,6 +30,7 @@ from config import (
     EXPOSE_DEBUG_STATE,
     OLLAMA_MANDATORY_FOR_READY,
     RATE_LIMIT_ENABLED,
+    TRUSTED_PROXY_COUNT,
 )
 from prompts import build_system_prompt, format_generate_prompt, format_evidence_grounded_prompt
 from guardrails import check_user_intent_for_pricing_or_discount, validate_and_sanitize_response, PRICE_REFUSAL, DISCOUNT_REFUSAL
@@ -53,7 +56,19 @@ logger = logging.getLogger("conversational_ai")
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = SECRET_KEY
 app.config["SESSION_COOKIE_SECURE"] = IS_PRODUCTION
+app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)
+
+if TRUSTED_PROXY_COUNT > 0:
+    app.wsgi_app = ProxyFix(
+        app.wsgi_app,
+        x_for=TRUSTED_PROXY_COUNT,
+        x_proto=TRUSTED_PROXY_COUNT,
+        x_host=TRUSTED_PROXY_COUNT,
+        x_prefix=TRUSTED_PROXY_COUNT,
+    )
+
 CORS(app, resources={r"/api/*": {"origins": CORS_ORIGINS}})
 
 # Admin Dashboard Blueprint
@@ -579,13 +594,30 @@ def customer_login():
     if not username or not password:
         return jsonify({"success": False, "error": "Please provide your Name and Phone Number or Email."}), 400
 
+    client_ip = request.remote_addr or ""
+    allowed, retry_after = customer_repository.check_login_throttle(username, client_ip)
+    if not allowed:
+        resp = jsonify({
+            "success": False,
+            "error": "Too many failed login attempts. Please try again later."
+        })
+        resp.status_code = 429
+        if retry_after:
+            resp.headers["Retry-After"] = str(retry_after)
+        return resp
+
     customer = customer_repository.authenticate(username, password)
     if not customer:
+        customer_repository.record_login_attempt(username, client_ip, success=False)
         return jsonify({
             "success": False,
-            "error": "No account found matching this Name and Phone/Email. Please check your credentials or start a new conversation."
+            "error": "Invalid login credentials."
         }), 401
 
+    customer_repository.record_login_attempt(username, client_ip, success=True)
+    customer_repository.reset_login_throttle(username, client_ip)
+
+    session.permanent = True
     session["customer_id"] = customer.customer_id
     session["customer_name"] = customer.display_name
 

@@ -59,7 +59,7 @@ class LeadRepository:
                 )
                 conn.commit()
                 lead_id = cursor.lastrowid
-                logger.info(f"Saved lead #{lead_id} for session {session_id} ({customer_name}, {email or phone})")
+                logger.info(f"Saved lead #{lead_id} for session {session_id}")
                 return lead_id
         except Exception as e:
             logger.error(f"Error saving lead for session {session_id}: {e}")

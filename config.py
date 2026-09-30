@@ -35,11 +35,14 @@ DEFAULT_SECRET_KEYS = {
     ""
 }
 SECRET_KEY = os.getenv("SECRET_KEY", "kepler-tech-salesai-default-secret-change-in-production")
+CREDENTIAL_PEPPER = os.getenv("CREDENTIAL_PEPPER", "")
+if not CREDENTIAL_PEPPER and not IS_PRODUCTION:
+    CREDENTIAL_PEPPER = "kepler-default-dev-credential-pepper-12345"
 
 
 def validate_secret_key(secret_key=None, app_env=None, debug=None):
     """
-    Validates that SECRET_KEY is set and non-default in production mode.
+    Validates that SECRET_KEY and CREDENTIAL_PEPPER are set and non-default in production mode.
     Refuses startup if running in production with missing or default secret key.
     Logs warning if DEBUG=False but APP_ENV is not explicitly production.
     """
@@ -57,6 +60,13 @@ def validate_secret_key(secret_key=None, app_env=None, debug=None):
                 "CRITICAL SECURITY CONFIGURATION ERROR: "
                 "Insecure or default SECRET_KEY detected in production mode. "
                 "Refusing startup. Set a strong, non-default SECRET_KEY environment variable (minimum 16 characters)."
+            )
+        pepper = os.getenv("CREDENTIAL_PEPPER", "")
+        if not pepper or len(pepper.strip()) < 16:
+            raise RuntimeError(
+                "CRITICAL SECURITY CONFIGURATION ERROR: "
+                "Missing or insecure CREDENTIAL_PEPPER detected in production mode. "
+                "Refusing startup. Set a strong, non-default CREDENTIAL_PEPPER environment variable (minimum 16 characters)."
             )
     return True
 

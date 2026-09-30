@@ -11,8 +11,9 @@ import re
 import time
 import uuid
 import hashlib
+import hmac
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from persistence.models import CustomerRecord, CREATE_TABLES_SQL
 
 logger = logging.getLogger("persistence.customer_repository")
@@ -66,6 +67,15 @@ class CustomerRepository:
 
     @classmethod
     def hash_credential(cls, credential: str) -> str:
+        """Computes HMAC-SHA256 credential hash using CREDENTIAL_PEPPER."""
+        from config import CREDENTIAL_PEPPER
+        norm = cls.normalize_credential(credential)
+        pepper = CREDENTIAL_PEPPER or "kepler-default-dev-credential-pepper-12345"
+        return hmac.new(pepper.encode("utf-8"), norm.encode("utf-8"), hashlib.sha256).hexdigest()
+
+    @classmethod
+    def hash_credential_legacy(cls, credential: str) -> str:
+        """Legacy unsalted SHA-256 hash for backward compatibility."""
         norm = cls.normalize_credential(credential)
         return hashlib.sha256(norm.encode("utf-8")).hexdigest()
 
@@ -157,42 +167,156 @@ class CustomerRepository:
 
     def authenticate(self, username: str, password_credential: str) -> Optional[CustomerRecord]:
         """
-        Authenticates customer by Name (username) and Phone/Email (password).
-        Handles flexible phone matching (e.g. matching last 7+ digits).
+        Authenticates customer:
+        1. Finds customer by credential (exact HMAC hash, legacy SHA-256, email, or 9-digit phone suffix).
+        2. Requires that the first name token of the input username matches the first name token of the customer record.
+        3. Upgrades legacy hash to HMAC-SHA256 upon successful login.
         """
         if not username or not password_credential:
             return None
 
         norm_user = self.normalize_username(username)
-        target_hash = self.hash_credential(password_credential)
+        if not norm_user:
+            return None
+        input_first_name = norm_user.split()[0]
+
+        target_hmac = self.hash_credential(password_credential)
+        target_legacy = self.hash_credential_legacy(password_credential)
         norm_cred = self.normalize_credential(password_credential)
+        cred_digits = re.sub(r"\D", "", norm_cred)
 
         with self._get_connection() as conn:
-            rows = conn.execute(
+            candidates = conn.execute(
                 "SELECT customer_id, username, display_name, credential_hash, phone, email, created_at, last_login "
-                "FROM customer_profiles WHERE username = ?",
-                (norm_user,)
+                "FROM customer_profiles"
             ).fetchall()
 
-            for row in rows:
-                # 1. Exact hash match
-                if row["credential_hash"] == target_hash:
-                    return self._finish_login(conn, row)
-
-                # 2. Email case-insensitive comparison
-                if "@" in norm_cred and row["email"]:
-                    if row["email"].strip().lower() == norm_cred:
-                        return self._finish_login(conn, row)
-
-                # 3. Flexible phone comparison (match last 7+ digits)
-                cred_digits = re.sub(r"\D", "", norm_cred)
+            for row in candidates:
+                stored_hash = row["credential_hash"]
                 stored_phone = row["phone"] or ""
                 stored_digits = re.sub(r"\D", "", stored_phone)
-                if len(cred_digits) >= 7 and len(stored_digits) >= 7:
-                    if cred_digits.endswith(stored_digits[-7:]) or stored_digits.endswith(cred_digits[-7:]):
+                stored_email = (row["email"] or "").strip().lower()
+
+                matched_cred = False
+                needs_upgrade = False
+
+                # 1. Exact HMAC hash match
+                if hmac.compare_digest(stored_hash, target_hmac):
+                    matched_cred = True
+                # 2. Legacy SHA-256 match
+                elif hmac.compare_digest(stored_hash, target_legacy):
+                    matched_cred = True
+                    needs_upgrade = True
+                # 3. Email match
+                elif "@" in norm_cred and stored_email and hmac.compare_digest(stored_email, norm_cred):
+                    matched_cred = True
+                    needs_upgrade = True
+                # 4. Tightened 9-digit phone match
+                elif len(cred_digits) >= 9 and len(stored_digits) >= 9:
+                    if cred_digits[-9:] == stored_digits[-9:]:
+                        matched_cred = True
+                        needs_upgrade = True
+
+                if matched_cred:
+                    stored_user = self.normalize_username(row["username"])
+                    stored_display = self.normalize_username(row["display_name"])
+                    stored_first_name = stored_user.split()[0] if stored_user else ""
+                    stored_disp_first = stored_display.split()[0] if stored_display else ""
+
+                    name_matches = (
+                        norm_user == stored_user
+                        or norm_user == stored_display
+                        or input_first_name == stored_first_name
+                        or input_first_name == stored_disp_first
+                    )
+
+                    if name_matches:
+                        if needs_upgrade:
+                            try:
+                                conn.execute(
+                                    "UPDATE customer_profiles SET credential_hash = ? WHERE customer_id = ?",
+                                    (target_hmac, row["customer_id"])
+                                )
+                                conn.commit()
+                                logger.info(f"Upgraded customer {row['customer_id']} credential hash to HMAC-SHA256.")
+                            except Exception as e:
+                                logger.warning(f"Failed to upgrade hash for {row['customer_id']}: {e}")
+
                         return self._finish_login(conn, row)
 
             return None
+
+    def record_login_attempt(self, username: str, ip_address: str, success: bool):
+        now = time.time()
+        try:
+            with self._get_connection() as conn:
+                conn.execute(
+                    "INSERT INTO login_attempts (username, ip_address, success, attempt_time) VALUES (?, ?, ?, ?)",
+                    (username.strip().lower() if username else "", ip_address.strip() if ip_address else "", 1 if success else 0, now)
+                )
+                conn.commit()
+        except Exception as e:
+            logger.error(f"Failed to record login attempt: {e}")
+
+    def check_login_throttle(self, username: str, ip_address: str) -> Tuple[bool, Optional[int]]:
+        """
+        Limits failed attempts:
+        - 5 per username per 15 minutes (900s)
+        - 20 per IP per hour (3600s)
+        Returns (allowed: bool, retry_after: Optional[int]).
+        """
+        now = time.time()
+        norm_user = username.strip().lower() if username else ""
+        norm_ip = ip_address.strip() if ip_address else ""
+
+        try:
+            with self._get_connection() as conn:
+                # 1. Check username limit (5 failures in last 15 min)
+                if norm_user:
+                    window_user = now - 900
+                    row_u = conn.execute(
+                        "SELECT COUNT(*), MIN(attempt_time) FROM login_attempts "
+                        "WHERE username = ? AND success = 0 AND attempt_time > ?",
+                        (norm_user, window_user)
+                    ).fetchone()
+                    count_u = row_u[0] if row_u else 0
+                    if count_u >= 5:
+                        min_time = row_u[1] or window_user
+                        retry_after = max(1, int(900 - (now - min_time)))
+                        return False, retry_after
+
+                # 2. Check IP limit (20 failures in last 60 min)
+                if norm_ip:
+                    window_ip = now - 3600
+                    row_ip = conn.execute(
+                        "SELECT COUNT(*), MIN(attempt_time) FROM login_attempts "
+                        "WHERE ip_address = ? AND success = 0 AND attempt_time > ?",
+                        (norm_ip, window_ip)
+                    ).fetchone()
+                    count_ip = row_ip[0] if row_ip else 0
+                    if count_ip >= 20:
+                        min_time_ip = row_ip[1] or window_ip
+                        retry_after = max(1, int(3600 - (now - min_time_ip)))
+                        return False, retry_after
+
+        except Exception as e:
+            logger.error(f"Error checking login throttle: {e}")
+
+        return True, None
+
+    def reset_login_throttle(self, username: str, ip_address: str):
+        """Clears failed attempts upon successful login."""
+        norm_user = username.strip().lower() if username else ""
+        norm_ip = ip_address.strip() if ip_address else ""
+        try:
+            with self._get_connection() as conn:
+                if norm_user:
+                    conn.execute("DELETE FROM login_attempts WHERE username = ?", (norm_user,))
+                if norm_ip:
+                    conn.execute("DELETE FROM login_attempts WHERE ip_address = ?", (norm_ip,))
+                conn.commit()
+        except Exception as e:
+            logger.error(f"Failed to reset login throttle: {e}")
 
     def _finish_login(self, conn: sqlite3.Connection, row: sqlite3.Row) -> CustomerRecord:
         now = time.time()

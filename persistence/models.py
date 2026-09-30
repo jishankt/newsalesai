@@ -107,5 +107,15 @@ CREATE TABLE IF NOT EXISTS customer_profiles (
     last_login REAL
 );
 CREATE INDEX IF NOT EXISTS idx_customer_username ON customer_profiles (username);
+
+CREATE TABLE IF NOT EXISTS login_attempts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT,
+    ip_address TEXT NOT NULL,
+    success INTEGER NOT NULL,
+    attempt_time REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_login_user_time ON login_attempts (username, attempt_time);
+CREATE INDEX IF NOT EXISTS idx_login_ip_time ON login_attempts (ip_address, attempt_time);
 """
 

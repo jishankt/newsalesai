@@ -3507,6 +3507,8 @@ class Orchestrator:
             source.startswith("guardrail:")
             or source.startswith("interceptor:")
             or source.startswith("handover:")
+            or source.startswith("customer_flow:")
+            or source.startswith("route:customer_flow")
             or source.startswith("route:memory_recall")
             or source.startswith("route:purchase:")
             or source.startswith("route:consumable")

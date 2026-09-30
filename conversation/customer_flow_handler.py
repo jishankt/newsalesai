@@ -78,6 +78,26 @@ def extract_name_and_contact(text: str) -> Tuple[Optional[str], Optional[str], O
     return name, contact, phone, email
 
 
+def mask_contact(contact: str) -> str:
+    """Masks phone number or email for safe display."""
+    if not contact:
+        return ""
+    if "@" in contact:
+        parts = contact.split("@")
+        user = parts[0]
+        domain = parts[1] if len(parts) > 1 else ""
+        masked_user = user[0] + "***" + (user[-1] if len(user) > 2 else "")
+        return f"{masked_user}@{domain}"
+    digits = re.sub(r"[^\d+]", "", contact)
+    if digits.startswith("+971") and len(digits) >= 12:
+        return f"+971 ** *** {digits[-4:]}"
+    elif len(digits) >= 7:
+        prefix = digits[:4] if digits.startswith("+") else digits[:3]
+        suffix = digits[-4:]
+        return f"{prefix} ** *** {suffix}"
+    return "****"
+
+
 def handle_customer_onboarding(
     raw_message: str,
     normalized_msg: str,
@@ -207,13 +227,13 @@ def handle_customer_onboarding(
             )
             state.customer_id = customer.customer_id
             customer_repository.link_session(session_id, customer.customer_id, customer.display_name)
-            logger.info(f"[{session_id[:8]}] Customer account activated: {customer.username} (id={customer.customer_id})")
+            logger.info(f"[{session_id[:8]}] Customer account activated (id={customer.customer_id})")
 
             reply = (
                 f"🎉 Excellent! Your chat history is now saved and active.\n\n"
-                f"You can log in anytime using the **Login** button at the top using:\n"
+                f"You can log in anytime using the **Login** button at the top with:\n"
                 f"• **Username:** **{customer.display_name}**\n"
-                f"• **Password:** **{contact}**\n\n"
+                f"• **Password:** The phone number or email you shared with us\n\n"
                 f"Your conversations, recommended configurations, and quote references will be preserved for your next visit. "
                 f"What equipment or supplies would you like to review now?"
             )
@@ -268,12 +288,13 @@ def _process_contact_submission(
         logger.warning(f"Could not persist commercial lead: {e}")
 
     state.lead_prompt_status = "offered_history_save"
-    logger.info(f"[{session_id[:8]}] Details captured ({final_name}, {contact}). Prompting history save.")
+    logger.info(f"[{session_id[:8]}] Details captured for session. Prompting history save.")
 
+    masked = mask_contact(contact)
     reply = (
-        f"Thank you, **{final_name}**! I have noted your contact details ({contact}).\n\n"
+        f"Thank you, **{final_name}**! I have noted your contact details ({masked}).\n\n"
         f"Would you like to save this conversation so you can continue your chat history anytime?\n\n"
-        f"*(If enabled, you can easily log in whenever you return using your **Name ({final_name})** as your username and your **Phone or Email ({contact})** as your password).* "
+        f"*(If enabled, you can easily log in whenever you return using your name and the phone number or email you shared).* "
         f"Would you like to enable chat history?"
     )
     return {
