@@ -44,12 +44,25 @@ class AgentRecord:
     last_login: Optional[float] = None
 
 
+@dataclass
+class CustomerRecord:
+    customer_id: str
+    username: str
+    display_name: str
+    credential_hash: str
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    created_at: float = field(default_factory=time.time)
+    last_login: Optional[float] = None
+
+
 CREATE_TABLES_SQL = """
 CREATE TABLE IF NOT EXISTS conversation_sessions (
     session_id TEXT PRIMARY KEY,
     created_at REAL NOT NULL,
     updated_at REAL NOT NULL,
     customer_name TEXT,
+    customer_id TEXT,
     state_json TEXT NOT NULL,
     history_json TEXT NOT NULL
 );
@@ -82,4 +95,17 @@ CREATE TABLE IF NOT EXISTS sales_agents (
     last_login REAL
 );
 CREATE INDEX IF NOT EXISTS idx_agents_username ON sales_agents (username);
+
+CREATE TABLE IF NOT EXISTS customer_profiles (
+    customer_id TEXT PRIMARY KEY,
+    username TEXT NOT NULL,
+    display_name TEXT NOT NULL,
+    credential_hash TEXT NOT NULL,
+    phone TEXT,
+    email TEXT,
+    created_at REAL NOT NULL,
+    last_login REAL
+);
+CREATE INDEX IF NOT EXISTS idx_customer_username ON customer_profiles (username);
 """
+

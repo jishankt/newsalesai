@@ -33,7 +33,12 @@ class StateRepository:
     def _init_db(self):
         try:
             with self._get_connection() as conn:
+                cur = conn.execute("PRAGMA table_info(conversation_sessions)")
+                cols = [r[1] for r in cur.fetchall()]
+                if cols and "customer_id" not in cols:
+                    conn.execute("ALTER TABLE conversation_sessions ADD COLUMN customer_id TEXT")
                 conn.executescript(CREATE_TABLES_SQL)
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_customer ON conversation_sessions (customer_id)")
                 conn.commit()
         except Exception as e:
             logger.error(f"Failed to initialize database at {self.db_path}: {e}")
@@ -51,19 +56,21 @@ class StateRepository:
             history_json = json.dumps(history, default=str)
             now = time.time()
             cust_name = state.customer_name
+            cust_id = getattr(state, "customer_id", None)
 
             with self._get_connection() as conn:
                 conn.execute(
                     """
-                    INSERT INTO conversation_sessions (session_id, created_at, updated_at, customer_name, state_json, history_json)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    INSERT INTO conversation_sessions (session_id, created_at, updated_at, customer_name, customer_id, state_json, history_json)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(session_id) DO UPDATE SET
                         updated_at = excluded.updated_at,
                         customer_name = COALESCE(excluded.customer_name, conversation_sessions.customer_name),
+                        customer_id = COALESCE(excluded.customer_id, conversation_sessions.customer_id),
                         state_json = excluded.state_json,
                         history_json = excluded.history_json
                     """,
-                    (session_id, now, now, cust_name, state_json, history_json),
+                    (session_id, now, now, cust_name, cust_id, state_json, history_json),
                 )
                 conn.commit()
             return True

@@ -33,6 +33,25 @@ document.addEventListener('DOMContentLoaded', () => {
   const headerActiveAgentRole = document.getElementById('headerActiveAgentRole');
   const chatHeader = document.querySelector('.chat-header');
 
+  // Customer Auth Elements
+  const customerAuthBtn = document.getElementById('customerAuthBtn');
+  const customerAuthBtnText = document.getElementById('customerAuthBtnText');
+  const customerModalBackdrop = document.getElementById('customerModalBackdrop');
+  const customerModalCloseBtn = document.getElementById('customerModalCloseBtn');
+  const customerLoginFormView = document.getElementById('customerLoginFormView');
+  const customerProfileView = document.getElementById('customerProfileView');
+  const customerLoginForm = document.getElementById('customerLoginForm');
+  const custUsernameInput = document.getElementById('custUsernameInput');
+  const custPasswordInput = document.getElementById('custPasswordInput');
+  const customerLoginError = document.getElementById('customerLoginError');
+  const customerSubmitLoginBtn = document.getElementById('customerSubmitLoginBtn');
+  const loggedInCustomerName = document.getElementById('loggedInCustomerName');
+  const loggedInCustomerContact = document.getElementById('loggedInCustomerContact');
+  const customerLogoutBtn = document.getElementById('customerLogoutBtn');
+  const customerChatsCountBadge = document.getElementById('customerChatsCountBadge');
+  const customerPastChatsList = document.getElementById('customerPastChatsList');
+  let currentCustomer = null;
+
   // Status elements
   const statusPill = document.getElementById('ollamaStatusPill');
   const statusText = document.getElementById('ollamaStatusText');
@@ -87,6 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize
   checkHealth();
+  checkCustomerAuth();
   updateActiveAgentUI(DEFAULT_AGENT);
   renderInitialGreeting();
   startClientLivePolling();
@@ -612,8 +632,27 @@ document.addEventListener('DOMContentLoaded', () => {
       metaEl.appendChild(groundBadge);
     }
 
-    // Clean conversation display: no raw RAG text dump after cards
-    // Pure conversational text without pill buttons
+    // Render interactive quick reply chips
+    if (sender === 'bot' && parsedChips && parsedChips.length > 0) {
+      const chipsBar = document.createElement('div');
+      chipsBar.className = 'quick-chips-inline';
+      chipsBar.style.cssText = 'display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;';
+      parsedChips.forEach(chipText => {
+        const chipBtn = document.createElement('button');
+        chipBtn.type = 'button';
+        chipBtn.className = 'prompt-chip';
+        chipBtn.style.cssText = 'background: #ffffff; border: 1px solid #cbd5e1; border-radius: 14px; padding: 5px 12px; font-size: 0.74rem; cursor: pointer; color: #1e293b; font-weight: 500; transition: all 0.15s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.05);';
+        chipBtn.textContent = chipText;
+        chipBtn.addEventListener('click', () => {
+          if (!isAwaitingReply) {
+            messageInput.value = chipText;
+            sendMessage(chipText);
+          }
+        });
+        chipsBar.appendChild(chipBtn);
+      });
+      contentWrapper.appendChild(chipsBar);
+    }
 
     row.appendChild(avatar);
     row.appendChild(contentWrapper);
@@ -734,6 +773,249 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // ──────────────────────────────────────────────────────────────────────────
+  // Customer Auth & Chat History Implementation
+  // ──────────────────────────────────────────────────────────────────────────
+
+  async function checkCustomerAuth() {
+    try {
+      const res = await fetch('/api/customer/auth/me');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.logged_in && data.customer) {
+        setLoggedInCustomer(data.customer);
+      } else {
+        setLoggedOutCustomer();
+      }
+    } catch (e) {
+      console.warn('Could not check customer auth status:', e);
+    }
+  }
+
+  function setLoggedInCustomer(customer) {
+    currentCustomer = customer;
+    if (customerAuthBtn) {
+      customerAuthBtn.classList.add('logged-in');
+      if (customerAuthBtnText) {
+        customerAuthBtnText.textContent = customer.name.split(' ')[0] || customer.name;
+      }
+    }
+    if (loggedInCustomerName) loggedInCustomerName.textContent = customer.name;
+    if (loggedInCustomerContact) loggedInCustomerContact.textContent = customer.phone || customer.email || 'Verified Customer';
+    if (customerLoginFormView) customerLoginFormView.style.display = 'none';
+    if (customerProfileView) customerProfileView.style.display = 'block';
+  }
+
+  function setLoggedOutCustomer() {
+    currentCustomer = null;
+    if (customerAuthBtn) {
+      customerAuthBtn.classList.remove('logged-in');
+      if (customerAuthBtnText) {
+        customerAuthBtnText.textContent = 'Login';
+      }
+    }
+    if (customerLoginFormView) customerLoginFormView.style.display = 'block';
+    if (customerProfileView) customerProfileView.style.display = 'none';
+  }
+
+  if (customerAuthBtn) {
+    customerAuthBtn.addEventListener('click', () => {
+      openCustomerModal();
+    });
+  }
+
+  if (customerModalCloseBtn) {
+    customerModalCloseBtn.addEventListener('click', () => {
+      closeCustomerModal();
+    });
+  }
+
+  if (customerModalBackdrop) {
+    customerModalBackdrop.addEventListener('click', (e) => {
+      if (e.target === customerModalBackdrop) {
+        closeCustomerModal();
+      }
+    });
+  }
+
+  function openCustomerModal() {
+    if (customerLoginError) customerLoginError.style.display = 'none';
+    if (currentCustomer) {
+      loadCustomerPastChats();
+    }
+    if (customerModalBackdrop) {
+      customerModalBackdrop.classList.add('open');
+    }
+  }
+
+  function closeCustomerModal() {
+    if (customerModalBackdrop) {
+      customerModalBackdrop.classList.remove('open');
+    }
+  }
+
+  if (customerLoginForm) {
+    customerLoginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = custUsernameInput.value.trim();
+      const password = custPasswordInput.value.trim();
+      if (!username || !password) return;
+
+      if (customerSubmitLoginBtn) {
+        customerSubmitLoginBtn.disabled = true;
+        customerSubmitLoginBtn.textContent = 'Logging in...';
+      }
+      if (customerLoginError) customerLoginError.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/customer/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: username,
+            password: password,
+            session_id: sessionId
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setLoggedInCustomer(data.customer);
+          custPasswordInput.value = '';
+          renderCustomerPastChats(data.sessions || []);
+          appendMessage('bot', `Welcome back, **${data.customer.name}**! You are logged in. Your previous conversations and quotes are loaded. You can continue our chat or switch to a past conversation anytime using the profile button at the top.`, 'Customer Account', [], null, null, [], [], [], DEFAULT_AGENT);
+        } else {
+          if (customerLoginError) {
+            customerLoginError.textContent = data.error || 'Invalid name or phone/email. Please try again.';
+            customerLoginError.style.display = 'block';
+          }
+        }
+      } catch (err) {
+        if (customerLoginError) {
+          customerLoginError.textContent = 'Connection error. Please try again.';
+          customerLoginError.style.display = 'block';
+        }
+      } finally {
+        if (customerSubmitLoginBtn) {
+          customerSubmitLoginBtn.disabled = false;
+          customerSubmitLoginBtn.textContent = 'Log In & Load Previous Chats';
+        }
+      }
+    });
+  }
+
+  if (customerLogoutBtn) {
+    customerLogoutBtn.addEventListener('click', async () => {
+      try {
+        await fetch('/api/customer/auth/logout', { method: 'POST' });
+      } catch (e) {}
+      setLoggedOutCustomer();
+      closeCustomerModal();
+    });
+  }
+
+  async function loadCustomerPastChats() {
+    if (!customerPastChatsList) return;
+    customerPastChatsList.innerHTML = '<div class="empty-chats-placeholder">Loading past conversations...</div>';
+    try {
+      const res = await fetch('/api/customer/sessions');
+      if (!res.ok) throw new Error('Failed to fetch sessions');
+      const data = await res.json();
+      renderCustomerPastChats(data.sessions || []);
+    } catch (e) {
+      customerPastChatsList.innerHTML = '<div class="empty-chats-placeholder">Could not load past conversations.</div>';
+    }
+  }
+
+  function renderCustomerPastChats(sessions) {
+    if (!customerPastChatsList) return;
+    if (customerChatsCountBadge) {
+      customerChatsCountBadge.textContent = `${sessions.length} session${sessions.length === 1 ? '' : 's'}`;
+    }
+    if (!sessions || sessions.length === 0) {
+      customerPastChatsList.innerHTML = '<div class="empty-chats-placeholder">No previous conversations found yet. Your current conversation is linked to your account!</div>';
+      return;
+    }
+
+    customerPastChatsList.innerHTML = '';
+    sessions.forEach(s => {
+      const isCurrent = s.session_id === sessionId;
+      const item = document.createElement('div');
+      item.className = `past-chat-item ${isCurrent ? 'current-active' : ''}`;
+
+      const dateStr = s.updated_at ? new Date(s.updated_at * 1000).toLocaleString(undefined, {
+        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+      }) : 'Past session';
+
+      item.innerHTML = `
+        <div class="past-chat-top">
+          <span class="past-chat-date">${dateStr} ${isCurrent ? '• <strong>(Active)</strong>' : ''}</span>
+          <span class="past-chat-turns">${s.turn_count || 1} msg${(s.turn_count || 1) === 1 ? '' : 's'}</span>
+        </div>
+        <div class="past-chat-preview">${escapeHtml(s.preview || (s.product ? 'Inquiry: ' + s.product : 'General conversation'))}</div>
+        <div class="past-chat-actions">
+          <button type="button" class="resume-chat-btn" data-sid="${s.session_id}">
+            ${isCurrent ? 'Current Chat' : 'Resume This Chat 💬'}
+          </button>
+        </div>
+      `;
+
+      const btn = item.querySelector('.resume-chat-btn');
+      if (!isCurrent) {
+        btn.addEventListener('click', () => {
+          resumePastChat(s.session_id);
+        });
+      } else {
+        btn.disabled = true;
+        btn.style.opacity = '0.6';
+      }
+
+      customerPastChatsList.appendChild(item);
+    });
+  }
+
+  async function resumePastChat(targetSessionId) {
+    try {
+      const res = await fetch(`/api/customer/sessions/${encodeURIComponent(targetSessionId)}`);
+      if (!res.ok) throw new Error('Could not load session details');
+      const data = await res.json();
+      const sess = data.session;
+      if (!sess) return;
+
+      sessionId = targetSessionId;
+      sessionStorage.setItem('cra_session_id', sessionId);
+      closeCustomerModal();
+
+      // Clear container and replay history
+      messagesContainer.innerHTML = '';
+      clientLastMessageCount = 0;
+
+      const history = sess.history || [];
+      if (history.length === 0) {
+        renderInitialGreeting();
+      } else {
+        history.forEach(turn => {
+          const role = turn.role === 'user' ? 'user' : 'bot';
+          const content = turn.content || '';
+          if (role === 'user') {
+            appendMessage('user', content);
+          } else {
+            appendMessage('bot', content, 'Previous Session', [], null, null, [], [], [], DEFAULT_AGENT);
+          }
+          clientLastMessageCount++;
+        });
+      }
+    } catch (err) {
+      console.error('Error resuming session:', err);
+      alert('Could not resume selected session. Please try again.');
+    }
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
   function generateUUID() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
       const r = Math.random() * 16 | 0;
@@ -742,4 +1024,5 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
 

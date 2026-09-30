@@ -136,6 +136,13 @@
         </div>
       </div>
       <div class="header-actions">
+        <!-- Customer Login & History Button -->
+        <button class="customer-auth-btn" id="customerAuthBtn" title="Customer Login & Chat History">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+          </svg>
+          <span id="customerAuthBtnText">Login</span>
+        </button>
         <button class="header-actions-btn" id="toggleSidebarBtn" title="Settings / Options">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
             <circle cx="12" cy="5" r="2"/>
@@ -196,7 +203,69 @@
   </main>
 </div>
 
-<script src="/static/js/comparison_renderer.js?v=kepler_rebuild_20260915_1207"></script>
-<script src="/static/js/app.js?v=kepler_rebuild_20260915_1207"></script>
+  <!-- Customer Login & Previous Chats Modal -->
+  <div class="customer-modal-backdrop" id="customerModalBackdrop">
+    <div class="customer-modal-container">
+      <div class="customer-modal-header">
+        <div class="customer-modal-title-box">
+          <div class="customer-modal-icon">👤</div>
+          <div>
+            <h3 id="customerModalTitle" style="margin: 0; font-size: 1.05rem; font-weight: 600;">Customer Login</h3>
+            <p id="customerModalSubtitle" style="margin: 2px 0 0 0; font-size: 0.74rem; color: var(--text-secondary);">Log in with your Name and Phone/Email to view past chats</p>
+          </div>
+        </div>
+        <button type="button" class="customer-modal-close" id="customerModalCloseBtn">&times;</button>
+      </div>
+
+      <!-- State 1: Login Form (When Logged Out) -->
+      <div class="customer-modal-body" id="customerLoginFormView">
+        <div class="customer-login-notice">
+          💡 If you shared your details during a previous conversation, your <strong>Name</strong> is your username and your <strong>Phone Number or Email ID</strong> is your password.
+        </div>
+        <form id="customerLoginForm">
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label class="field-label" for="custUsernameInput">Customer Name (Username)</label>
+            <input type="text" id="custUsernameInput" class="input-field" placeholder="e.g. Tariq Al Mansoor" required autocomplete="name">
+          </div>
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label class="field-label" for="custPasswordInput">Phone Number or Email (Password)</label>
+            <input type="text" id="custPasswordInput" class="input-field" placeholder="e.g. +971 50 123 4567 or email@domain.com" required autocomplete="current-password">
+          </div>
+          <div id="customerLoginError" class="customer-error-msg" style="display: none;"></div>
+          <button type="submit" class="btn-primary" id="customerSubmitLoginBtn" style="width: 100%; justify-content: center; padding: 10px; font-size: 0.9rem;">
+            Log In & Load Previous Chats
+          </button>
+        </form>
+      </div>
+
+      <!-- State 2: Account & Previous Chats View (When Logged In) -->
+      <div class="customer-modal-body" id="customerProfileView" style="display: none;">
+        <div class="customer-profile-card">
+          <div class="profile-info-row">
+            <div>
+              <div class="profile-name" id="loggedInCustomerName">Customer Name</div>
+              <div class="profile-meta" id="loggedInCustomerContact">+971 •••••••</div>
+            </div>
+            <button type="button" class="btn-secondary" id="customerLogoutBtn" style="padding: 4px 10px; font-size: 0.75rem;">
+              Log Out
+            </button>
+          </div>
+        </div>
+
+        <div class="past-chats-header">
+          <h4 style="margin: 0; font-size: 0.85rem; font-weight: 600;">Your Previous Conversations</h4>
+          <span class="chats-count-badge" id="customerChatsCountBadge">0 sessions</span>
+        </div>
+
+        <div class="past-chats-list" id="customerPastChatsList">
+          <div class="empty-chats-placeholder">Loading past conversations...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/comparison_renderer.js?v=kepler_rebuild_20260915_1207"></script>
+  <script src="/static/js/app.js?v=kepler_rebuild_20260930_customer_auth"></script>
 </body>
 </html>
+

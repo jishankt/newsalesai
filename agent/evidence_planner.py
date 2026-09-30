@@ -463,28 +463,33 @@ class EvidencePlanner:
         pid = prod.get("id", "")
         p_name = prod.get("display_name") or prod.get("model") or pid
 
-        # The catalogue relationship contains paper and maintenance tanks as well as ink.
-        # Resolve each listed SKU against the product index before calling it ink.
         from rag.retriever import rag_retriever
         consumables = []
         for sku in prod.get("consumables") or []:
             item = rag_retriever.get_by_sku(str(sku))
-            if item and item.get("category", "").lower() in ("ink cartridge", "inks", "ink"):
+            if item:
                 consumables.append({
-                    "sku": item["sku"], "name": item.get("name", item["sku"]),
-                    "category": item["category"],
+                    "sku": item.get("sku", str(sku)),
+                    "name": item.get("name", item.get("sku", str(sku))),
+                    "category": item.get("category", "Consumable"),
                     "image_url": item.get("image_url"),
                     "source_url": item.get("source_url") or item.get("url"),
                 })
+
+        from rag.consumables_engine import consumables_engine
+        engine_cards = consumables_engine.get_printer_consumables(p_name, limit=15)
 
         ink_tech = prod.get("ink_technology") or prod.get("colour_specification") or prod.get("technology")
         if not ink_tech and any("ink" in str(c).lower() for c in prod.get("consumables") or []):
             ink_tech = next(str(c) for c in prod["consumables"] if "ink" in str(c).lower())
 
-        if consumables or ink_tech:
-            tech_desc = ink_tech or "manufacturer ink"
-            skus = [c.get("sku") or c.get("part_number") for c in consumables if c.get("sku") or c.get("part_number")]
-            sku_part = f" (compatible SKUs: {', '.join(skus[:6])})" if skus else ""
+        cards_to_return = consumables or engine_cards
+
+        if cards_to_return or ink_tech:
+            tech_desc = ink_tech or "manufacturer original consumables"
+            sku_items = [f"{c.get('name') or c.get('title')} (SKU: `{c.get('sku')}`)" for c in cards_to_return if c.get("sku")]
+            skus = [c.get("sku") or c.get("part_number") for c in cards_to_return if c.get("sku") or c.get("part_number")]
+            sku_part = f" (compatible supplies: {', '.join(sku_items[:4])})" if sku_items else (f" (compatible SKUs: {', '.join(skus[:6])})" if skus else "")
             return FieldFact(
                 product_id=pid,
                 product_name=p_name,
@@ -493,7 +498,7 @@ class EvidencePlanner:
                 value={"technology": tech_desc, "skus": skus},
                 source="catalog:consumables",
                 display_claim=f"The {p_name} uses {tech_desc}{sku_part}.",
-            ), consumables
+            ), cards_to_return
 
         return FieldFact(
             product_id=pid,

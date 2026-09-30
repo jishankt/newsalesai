@@ -4,7 +4,7 @@ Connects with Ollama (gpt-oss:20b), runs NLP normalization, intent extraction,
 enforces strict commercial guardrails, and guarantees zero-hallucination grounding.
 """
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session
 from flask_cors import CORS
 import time
 import uuid
@@ -39,7 +39,7 @@ from domain.state_store import state_manager
 from agent.orchestrator import orchestrator as new_orchestrator
 from rag.consumables_engine import consumables_engine
 from agents import list_agent_metadata
-from persistence import lead_repository, state_repository
+from persistence import lead_repository, state_repository, customer_repository
 from security.rate_limiter import rate_limiter, get_client_ip
 from routes.admin_routes import admin_bp
 
@@ -324,6 +324,14 @@ def chat():
     state = state_manager.get_or_create(session_id)
     history = state_manager.get_history(session_id)
 
+    # Attach logged-in customer profile to state if present in session
+    cust_id = session.get("customer_id")
+    if cust_id and not state.customer_id:
+        state.customer_id = cust_id
+        if session.get("customer_name") and not state.customer_name:
+            state.customer_name = session.get("customer_name")
+        customer_repository.link_session(session_id, cust_id, state.customer_name)
+
     # Detect customer request for live human sales assistance (typo-tolerant and phrase-flexible)
     escalation_pattern = re.compile(
         r"\b(?:"
@@ -551,6 +559,118 @@ def api_compare():
     return jsonify({
         "success": True,
         "comparison_data": comparison_data
+    })
+
+
+# ── Customer Authentication & Chat History Endpoints ──────────────────────
+@app.route("/api/customer/auth/login", methods=["POST"])
+def customer_login():
+    """Customer logs in with Name (username) and Phone/Email (password)."""
+    data = request.get_json(silent=True) or {}
+    username = data.get("username", "").strip()
+    password = data.get("password", "").strip()
+    active_session_id = data.get("session_id")
+
+    if not username or not password:
+        return jsonify({"success": False, "error": "Please provide your Name and Phone Number or Email."}), 400
+
+    customer = customer_repository.authenticate(username, password)
+    if not customer:
+        return jsonify({
+            "success": False,
+            "error": "No account found matching this Name and Phone/Email. Please check your credentials or start a new conversation."
+        }), 401
+
+    session["customer_id"] = customer.customer_id
+    session["customer_name"] = customer.display_name
+
+    # Link current active session to this customer if provided
+    if active_session_id:
+        customer_repository.link_session(active_session_id, customer.customer_id, customer.display_name)
+        active_state = state_manager.get_or_create(active_session_id)
+        active_state.customer_id = customer.customer_id
+        active_state.customer_name = customer.display_name
+        history = state_manager.get_history(active_session_id)
+        state_manager.save(active_state, history)
+
+    past_sessions = customer_repository.get_customer_sessions(customer.customer_id)
+
+    return jsonify({
+        "success": True,
+        "message": f"Welcome back, {customer.display_name}!",
+        "customer": {
+            "id": customer.customer_id,
+            "name": customer.display_name,
+            "username": customer.username,
+            "phone": customer.phone,
+            "email": customer.email,
+        },
+        "sessions": past_sessions
+    })
+
+
+@app.route("/api/customer/auth/me", methods=["GET"])
+def customer_auth_me():
+    """Returns profile of currently logged-in customer."""
+    customer_id = session.get("customer_id")
+    if not customer_id:
+        return jsonify({"success": True, "logged_in": False, "customer": None})
+
+    customer = customer_repository.get_by_id(customer_id)
+    if not customer:
+        session.pop("customer_id", None)
+        session.pop("customer_name", None)
+        return jsonify({"success": True, "logged_in": False, "customer": None})
+
+    return jsonify({
+        "success": True,
+        "logged_in": True,
+        "customer": {
+            "id": customer.customer_id,
+            "name": customer.display_name,
+            "username": customer.username,
+            "phone": customer.phone,
+            "email": customer.email,
+        }
+    })
+
+
+@app.route("/api/customer/auth/logout", methods=["POST"])
+def customer_logout():
+    """Logs out customer."""
+    session.pop("customer_id", None)
+    session.pop("customer_name", None)
+    return jsonify({"success": True, "message": "Logged out successfully."})
+
+
+@app.route("/api/customer/sessions", methods=["GET"])
+def get_customer_sessions():
+    """Returns past conversation sessions for the logged-in customer."""
+    customer_id = session.get("customer_id")
+    if not customer_id:
+        return jsonify({"success": False, "error": "Login required to access chat history."}), 401
+
+    sessions = customer_repository.get_customer_sessions(customer_id)
+    return jsonify({
+        "success": True,
+        "sessions": sessions
+    })
+
+
+@app.route("/api/customer/sessions/<session_id>", methods=["GET"])
+def get_customer_session_detail(session_id: str):
+    """Retrieves full conversation history and state for a specific session."""
+    customer_id = session.get("customer_id")
+    if not customer_id:
+        return jsonify({"success": False, "error": "Login required to view session details."}), 401
+
+    data = customer_repository.get_session_history(session_id, customer_id=customer_id)
+    if not data:
+        return jsonify({"success": False, "error": "Session not found or unauthorized."}), 404
+
+    return jsonify({
+        "success": True,
+        "session": data
     })
 
 

@@ -133,6 +133,24 @@ class Orchestrator:
                                         ["View Technical Specifications"], nlp_result, state,
                                         int((time.time() - start_time) * 1000))
 
+        # ── EARLY INTERCEPT: Customer Onboarding & Chat History Flow ────────
+        from conversation.customer_flow_handler import handle_customer_onboarding
+        if state.lead_prompt_status in ("offered_opt_in", "awaiting_details", "offered_history_save"):
+            cust_res = handle_customer_onboarding(raw_message, normalized_msg, state, session_id)
+            if cust_res:
+                state.last_assistant_response = cust_res["reply"]
+                state.increment_turn()
+                return self._build_response(
+                    reply=cust_res["reply"],
+                    source=cust_res.get("source", "route:customer_flow"),
+                    product_cards=[],
+                    consumable_cards=[],
+                    suggested_chips=cust_res.get("suggested_chips", []),
+                    nlp_result=nlp_result,
+                    state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
+
         # ── EARLY INTERCEPT: Frustration / Negative Feedback ─────────────────
         # When user expresses frustration (e.g. "you are not reading carefully"),
         # acknowledge genuinely, apologise and directly resolve their last question.
@@ -1912,6 +1930,43 @@ class Orchestrator:
                     latency_ms=int((time.time() - start_time) * 1000),
                 )
 
+        # 6a-3. Multi-Category Request Route (e.g. Office Printer + Photo Scanner)
+        has_office_req = bool(re.search(r"\b(?:office|workforce|business|document)\s*(?:printer|mfp|copier|machine)\b", normalized_msg.lower()))
+        has_scanner_req = bool(re.search(r"\b(?:photo|photos|film|slide)\s*(?:scanner|scan|scanning)\b", normalized_msg.lower()))
+        if has_office_req and has_scanner_req:
+            office_prod = catalogue_loader.get_by_id("epson-wf-c5890") or catalogue_loader.get_by_id("epson-wf-c5390")
+            scanner_prod = catalogue_loader.get_by_id("epson-perfection-v600") or catalogue_loader.get_by_id("epson-fastfoto-ff-680w")
+
+            from agent.tool_executor import catalog_tool_executor
+            cards = []
+            if office_prod:
+                cards.append(catalog_tool_executor.format_card(office_prod, card_type="hardware"))
+            if scanner_prod:
+                cards.append(catalog_tool_executor.format_card(scanner_prod, card_type="hardware"))
+
+            o_name = office_prod.get("display_name", "Epson WorkForce Pro WF-C5890") if office_prod else "Epson WorkForce Pro WF-C5890"
+            s_name = scanner_prod.get("display_name", "Epson Perfection V600") if scanner_prod else "Epson Perfection V600"
+
+            reply_text = (
+                f"To address both your office printing and photo scanning needs, here are our recommended options:\n\n"
+                f"1. 📄 **Office Printer / MFP**: **{o_name}** — Heavy-duty office system engineered for fast, cost-effective document printing with high-yield ink packs.\n"
+                f"2. 🖼️ **Photo Scanner**: **{s_name}** — Specialized high-resolution scanner designed for restoring and archiving photographs, negatives, and slides.\n\n"
+                f"Would you like detailed specifications for the office printer, the photo scanner, or both?"
+            )
+            state.displayed_product_ids = [p["id"] for p in [office_prod, scanner_prod] if p]
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="route:multi_category",
+                product_cards=cards,
+                consumable_cards=[],
+                suggested_chips=["View Office Printer Specs", "View Photo Scanner Specs", "Request Quotation"],
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
         # 6b. Comparison Query (Between 2+ Approved Catalogue Products)
         is_comparison_query = (
             understanding.intent == Intent.PRODUCT_COMPARISON
@@ -1954,8 +2009,7 @@ class Orchestrator:
                         comp_products.append(p)
 
             if len(comp_products) >= 2:
-                # A compound question needs facts for both named models. The generic
-                # comparison draft does not distinguish their compatible ink SKUs.
+                # A compound question needs facts for both named models.
                 is_ink_q = bool(re.search(r"\b(?:inks?|cartridges?|consumables?)\b", normalized_msg.lower()))
                 if len(mentioned_products) >= 2 and is_ink_q:
                     all_c_cards = []
@@ -1973,22 +2027,46 @@ class Orchestrator:
                                 c_url = card.get("url") or card.get("website_url")
                                 link_title = f"[{c_title}]({c_url})" if c_url else f"**{c_title}**"
                                 items_lines.append(f"• **{link_title}**{sku_text}")
-                            sections.append(f"### 📦 **{p_name_i}**\n" + "\n".join(items_lines))
+                            sections.append(f"### 📦 **{p_name_i} Consumables**\n" + "\n".join(items_lines))
                         else:
-                            sections.append(f"### 📦 **{p_name_i}**\n• No specific consumables listed in catalogue for this model.")
+                            sections.append(f"### 📦 **{p_name_i} Consumables**\n• No specific consumables listed in catalogue for this model.")
 
                     state.active_consumables = all_c_cards
-                    reply_text = "Here are the verified compatible consumables for each model:\n\n" + "\n\n".join(sections)
-                    return self._build_response(
-                        reply=reply_text,
-                        source="route:consumables:multi_product",
-                        product_cards=[],
-                        consumable_cards=all_c_cards,
-                        suggested_chips=["Order Consumables", "View Printer Specifications", "Compare Models"],
-                        nlp_result=nlp_result,
-                        state=state,
-                        latency_ms=int((time.time() - start_time) * 1000),
-                    )
+                    is_explicit_compare = any(w in normalized_msg.lower() for w in ["compare", " vs ", "versus", "difference", "better", "best", "comparison"]) or understanding.intent == Intent.PRODUCT_COMPARISON
+                    if is_explicit_compare:
+                        comp_reply, comp_cards, comparison_data = build_approved_comparison_response(
+                            comp_products,
+                            customer_requirements=dict(state.requirements) if state.requirements else None,
+                        )
+                        reply_text = comp_reply + "\n\n---\n\n### 📦 **Compatible Consumables**\n\n" + "\n\n".join(sections)
+                        state.compared_products = comp_products
+                        state.compared_product_ids = [p["id"] for p in comp_products]
+                        state.stage = "comparing"
+                        state.last_assistant_response = reply_text
+                        state.increment_turn()
+                        return self._build_response(
+                            reply=reply_text,
+                            source="route:comparison_with_consumables",
+                            product_cards=comp_cards,
+                            consumable_cards=all_c_cards,
+                            suggested_chips=["View Technical Specifications", "Order Consumables"],
+                            nlp_result=nlp_result,
+                            state=state,
+                            latency_ms=int((time.time() - start_time) * 1000),
+                            comparison_data=comparison_data,
+                        )
+                    else:
+                        reply_text = "Here are the verified compatible consumables for each model:\n\n" + "\n\n".join(sections)
+                        return self._build_response(
+                            reply=reply_text,
+                            source="route:consumables:multi_product",
+                            product_cards=[],
+                            consumable_cards=all_c_cards,
+                            suggested_chips=["Order Consumables", "View Printer Specifications", "Compare Models"],
+                            nlp_result=nlp_result,
+                            state=state,
+                            latency_ms=int((time.time() - start_time) * 1000),
+                        )
 
                 if len(mentioned_products) >= 2 and re.search(
                     r"\b(?:width|sizes?|mugs?|t[- ]?shirts?)\b", normalized_msg.lower(),
@@ -2091,14 +2169,26 @@ class Orchestrator:
         # Multi-Part Capability Query (Section 7)
         has_multi_scan = bool(re.search(r"\b(?:scan|scanner|scanning|mfp|copier|copy)\b", low_msg_comp))
         has_multi_size = bool(re.search(r"\b(?:a3\+?|a2\+?|a1|a0|width|24[\s-]*(?:inch|in|\")|36[\s-]*(?:inch|in|\")|44[\s-]*(?:inch|in|\"))\b", low_msg_comp))
-        has_multi_ink = bool(re.search(r"\b(?:ink|inks|consumables?|cartridges?|supplies)\b", low_msg_comp))
+        has_multi_ink = bool(re.search(r"\b(?:ink|inks|consumables?|cartridges?|supplies|media|ribbon|paper)\b", low_msg_comp))
         has_multi_wifi = bool(re.search(r"\b(?:wi-?fi|wireless|connectivity)\b", low_msg_comp))
+        has_multi_weight = bool(re.search(r"\b(?:weight|heavy|mass|kg|lbs?|dimensions?|size)\b", low_msg_comp))
+        has_multi_speed = bool(re.search(r"\b(?:speed|ppm|sec|seconds?|fast|ips)\b", low_msg_comp))
 
-        if current_active is not None and sum([has_multi_scan, has_multi_size, has_multi_ink, has_multi_wifi]) >= 2:
+        if current_active is not None and sum([has_multi_scan, has_multi_size, has_multi_ink, has_multi_wifi, has_multi_weight, has_multi_speed]) >= 2:
             act_p = current_active
             p_name = act_p.get("display_name") or act_p.get("name")
             parts = []
             from agent.evidence_planner import evidence_planner
+
+            if has_multi_weight:
+                wt = act_p.get("weight") or act_p.get("dimensions")
+                if wt:
+                    parts.append(f"• **Weight / Build:** {wt}")
+
+            if has_multi_speed:
+                sp = act_p.get("print_speed")
+                if sp:
+                    parts.append(f"• **Print Speed:** {sp}")
 
             if has_multi_scan:
                 p_funcs = [f.lower() for f in act_p.get("functions", [])]
@@ -2114,7 +2204,13 @@ class Orchestrator:
             detail_c_cards = []
             if has_multi_ink:
                 ink_fact, detail_c_cards = evidence_planner._evaluate_ink(act_p)
-                parts.append(f"• **Inks & Cartridges:** {ink_fact.display_claim}")
+                if not detail_c_cards:
+                    detail_c_cards = consumables_engine.get_printer_consumables(p_name, limit=15)
+                c_sku_items = [f"**{c.get('name') or c.get('title')}** (SKU: `{c.get('sku')}`)" for c in detail_c_cards if c.get("sku")]
+                if c_sku_items:
+                    parts.append(f"• **Compatible Consumables:** {', '.join(c_sku_items[:4])}")
+                else:
+                    parts.append(f"• **Inks & Compatible Supplies:** {ink_fact.display_claim}")
 
             if has_multi_wifi:
                 parts.append(f"• **Wi-Fi:** {evidence_planner._evaluate_wifi(act_p).display_claim}")
@@ -3422,6 +3518,7 @@ class Orchestrator:
             or source.startswith("route:cost_per_print")
             or source.startswith("route:yield_pattern_general")
             or source.startswith("route:product_or_consumable_disambiguation")
+            or source.startswith("route:multi_category")
             or "safe_refusal" in source
             or "refusal" in source
             or "error" in source
@@ -3614,6 +3711,27 @@ class Orchestrator:
             reply = re.sub(r"\|\s*\*\*Subcategory\*\*\s*\|[^\n]+\n?", "", reply, flags=re.I)
             reply = re.sub(r"\bsubcategory\b", "category", reply, flags=re.I)
             state.last_assistant_response = reply
+
+        # Check if we should attach the opt-in prompt during normal chatting
+        from conversation.customer_flow_handler import should_trigger_opt_in_prompt
+        if (
+            should_trigger_opt_in_prompt(state)
+            and not source.startswith(("customer_flow:", "guardrail:", "interceptor:"))
+            and not source.endswith("safe_refusal")
+            and reply != STATIC_SAFE_REFUSAL
+            and not "declined" in str(state.lead_prompt_status)
+        ):
+            state.lead_prompt_status = "offered_opt_in"
+            opt_in_note = (
+                "\n\n---\n"
+                "💡 *Are you interested in sharing your name and contact details with us? "
+                "This allows us to save your preferences and chat history.*"
+            )
+            reply = (reply or "") + opt_in_note
+            state.last_assistant_response = reply
+            suggested_chips = ["Yes, I'm interested", "No, thanks"] + [
+                c for c in (suggested_chips or []) if c not in ("Yes, I'm interested", "No, thanks")
+            ]
 
         res_type = "product_list" if product_cards else ("no_exact_match" if "no_match" in source else "message")
 

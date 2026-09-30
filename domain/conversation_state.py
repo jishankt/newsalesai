@@ -15,6 +15,9 @@ class ConversationState:
 
     # ── Customer Memory ──────────────────────────────────────────────────
     customer_name: Optional[str] = None
+    customer_id: Optional[str] = None
+    lead_prompt_status: Optional[str] = None
+    customer_phone_or_email: Optional[str] = None
     preferred_language: str = "en"
 
     # ── Conversation Control ─────────────────────────────────────────────
@@ -77,6 +80,9 @@ class ConversationState:
         return {
             "session_id": self.session_id,
             "customer_name": self.customer_name,
+            "customer_id": self.customer_id,
+            "lead_prompt_status": self.lead_prompt_status,
+            "customer_phone_or_email": self.customer_phone_or_email,
             "preferred_language": self.preferred_language,
             "stage": self.stage,
             "active_route": self.active_route,
@@ -130,6 +136,9 @@ class ConversationState:
         return cls(
             session_id=data.get("session_id", ""),
             customer_name=data.get("customer_name"),
+            customer_id=data.get("customer_id"),
+            lead_prompt_status=data.get("lead_prompt_status"),
+            customer_phone_or_email=data.get("customer_phone_or_email"),
             preferred_language=data.get("preferred_language", "en"),
             stage=data.get("stage", "open"),
             active_route=data.get("active_route"),
