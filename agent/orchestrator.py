@@ -3700,7 +3700,8 @@ class Orchestrator:
                 reply = re.sub(r"\bAED\s*[\d,.]+(?:\s*\(Excl\. VAT\))?\b", "", reply, flags=re.I)
                 reply = re.sub(r"\bPrice on Request\b", "", reply, flags=re.I)
             reply = re.sub(r"\b[\w.+-]+@(?:keplertech\.ae|keplertechllc\.com)\b", "", reply, flags=re.I)
-            reply = re.sub(r"\+971[\d\s-]{7,16}", "", reply)
+            if not source.startswith(("customer_flow:", "route:customer_flow")):
+                reply = re.sub(r"\+971[\d\s-]{7,16}", "", reply)
             if not source.startswith("guardrail:") and not source.startswith(("route:product_price", "route:consumable_price", "route:general_price")):
                 reply = "\n".join(
                     line for line in reply.splitlines()
