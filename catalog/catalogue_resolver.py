@@ -56,10 +56,11 @@ def find_mentioned_catalogue_products(text: str) -> List[Dict[str, Any]]:
             if bool(re.search(r"\b(?:pro|12000xl\s*pro)\b", text_lower)) and not bool(re.search(r"\b(?:without|standard|both|compare|versus|vs)\b", text_lower)):
                 continue
 
+        fam_clean = fam.replace("sc-", "").replace("wf-", "").replace("em-", "").replace("am-", "").replace("cx-", "").replace("cy-", "").replace("cz-", "")
         patterns = [
             re.escape(pid),
             re.escape(fam),
-            re.escape(fam.replace("sc-", "").replace("wf-", "").replace("em-", "").replace("am-", "")),
+            re.escape(fam_clean),
         ]
 
         found = False
@@ -68,8 +69,34 @@ def find_mentioned_catalogue_products(text: str) -> List[Dict[str, Any]]:
                 found = True
                 break
 
+        # Match-time normalization for prefixes, spaces, SureColor aliases
+        if not found and len(fam_clean) >= 3:
+            dynamic_patterns = [
+                rf"\b(?:sc|wf|am|em)[-\s]+{re.escape(fam_clean)}\b",
+                rf"\bsurecolor[-\s]+(?:sc[-\s]*)?{re.escape(fam_clean)}\b",
+                rf"\bepson[-\s]+(?:surecolor[-\s]*)?(?:sc[-\s]*)?{re.escape(fam_clean)}\b",
+            ]
+            for pat in dynamic_patterns:
+                if re.search(pat, text_lower):
+                    found = True
+                    break
+
         if not found:
-            clean_words = [re.sub(r"[^a-z0-9]", "", w) for w in text_lower.split() if len(re.sub(r"[^a-z0-9]", "", w)) >= 4]
+            clean_words = [re.sub(r"[^a-z0-9]", "", w) for w in text_lower.split() if len(re.sub(r"[^a-z0-9]", "", w)) >= 3]
+            normalized_search_tokens = set(clean_words)
+            raw_tokens = text_lower.split()
+            for idx in range(len(raw_tokens)):
+                if idx > 0:
+                    pair = raw_tokens[idx - 1] + raw_tokens[idx]
+                    clean_pair = re.sub(r"[^a-z0-9]", "", pair)
+                    normalized_search_tokens.add(clean_pair)
+                    normalized_search_tokens.add(re.sub(r"^(?:sc|wf|am|em|surecolor|epson|citizen)", "", clean_pair))
+                if idx > 1:
+                    triplet = raw_tokens[idx - 2] + raw_tokens[idx - 1] + raw_tokens[idx]
+                    clean_tri = re.sub(r"[^a-z0-9]", "", triplet)
+                    normalized_search_tokens.add(clean_tri)
+                    normalized_search_tokens.add(re.sub(r"^(?:sc|wf|am|em|surecolor|epson|citizen)", "", clean_tri))
+
             clean_text = re.sub(r"[^a-z0-9]", "", text_lower)
             clean_fam = re.sub(r"[^a-z0-9]", "", fam.lower())
             clean_pid = re.sub(r"[^a-z0-9]", "", pid.replace("epson-", "").replace("citizen-", "").lower())
@@ -77,10 +104,11 @@ def find_mentioned_catalogue_products(text: str) -> List[Dict[str, Any]]:
                 .replace("epson", "").replace("citizen", "")
                 .replace("workforce", "").replace("pro", "")
                 .replace("enterprise", "").replace("surecolor", ""))
+            clean_fam_short = re.sub(r"^(?:sc|wf|am|em|cx|cy|cz)", "", clean_fam)
 
-            candidates = {c for c in [clean_fam, clean_pid, clean_disp] if len(c) >= 4}
+            candidates = {c for c in [clean_fam, clean_fam_short, clean_pid, clean_disp] if len(c) >= 3 and (len(c) >= 4 or (any(ch.isdigit() for ch in c) and any(ch.isalpha() for ch in c)))}
             for cand in candidates:
-                if cand in clean_words:
+                if cand in normalized_search_tokens:
                     found = True
                     break
                 if len(cand) >= 6 and cand in clean_text:

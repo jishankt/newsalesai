@@ -74,6 +74,62 @@ from rag.consumables_engine import consumables_engine
 
 logger = logging.getLogger("orchestrator")
 
+OPENER_TEMPLATES = [
+    "Based on your requirements, here are our recommended {target}:",
+    "Here are the top-matching {target} tailored to your specifications:",
+    "According to your criteria, we recommend the following {target}:",
+    "Take a look at these approved {target} suited for your requirements:",
+]
+
+
+def format_rotating_opener(target: str, state: ConversationState) -> str:
+    """Returns an opener using one of 4 rotating templates that never repeats consecutively in the session."""
+    idx = getattr(state, "last_opener_index", None)
+    if idx is None:
+        next_idx = 0
+    else:
+        next_idx = (idx + 1) % len(OPENER_TEMPLATES)
+    state.last_opener_index = next_idx
+    return OPENER_TEMPLATES[next_idx].format(target=target)
+
+
+PRICING_REDIRECT_TEMPLATES = [
+    (
+        "Commercial details and official quotations are handled directly by our sales desk. "
+        "You can explore our published list prices on our official website (https://www.keplertechllc.com/).\n\n"
+        "Would you like me to connect you with a Kepler Tech sales specialist right now so they can prepare an official commercial quotation?"
+    ),
+    (
+        "Pricing, promotional rates, and commercial proposals are managed by our sales team. "
+        "Verified pricing is published on our official website at https://www.keplertechllc.com/.\n\n"
+        "I can connect you with a sales representative immediately to provide an official quote and discuss terms. Would you like a quotation?"
+    ),
+    (
+        "Our chat assistant provides verified technical specifications and compatibility from our authorized catalogue. "
+        "For official pricing and formal commercial quotes, please visit https://www.keplertechllc.com/,\n\n"
+        "or let me know if you would like to be connected with a sales specialist to receive a tailored quotation."
+    ),
+    (
+        "Commercial offers, enterprise discounts, and quotations are handled directly by our commercial department. "
+        "You can check current rates at https://www.keplertechllc.com/.\n\n"
+        "Would you like me to put you in touch with a sales representative for a personalized quote?"
+    ),
+]
+
+
+def format_rotating_pricing_redirect(state: ConversationState, product_name: Optional[str] = None) -> str:
+    """Returns a pricing redirect using one of 4 rotating templates that never repeats consecutively and offers connection to a sales rep."""
+    idx = getattr(state, "last_pricing_index", None)
+    if idx is None:
+        next_idx = 0
+    else:
+        next_idx = (idx + 1) % len(PRICING_REDIRECT_TEMPLATES)
+    state.last_pricing_index = next_idx
+    base = PRICING_REDIRECT_TEMPLATES[next_idx]
+    if product_name:
+        return f"Regarding pricing for the **{product_name}**:\n\n{base}"
+    return base
+
 
 class Orchestrator:
     def __init__(self, ollama_client: OllamaClient = None):
@@ -330,17 +386,17 @@ class Orchestrator:
             if len(named) == 1:
                 state.active_product = named[0]
                 state.active_product_id = named[0]["id"]
+            prod_name = named[0].get('display_name') if named else None
             if is_discount_inquiry(normalized_msg) or bool(re.search(r"\b(?:discounts?|bargain|negotiat)\b", msg_l)):
-                reply_text = DISCOUNT_REFUSAL
+                reply_text = format_rotating_pricing_redirect(state, prod_name)
                 source = "guardrail:discount_refusal"
             else:
-                label = (f" for the **{named[0].get('display_name') or named[0]['id']}**" if named else "")
-                reply_text = f"I can help with verified product specifications and compatibility{label}. Pricing and commercial details are not provided in this chat. Official pricing and quotations are available on our official website (https://www.keplertechllc.com/)."
+                reply_text = format_rotating_pricing_redirect(state, prod_name)
                 source = "guardrail:commercial_policy"
             state.last_assistant_response = reply_text
             state.increment_turn()
             return self._build_response(reply_text, source, [], [],
-                                        ["View Technical Specifications", "Compatible Consumables"],
+                                        ["Speak to Human Agent", "View Technical Specifications", "Compatible Consumables"],
                                         nlp_result, state, int((time.time() - start_time) * 1000))
 
         if re.search(r"\b(?:how\s+(?:can|do)\s+i\s+(?:buy|order|purchase)|where\s+can\s+i\s+(?:buy|order|purchase)|buy\s+this|purchase\s+link)\b", msg_l):
@@ -423,13 +479,55 @@ class Orchestrator:
                     ["View Technical Specifications"], nlp_result, state,
                     int((time.time() - start_time) * 1000))
 
-        unknown_model = re.search(r"\b(?:epson\s+)?sc[-\s]?[tpf]\d{3,5}[a-z]*\b", msg_l)
-        if unknown_model and not find_mentioned_catalogue_products(normalized_msg):
-            reply_text = f"I couldn't find **{unknown_model.group(0).upper()}** in the verified catalogue, so I can't confirm its specifications."
+        # ── Generalized Unknown Model Detection (All Brands: Citizen, Epson, etc.) ──
+        detected_brand = None
+        model_token = None
+        code_match = re.search(r"\b(?:(epson|citizen)\s+)?((?:sc|wf|am|em|cx|cy|cz|op)[-\s]?[a-z]?\d{2,5}[a-z0-9]*)\b", msg_l)
+        if code_match:
+            brand_grp = code_match.group(1)
+            code_grp = code_match.group(2)
+            detected_brand = brand_grp or ("citizen" if code_grp.startswith(("cx", "cy", "cz", "op")) else "epson")
+            model_token = code_grp.upper()
+        else:
+            brand_match = re.search(r"\b(citizen|epson)\s+([a-z0-9][a-z0-9_\-]{2,}(?:\s+[a-z0-9_\-]+)?)\b", msg_l)
+            if brand_match:
+                cand_brand = brand_match.group(1)
+                cand_token = brand_match.group(2).strip()
+                generic_words = {"printer", "printers", "plotter", "plotters", "scanner", "scanners", "ink", "inks", 
+                                 "consumable", "consumables", "paper", "papers", "roll", "rolls", "machine", "machines",
+                                 "products", "models", "solutions", "hardware", "authorized", "partner", "distributor"}
+                tok_words = [w for w in cand_token.split() if w not in generic_words]
+                if tok_words:
+                    detected_brand = cand_brand
+                    model_token = " ".join(tok_words).title()
+
+        if model_token and not find_mentioned_catalogue_products(normalized_msg):
+            if detected_brand == "citizen":
+                reply_text = (
+                    f"The **{model_token}** is not in our authorized catalogue, so we do not carry or support this specific model.\n\n"
+                    "However, as an authorized Citizen Photo distributor, we carry the full lineup of genuine Citizen dye-sublimation photo printers:\n"
+                    "• **Citizen CX-02:** Compact, high-speed 6-inch dye-sublimation photo printer, ideal for event photography and photo booths.\n"
+                    "• **Citizen CY-02:** High-capacity event photo printer engineered for high-volume commercial printing.\n"
+                    "• **Citizen CZ-01:** Ultra-compact, lightweight 4-inch photo printer for on-the-go mobility.\n"
+                    "• **Citizen CX-02W:** Wide 8-inch photo printer designed for professional studio and event portraits.\n\n"
+                    "Would you like technical specifications or media compatibility for any of these Citizen models?"
+                )
+                suggested_chips = ["Citizen CX-02", "Citizen CY-02", "Citizen CZ-01", "Citizen CX-02W"]
+            else:
+                reply_text = (
+                    f"The **{model_token}** is not in our authorized catalogue, so we do not carry or support this specific model.\n\n"
+                    "As an authorized Epson distributor, we recommend these nearest verified options from our catalogue:\n"
+                    "• **Epson SureColor SC-T3100:** 24-inch wireless desktop technical CAD/GIS plotter.\n"
+                    "• **Epson SureColor SC-P700:** 13-inch professional 10-colour photographic and fine art printer.\n"
+                    "• **Epson WorkForce Enterprise AM-C4000:** 40 ppm Heat-Free A3 enterprise multifunction printer.\n\n"
+                    "Would you like detailed specifications for any of these approved models?"
+                )
+                suggested_chips = ["SC-T3100", "SC-P700", "AM-C4000", "View Approved Models"]
+
             state.last_assistant_response = reply_text
             state.increment_turn()
             return self._build_response(reply_text, "route:unverified_product", [], [],
-                                        ["View Approved Models"], nlp_result, state,
+                                        suggested_chips, nlp_result, state,
                                         int((time.time() - start_time) * 1000))
 
         # Resolve a factual follow-up against the pair that was actually compared.
@@ -493,12 +591,12 @@ class Orchestrator:
             source = "guardrail:discount_refusal" if intercept_result.intent in ("discount_inquiry", "quote", "commercial") else f"interceptor:{intercept_result.intent}"
 
             if intercept_result.intent in ("discount_inquiry", "quote", "commercial"):
-                reply_text = DISCOUNT_REFUSAL
+                reply_text = format_rotating_pricing_redirect(state)
                 chips_to_return = [
+                    "Speak to Human Agent",
                     "Technical CAD Plotters",
                     "Office Enterprise MFPs",
                     "Photo & Fine Art",
-                    "View Consumables",
                 ]
             else:
                 reply_text = intercept_result.response
@@ -770,18 +868,24 @@ class Orchestrator:
                             c_cards = color_filtered
 
                     items_lines = []
+                    valid_c_cards = []
                     for card in c_cards:
-                        c_title = card.get("title") or card.get("name") or "Consumable Item"
+                        c_title = card.get("title") or card.get("name")
                         c_sku = card.get("sku")
-                        sku_text = f" (SKU: `{c_sku}`)" if c_sku else ""
+                        c_url = card.get("url") or card.get("website_url")
+                        if not c_title or not c_sku or not c_url:
+                            continue
+                        valid_c_cards.append(card)
                         c_pstr = card.get("price_formatted") or (f"AED {card.get('price'):,.2f}" if card.get("price") else None)
                         c_vat = card.get("vat_note") or "(Excl. VAT)"
                         price_part = f": **{c_pstr} {c_vat}**" if c_pstr else ""
-                        c_url = card.get("url") or card.get("website_url")
-                        link_title = f"[{c_title}]({c_url})" if c_url else f"**{c_title}**"
-                        items_lines.append(f"• **{link_title}**{sku_text}{price_part}")
-                    items_text = "\n".join(items_lines)
-                    reply_text = f"Certainly! Here are the official compatible inks and media for the **{disp_name}**:\n\n{items_text}"
+                        items_lines.append(f"• **[{c_title}]({c_url})** (SKU: `{c_sku}`){price_part}")
+                    c_cards = valid_c_cards
+                    if items_lines:
+                        items_text = "\n".join(items_lines)
+                        reply_text = f"Certainly! Here are the official compatible inks and media for the **{disp_name}**:\n\n{items_text}"
+                    else:
+                        reply_text = f"We could not find verified consumable items with confirmed SKUs and links for the **{disp_name}** in the current catalogue."
                     chips_to_return = ["Order Consumables", f"View {family_name} Specifications", "Request Official Quote"]
                     state.active_printer_for_consumables = disp_name
                     state.active_route = "consumable"
@@ -2018,16 +2122,21 @@ class Orchestrator:
                         p_name_i = p.get("display_name") or p.get("name") or p.get("id", "")
                         p_cards = consumables_engine.get_printer_consumables(p_name_i, limit=15)
                         if p_cards:
-                            all_c_cards.extend(p_cards)
+                            valid_p_cards = []
                             items_lines = []
                             for card in p_cards:
-                                c_title = card.get("title") or card.get("name") or "Consumable Item"
+                                c_title = card.get("title") or card.get("name")
                                 c_sku = card.get("sku")
-                                sku_text = f" (SKU: `{c_sku}`)" if c_sku else ""
                                 c_url = card.get("url") or card.get("website_url")
-                                link_title = f"[{c_title}]({c_url})" if c_url else f"**{c_title}**"
-                                items_lines.append(f"• **{link_title}**{sku_text}")
-                            sections.append(f"### 📦 **{p_name_i} Consumables**\n" + "\n".join(items_lines))
+                                if not c_title or not c_sku or not c_url:
+                                    continue
+                                valid_p_cards.append(card)
+                                items_lines.append(f"• **[{c_title}]({c_url})** (SKU: `{c_sku}`)")
+                            if items_lines:
+                                all_c_cards.extend(valid_p_cards)
+                                sections.append(f"### 📦 **{p_name_i} Consumables**\n" + "\n".join(items_lines))
+                            else:
+                                sections.append(f"### 📦 **{p_name_i} Consumables**\n• No verified consumables with catalog SKUs and links available.")
                         else:
                             sections.append(f"### 📦 **{p_name_i} Consumables**\n• No specific consumables listed in catalogue for this model.")
 
@@ -2755,16 +2864,21 @@ class Orchestrator:
                     p_name_i = p.get("display_name") or p.get("name") or p.get("id", "")
                     p_cards = consumables_engine.get_printer_consumables(p_name_i, limit=15)
                     if p_cards:
-                        all_c_cards.extend(p_cards)
+                        valid_p_cards = []
                         items_lines = []
                         for card in p_cards:
-                            c_title = card.get("title") or card.get("name") or "Consumable Item"
+                            c_title = card.get("title") or card.get("name")
                             c_sku = card.get("sku")
-                            sku_text = f" (SKU: `{c_sku}`)" if c_sku else ""
                             c_url = card.get("url") or card.get("website_url")
-                            link_title = f"[{c_title}]({c_url})" if c_url else f"**{c_title}**"
-                            items_lines.append(f"• **{link_title}**{sku_text}")
-                        sections.append(f"### 📦 **{p_name_i}**\n" + "\n".join(items_lines))
+                            if not c_title or not c_sku or not c_url:
+                                continue
+                            valid_p_cards.append(card)
+                            items_lines.append(f"• **[{c_title}]({c_url})** (SKU: `{c_sku}`)")
+                        if items_lines:
+                            all_c_cards.extend(valid_p_cards)
+                            sections.append(f"### 📦 **{p_name_i}**\n" + "\n".join(items_lines))
+                        else:
+                            sections.append(f"### 📦 **{p_name_i}**\n• No verified consumables with catalog SKUs and links available.")
                     else:
                         sections.append(f"### 📦 **{p_name_i}**\n• No specific consumables listed in catalogue for this model.")
 
@@ -2955,16 +3069,22 @@ class Orchestrator:
                     chips_to_return = ["Order Consumables", "View Printer Specifications", "Cost Per Page"]
                 elif not reply_text or "Here is the verified genuine consumable" not in reply_text:
                     color_label = f" {applied_color.title()}" if 'applied_color' in locals() and applied_color else ""
+                    valid_c_cards = []
                     items_lines = []
                     for card in c_cards:
-                        c_title = card.get("title") or card.get("name") or "Consumable Item"
+                        c_title = card.get("title") or card.get("name")
                         c_sku = card.get("sku")
-                        sku_text = f" (SKU: `{c_sku}`)" if c_sku else ""
                         c_url = card.get("url") or card.get("website_url")
-                        link_title = f"[{c_title}]({c_url})" if c_url else f"**{c_title}**"
-                        items_lines.append(f"• **{link_title}**{sku_text}")
-                    items_text = "\n".join(items_lines)
-                    reply_text = f"Certainly! Here are the verified{color_label} inks and media compatible with **{p_name}**:\n\n{items_text}"
+                        if not c_title or not c_sku or not c_url:
+                            continue
+                        valid_c_cards.append(card)
+                        items_lines.append(f"• **[{c_title}]({c_url})** (SKU: `{c_sku}`)")
+                    c_cards = valid_c_cards
+                    if items_lines:
+                        items_text = "\n".join(items_lines)
+                        reply_text = f"Certainly! Here are the verified{color_label} inks and media compatible with **{p_name}**:\n\n{items_text}"
+                    else:
+                        reply_text = f"We could not find verified consumable items with confirmed SKUs and links for the **{p_name}** in the current catalogue."
                 chips_to_return = ["Order Consumables", "View Printer Specifications"]
             else:
                 if p_name:
@@ -3170,7 +3290,9 @@ class Orchestrator:
                     valid_cards = validate_product_cards(cards)
                     state.displayed_product_ids = [c["id"] for c in valid_cards]
                     state.results_loaded = True
-                    reply_text = f"Based on your requirements, here are our top recommended {state.category.replace('_', ' ').title()} models (you can refine or compare anytime):"
+                    cat_name = state.category.replace('_', ' ').title() if state.category else "Printer"
+                    opener_str = format_rotating_opener(f"top {cat_name} models", state)
+                    reply_text = f"{opener_str} (you can refine or compare anytime):"
                     chips_to_return = ["Compare Matching Models", "View Detailed Specifications", "Filter by Requirements"]
                     state.last_assistant_response = reply_text
                     state.increment_turn()
@@ -3295,39 +3417,42 @@ class Orchestrator:
                     v_int = 0
                 if v_int >= 150:
                     reply_text = (
-                        f"Based on your requirements, here are our recommended A4 colour multifunction printers ({len(valid_cards)} models). "
+                        f"{format_rotating_opener(f'A4 colour multifunction printers ({len(valid_cards)} models)', state)} "
                         f"For your workload of {v_int} pages/day (~{v_int * 25:,} pages/month), our high-speed WorkForce Enterprise line-head models "
                         "(**AM-C400** and **AM-C550**) are ranked first for peak reliability:"
                     )
                 else:
-                    reply_text = f"Based on your requirements, here are our recommended A4 colour multifunction printer{'s' if len(valid_cards) != 1 else ''}:"
+                    reply_text = format_rotating_opener(f"A4 colour multifunction printer{'s' if len(valid_cards) != 1 else ''}", state)
             elif subcategory == "a3_workforce_pro_multifunction":
-                reply_text = f"Based on your requirements, here are our recommended A3 WorkForce Pro multifunction printer{'s' if len(valid_cards) != 1 else ''}:"
+                reply_text = format_rotating_opener(f"A3 WorkForce Pro multifunction printer{'s' if len(valid_cards) != 1 else ''}", state)
             elif subcategory == "a3_enterprise_multifunction":
-                reply_text = f"Based on your requirements, here are our recommended A3 WorkForce Enterprise multifunction printer{'s' if len(valid_cards) != 1 else ''}:"
+                reply_text = format_rotating_opener(f"A3 WorkForce Enterprise multifunction printer{'s' if len(valid_cards) != 1 else ''}", state)
             elif subcategory == "citizen_6_inch":
                 if state.requirements.get("ribbon_rewind") or any(s in state.requirements.get("print_sizes", []) for s in ["2x6", "6x2"]):
+                    c_count = len(valid_cards)
+                    s_suffix = 's' if c_count != 1 else ''
+                    c_opener = format_rotating_opener(f"Citizen photo printers ({c_count} model{s_suffix})", state)
                     reply_text = (
-                        f"Based on your requirements, here are our recommended Citizen photo printers ({len(valid_cards)} model{'s' if len(valid_cards) != 1 else ''}). "
+                        f"{c_opener} "
                         "The **Citizen CX-02** features a ribbon rewind function that prints 2x6 strips and multiple sizes (4x6 and 6x8) from a single roll without media loss:"
                     )
                 else:
-                    reply_text = f"Based on your requirements, here are our recommended Citizen 6-inch photo printer{'s' if len(valid_cards) != 1 else ''}:"
+                    reply_text = format_rotating_opener(f"Citizen 6-inch photo printer{'s' if len(valid_cards) != 1 else ''}", state)
             elif state.requirements.get("paper_size") == "a3":
-                reply_text = f"Based on your requirements, here are our recommended A3 multifunction printer{'s' if len(valid_cards) != 1 else ''}:"
+                reply_text = format_rotating_opener(f"A3 multifunction printer{'s' if len(valid_cards) != 1 else ''}", state)
             elif subcategory == "photo_64_production" or state.requirements.get("print_width") == 64:
-                reply_text = "Based on your requirements, here is our premier 64-inch production photo & fine art roll printer (64″ / 162.6 cm is our standard maximum roll width):"
+                reply_text = f"{format_rotating_opener('premier 64-inch production photo & fine art roll printer', state)} (64″ / 162.6 cm is our standard maximum roll width):"
             elif state.category == "scanners" or subcategory in ("business_scanners", "photo_scanners", "hybrid_scanners") or any(c.get("main_category") == "scanners" for c in valid_cards):
                 if subcategory == "business_scanners":
-                    reply_text = f"Based on your requirements, here are our recommended business document scanner{'s' if len(valid_cards) != 1 else ''}:"
+                    reply_text = format_rotating_opener(f"business document scanner{'s' if len(valid_cards) != 1 else ''}", state)
                 elif subcategory == "photo_scanners":
-                    reply_text = f"Based on your requirements, here are our recommended high-resolution photo & graphic scanner{'s' if len(valid_cards) != 1 else ''}:"
+                    reply_text = format_rotating_opener(f"high-resolution photo & graphic scanner{'s' if len(valid_cards) != 1 else ''}", state)
                 elif subcategory == "hybrid_scanners":
-                    reply_text = f"Based on your requirements, here are our recommended hybrid flatbed & ADF scanner{'s' if len(valid_cards) != 1 else ''}:"
+                    reply_text = format_rotating_opener(f"hybrid flatbed & ADF scanner{'s' if len(valid_cards) != 1 else ''}", state)
                 else:
-                    reply_text = f"Based on your requirements, here are our recommended catalogue scanner{'s' if len(valid_cards) != 1 else ''}:"
+                    reply_text = format_rotating_opener(f"catalogue scanner{'s' if len(valid_cards) != 1 else ''}", state)
             else:
-                reply_text = f"Based on your requirements, here are our recommended catalogue printer{'s' if len(valid_cards) != 1 else ''}:"
+                reply_text = format_rotating_opener(f"catalogue printer{'s' if len(valid_cards) != 1 else ''}", state)
 
             if valid_cards:
                 bullets = []

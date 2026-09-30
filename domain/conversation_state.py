@@ -63,6 +63,9 @@ class ConversationState:
     history_turns: List[Dict[str, Any]] = field(default_factory=list)
     turn_count: int = 0
     state_version: int = 3
+    # ── Template Variety Control ─────────────────────────────────────────
+    last_opener_index: Optional[int] = None
+    last_pricing_index: Optional[int] = None
 
     # ── Live Sales Agent & Handover Control ──────────────────────────────
     human_agent_active: bool = False
@@ -127,6 +130,8 @@ class ConversationState:
             "handover_triggered": self.handover_triggered,
             "handover_reason": self.handover_reason,
             "handover_timestamp": self.handover_timestamp,
+            "last_opener_index": self.last_opener_index,
+            "last_pricing_index": self.last_pricing_index,
             "pending_agent_messages": self.pending_agent_messages,
         }
 
@@ -182,6 +187,8 @@ class ConversationState:
             handover_triggered=bool(data.get("handover_triggered", False)),
             handover_reason=data.get("handover_reason"),
             handover_timestamp=data.get("handover_timestamp"),
+            last_opener_index=data.get("last_opener_index"),
+            last_pricing_index=data.get("last_pricing_index"),
             pending_agent_messages=data.get("pending_agent_messages", []),
         )
 

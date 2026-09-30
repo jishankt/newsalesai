@@ -29,7 +29,19 @@ _GREETING_PATTERN = re.compile(
 )
 
 _ENDING_PATTERN = re.compile(
-    r"^(?:thanks?|thank\s+you|bye|goodbye|good\s*bye|that'?s?\s+all|have\s+a\s+(?:good|nice)\s+day|see\s+ya?)[\s!.]*$",
+    r"^(?:(?:got\s+it|understood|noted|perfect|sounds?\s+good|alright|ok|okay)[,\s!]*)*"
+    r"(?:thanks?|thank\s+you|thx|ty|bye|goodbye|good\s*bye|that'?s?\s+all|have\s+a\s+(?:good|nice|great)\s+day|see\s+ya?|much\s+appreciated|"
+    r"got\s+it|understood|noted|sounds?\s+good)"
+    r"(?:[,\s]+(?:for|to|with)\s+.*)?"
+    r"[\s!.]*$",
+    re.IGNORECASE,
+)
+
+_PRODUCT_TERMS = re.compile(
+    r"\b(?:printer|printers|plotter|plotters|scanner|scanners|mfp|cartridge|cartridges|ink|inks|paper|roll|media|ribbon|printhead|"
+    r"sc-[a-z0-9]+|wf-[a-z0-9]+|cz-[a-z0-9]+|cx-[a-z0-9]+|cy-[a-z0-9]+|am-c[0-9]+|em-c[0-9]+|"
+    r"epson|citizen|surecolor|workforce|"
+    r"price|prices|pricing|cost|costs|quote|quotes|quotation|discount|discounts|buy|purchase|order|specs?|specifications?)\b",
     re.IGNORECASE,
 )
 
@@ -82,8 +94,8 @@ def intercept(message: str, raw_message: Optional[str] = None) -> InterceptResul
             suggested_chips=[],
         )
 
-    # ── 2. Thanks / goodbye ─────────────────────────────────────────────
-    if _ENDING_PATTERN.match(text):
+    # ── 2. Thanks / goodbye (with zero product inquiry terms) ───────────
+    if _ENDING_PATTERN.match(text) and not _PRODUCT_TERMS.search(text):
         return InterceptResult(
             matched=True,
             intent="conversation_ending",

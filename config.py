@@ -137,3 +137,47 @@ DEFAULT_COMPANY_CONTEXT = {
         "- Strictly adhering to commercial policy: all formal pricing, volume discounts, and quotations are handled directly by enterprise sales executives through sales@keplertech.ae."
     )
 }
+
+# Partner & Distributor Status Text
+PARTNER_STATUS_TEXT = os.getenv(
+    "PARTNER_STATUS_TEXT",
+    "Kepler Tech is an authorized distributor and partner for Epson, Citizen, Innova Art, Olmec, and Mirage in the UAE."
+)
+
+# Business Hours & Timezone (Dubai GST UTC+4)
+BUSINESS_HOURS_TIMEZONE = os.getenv("BUSINESS_HOURS_TIMEZONE", "Asia/Dubai")
+BUSINESS_HOURS = {
+    "timezone": "GST",
+    "utc_offset_hours": 4,
+    "schedule": {
+        0: {"open": (8, 30), "close": (17, 30)},  # Mon
+        1: {"open": (8, 30), "close": (17, 30)},  # Tue
+        2: {"open": (8, 30), "close": (17, 30)},  # Wed
+        3: {"open": (8, 30), "close": (17, 30)},  # Thu
+        4: {"open": (8, 30), "close": (17, 30)},  # Fri
+        5: {"open": (8, 30), "close": (13, 0)},   # Sat
+        6: None,                                  # Sun closed
+    },
+    "text": "Monday – Friday: 8:30 AM to 5:30 PM | Saturday: 8:30 AM to 1:00 PM | Sunday: Closed (Dubai GST / UTC+4)",
+}
+
+
+def is_within_business_hours(dt=None) -> bool:
+    """Returns True if the given datetime (or now) falls within Dubai GST business hours."""
+    from datetime import datetime, timezone, timedelta, time
+    gst = timezone(timedelta(hours=4))
+    if dt is None:
+        dt = datetime.now(gst)
+    elif dt.tzinfo is None:
+        dt = dt.replace(tzinfo=gst)
+    else:
+        dt = dt.astimezone(gst)
+
+    sched = BUSINESS_HOURS["schedule"].get(dt.weekday())
+    if not sched:
+        return False
+    current_time = dt.time()
+    open_time = time(*sched["open"])
+    close_time = time(*sched["close"])
+    return open_time <= current_time <= close_time
+

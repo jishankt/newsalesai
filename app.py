@@ -33,6 +33,7 @@ from config import (
     RATE_LIMIT_ENABLED,
     TRUSTED_PROXY_COUNT,
     LLM_TIMEOUT_SECONDS,
+    is_within_business_hours,
 )
 from prompts import build_system_prompt, format_generate_prompt, format_evidence_grounded_prompt
 from guardrails import check_user_intent_for_pricing_or_discount, validate_and_sanitize_response, PRICE_REFUSAL, DISCOUNT_REFUSAL
@@ -395,10 +396,39 @@ def _process_chat_turn(raw_message, session_id, model_name, request_id, session_
         state.handover_timestamp = time.time()
         logger.info(f"[{session_prefix}] Escalation flagged: customer requested human assistance.")
 
-        reply_msg = (
-            "I have notified our Live Sales Desk! A Kepler Tech sales specialist has been alerted and will join this conversation momentarily to assist you directly.\n\n"
-            "In the meantime, please feel free to share any details, preferred configurations, or project requirements you'd like our team to prepare."
-        )
+        if is_within_business_hours():
+            reply_msg = (
+                "I have notified our Live Sales Desk! A Kepler Tech sales specialist has been alerted and will join this conversation momentarily to assist you directly.\n\n"
+                "In the meantime, please feel free to share any details, preferred configurations, or project requirements you'd like our team to prepare."
+            )
+            suggested_chips = ["Leave Contact Details", "Showroom Hours & Location"]
+        else:
+            has_contact = bool(
+                getattr(state, "customer_phone_or_email", None)
+                or (getattr(state, "requirements", None) and (
+                    state.requirements.get("phone") or state.requirements.get("email") or
+                    state.requirements.get("contact_phone") or state.requirements.get("contact_email")
+                ))
+                or session.get("customer_phone_or_email")
+                or session.get("user_phone")
+                or session.get("user_email")
+            )
+            if not has_contact:
+                reply_msg = (
+                    "Our sales office in Dubai is currently closed outside of regular business hours "
+                    "(Monday–Friday 8:30 AM–5:30 PM, Saturday 8:30 AM–1:00 PM GST; Sunday closed).\n\n"
+                    "Our team will review your inquiry and reply on the next working day. "
+                    "Please share your contact number or email address so a Kepler Tech sales specialist can follow up with you directly."
+                )
+                suggested_chips = ["Leave Phone Number", "Leave Email Address", "Showroom Hours & Location"]
+            else:
+                reply_msg = (
+                    "Our sales office in Dubai is currently closed outside of regular business hours "
+                    "(Monday–Friday 8:30 AM–5:30 PM, Saturday 8:30 AM–1:00 PM GST; Sunday closed).\n\n"
+                    "We have your contact details on file and a Kepler Tech sales specialist will follow up with you on the next working day."
+                )
+                suggested_chips = ["Showroom Hours & Location", "Browse Product Catalogue"]
+
         state.history_turns.append({"role": "user", "content": raw_message})
         state.history_turns.append({"role": "assistant", "content": reply_msg})
         history.append({"role": "user", "content": raw_message})
@@ -416,7 +446,7 @@ def _process_chat_turn(raw_message, session_id, model_name, request_id, session_
             "cards": [],
             "product_cards": [],
             "consumable_cards": [],
-            "suggested_chips": ["Leave Contact Details", "Showroom Hours & Location"],
+            "suggested_chips": suggested_chips,
             "active_agent": "Front Desk",
             "retrieved_sources": [],
             "type": "message",
