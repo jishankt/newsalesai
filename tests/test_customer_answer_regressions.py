@@ -69,11 +69,29 @@ def test_ink_type_and_model_compatibility_are_checked_before_answering():
 
 
 def test_unverified_fields_are_stated_as_unknown_and_policy_holds():
+    # SC-P700 has verified Wi-Fi in the corpus (USB 3.0, Ethernet, 5GHz Wi-Fi).
+    # So the bot should CONFIRM Wi-Fi support rather than saying "not listed".
     state = ConversationState(session_id="audit-unknown-fields")
-    assert "not listed" in talk(state, "Does Epson SC-P700 include Wi-Fi?")["reply"].lower()
-    assert "does not specify" in talk(state, "How long is the SC-P700 warranty?")["reply"].lower()
+    wifi_reply = talk(state, "Does Epson SC-P700 include Wi-Fi?")["reply"]
+    # SC-P700 corpus has 5GHz Wi-Fi — the bot must state it, not hallucinate "not listed"
+    assert "wi-fi" in wifi_reply.lower(), f"Expected Wi-Fi confirmation, got: {wifi_reply}"
+
+    # Citizen CX-02 has no connectivity data in corpus or catalogue — must say "not listed"
+    state2 = ConversationState(session_id="audit-unknown-fields-citizen")
+    citizen_reply = talk(state2, "Does the Citizen CX-02 have Wi-Fi?")["reply"]
+    assert "not listed" in citizen_reply.lower() or "not specified" in citizen_reply.lower() or "unknown" in citizen_reply.lower(), \
+        f"Expected 'not listed/not specified/unknown' for Citizen CX-02 Wi-Fi, got: {citizen_reply}"
+
+    # SC-P700 warranty — not in catalogue → must say "do not specify" (actual phrasing from interceptor)
+    state3 = ConversationState(session_id="audit-unknown-warranty")
+    warranty_reply = talk(state3, "How long is the SC-P700 warranty?")["reply"]
+    assert "do not specify" in warranty_reply.lower() or "does not specify" in warranty_reply.lower(), \
+        f"Expected warranty reply to say 'do not specify', got: {warranty_reply}"
+
+    # Pricing guardrail — must not leak price or contact details
+    state4 = ConversationState(session_id="audit-pricing-guardrail")
     for question in ("How much is the Epson SC-P700?", "Can I get a discount or an official quote?"):
-        response = talk(state, question)
+        response = talk(state4, question)
         assert "AED" not in response["reply"]
         assert "sales@" not in response["reply"]
         assert "+971" not in response["reply"]

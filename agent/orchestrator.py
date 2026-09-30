@@ -333,14 +333,23 @@ class Orchestrator:
             _w_targets = find_mentioned_catalogue_products(normalized_msg)
             _w_prod = _w_targets[0] if _w_targets else state.active_product
             _w_name = (_w_prod.get("display_name") or _w_prod.get("name") if _w_prod else None) or "this product"
-            reply_text = (
-                f"All products sold through Kepler Tech LLC, including the **{_w_name}**, come with a "
-                f"**12-month manufacturer's warranty** provided through Kepler Tech as the authorized distributor. "
-                f"The warranty covers manufacturing defects under normal operating conditions.\n\n"
-                f"For warranty claims or after-sales support, please contact us directly via our official website: "
-                f"https://www.keplertechllc.com/ or reach out to our sales team.\n\n"
-                f"Is there anything else you'd like to know about the **{_w_name}**?"
-            )
+            # Check if catalogue has an explicit warranty field for this product
+            _w_warranty_field = (_w_prod.get("warranty") or _w_prod.get("warranty_duration") or _w_prod.get("guarantee")) if _w_prod else None
+            if _w_warranty_field:
+                # Catalogue-verified warranty duration
+                reply_text = (
+                    f"The **{_w_name}** comes with a verified **{_w_warranty_field}** warranty through Kepler Tech as the authorized distributor.\n\n"
+                    f"For warranty claims or after-sales support, please visit https://www.keplertechllc.com/ or contact our sales team.\n\n"
+                    f"Is there anything else you'd like to know about the **{_w_name}**?"
+                )
+            else:
+                # Warranty duration not in catalogue — do not invent a number, direct to sales
+                reply_text = (
+                    f"Our verified catalogue specifications **do not specify** the exact warranty duration for the **{_w_name}**.\n\n"
+                    f"For official warranty terms, coverage details, and after-sales support, please contact our sales team directly: "
+                    f"https://www.keplertechllc.com/\n\n"
+                    f"Would you like me to connect you with a Kepler Tech sales specialist who can confirm the warranty terms?"
+                )
             state.last_assistant_response = reply_text
             state.increment_turn()
             _w_cards = [catalogue_filter._format_card(_w_prod, _w_prod.get("subcategory"), state.requirements)] if _w_prod else []
@@ -349,7 +358,7 @@ class Orchestrator:
                 source="interceptor:warranty_info",
                 product_cards=_w_cards,
                 consumable_cards=[],
-                suggested_chips=["View Technical Specifications", "View Compatible Consumables", "Contact Sales Team"],
+                suggested_chips=["Contact Sales Team", "View Technical Specifications", "View Compatible Consumables"],
                 nlp_result=nlp_result, state=state,
                 latency_ms=int((time.time() - start_time) * 1000),
             )
@@ -478,6 +487,40 @@ class Orchestrator:
                     [catalogue_filter._format_card(prod, prod.get("subcategory"), state.requirements)], [],
                     ["View Technical Specifications"], nlp_result, state,
                     int((time.time() - start_time) * 1000))
+
+        # ── EARLY INTERCEPT: Single-attribute Wi-Fi / Connectivity query on named or active product ──
+        # Catches: "Does Epson SC-P700 have Wi-Fi?", "Is the SC-T5100M wireless?", etc.
+        # This MUST run before the LLM to prevent connectivity hallucination.
+        # IMPORTANT: Only fires for single-attribute connectivity queries; multi-attribute queries
+        # (e.g. "Does it have Wi-Fi, scanner and what ink does it use?") are handled by the
+        # multi-attribute block further below.
+        _is_wifi_query = bool(re.search(
+            r"\b(?:wi[- ]?fi|wireless(?:ly)?|wi[- ]?fi\s+direct|bluetooth|connectivity|connect(?:ed)?\s+(?:to\s+)?(?:wifi|network)|ethernet)\b",
+            msg_l
+        ))
+        _has_scanner_ask = bool(re.search(r"\b(?:scan(?:ner|ning)?|mfp|copier|copy)\b", msg_l))
+        _has_ink_ask = bool(re.search(r"\b(?:inks?|cartridges?|consumables?|supplies|ribbon|paper|media)\b", msg_l))
+        # Only intercept if it's a SINGLE-attribute Wi-Fi question (no scanner/ink also asked)
+        if _is_wifi_query and not _has_scanner_ask and not _has_ink_ask:
+            _wifi_named = find_mentioned_catalogue_products(normalized_msg)
+            _wifi_prod = _wifi_named[0] if _wifi_named else state.active_product
+            if _wifi_prod:
+                from agent.evidence_planner import evidence_planner as _ep
+                _wifi_fact = _ep._evaluate_wifi(_wifi_prod)
+                # Set active product so follow-up context is preserved
+                state.active_product = _wifi_prod
+                state.active_product_id = _wifi_prod.get("id", "")
+                state.last_assistant_response = _wifi_fact.display_claim
+                state.increment_turn()
+                return self._build_response(
+                    reply=_wifi_fact.display_claim,
+                    source="interceptor:connectivity_spec",
+                    product_cards=[catalogue_filter._format_card(_wifi_prod, _wifi_prod.get("subcategory"), state.requirements)],
+                    consumable_cards=[],
+                    suggested_chips=["View Technical Specifications", "Compatible Consumables", "Contact Sales Team"],
+                    nlp_result=nlp_result, state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
 
         # ── Generalized Unknown Model Detection (All Brands: Citizen, Epson, etc.) ──
         detected_brand = None
@@ -2315,11 +2358,22 @@ class Orchestrator:
                 ink_fact, detail_c_cards = evidence_planner._evaluate_ink(act_p)
                 if not detail_c_cards:
                     detail_c_cards = consumables_engine.get_printer_consumables(p_name, limit=15)
+                # Always show the catalogue ink technology name to prevent hallucination
+                _ink_tech_name = (
+                    act_p.get("ink_technology")
+                    or act_p.get("colour_specification")
+                    or act_p.get("technology")
+                )
                 c_sku_items = [f"**{c.get('name') or c.get('title')}** (SKU: `{c.get('sku')}`)" for c in detail_c_cards if c.get("sku")]
-                if c_sku_items:
+                if _ink_tech_name and c_sku_items:
+                    parts.append(f"• **Ink Technology:** {_ink_tech_name}; compatible supplies: {', '.join(c_sku_items[:3])}")
+                elif _ink_tech_name:
+                    parts.append(f"• **Ink Technology:** {ink_fact.display_claim}")
+                elif c_sku_items:
                     parts.append(f"• **Compatible Consumables:** {', '.join(c_sku_items[:4])}")
                 else:
                     parts.append(f"• **Inks & Compatible Supplies:** {ink_fact.display_claim}")
+
 
             if has_multi_wifi:
                 parts.append(f"• **Wi-Fi:** {evidence_planner._evaluate_wifi(act_p).display_claim}")
