@@ -45,35 +45,88 @@ def is_positive_response(text: str) -> bool:
     return any(re.search(pat, t) for pat in POSITIVE_PATTERNS)
 
 
+STOP_WORDS = {
+    "and", "my", "mobile", "phone", "number", "email", "is", "am", "the", "whatsapp",
+    "contact", "here", "call", "at", "from", "with", "me", "hi", "hello", "hey",
+    "dear", "mr", "mrs", "ms", "it",
+    "و", "في", "من", "على", "رقم", "رقمي", "ورقمي", "هاتف", "هاتفي", "وهاتفي",
+    "موبايل", "جوال", "ايميل", "بريد", "البريد", "إيميل", "واتساب"
+}
+
+NAME_TOKEN_REGEX = re.compile(
+    r"^[a-zA-Z\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]+"
+    r"(?:['’\-][a-zA-Z\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]+)*$"
+)
+
+
+def format_name_token(token: str) -> str:
+    """Properly capitalizes Latin tokens while preserving Arabic script and internal punctuation."""
+    if token.islower() and re.search(r"[a-z]", token):
+        return re.sub(r"[a-z]+", lambda m: m.group(0).capitalize(), token)
+    return token
+
+
+def extract_full_name(text: str, email: Optional[str] = None, phone: Optional[str] = None) -> Optional[str]:
+    """
+    Extracts customer full name:
+    - Takes up to 4 alphabetic tokens (allows Arabic script, hyphens, apostrophes)
+    - Stops at stop-words (and, my, mobile, phone, number, email, is, am, the, whatsapp, etc.)
+    - Stops at any digit or '@'
+    """
+    clean = text
+    intro_match = re.search(
+        r"\b(?:my\s+name\s+is|i['’]?m|i\s+am|name\s+is|this\s+is|اسمي|أنا)\b[:\s]*",
+        clean,
+        re.IGNORECASE
+    )
+    if intro_match:
+        sub = clean[intro_match.end():]
+    else:
+        sub = clean
+        if email:
+            sub = sub.replace(email, " ")
+        if phone:
+            sub = sub.replace(phone, " ")
+
+    tokens = []
+    raw_tokens = sub.split()
+    for raw in raw_tokens:
+        tok = raw.strip("\"'`()[]{}")
+        # Stop at digit or @
+        if "@" in tok or any(c.isdigit() for c in tok):
+            break
+        # Strip trailing punctuation
+        tok = re.sub(r"[,.:;!?]+$", "", tok)
+        if not tok:
+            continue
+        # Stop at stop-word
+        if tok.lower() in STOP_WORDS:
+            break
+        # Check token validity
+        if not NAME_TOKEN_REGEX.match(tok):
+            break
+        tokens.append(format_name_token(tok))
+        if len(tokens) == 4:
+            break
+
+    if not tokens:
+        return None
+    return " ".join(tokens)
+
+
 def extract_name_and_contact(text: str) -> Tuple[Optional[str], Optional[str], Optional[str], Optional[str]]:
     """
     Extracts (name, contact, phone, email) from input text.
-    Uses regexes from SalesLeadAgent with fallback parsing.
+    Uses robust full-name extraction supporting up to 4 tokens (Arabic, hyphens, apostrophes).
     """
     contact_info = sales_lead_agent.extract_contact_info(text)
     email = contact_info.get("email")
     phone = contact_info.get("phone")
-    name = contact_info.get("name")
-
     contact = email or phone
 
-    # Fallback name extraction if not matched by standard prefix
+    name = extract_full_name(text, email=email, phone=phone)
     if not name:
-        # Check patterns like "My name is John" or "I am Ahmed" or "Ahmed, 055..."
-        clean_text = text
-        if email:
-            clean_text = clean_text.replace(email, "")
-        if phone:
-            clean_text = clean_text.replace(phone, "")
-        clean_text = re.sub(r"[,:\-_/|+]", " ", clean_text)
-        words = [w for w in clean_text.split() if w.lower() not in [
-            "my", "name", "is", "i", "am", "here", "call", "me", "email", "phone", "number", "mobile", "whatsapp", "and", "the", "it", "at"
-        ] and len(w) >= 2]
-        if words:
-            # First 1-3 words can form the candidate name
-            candidate = " ".join(words[:2])
-            if re.match(r"^[A-Za-z\s.'-]+$", candidate):
-                name = candidate.title()
+        name = contact_info.get("name")
 
     return name, contact, phone, email
 

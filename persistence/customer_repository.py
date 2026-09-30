@@ -223,11 +223,11 @@ class CustomerRepository:
                     stored_first_name = stored_user.split()[0] if stored_user else ""
                     stored_disp_first = stored_display.split()[0] if stored_display else ""
 
-                    name_matches = (
-                        norm_user == stored_user
-                        or norm_user == stored_display
-                        or input_first_name == stored_first_name
-                        or input_first_name == stored_disp_first
+                    target_first = stored_first_name or stored_disp_first
+                    name_matches = bool(
+                        input_first_name
+                        and target_first
+                        and input_first_name == target_first
                     )
 
                     if name_matches:
