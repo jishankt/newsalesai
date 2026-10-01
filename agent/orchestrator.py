@@ -83,13 +83,24 @@ OPENER_TEMPLATES = [
 
 
 def format_rotating_opener(target: str, state: ConversationState) -> str:
-    """Returns an opener using one of 4 rotating templates that never repeats consecutively in the session."""
+    """Returns an opener using one of 4 rotating templates that recaps customer requirements when present."""
     idx = getattr(state, "last_opener_index", None)
     if idx is None:
         next_idx = 0
     else:
         next_idx = (idx + 1) % len(OPENER_TEMPLATES)
     state.last_opener_index = next_idx
+
+    req_summary = state.format_requirements_summary() if hasattr(state, "format_requirements_summary") else ""
+    if req_summary:
+        templates = [
+            "Based on your requirements ({reqs}), here are our recommended {target}:",
+            "Here are the top-matching {target} tailored to your specifications ({reqs}):",
+            "According to your criteria ({reqs}), we recommend the following {target}:",
+            "Take a look at these approved {target} suited for your requirements ({reqs}):",
+        ]
+        return templates[next_idx].format(target=target, reqs=req_summary)
+
     return OPENER_TEMPLATES[next_idx].format(target=target)
 
 
@@ -2916,7 +2927,8 @@ class Orchestrator:
                         or getattr(understanding, "requested_action", "") in ("show_product_specs", "show_details")
                     ) and not CanonicalEntityNormalizer.is_capability_query(normalized_msg) and not bool(re.search(r"\bcan\s+(?:i|it)\b", normalized_msg.lower()))
                     if is_detailed_specs_query:
-                        detail_specs = product_spec_engine.get_product_detailed_specs(spec_target_id, normalized_msg)
+                        req_summary = state.format_requirements_summary() if hasattr(state, "format_requirements_summary") else ""
+                        detail_specs = product_spec_engine.get_product_detailed_specs(spec_target_id, normalized_msg, requirements_summary=req_summary)
                         if detail_specs and detail_specs.get("reply"):
                             reply_text = detail_specs["reply"]
                             p_card = catalogue_filter._format_card(spec_target_cand, spec_target_cand.get("subcategory"), state.requirements)
@@ -3950,7 +3962,9 @@ class Orchestrator:
             elif is_correction_turn and had_cards:
                 is_scanners = state.category == "scanners" or any(c.get("main_category") == "scanners" for c in valid_cards)
                 item_word = "scanners" if is_scanners else "printers"
-                reply_text = f"Understood, I've updated your requirements. Here are the {len(valid_cards)} matching catalogue {item_word}:"
+                req_summary = state.format_requirements_summary() if hasattr(state, "format_requirements_summary") else ""
+                req_clause = f" ({req_summary})" if req_summary else ""
+                reply_text = f"Understood, I've updated your requirements{req_clause}. Here are the {len(valid_cards)} matching catalogue {item_word}:"
             elif subcategory == "a4_colour_multifunction":
                 try:
                     v_int = int(vol) if vol else 0
@@ -4097,26 +4111,17 @@ class Orchestrator:
         p_url = getattr(prod, "product_url", None) or (prod.source.website_url if hasattr(prod, 'source') and hasattr(prod.source, 'website_url') else None) or f"https://www.keplertechllc.com/product/{prod.id}/"
         lines = []
 
-        req_parts = []
         is_rec_flow = route_result is None or not getattr(route_result, "source", "") or getattr(route_result, "source", "") in ("recommendation:grounded_engine", "agent:product_specialist:qualified_search")
-        if is_rec_flow and state:
-            reqs = state.requirements or {}
-            if reqs.get("print_size"):
-                req_parts.append(f"{reqs['print_size']} printing")
-            if reqs.get("scan_required"):
-                req_parts.append("integrated scanner")
-            if reqs.get("daily_volume"):
-                req_parts.append(f"{reqs['daily_volume']} prints/day")
-            if reqs.get("speed"):
-                req_parts.append(f"{reqs['speed']} speed")
-            if reqs.get("workload"):
-                req_parts.append(f"{reqs['workload']} volume")
-
-            if req_parts:
-                lines.append(f"Based on your requirement for {', '.join(req_parts)}, here is the recommended equipment from our verified catalogue:\n")
-            elif state.category:
-                cat_display = state.category.replace('_', ' ').title()
-                lines.append(f"Here are the verified technical specifications for your {cat_display} requirement:\n")
+        if state:
+            req_summary = state.format_requirements_summary() if hasattr(state, "format_requirements_summary") else ""
+            if is_rec_flow:
+                if req_summary:
+                    lines.append(f"Based on your requirements ({req_summary}), here is the recommended equipment from our verified catalogue:\n")
+                elif state.category:
+                    cat_display = state.category.replace('_', ' ').title()
+                    lines.append(f"Here are the verified technical specifications for your {cat_display} requirement:\n")
+            elif req_summary:
+                lines.append(f"*(Matched against your specified requirements: {req_summary})*\n")
 
         lines.extend([
             f"**[{prod.display_name}]({p_url})**\n",

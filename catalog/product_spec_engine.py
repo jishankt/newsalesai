@@ -489,7 +489,7 @@ class ProductSpecEngine:
 
         return None
 
-    def get_product_detailed_specs(self, identifier: str, raw_message: str = "") -> Optional[Dict[str, Any]]:
+    def get_product_detailed_specs(self, identifier: str, raw_message: str = "", requirements_summary: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """
         Retrieves complete, verified product specifications, official description, and product cards
         from the official catalog and website knowledge base.
@@ -637,8 +637,12 @@ class ProductSpecEngine:
                 break
 
         # Build clean, grounded response text
+        intro = f"Here are the verified specifications and product details for **[{p_name}]({p_url})** from Kepler Tech LLC:"
+        if requirements_summary:
+            intro = f"Based on your requirements ({requirements_summary}), here are the verified specifications and product details for **[{p_name}]({p_url})** from Kepler Tech LLC:"
+
         lines = [
-            f"Here are the verified specifications and product details for **[{p_name}]({p_url})** from Kepler Tech LLC:",
+            intro,
             "",
             f"**Overview:** {main_desc}",
         ]

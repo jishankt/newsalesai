@@ -1,3 +1,8 @@
+
+
+
+
+
 """
 Enhanced Conversation State for Kepler Tech Conversational AI.
 Tracks category, subcategory, requirements, missing fields, qualification status,
@@ -272,3 +277,64 @@ class ConversationState:
 
     def increment_turn(self):
         self.turn_count += 1
+
+    def format_requirements_summary(self) -> str:
+        """Returns a natural, concise summary of all currently gathered requirements."""
+        if not self.requirements:
+            return ""
+        reqs = self.requirements
+        parts = []
+
+        # 1. Size / Width
+        sz = reqs.get("paper_size") or reqs.get("print_size") or reqs.get("print_width") or reqs.get("size")
+        if sz:
+            if isinstance(sz, int) or (isinstance(sz, str) and str(sz).isdigit()):
+                parts.append(f"{sz}″ width")
+            elif str(sz).lower().startswith("a"):
+                parts.append(str(sz).upper())
+            else:
+                parts.append(str(sz))
+        elif reqs.get("print_sizes"):
+            p_sizes = reqs["print_sizes"]
+            if isinstance(p_sizes, list):
+                parts.append("/".join(p_sizes))
+
+        # 2. Volume
+        d_vol = reqs.get("exact_daily_volume") or reqs.get("daily_volume")
+        m_vol = reqs.get("exact_monthly_volume") or reqs.get("monthly_volume")
+        if d_vol:
+            cat_l = str(self.category or "").lower()
+            vol_unit = "pages/day" if ("cad" in cat_l or "office" in cat_l) else "prints/day"
+            parts.append(f"{d_vol} {vol_unit}")
+        elif m_vol:
+            parts.append(f"~{m_vol:,} pages/month")
+
+        # 3. Functions
+        if reqs.get("scanner_required") is False or reqs.get("scan_required") is False or reqs.get("functions") == ["print"]:
+            parts.append("print-only")
+        elif reqs.get("scanner_required") is True or reqs.get("scan_required") is True:
+            parts.append("integrated scanner")
+        elif "functions" in reqs and isinstance(reqs["functions"], list):
+            parts.append("/".join(reqs["functions"]))
+
+        # 4. Duplex / Ethernet / Hardware Features
+        if reqs.get("duplex"):
+            parts.append("auto-duplex")
+        if reqs.get("ethernet"):
+            parts.append("Ethernet")
+        if reqs.get("dual_roll_required"):
+            parts.append("dual rolls")
+        if reqs.get("ribbon_rewind"):
+            parts.append("2×6″ photo strips")
+        if reqs.get("matte"):
+            parts.append("matte finish")
+        if reqs.get("portable") or reqs.get("under_10kg"):
+            parts.append("< 10 kg")
+
+        # 5. Technology / Inks
+        if reqs.get("printing_technology") == "pigment" or reqs.get("pigment_ink"):
+            parts.append("pigment inks")
+        elif reqs.get("printing_technology") == "dye_sub":
+            parts.append("dye-sublimation")
+
+        return ", ".join(parts)

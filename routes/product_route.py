@@ -244,7 +244,8 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
             return single_attr_res
 
         # Retrieve rich specs from universal product_spec_engine
-        detailed_specs = product_spec_engine.get_product_detailed_specs(model_code, raw_message)
+        req_summary = state.format_requirements_summary() if hasattr(state, "format_requirements_summary") else ""
+        detailed_specs = product_spec_engine.get_product_detailed_specs(model_code, raw_message, requirements_summary=req_summary)
 
         res = catalog_tool_executor.execute_tool(
             "get_product_specs", {"product_identifier": model_code}
@@ -296,12 +297,18 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
                 )
             elif any(k in q_lower for k in ["price", "cost", "how much", "rate"]):
                 reply = f"The [{p_name}]({p_url}) is officially listed at **{price_str}** {vat}. Here are the verified specifications — {desc.rstrip('.')}."
-            elif detailed_specs and any(w in q_lower for w in ["spec", "specs", "specification", "specifications", "detail", "details", "description", "full description", "overview", "what is", "about", "tell me about"]):
+            req_summary = state.format_requirements_summary() if hasattr(state, "format_requirements_summary") else ""
+            req_prefix = f"*(Matched against your specified requirements: {req_summary})*\n\n" if req_summary else ""
+            if detailed_specs and any(w in q_lower for w in ["spec", "specs", "specification", "specifications", "detail", "details", "description", "full description", "overview", "what is", "about", "tell me about"]):
                 reply = detailed_specs["reply"]
+                if req_prefix and not any(k in reply.lower() for k in ["matched against", "based on your requirement", "according to your"]):
+                    reply = req_prefix + reply
             elif detailed_specs and not any(w in q_lower for w in ["recommend", "options", "suggest"]):
                 reply = detailed_specs["reply"]
+                if req_prefix and not any(k in reply.lower() for k in ["matched against", "based on your requirement", "according to your"]):
+                    reply = req_prefix + reply
             else:
-                reply = f"Here are the verified specifications for [{p_name}]({p_url}) — {desc.rstrip('.')}."
+                reply = f"{req_prefix}Here are the verified specifications for [{p_name}]({p_url}) — {desc.rstrip('.')}."
 
             consumable_cards = []
             if any(w in q_lower for w in ["ink", "inks", "cartridge", "cartridges", "consumable", "consumables", "ribbon", "paper roll", "supplies"]):
