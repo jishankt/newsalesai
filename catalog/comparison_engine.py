@@ -39,6 +39,7 @@ COMMON_CRITERIA: List[Tuple[str, str]] = [
     ("consumable_volume",    "Consumable Volume & Page Yield"),
     ("memory",               "Memory & Storage"),
     ("max_output_size",      "Maximum Output Size"),
+    ("connectivity",          "Connectivity & Network"),
     ("main_category",        "Main Category"),
     ("subcategory_key",      "Subcategory"),
     ("applications",         "Primary Applications"),
@@ -127,6 +128,7 @@ CROSS_CATEGORY_SHARED: List[Tuple[str, str]] = [
     ("consumable_volume",    "Consumable Volume & Page Yield"),
     ("memory",               "Memory & Storage"),
     ("max_output_size",      "Maximum Output Size"),
+    ("connectivity",          "Connectivity & Network"),
     ("colour_mode",          "Colour Mode"),
     ("main_category",        "Main Category"),
     ("subcategory_key",      "Subcategory"),
@@ -338,6 +340,18 @@ def _resolve_field(product: Dict[str, Any], key: str) -> str:
     if key == "supported_print_sizes":
         sizes = p.get("supported_print_sizes") or []
         return html.escape(", ".join(sizes)) if sizes else NOT_VERIFIED
+
+    if key in ("connectivity", "network", "interfaces"):
+        val = p.get("connectivity")
+        if not val:
+            try:
+                from catalog.repository import catalog_repository as _cr
+                _np = _cr.get_by_id(p.get("id", ""))
+                if _np and _np.verified.connectivity:
+                    val = _np.verified.connectivity
+            except Exception:
+                pass
+        return html.escape(", ".join(val) if isinstance(val, list) else str(val)) if val else NOT_VERIFIED
 
     if key == "match_reasons":
         reasons = []

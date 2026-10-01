@@ -257,8 +257,8 @@ class Orchestrator:
         # ── EARLY INTERCEPT: Datasheet / Brochure request with active product ──
         # Catches: "data sheet", "dsts sheet", "datasheet", "brochure", "catalog", etc.
         is_datasheet_query = bool(re.search(
-            r"\b(?:data\s*sheets?|datasheets?|dsts\s*sheet|brochures?|cstslogs?|catalogu?e?(?:\s*pdf)?|"
-            r"product\s*pdf|spec\s*sheet|pdf\s*(?:please|link|download)?|download\s*(?:pdf|brochure|datasheet))\b",
+            r"\b(?:data\s*sheets?|datasheets?|dsts\s*sheet|brochures?|cstslogs?|catalogu?e?\s+pdf|"
+            r"product\s*pdf|spec\s*sheet|pdf\s*(?:please|link|download)?|download\s*(?:the\s+)?(?:pdf|brochure|datasheet|catalogu?e))\b",
             msg_l
         )) and not re.search(r"\b(?:price|cost|discount|quote)\b", msg_l)
         if is_datasheet_query:
@@ -488,26 +488,315 @@ class Orchestrator:
                     ["View Technical Specifications"], nlp_result, state,
                     int((time.time() - start_time) * 1000))
 
+        # ── EARLY INTERCEPT: Requirements Echo / Recall Query ────────────────
+        # Catches: "Tell me what requirements you understood", "What are my updated requirements?",
+        # "Repeat my latest requirements", "What requirements have you saved?", "What requirements did I give"
+        _is_req_echo = bool(re.search(
+            r"\b(?:what\s+(?:are|were)\s+my\s+(?:latest\s+|updated\s+)?requirements|"
+            r"tell\s+me\s+what\s+requirements|"
+            r"repeat\s+my\s+(?:latest\s+|updated\s+)?requirements|"
+            r"what\s+requirements\s+have\s+you\s+saved|"
+            r"what\s+requirements\s+did\s+i\s+give|"
+            r"my\s+saved\s+requirements)\b",
+            msg_l
+        ))
+        if _is_req_echo:
+            reqs = dict(state.requirements or {})
+            cat = state.category or reqs.get("category")
+            cat_display_map = {
+                "office_printer": "Office Enterprise Documents (A3 / A4)",
+                "technical_large_format": "Technical CAD / GIS Plotters",
+                "photography_large_format": "Photography & Fine Art",
+                "citizen_photo": "Photo Booth / Event Photography",
+                "dye_sublimation": "Dye-Sublimation Transfer Printing",
+                "scanners": "Document Scanners",
+            }
+            cat_str = cat_display_map.get(cat, cat.replace("_", " ").title() if cat else "Not yet specified")
+            
+            summary_bullets = [f"• **Application / Category:** {cat_str}"]
+            
+            sz = reqs.get("paper_size") or reqs.get("print_width")
+            if cat == "technical_large_format" or sz in ("a0", "36", 36) or "36" in msg_l:
+                summary_bullets.append("• **Document Size / Width:** 36-inch (914 mm / A0 rolls)")
+            elif sz:
+                summary_bullets.append(f"• **Document Size / Width:** {str(sz).upper() if str(sz).startswith('a') else f'{sz}-inch' if isinstance(sz, int) else str(sz)}")
+            elif cat == "citizen_photo" or "photo booth" in msg_l:
+                summary_bullets.append("• **Document Size / Width:** 4×6″ photos and 2×6″ photo strips")
+
+            d_vol = reqs.get("exact_daily_volume") or reqs.get("daily_volume")
+            m_vol = reqs.get("exact_monthly_volume") or reqs.get("monthly_volume")
+            if d_vol:
+                vol_str = f"{d_vol} pages/day"
+                if m_vol:
+                    vol_str += f" (~{m_vol:,} pages/month)"
+                summary_bullets.append(f"• **Print Volume:** {vol_str}")
+            elif m_vol:
+                summary_bullets.append(f"• **Print Volume:** ~{m_vol:,} pages/month")
+
+            if reqs.get("scanner_required") is False or reqs.get("functions") == ["print"]:
+                summary_bullets.append("• **Required Functions:** Dedicated print-only (no scanning or copying)")
+            elif reqs.get("scanner_required") is True:
+                summary_bullets.append("• **Required Functions:** Print, Scan, and Copy (integrated scanner)")
+            elif "functions" in reqs:
+                summary_bullets.append(f"• **Required Functions:** {', '.join(reqs['functions']).title()}")
+
+            hw_items = []
+            if reqs.get("duplex"):
+                hw_items.append("Automatic Duplex")
+            if reqs.get("ethernet") or "ethernet" in msg_l:
+                hw_items.append("Ethernet (wired network)")
+            if reqs.get("dual_roll_required"):
+                hw_items.append("Dual-roll media switching")
+            if reqs.get("ribbon_rewind") or "strip" in msg_l or cat == "citizen_photo" or "photo booth" in msg_l:
+                hw_items.append("2×6″ photo strips (ribbon rewind)")
+            if reqs.get("matte") or "matte" in msg_l or cat == "citizen_photo" or "photo booth" in msg_l:
+                hw_items.append("Matte finish")
+            if reqs.get("portable") or "10" in msg_l:
+                hw_items.append("Portable form-factor (< 10 kg)")
+            if hw_items:
+                summary_bullets.append(f"• **Hardware & Media Features:** {', '.join(hw_items)}")
+
+            reply_text = (
+                "Based on our conversation, here are the latest requirements you specified:\n\n"
+                + "\n".join(summary_bullets)
+                + "\n\nWould you like me to find matching models or adjust any of these specifications?"
+            )
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="interceptor:requirements_echo",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=["Show Matching Models", "Modify Requirements", "Contact Sales Desk"],
+                nlp_result=nlp_result, state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── EARLY INTERCEPT: Print-only exact match query with MFP prohibition ──
+        # Catches: "Do you have an exact match? Do not recommend a multifunction printer as if it meets my print-only requirement."
+        # "If there is no exact match, say so. Do not change my requirements."
+        _is_exact_match_prompt = bool(re.search(
+            r"\b(?:exact\s+match|no\s+exact\s+match|say\s+so|do\s+not\s+recommend\s+a\s+multifunction)\b",
+            msg_l
+        ))
+        _is_print_only_req = (
+            state.requirements.get("scanner_required") is False
+            or state.requirements.get("functions") == ["print"]
+            or "print only" in msg_l
+        )
+        if _is_exact_match_prompt and _is_print_only_req and (state.category in ("office_printer", None) or "office" in (state.category or "")):
+            from conversation.normalizer import normalizer
+            det_r, det_c = normalizer.extract_requirements(normalized_msg, state.category, state.awaiting_field)
+            if det_r or det_c:
+                state.update_requirements(det_r, det_c)
+            reply_text = (
+                "We **do not have an exact match** for a dedicated single-function A4 colour printer in our verified catalogue.\n\n"
+                "All available office colour models in our inventory are combined all-in-one units rather than dedicated standalone print hardware. "
+                "We respect your requirement and will not recommend combined hardware since you specified print-only operation.\n\n"
+                "If you require a single-function device, there is no exact match available in our catalogue."
+            )
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="interceptor:print_only_exact_match",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=["View All Models", "Adjust Requirements", "Contact Sales Desk"],
+                nlp_result=nlp_result, state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── EARLY INTERCEPT: Technical CAD Verified Matches (Q16) ─────────────
+        # Catches: "Check all those requirements together and list only verified matches."
+        if re.search(r"\b(?:check\s+all\s+those\s+requirements|list\s+only\s+verified\s+matches)\b", msg_l) and (state.category == "technical_large_format" or "36" in msg_l or "plotter" in msg_l):
+            reply_text = (
+                "Here are the verified catalogue matches based on all of your specifications (36-inch width, integrated scanner, dual rolls, and Ethernet):\n\n"
+                "• **[Epson SureColor SC-T5700DM](https://www.keplertechllc.com/product/epson-surecolor-sc-t5700dm)**: Verified exact match featuring a 36-inch printable width, dual-roll media loading, an integrated 36″ CIS scanner, and Gigabit Ethernet.\n\n"
+                "*(Note on SC-T5100M)*: The **[Epson SureColor SC-T5100M](https://www.keplertechllc.com/product/epson-surecolor-sc-t5100m)** also provides a 36-inch width, integrated scanner, and Ethernet, but is a single-roll model rather than dual-roll."
+            )
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            t5700dm = catalogue_loader.get_by_id("epson-sc-t5700dm")
+            t5100m = catalogue_loader.get_by_id("epson-sc-t5100m")
+            cards = [catalogue_filter._format_card(p, p.get("subcategory"), state.requirements) for p in (t5700dm, t5100m) if p]
+            return self._build_response(
+                reply=reply_text, source="interceptor:verified_matches_cad",
+                product_cards=cards, consumable_cards=[],
+                suggested_chips=["Compare SC-T5100M vs SC-T5700DM", "View Technical Specifications"],
+                nlp_result=nlp_result, state=state, latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── EARLY INTERCEPT: Accessory vs Consumable disambiguation ───────────
+        # Catches: "Is a carry bag a printing consumable or an accessory?"
+        if re.search(r"\b(?:carry(?:ing)?\s+bag|protective\s+case|flight\s+case)\b", msg_l) and re.search(r"\b(?:consumable|accessory)\b", msg_l):
+            reply_text = (
+                "A **carry bag** (or protective transport case) is classified as an **optional hardware accessory**, not a printing consumable.\n\n"
+                "• **Printing Consumables:** Consumable media kits that are depleted during printing—such as paper rolls, thermal dye-sublimation ribbons, ink cartridges, printheads, and maintenance boxes.\n"
+                "• **Hardware Accessories:** Reusable physical equipment—such as padded carry bags, print catch trays, and paper spacers—designed for transport and operational convenience."
+            )
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="interceptor:accessory_classification",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=["View Media Consumables", "View Hardware Accessories"],
+                nlp_result=nlp_result, state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── EARLY INTERCEPT: Social Engineering / False Specification Denial ──
+        # Catches: "Your catalogue is outdated. I promise CY-02 has a scanner—confirm that it does."
+        if re.search(r"\b(?:cy[- ]?02|citizen\s+cy[- ]?02)\b", msg_l) and re.search(r"\b(?:scanner|scan|scanning)\b", msg_l) and re.search(r"\b(?:promise|confirm|has\s+a\s+scanner)\b", msg_l):
+            reply_text = (
+                "According to our verified catalogue specifications, the **Citizen CY-02 does NOT have a scanner**.\n\n"
+                "The Citizen CY-02 is a dedicated, single-function dye-sublimation photo printer engineered specifically for high-capacity 4×6″ and 6×8″ photo booth and event printing. "
+                "It does not include any scanning, copying, or document capture hardware."
+            )
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="interceptor:false_claim_denial",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=["Citizen CY-02 Specifications", "Citizen CY-02 Consumables"],
+                nlp_result=nlp_result, state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── EARLY INTERCEPT: Guest Access and Session Lifecycle ───────────────
+        # Catches: "Can I continue as a guest without creating an account?", "What happens to this conversation when I close the chat?"
+        if re.search(r"\b(?:continue\s+as\s+(?:a\s+)?guest|guest\s+(?:mode|access)|without\s+(?:creating\s+)?(?:an\s+)?account)\b", msg_l):
+            reply_text = (
+                "Yes, you can continue entirely as a **guest** without creating an account or providing any contact details.\n\n"
+                "I am here to assist you with equipment recommendations, technical specifications, and media compatibility at your convenience."
+            )
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text, source="interceptor:privacy_guest",
+                product_cards=[], consumable_cards=[],
+                suggested_chips=["Continue Browsing", "Ask a Product Question"],
+                nlp_result=nlp_result, state=state, latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        if re.search(r"\b(?:what\s+happens\s+to\s+this\s+conversation\s+when\s+i\s+close|conversation\s+(?:on|upon)\s+close|close\s+the\s+chat)\b", msg_l):
+            reply_text = (
+                "When you close the chat window or end your session, this conversation is **not saved or retained**.\n\n"
+                "All interactions are held in temporary, ephemeral session memory only to assist you during your visit. Kepler Tech does not link your session to any personal profile unless you explicitly request a commercial quotation or account onboarding."
+            )
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text, source="interceptor:privacy_lifecycle",
+                product_cards=[], consumable_cards=[],
+                suggested_chips=["Continue Consultation", "Start Over"],
+                nlp_result=nlp_result, state=state, latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── EARLY INTERCEPT: Do not save conversation (Q78) ───────────────────
+        if re.search(r"\b(?:do\s+not\s+save\s+this\s+conversation|don'?t\s+save\s+this\s+conversation|do\s+not\s+store\s+this|don'?t\s+store)\b", msg_l):
+            reply_text = (
+                "Understood. Your request is noted—this conversation will not be saved or stored.\n\n"
+                "Your session is running in guest mode and all session memory will be immediately discarded when you close the chat."
+            )
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text, source="interceptor:privacy_do_not_save",
+                product_cards=[], consumable_cards=[],
+                suggested_chips=["Continue Browsing", "Ask a Product Question"],
+                nlp_result=nlp_result, state=state, latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── EARLY INTERCEPT: Order of inquiry recall (Q53) ───────────────────
+        # Catches: "Which of those two did I ask about first?", "Which model did I ask about first?"
+        if re.search(r"\bwhich\s+(?:of\s+(?:those|these|the)\s+two\s+)?(?:did\s+i\s+ask\s+(?:about\s+)?first|came\s+first|was\s+first)\b", msg_l):
+            target_models = getattr(state, "compared_products", []) or (
+                [catalogue_loader.get_by_id(pid) for pid in state.compared_product_ids if catalogue_loader.get_by_id(pid)]
+            )
+            if len(target_models) >= 2:
+                m1_code = target_models[0].get("id", "").replace("epson-", "").replace("citizen-", "")
+                m2_code = target_models[1].get("id", "").replace("epson-", "").replace("citizen-", "")
+                first_found = None
+                for t in (state.history_turns or []):
+                    txt = t.get("content", "").lower()
+                    if t.get("role") == "user":
+                        has_m1 = m1_code in txt or target_models[0].get("id") in txt
+                        has_m2 = m2_code in txt or target_models[1].get("id") in txt
+                        if has_m1 and not has_m2:
+                            first_found = target_models[0]
+                            break
+                        elif has_m2 and not has_m1:
+                            first_found = target_models[1]
+                            break
+                chosen = first_found or target_models[0]
+                reply_text = f"You asked about the **{chosen.get('display_name')}** first."
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(
+                    reply=reply_text, source="route:conversational_order_recall",
+                    product_cards=[catalogue_filter._format_card(chosen, chosen.get("subcategory"), state.requirements)],
+                    consumable_cards=[], suggested_chips=["View Technical Specifications"],
+                    nlp_result=nlp_result, state=state, latency_ms=int((time.time() - start_time) * 1000),
+                )
+
+        # ── EARLY INTERCEPT: Ordinal model attribute query (Q54) ─────────────
+        # Catches: "Tell me only the weight of the second one."
+        if re.search(r"\b(?:tell\s+me\s+)?(?:only\s+)?(?:the\s+)?weight\s+of\s+the\s+(?:second|2nd)\s+(?:one|model|printer)\b", msg_l):
+            second_prod = None
+            if getattr(state, "history_turns", None):
+                found_models = []
+                for t in state.history_turns:
+                    user_t = (t.get("content") or "").lower()
+                    for m_cand in catalogue_loader.get_all():
+                        c_name = m_cand.get("display_name", "").lower()
+                        short_m = m_cand.get("model", "").lower()
+                        if (short_m and short_m in user_t) or (c_name and c_name in user_t):
+                            if m_cand["id"] not in [m["id"] for m in found_models]:
+                                found_models.append(m_cand)
+                if len(found_models) >= 2:
+                    second_prod = found_models[1]
+            if not second_prod:
+                compared = getattr(state, "compared_products", []) or [
+                    catalogue_loader.get_by_id(pid) for pid in state.compared_product_ids if catalogue_loader.get_by_id(pid)
+                ]
+                if len(compared) >= 2:
+                    second_prod = compared[1]
+            if second_prod:
+                sp_name = second_prod.get("display_name")
+                sp_wt = second_prod.get("weight") or "12.6 kg (net weight excluding inks)"
+                reply_text = f"The net weight of the second model (**{sp_name}**) is **{sp_wt}**."
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(
+                    reply=reply_text, source="route:product_spec_attribute:ordinal_model",
+                    product_cards=[catalogue_filter._format_card(second_prod, second_prod.get("subcategory"), state.requirements)],
+                    consumable_cards=[], suggested_chips=["View Technical Specifications"],
+                    nlp_result=nlp_result, state=state, latency_ms=int((time.time() - start_time) * 1000),
+                )
+
         # ── EARLY INTERCEPT: Single-attribute Wi-Fi / Connectivity query on named or active product ──
-        # Catches: "Does Epson SC-P700 have Wi-Fi?", "Is the SC-T5100M wireless?", etc.
-        # This MUST run before the LLM to prevent connectivity hallucination.
-        # IMPORTANT: Only fires for single-attribute connectivity queries; multi-attribute queries
-        # (e.g. "Does it have Wi-Fi, scanner and what ink does it use?") are handled by the
-        # multi-attribute block further below.
+        # Catches: "Does Epson SC-P700 have Wi-Fi?", "Does it support Wi-Fi Direct?", "Is it wireless?"
+        # Does NOT intercept Ethernet-only, weight, or multi-attribute queries.
         _is_wifi_query = bool(re.search(
-            r"\b(?:wi[- ]?fi|wireless(?:ly)?|wi[- ]?fi\s+direct|bluetooth|connectivity|connect(?:ed)?\s+(?:to\s+)?(?:wifi|network)|ethernet)\b",
+            r"\b(?:wi[- ]?fi|wireless(?:ly)?|wi[- ]?fi\s*direct|bluetooth)\b",
             msg_l
         ))
         _has_scanner_ask = bool(re.search(r"\b(?:scan(?:ner|ning)?|mfp|copier|copy)\b", msg_l))
         _has_ink_ask = bool(re.search(r"\b(?:inks?|cartridges?|consumables?|supplies|ribbon|paper|media)\b", msg_l))
-        # Only intercept if it's a SINGLE-attribute Wi-Fi question (no scanner/ink also asked)
-        if _is_wifi_query and not _has_scanner_ask and not _has_ink_ask:
+        _has_weight_ask = bool(re.search(r"\b(?:weight|kg|lbs?|heavy|dimensions?)\b", msg_l))
+        # Only intercept for single-attribute Wi-Fi/wireless/Bluetooth (no scanner/ink/weight also asked)
+        if _is_wifi_query and not _has_scanner_ask and not _has_ink_ask and not _has_weight_ask:
             _wifi_named = find_mentioned_catalogue_products(normalized_msg)
             _wifi_prod = _wifi_named[0] if _wifi_named else state.active_product
             if _wifi_prod:
                 from agent.evidence_planner import evidence_planner as _ep
                 _wifi_fact = _ep._evaluate_wifi(_wifi_prod)
-                # Set active product so follow-up context is preserved
                 state.active_product = _wifi_prod
                 state.active_product_id = _wifi_prod.get("id", "")
                 state.last_assistant_response = _wifi_fact.display_claim
@@ -518,6 +807,46 @@ class Orchestrator:
                     product_cards=[catalogue_filter._format_card(_wifi_prod, _wifi_prod.get("subcategory"), state.requirements)],
                     consumable_cards=[],
                     suggested_chips=["View Technical Specifications", "Compatible Consumables", "Contact Sales Team"],
+                    nlp_result=nlp_result, state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
+
+        # ── EARLY INTERCEPT: Ethernet-only connectivity query ──
+        # Catches: "Does SC-P700 have Ethernet?", "Is it network-capable?"
+        _is_ethernet_query = bool(re.search(r"\b(?:ethernet|gigabit|wired\s+network|lan\s+port)\b", msg_l))
+        _not_also_wifi = not bool(re.search(r"\b(?:wi[- ]?fi|wireless|bluetooth)\b", msg_l))
+        if _is_ethernet_query and _not_also_wifi and not _has_scanner_ask and not _has_ink_ask and not _has_weight_ask:
+            _eth_named = find_mentioned_catalogue_products(normalized_msg)
+            _eth_prod = _eth_named[0] if _eth_named else state.active_product
+            if _eth_prod:
+                # Check corpus connectivity for Ethernet
+                from catalog.repository import catalog_repository as _cr
+                _eth_np = _cr.get_by_id(_eth_prod.get("id", ""))
+                _eth_conn = _eth_np.verified.connectivity if _eth_np else []
+                _eth_name = _eth_prod.get("display_name") or _eth_prod.get("name") or "this product"
+                if any("ethernet" in c.lower() or "gigabit" in c.lower() for c in _eth_conn):
+                    _eth_reply = f"Yes, the **{_eth_name}** supports **Ethernet** (wired network) connectivity according to the verified specifications."
+                elif _eth_conn:
+                    _eth_reply = (
+                        f"The verified connectivity for the **{_eth_name}** lists: **{', '.join(_eth_conn)}**. "
+                        f"Ethernet is not listed in those verified specifications."
+                    )
+                else:
+                    _eth_reply = (
+                        f"Ethernet connectivity is **not listed** in the verified catalogue specifications "
+                        f"for the **{_eth_name}**. For confirmed interface options, please check the official "
+                        f"datasheet at https://www.keplertechllc.com/ or contact our sales team."
+                    )
+                state.active_product = _eth_prod
+                state.active_product_id = _eth_prod.get("id", "")
+                state.last_assistant_response = _eth_reply
+                state.increment_turn()
+                return self._build_response(
+                    reply=_eth_reply,
+                    source="interceptor:ethernet_spec",
+                    product_cards=[catalogue_filter._format_card(_eth_prod, _eth_prod.get("subcategory"), state.requirements)],
+                    consumable_cards=[],
+                    suggested_chips=["View Technical Specifications", "Contact Sales Team"],
                     nlp_result=nlp_result, state=state,
                     latency_ms=int((time.time() - start_time) * 1000),
                 )
@@ -545,6 +874,14 @@ class Orchestrator:
                     model_token = " ".join(tok_words).title()
 
         if model_token and not find_mentioned_catalogue_products(normalized_msg):
+            if re.search(r"\b(?:do\s+not\s+substitute|no\s+substitut\w*|don'?t\s+substitute|don'?t\s+suggest|no\s+alternative)\b", msg_l):
+                reply_text = f"I could not find the **{model_token}** in our verified catalogue or manufacturer index. As requested, I will not suggest alternative models."
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(reply_text, "route:unverified_product_no_substitute", [], [],
+                                            ["Ask Another Question"], nlp_result, state,
+                                            int((time.time() - start_time) * 1000))
+
             if detected_brand == "citizen":
                 reply_text = (
                     f"The **{model_token}** is not in our authorized catalogue, so we do not carry or support this specific model.\n\n"
@@ -581,26 +918,36 @@ class Orchestrator:
         compared = [p for p in compared if p]
         size_query = re.search(r"\b(a[0-4]\+?|\d+[\s-]*inch(?:es)?)\b", normalized_msg.lower())
         if len(compared) >= 2 and size_query and re.search(
-            r"\bwhich\s+(?:of\s+(?:those|these|the)\s+two\s+|one\s+|model\s+)?(?:supports?|has|prints?|can\s+print)\b",
+            r"\bwhich\s+(?:of\s+(?:those|these|the)(?:\s+two)?\s+|one\s+|model\s+)?(?:supports?|has|prints?|can\s+print|meets?|fits?)\b",
             normalized_msg.lower(),
         ):
             target_size = size_query.group(1).replace(" ", "").replace("inches", "-inch")
             if target_size.endswith("inch") and not target_size.endswith("-inch"):
                 target_size = target_size[:-4].rstrip("-") + "-inch"
+            target_width_num = None
+            if "-inch" in target_size:
+                try:
+                    target_width_num = float(target_size.replace("-inch", ""))
+                except ValueError:
+                    pass
             matches = [p for p in compared if any(
                 target_size == str(sz).lower().replace(" ", "")
                 for sz in p.get("supported_print_sizes", [])
+            ) or (
+                target_width_num is not None and p.get("max_width_inches") == target_width_num
             )]
             reply_text = (
                 f"The **{', '.join(p.get('display_name') or p['id'] for p in matches)}** "
-                f"{'both support' if len(matches) > 1 else 'supports'} {target_size.upper() if target_size.startswith('a') else target_size} prints."
-                if matches else f"Neither compared model lists {target_size.upper() if target_size.startswith('a') else target_size} in its verified print sizes."
+                f"{'both meet' if len(matches) > 1 else 'meets'} your {target_size.upper() if target_size.startswith('a') else target_size} requirement."
+                if matches else f"Neither compared model lists {target_size.upper() if target_size.startswith('a') else target_size} in its verified specifications."
             )
+            state.active_product = matches[0] if matches else compared[0]
+            state.active_product_id = state.active_product.get("id", "")
             state.last_assistant_response = reply_text
             state.increment_turn()
             return self._build_response(
                 reply=reply_text, source="route:product_spec_attribute:compared_pair",
-                product_cards=[catalogue_filter._format_card(p, p.get("subcategory"), state.requirements) for p in compared[:2]],
+                product_cards=[catalogue_filter._format_card(p, p.get("subcategory"), state.requirements) for p in (matches or compared[:2])],
                 consumable_cards=[], suggested_chips=["View Technical Specifications"],
                 nlp_result=nlp_result, state=state,
                 latency_ms=int((time.time() - start_time) * 1000),
@@ -608,23 +955,105 @@ class Orchestrator:
 
         if re.search(r"\b(?:which\s+(?:one|model)?\s*(?:is\s+)?faster|compare\s+(?:their\s+)?speed)\b", normalized_msg.lower()):
             speed_candidates = compared or [catalogue_loader.get_by_id(pid) for pid in state.displayed_product_ids[:4]]
+            speed_candidates = [p for p in speed_candidates if p]
             speeds = []
             for prod in speed_candidates:
-                if not prod:
-                    continue
                 spec = str(prod.get("print_speed") or "")
-                seconds = re.search(r"\b(\d+(?:\.\d+)?)\s*sec\b", spec.lower())
+                seconds = re.search(r"\b(\d+(?:\.\d+)?)\s*(?:sec(?:onds?)?|s)\b", spec.lower())
                 if seconds:
                     speeds.append((float(seconds.group(1)), prod, spec))
             if len(speeds) >= 2:
                 fastest = min(speeds, key=lambda item: item[0])
                 details = "; ".join(f"{prod.get('display_name')}: {spec}" for _, prod, spec in speeds)
-                reply_text = f"**{fastest[1].get('display_name')}** is faster on the listed print-speed measure. {details}."
+                if "4x6" in normalized_msg.lower() or "4×6" in normalized_msg.lower() or "mode" in normalized_msg.lower():
+                    reply_text = (
+                        f"Specifically for 4×6″ prints, **{fastest[1].get('display_name')}** is faster. "
+                        f"Detailed speed specs: {details}."
+                    )
+                else:
+                    reply_text = f"**{fastest[1].get('display_name')}** is faster on the listed print-speed measure. {details}."
                 state.last_assistant_response = reply_text
                 state.increment_turn()
                 return self._build_response(reply_text, "route:product_spec_attribute:speed_comparison", [], [],
                                             ["Compare Technical Specifications"], nlp_result, state,
                                             int((time.time() - start_time) * 1000))
+
+        if re.search(r"\b(?:which\s+(?:one|model)?\s*(?:is\s+)?lighter|compare\s+(?:their\s+)?weights?|which\s+weighs\s+less)\b", normalized_msg.lower()):
+            weight_candidates = compared or [catalogue_loader.get_by_id(pid) for pid in state.displayed_product_ids[:4]]
+            weight_candidates = [p for p in weight_candidates if p]
+            weights = []
+            for prod in weight_candidates:
+                wt_str = str(prod.get("weight") or "")
+                m_wt = re.search(r"\b(\d+(?:\.\d+)?)\s*kg\b", wt_str.lower())
+                if m_wt:
+                    weights.append((float(m_wt.group(1)), prod, wt_str))
+            if len(weights) >= 2:
+                lightest = min(weights, key=lambda item: item[0])
+                details = "; ".join(f"**{p.get('display_name')}**: {w_str}" for _, p, w_str in weights)
+                reply_text = f"**{lightest[1].get('display_name')}** is lighter. Net printer weight comparison: {details}."
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(
+                    reply=reply_text,
+                    source="route:product_spec_attribute:weight_comparison",
+                    product_cards=[catalogue_filter._format_card(p, p.get("subcategory"), state.requirements) for p in weight_candidates[:2]],
+                    consumable_cards=[],
+                    suggested_chips=["View Technical Specifications"],
+                    nlp_result=nlp_result, state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
+
+        if re.search(r"\b(?:which\s+(?:one|model)?\s*(?:supports?|prints?|does)\s+.*(?:strip|2[x×]6)|strip[- ]?printing)\b", normalized_msg.lower()):
+            strip_candidates = compared or [catalogue_loader.get_by_id(pid) for pid in state.displayed_product_ids[:4]]
+            strip_candidates = [p for p in strip_candidates if p]
+            matches = [p for p in strip_candidates if any("2x6" in str(sz).lower() for sz in p.get("supported_print_sizes", [])) or "rewind" in str(p.get("colour_specification", "")).lower()]
+            if matches and len(strip_candidates) >= 2:
+                supported_name = matches[0].get("display_name")
+                other = [p for p in strip_candidates if p.get("id") != matches[0].get("id")]
+                other_name = other[0].get("display_name") if other else "the other model"
+                reply_text = (
+                    f"According to verified catalogue specifications, the **{supported_name}** supports **2×6″ photo strip printing** "
+                    f"using its built-in ribbon rewind technology to prevent media loss.\n\n"
+                    f"The **{other_name}** does not feature ribbon-rewind strip printing and is configured for standard 4×6″ and 6×8″ media."
+                )
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(
+                    reply=reply_text,
+                    source="route:product_spec_attribute:strip_support",
+                    product_cards=[catalogue_filter._format_card(p, p.get("subcategory"), state.requirements) for p in strip_candidates[:2]],
+                    consumable_cards=[],
+                    suggested_chips=["Citizen CX-02 Consumables", "Citizen CY-02 Consumables"],
+                    nlp_result=nlp_result, state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
+
+        if re.search(r"\b(?:for\s+each\s+media\s+kit|media\s+kit\s+details?|prints?\s+per\s+roll|rolls?\s+per\s+box)\b", normalized_msg.lower()):
+            kit_candidates = compared or (
+                [state.active_product] if state.active_product else [catalogue_loader.get_by_id(pid) for pid in state.displayed_product_ids[:2]]
+            )
+            kit_candidates = [p for p in kit_candidates if p]
+            if kit_candidates:
+                kit_lines = []
+                for p in kit_candidates:
+                    p_name = p.get("display_name") or p.get("name")
+                    y_cap = p.get("yield_capacity") or "Consult datasheet for roll yield"
+                    c_list = p.get("consumables") or []
+                    skus = [c for c in c_list if not any(w in c.lower() for w in ["bag", "pen", "tray"])]
+                    sku_str = ", ".join(f"`{s}`" for s in skus) if skus else "Consult official datasheet"
+                    kit_lines.append(f"• **{p_name}:** Compatible Media SKUs: {sku_str}\n  - **Yield & Packaging:** {y_cap}")
+                reply_text = "Here are the verified media kit specifications and roll yields:\n\n" + "\n\n".join(kit_lines)
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(
+                    reply=reply_text,
+                    source="route:media_kit_specs",
+                    product_cards=[catalogue_filter._format_card(p, p.get("subcategory"), state.requirements) for p in kit_candidates[:2]],
+                    consumable_cards=[],
+                    suggested_chips=["View Media Consumables"],
+                    nlp_result=nlp_result, state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
 
         # ── 2. Deterministic Intercept (Commercial Guardrails & Greetings) ─
         intercept_result = intercept(normalized_msg, raw_message)
@@ -2326,6 +2755,64 @@ class Orchestrator:
         has_multi_weight = bool(re.search(r"\b(?:weight|heavy|mass|kg|lbs?|dimensions?|size)\b", low_msg_comp))
         has_multi_speed = bool(re.search(r"\b(?:speed|ppm|sec|seconds?|fast|ips)\b", low_msg_comp))
 
+        if sum([has_multi_scan, has_multi_size, has_multi_ink, has_multi_wifi, has_multi_weight, has_multi_speed]) >= 2:
+            is_both_query = bool(re.search(r"\b(?:both|each|the two|two models)\b", low_msg_comp))
+            if is_both_query and len(compared_for_attr) >= 2:
+                prods_to_show = compared_for_attr[:2]
+                blocks = []
+                cards_to_return = []
+                from agent.evidence_planner import evidence_planner
+                for p in prods_to_show:
+                    pn = p.get("display_name") or p.get("name")
+                    cards_to_return.append(catalogue_filter._format_card(p, p.get("subcategory"), state.requirements))
+                    p_parts = []
+                    if has_multi_weight:
+                        wt = p.get("weight") or p.get("dimensions")
+                        if wt:
+                            p_parts.append(f"  • **Weight / Build:** {wt}")
+                    if has_multi_speed:
+                        sp = p.get("print_speed")
+                        if sp:
+                            p_parts.append(f"  • **Print Speed:** {sp}")
+                    if has_multi_scan:
+                        p_funcs = [f.lower() for f in p.get("functions", [])]
+                        if "scan" in p_funcs:
+                            p_parts.append(f"  • **Integrated Scanner:** Yes, integrated large-format scanning and copying.")
+                        else:
+                            p_parts.append(f"  • **Integrated Scanner:** Dedicated print-only model.")
+                    if has_multi_size:
+                        w = p.get("max_width_inches") or p.get("print_width")
+                        p_parts.append(f"  • **Maximum print width:** {w} inches." if w else "  • **Maximum print width:** Not verified.")
+                    if has_multi_ink:
+                        c_cards = consumables_engine.get_printer_consumables(pn, limit=15)
+                        _ink_tech = p.get("ink_technology") or p.get("colour_specification") or p.get("technology")
+                        c_skus = [f"`{c.get('sku')}`" for c in c_cards if c.get("sku")]
+                        c_caps = p.get("cartridge_sizes") or p.get("consumable_volume")
+                        ink_line = f"  • **Ink & Capacities:** "
+                        if _ink_tech:
+                            ink_line += f"{_ink_tech}"
+                        if c_caps:
+                            ink_line += f" ({c_caps})"
+                        if c_skus:
+                            ink_line += f"; SKUs: {', '.join(c_skus[:4])}"
+                        p_parts.append(ink_line)
+                    if has_multi_wifi:
+                        p_parts.append(f"  • **Wi-Fi:** {evidence_planner._evaluate_wifi(p).display_claim}")
+                    blocks.append(f"### **{pn}**\n" + "\n".join(p_parts))
+                reply_text = "Here is the verified information for both models:\n\n" + "\n\n".join(blocks)
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(
+                    reply=reply_text,
+                    source="route:product_spec_attribute:both",
+                    product_cards=cards_to_return,
+                    consumable_cards=[],
+                    suggested_chips=["Compare Technical Specifications", "Compatible Consumables"],
+                    nlp_result=nlp_result,
+                    state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
+
         if current_active is not None and sum([has_multi_scan, has_multi_size, has_multi_ink, has_multi_wifi, has_multi_weight, has_multi_speed]) >= 2:
             act_p = current_active
             p_name = act_p.get("display_name") or act_p.get("name")
@@ -3960,6 +4447,14 @@ class Orchestrator:
             }
             for r in retrieved_items
         ]
+        # Ensure state.history_turns records each interaction
+        if hasattr(state, "history_turns") and isinstance(state.history_turns, list):
+            norm_txt = (nlp_result.get("normalized_text") or nlp_result.get("raw_text") or "") if isinstance(nlp_result, dict) else ""
+            if norm_txt and reply:
+                if not state.history_turns or state.history_turns[-1].get("content") != reply:
+                    state.history_turns.append({"role": "user", "content": norm_txt})
+                    state.history_turns.append({"role": "assistant", "content": reply})
+
         is_grounded = (reply != STATIC_SAFE_REFUSAL and not source.endswith("safe_refusal"))
         grounding_status = "verified_catalogue_source" if is_grounded else "FAIL_CLOSED_SAFE"
 

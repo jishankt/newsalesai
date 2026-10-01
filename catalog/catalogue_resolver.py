@@ -165,6 +165,11 @@ def find_mentioned_catalogue_products(text: str) -> List[Dict[str, Any]]:
                     for token in tokens_to_check:
                         if token == cand:
                             return [p]
+                        token_digits = "".join(ch for ch in token if ch.isdigit())
+                        cand_digits = "".join(ch for ch in cand if ch.isdigit())
+                        if token_digits and cand_digits and token_digits != cand_digits:
+                            if re.sub(r"(\d)\1+", r"\1", token_digits) != re.sub(r"(\d)\1+", r"\1", cand_digits):
+                                continue
                         d = _levenshtein(token, cand)
                         max_allowed = 1 if len(cand) <= 6 else 2
                         if d <= max_allowed:

@@ -302,9 +302,9 @@ class CanonicalEntityNormalizer:
 
         # 3. Daily volume check with explicit units / phrasing
         daily_patterns = [
-            r"(?:daily\s+volume|volume\s+daily|volume\s+per\s+day|volume\s+is|expect|produce|process|print)\s*(?:is\s+)?(?:approximately|around|about|~|more\s+than)?\s*(\d[\d,\s]*)\s*(?:pages?|drawings?|prints?|photos?|photographs?|plans?|docs?)?\s*(?:per\s*day|a\s*day|every\s*day|daily|/day|per\s*event)",
-            r"(\d[\d,\s]*)\s*(?:pages?|drawings?|prints?|photos?|photographs?|plans?|docs?)?\s*(?:per\s*day|a\s*day|every\s*day|daily|/day|per\s*event)",
-            r"(?:around|about|approx|approximately|~|more\s+than)\s*(\d[\d,\s]*)\s*(?:pages?|drawings?|prints?|photos?|plans?|docs?)\s*(?:a\s*day|per\s*day|every\s*day|daily|per\s*event)?",
+            r"(?:daily\s+volume|volume\s+daily|volume\s+per\s+day|volume\s+is|expect|produce|process|print)\s*(?:is\s+)?(?:approximately|around|about|~|more\s+than)?\s*(?<![a-zA-Z0-9])(\d{1,3}(?:,\d{3})*|\d+)\s*(?:pages?|drawings?|prints?|photos?|photographs?|plans?|docs?)?\s*(?:per\s*day|a\s*day|every\s*day|daily|/day|per\s*event)",
+            r"(?<![a-zA-Z0-9])(\d{1,3}(?:,\d{3})*|\d+)\s*(?:pages?|drawings?|prints?|photos?|photographs?|plans?|docs?)?\s*(?:per\s*day|a\s*day|every\s*day|daily|/day|per\s*event)",
+            r"(?:around|about|approx|approximately|~|more\s+than)\s*(?<![a-zA-Z0-9])(\d{1,3}(?:,\d{3})*|\d+)\s*(?:pages?|drawings?|prints?|photos?|plans?|docs?)\s*(?:a\s*day|per\s*day|every\s*day|daily|per\s*event)?",
             r"\b(?:it['’]?s|is|maybe|think\s+it['’]?s|i\s+think\s+it['’]?s|actually|make\s+that)\s*(\d+)\b",
         ]
         for pat in daily_patterns:
