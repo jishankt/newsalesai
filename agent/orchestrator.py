@@ -1014,6 +1014,151 @@ class Orchestrator:
                                         suggested_chips, nlp_result, state,
                                         int((time.time() - start_time) * 1000))
 
+        # ── Universal Brand Discovery: Broad Epson Inquiry ──
+        is_broad_epson = (
+            bool(re.search(r"\bepson\b", msg_l))
+            and not find_mentioned_catalogue_products(normalized_msg)
+            and not any(k in msg_l for k in [
+                "cad", "blueprint", "gis", "plotter", "architect",
+                "fine art", "gallery", "portrait", "a2+", "a3+", "13-inch", "17-inch", "24-inch", "36-inch", "44-inch", "64-inch",
+                "t-shirt", "t shirt", "mug", "sublimation", "dye sub",
+                "scanner", "scanning", "scan",
+                "office", "workforce pro", "workforce enterprise", "a3 mfp", "a4 mfp", "copier"
+            ])
+            and bool(re.search(r"\b(?:what\s+are|what\s+do|which|do\s+you\s+have|show|tell|list|available|options|lineup|models|printers?|catalog|catalogue|buy|need|looking|want)\b", msg_l) or msg_l.strip() in ("epson", "epson printer", "epson printers"))
+        )
+        if is_broad_epson:
+            state.reset_category(None)
+            state.requirements.clear()
+            state.active_product = None
+            state.active_product_id = None
+            state.active_printer_for_consumables = None
+            reply_text = (
+                "As an authorized Epson distributor in the UAE, Kepler Tech carries the complete lineup of professional Epson printing solutions across four core commercial applications:\n\n"
+                "• **Technical CAD / GIS Plotters (SureColor T-Series):** High-precision wireless desktop and production plotters engineered for architects, engineering firms, and construction blueprints (e.g., **SureColor SC-T3100**, **SC-T5100**, **SC-T5400M**).\n"
+                "• **Professional Photography & Fine Art (SureColor P-Series):** Gallery-grade archival printers with UltraChrome PRO pigment inks for fine art reproduction, photo labs, and proofing (e.g., **SureColor SC-P700**, **SC-P900**, **SC-P5300**, **SC-P20500**).\n"
+                "• **WorkForce Enterprise & Office Multifunction:** High-speed, Heat-Free line-head commercial printers delivering 40 to 100 ppm with ultra-low power consumption for corporate offices (e.g., **WorkForce Enterprise AM-C4000**, **AM-C5000**, **AM-C6000**, **WorkForce Pro WF-C5890**).\n"
+                "• **Commercial Dye-Sublimation (SureColor F-Series):** High-yield digital transfer systems for custom apparel, sports jerseys, and promotional merchandise (e.g., **SureColor SC-F100**, **SC-F500**).\n\n"
+                "Which printing application best fits your workflow or project?"
+            )
+            epson_flagship_cards = [
+                catalogue_filter._format_card(p, p.get("subcategory"), state.requirements)
+                for p in [
+                    catalogue_loader.get_by_id("epson-sc-t3100"),
+                    catalogue_loader.get_by_id("epson-sc-p700"),
+                    catalogue_loader.get_by_id("epson-am-c4000"),
+                    catalogue_loader.get_by_id("epson-sc-f100"),
+                ] if p
+            ]
+            suggested_chips = [
+                "Technical CAD Plotters",
+                "Professional Photography",
+                "Office Enterprise Documents",
+                "Dye-Sublimation (T-Shirts & Mugs)",
+            ]
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="recommendation:epson_brand_discovery",
+                product_cards=epson_flagship_cards,
+                consumable_cards=[],
+                suggested_chips=suggested_chips,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── Universal Brand Discovery: Broad Citizen Inquiry ──
+        is_broad_citizen = (
+            bool(re.search(r"\bcitiz[eo]n\b", msg_l))
+            and not find_mentioned_catalogue_products(normalized_msg)
+            and not re.search(r"\b(barcode|label|receipt|pos)\b", msg_l)
+            and bool(re.search(r"\b(?:what\s+are|what\s+do|which|do\s+you\s+have|show|tell|list|available|options|lineup|models|printers?|catalog|catalogue|buy|need|looking|want)\b", msg_l) or msg_l.strip() in ("citizen", "citizon", "citizen printer", "citizen printers"))
+        )
+        if is_broad_citizen:
+            state.reset_category("citizen_photo")
+            state.requirements.clear()
+            state.active_product = None
+            state.active_product_id = None
+            state.active_printer_for_consumables = None
+            reply_text = (
+                "As an authorized Citizen Photo distributor in the UAE, Kepler Tech carries the complete lineup of genuine Citizen dye-sublimation photo printers engineered for event photography and commercial photo booths:\n\n"
+                "• **Citizen CX-02:** Compact, high-speed 6-inch dye-sublimation photo printer, ideal for event photography and photo booths.\n"
+                "• **Citizen CY-02:** High-capacity event photo printer engineered for high-volume commercial printing (up to 700 prints per roll).\n"
+                "• **Citizen CZ-01:** Ultra-compact, lightweight 4-inch photo printer designed for on-the-go mobility (just 5.8 kg).\n"
+                "• **Citizen CX-02W:** Wide 8-inch photo printer designed for professional portrait studios and 8×12″ school/event prints.\n\n"
+                "Which Citizen model or print size would you like to explore?"
+            )
+            citizen_cards = [
+                catalogue_filter._format_card(p, "citizen_photo", state.requirements)
+                for p in [
+                    catalogue_loader.get_by_id("citizen-cx-02"),
+                    catalogue_loader.get_by_id("citizen-cy-02"),
+                    catalogue_loader.get_by_id("citizen-cz-01"),
+                    catalogue_loader.get_by_id("citizen-cx-02w"),
+                ] if p
+            ]
+            suggested_chips = ["Citizen CX-02", "Citizen CY-02", "Citizen CZ-01", "Citizen CX-02W", "Compare Citizen Models"]
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="recommendation:citizen_brand_discovery",
+                product_cards=citizen_cards,
+                consumable_cards=[],
+                suggested_chips=suggested_chips,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── Universal Broad Catalog Discovery: Brand-Agnostic ──
+        is_broad_all_printers = (
+            bool(re.search(r"^(?:what\s+(?:printers?|products?|models?|machines?)\s+(?:do\s+you\s+(?:have|carry|sell)|are\s+available)|show\s+(?:me\s+)?(?:all\s+)?(?:the\s+)?(?:printers?|products?|catalogue|catalog)|what\s+do\s+you\s+(?:have|sell|carry)|all\s+printers?|available\s+printers?)\b", msg_l.strip()))
+            and not find_mentioned_catalogue_products(normalized_msg)
+            and not bool(re.search(r"\b(epson|citiz[eo]n|scanner|scan)\b", msg_l))
+        )
+        if is_broad_all_printers:
+            state.reset_category(None)
+            state.requirements.clear()
+            state.active_product = None
+            state.active_product_id = None
+            reply_text = (
+                "Kepler Tech is an authorized distributor in Dubai, UAE, specializing in commercial printing hardware across two premier global brands:\n\n"
+                "• **Epson Professional Solutions:** Technical CAD / GIS plotters (SureColor T-Series), photo & fine art printers (SureColor P-Series), high-speed Heat-Free office multifunction printers (WorkForce Enterprise & Pro), and commercial dye-sublimation systems (SureColor F-Series).\n"
+                "• **Citizen Photo Printers:** Heavy-duty, high-speed dye-sublimation printers engineered specifically for event photography, photo booths, and instant portrait studios (CX-02, CY-02, CZ-01, CX-02W).\n\n"
+                "Which category or application best matches your business needs?"
+            )
+            overview_cards = [
+                catalogue_filter._format_card(p, p.get("subcategory"), state.requirements)
+                for p in [
+                    catalogue_loader.get_by_id("epson-sc-t3100"),
+                    catalogue_loader.get_by_id("epson-sc-p700"),
+                    catalogue_loader.get_by_id("epson-am-c4000"),
+                    catalogue_loader.get_by_id("citizen-cx-02"),
+                ] if p
+            ]
+            suggested_chips = [
+                "Technical CAD Plotters",
+                "Professional Photographs",
+                "Office Enterprise Documents",
+                "Event Photos (Photo Booth)",
+                "Dye-Sublimation (T-Shirts & Mugs)",
+            ]
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="recommendation:broad_catalog_discovery",
+                product_cards=overview_cards,
+                consumable_cards=[],
+                suggested_chips=suggested_chips,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
         # Resolve a factual follow-up against the pair that was actually compared.
         # Do this before size extraction can turn the question into a new buying requirement.
         compared = getattr(state, "compared_products", []) or [
@@ -4509,6 +4654,11 @@ class Orchestrator:
             or source.startswith("route:product_price_inquiry")
             or source.startswith("route:consumable_price_inquiry")
             or source.startswith("route:general_price_inquiry")
+            or source.startswith("recommendation:epson_brand_discovery")
+            or source.startswith("recommendation:citizen_brand_discovery")
+            or source.startswith("recommendation:broad_catalog_discovery")
+            or source.startswith("route:unverified_product")
+            or source.startswith("route:citizen_uncarried_category")
             or "safe_refusal" in source
             or "refusal" in source
             or "error" in source

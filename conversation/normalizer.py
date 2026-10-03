@@ -58,6 +58,25 @@ def normalize_category(raw_text: str, current_category: Optional[str] = None) ->
     ]):
         return "photography_large_format"
 
+    # 0a. Explicit Brand-Switching Guards
+    # If currently in Citizen, and user explicitly mentions Epson, switch to requested Epson category or reset to None
+    if current_category == "citizen_photo" and bool(re.search(r"\bepson\b", text_l)):
+        if any(k in text_l for k in ["cad", "blueprint", "gis", "plotter", "architect"]):
+            return "technical_large_format"
+        if any(k in text_l for k in ["fine art", "gallery", "sc-p", "p-series", "p700", "p900", "p5300", "p20500"]):
+            return "photography_large_format"
+        if any(k in text_l for k in ["office", "workforce", "business", "copier", "am-c", "wf-c"]):
+            return "office_printer"
+        if any(k in text_l for k in ["sublimation", "t-shirt", "mug", "sc-f", "f100", "f500"]):
+            return "dye_sublimation"
+        if any(k in text_l for k in ["scanner", "scanning"]):
+            return "scanners"
+        return None
+
+    # If currently in an Epson category, and user explicitly mentions Citizen, switch to citizen_photo
+    if current_category in ("office_printer", "technical_large_format", "photography_large_format", "dye_sublimation", "scanners", "scanner") and bool(re.search(r"\bcitiz[eo]n\b", text_l)):
+        return "citizen_photo"
+
     # 1. Citizen photo check (Citizen brand is exclusively direct dye-sub/thermal photo printers)
     if any(k in text_l for k in [
         "citizen", "citizon", "citzen", "photo booth", "photobooth", "event photo", "event photos",

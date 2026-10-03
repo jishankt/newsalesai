@@ -351,6 +351,42 @@ class ResponseComposer:
                 # SC-T5100M must not claim 5400m speed or dual roll
                 if "dual roll" in text_lower or "2 rolls" in text_lower:
                     violations.append("cross_product_contamination:t5100m_assigned_dual_roll")
+        # 6. Unapproved Model Code & Brand-Card Inconsistency Validator
+        # Ensure that no invented or unapproved printer model numbers escape to the user
+        from catalog.catalogue_loader import catalogue_loader
+        approved_tokens = set()
+        for p in catalogue_loader.products:
+            raw_id = p.get("id", "").lower().replace("epson-", "").replace("citizen-", "")
+            approved_tokens.add(raw_id)
+            approved_tokens.add(raw_id.replace("-", ""))
+            p_name = (p.get("name") or p.get("display_name") or "").lower()
+            for part in re.split(r"[\s,]+", p_name):
+                if re.search(r"\d", part) and len(part) >= 3:
+                    clean_p = part.strip("().,")
+                    approved_tokens.add(clean_p)
+                    approved_tokens.add(clean_p.replace("-", ""))
+
+        # Check for model-like tokens (e.g. p7060, t5280, wf-c5710, sc-t9999)
+        found_models = re.findall(r"\b(?:epson\s+|citizen\s+|surecolor\s+|workforce\s+)?((?:sc|wf|am|em|cx|cy|cz|op|ds|es|xp|et|l|p|t)[-\s]?[a-z]?\d{2,5}[a-z0-9]*)\b", text_lower)
+        for m_token in found_models:
+            m_clean = m_token.replace(" ", "").replace("-", "")
+            # Skip unit measurements and common specs
+            if re.search(r"^(?:\d+dpi|\d+ppm|\d+ipm|\d+inch|\d+cm|\d+mm|\d+gsm|\d+ml|\d+bit|\d+mb|\d+gb|\d+kg)$", m_clean):
+                continue
+            if not any(m_clean == app or m_clean in app or app in m_clean for app in approved_tokens):
+                violations.append(f"unapproved_model_invented:{m_token}")
+
+        # Brand consistency check between text and cards/evidence
+        has_epson_in_text = bool(re.search(r"\bepson\b", text_lower))
+        has_citizen_in_text = bool(re.search(r"\bcitiz[eo]n\b", text_lower))
+        displayed_ids = [str(x).lower() for x in (getattr(context.verified_evidence, "displayed_product_order", []) or [])]
+        if displayed_ids:
+            all_citizen_cards = all("citizen" in pid for pid in displayed_ids)
+            all_epson_cards = all("epson" in pid for pid in displayed_ids)
+            if all_citizen_cards and has_epson_in_text and not has_citizen_in_text:
+                violations.append("brand_card_mismatch:epson_text_with_citizen_cards")
+            elif all_epson_cards and has_citizen_in_text and not has_epson_in_text:
+                violations.append("brand_card_mismatch:citizen_text_with_epson_cards")
 
         if violations:
             return False, violations
