@@ -31,11 +31,11 @@ class ContextualSlotResolver:
 
     # ── 2. Generic Affirmative & Negative Matchers ───────────────────────────
     AFFIRMATIVE_RE = re.compile(
-        r"^(?:yes|yeah|yep|yup|sure|definitely|absolutely|affirmative|i\s+do|we\s+do|needed|required|include|including|with|true|ok|okay|correct|please)(?:,.*|\s.*)?$",
+        r"^(?:yes|yeah|yep|yup|sure|definitely|absolutely|affirmative|i\s+do|we\s+do|needed|required|include|including|with|true|ok|okay|correct|please)(?:,?\s*(?:please|thanks|thank\s*you|that\s*works|sounds\s*good|fine))?$",
         re.I
     )
     NEGATIVE_RE = re.compile(
-        r"^(?:no|nope|nah|not|none|negative|without|false|never|skip)(?:,.*|\s.*)?$",
+        r"^(?:no|nope|nah|not|none|negative|without|false|never|skip)(?:,?\s*(?:thanks|thank\s*you|please|not\s*needed|unnecessary|not\s*required|no\s*need))?$",
         re.I
     )
 
@@ -81,24 +81,35 @@ class ContextualSlotResolver:
 
         # 1. Scanner / Multifunction Requirement
         if awaiting_field in ("scanner_required", "scan_required"):
-            # Check negative first
-            if cls.NEGATIVE_RE.search(text_l) or any(neg in text_l for neg in [
+            # Explicit negation phrases ALWAYS mean scanner_required = False
+            is_explicit_negation = any(neg in text_l for neg in [
                 "print only", "printer only", "just print", "only print",
-                "without scanner", "no scanner", "no scan",
+                "without scanner", "without scanning", "no scanner", "no scan",
                 "don't need scanner", "dont need scanner", "do not need a scanner",
                 "do not need scanner", "not needed", "not required"
-            ]):
+            ])
+            if is_explicit_negation:
                 reqs["scanner_required"] = False
                 reqs["functions"] = ["print"]
                 return reqs, corrections
 
-            # Check positive
-            if cls.AFFIRMATIVE_RE.search(text_l) or any(pos in text_l for pos in [
-                "with scanner", "need scanner", "need a scanner", "scanner", "scan", "mfp",
-                "integrated scanner", "copy", "copier", "multifunction", "scan and copy",
-                "need it", "want it", "with copy", "all in one", "all-in-one",
-                "multifunctional", "integrated", "combined"
-            ]):
+            # Check affirmative scanner (e.g. "need a scanner", "with scanner", or standalone "scanner", "scan", "mfp", "copier")
+            has_affirmative_scanner = bool(re.search(
+                r"\b(?:i\s+(?:need|want|would\s+like|prefer)|looking\s+for|switch\s+to|show\s+me|with\s+(?:a\s+)?scanner|need\s+(?:a\s+)?scanner|ineed|iwant)\b.*?\b(?:scann?er|scanning)\b",
+                text_l
+            )) or any(pos in text_l for pos in [
+                "with scanner", "need scanner", "need a scanner", "integrated scanner",
+                "multifunction", "scan and copy", "with copy", "all in one", "all-in-one",
+                "multifunctional"
+            ]) or bool(re.search(r"\b(?:scanner|scan|scanning|mfp|copier)\b", text_l))
+
+            # If user said bare "no" / "nope" without affirmative intent
+            if cls.NEGATIVE_RE.search(text_l) and not has_affirmative_scanner:
+                reqs["scanner_required"] = False
+                reqs["functions"] = ["print"]
+                return reqs, corrections
+
+            if has_affirmative_scanner or cls.AFFIRMATIVE_RE.search(text_l):
                 reqs["scanner_required"] = True
                 reqs["functions"] = ["print", "scan", "copy"]
                 return reqs, corrections
@@ -437,7 +448,7 @@ class ContextualSlotResolver:
                     return reqs, corrections
 
         # 12. Scanner Intent / Subcategory
-        if awaiting_field in ("scanner_intent", "scanner_type", "subcategory") or (category in ("scanners", "scanner") and awaiting_field == "scanner_intent"):
+        if awaiting_field in ("scanner_intent", "scanner_intent_professional", "scanner_type", "subcategory") or (category in ("scanners", "scanner") and awaiting_field in ("scanner_intent", "scanner_intent_professional")):
             # a. Both can do / Hybrid
             if any(k in text_l for k in [
                 "both", "hybrid", "dual", "flatbed and adf", "flatbed + adf", "both can do",

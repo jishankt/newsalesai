@@ -33,6 +33,7 @@ class ResponseComposer:
     def __init__(self, ollama_client: Optional[OllamaClient] = None):
         self.ollama_client = ollama_client
         self._offline_cooldown_until = 0.0
+        self.last_composition_succeeded = False
 
     def compose(
         self,
@@ -43,6 +44,7 @@ class ResponseComposer:
         Composes a natural, grounded response from the provided ResponseContext.
         Falls back safely to the verified AnswerPlan or deterministic_draft on failure.
         """
+        self.last_composition_succeeded = False
         # Determine fallback text directly from verified answer plan if available
         fallback_text = ""
         if context.answer_plan:
@@ -85,11 +87,16 @@ class ResponseComposer:
         # 5. Execute LLM Composition with Fail-Closed Validation
         try:
             active_pid = None
-            if context.verified_evidence.active_product:
+            is_multi = (
+                len(getattr(context.verified_evidence, "displayed_product_order", []) or []) > 1
+                or "comparison" in (context.dialogue_act or "").lower()
+                or "recommendation" in (context.dialogue_act or "").lower()
+            )
+            if not is_multi and context.verified_evidence and context.verified_evidence.active_product:
                 active_pid = context.verified_evidence.active_product.get("id")
             val_context = {
                 "product_id": active_pid,
-                "evidence": context.verified_evidence.to_dict(),
+                "evidence": context.verified_evidence.to_dict() if context.verified_evidence else {},
                 "source": "catalog",
             }
 
@@ -111,6 +118,7 @@ class ResponseComposer:
 
                 if is_valid:
                     self._offline_cooldown_until = 0.0
+                    self.last_composition_succeeded = True
                     logger.info(f"Grounded response composed successfully ({comp_res.get('latency_ms')}ms)")
                     return composed_text
 
@@ -144,6 +152,7 @@ class ResponseComposer:
                     )
                     if is_valid_2:
                         self._offline_cooldown_until = 0.0
+                        self.last_composition_succeeded = True
                         logger.info("Regenerated response passed validation successfully.")
                         return regen_text
                     logger.warning(f"Regenerated reply failed validation again: {violations_2}. Falling back to verified plan.")
@@ -155,6 +164,7 @@ class ResponseComposer:
             logger.warning(f"Error during response composition: {e}. Falling back to verified plan.")
 
         # Safe Fail-Closed Fallback directly from verified plan
+        self.last_composition_succeeded = False
         return fallback_text
 
     def _extract_customer_questions(self, message: str) -> List[str]:

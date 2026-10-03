@@ -20,27 +20,49 @@ from agents.sales_lead_agent import sales_lead_agent
 
 logger = logging.getLogger("conversation.customer_flow")
 
+SUBSTANTIVE_QUERY_RE = re.compile(
+    r"\b(?:need|want|looking|search|show|find|recommend|buy|purchase|price|cost|quote|spec|specs|specification|datasheet|compare|difference|support|printer|plotter|scanner|copier|mfp|ink|toner|cartridge|ribbon|roll|paper|a3|a4|cad|photo|sublimation|surecolor|workforce|ecotank|expression|label|hybrid|flatbed|adf|speed|ppm|dpi)\b",
+    re.IGNORECASE
+)
+
 NEGATIVE_PATTERNS = [
-    r"\b(?:no|nope|nah|not\s+really|not\s+interested|no\s+thanks?|no\s+thank\s+you|don['']?t\s+want|never\s*mind|skip|not\s+now|maybe\s+later|later|refuse|decline|no\s+need|continue\s+as\s+guest|guest|don['']?t\s+save|without\s+saving|don['']?t\s+do\s+anything|stop)\b"
+    r"^(?:no|nope|nah|not\s+really|not\s+interested|no\s+thanks?|no\s+thank\s+you|don['']?t\s+want(?:(?:\s+to)?(?:\s+share)?(?:\s+save)?)?|never\s*mind|skip|not\s+now|maybe\s+later|later|refuse|decline|no\s+need|continue\s+as\s+guest|guest|don['']?t\s+save|without\s+saving|don['']?t\s+do\s+anything|stop)[.!?, ]*$"
 ]
 
 POSITIVE_PATTERNS = [
-    r"\b(?:yes|yeah|yep|sure|ok|okay|of\s*course|definitely|certainly|i['']?m\s+interested|yes\s+please|yes\s+i\s+am|save\s+it|save\s+chat|enable|enable\s+history|save\s+chat\s+history|yes\s+save)\b"
+    r"^(?:yes|yeah|yep|sure|ok|okay|of\s*course|definitely|certainly|i['']?m\s+interested|yes\s+please|yes\s+i\s+am|save\s+it|save\s+chat|enable|enable\s+history|save\s+chat\s+history|yes\s+save)[.!?, ]*$"
 ]
 
 
 def is_negative_response(text: str) -> bool:
-    """Checks if text expresses refusal/decline."""
+    """Checks if text expresses refusal/decline without substantive product intent."""
     t = text.strip().lower()
-    if t in ["no", "no.", "no!", "n", "nope", "no thanks", "no thank you", "skip", "not now", "no, continue as guest"]:
+    if SUBSTANTIVE_QUERY_RE.search(t):
+        return False
+    bare_negatives = {
+        "no", "no.", "no!", "n", "nope", "nah", "no thanks", "no thank you",
+        "skip", "not now", "maybe later", "later", "no, continue as guest",
+        "continue as guest", "guest", "don't save", "dont save", "without saving",
+        "don't do anything", "dont do anything", "not interested", "not really",
+        "never mind", "nevermind", "stop", "refuse", "decline", "no need"
+    }
+    cleaned = re.sub(r"[^\w\s]", "", t).strip()
+    if cleaned in bare_negatives or t in bare_negatives:
         return True
     return any(re.search(pat, t) for pat in NEGATIVE_PATTERNS)
 
 
 def is_positive_response(text: str) -> bool:
-    """Checks if text expresses consent/agreement."""
+    """Checks if text expresses consent/agreement without substantive product intent."""
     t = text.strip().lower()
-    if t in ["yes", "yes.", "yes!", "y", "sure", "ok", "okay", "yep", "yeah", "yes, i'm interested", "yes, save chat history"]:
+    if SUBSTANTIVE_QUERY_RE.search(t):
+        return False
+    bare_positives = {
+        "yes", "yes.", "yes!", "y", "sure", "ok", "okay", "yep", "yeah",
+        "yes, i'm interested", "yes, save chat history"
+    }
+    cleaned = re.sub(r"[^\w\s]", "", t).strip()
+    if cleaned in bare_positives or t in bare_positives:
         return True
     return any(re.search(pat, t) for pat in POSITIVE_PATTERNS)
 
@@ -234,6 +256,13 @@ def handle_customer_onboarding(
         if contact:
             return _process_contact_submission(raw_message, name, contact, phone, email, state, session_id)
 
+        # If user changed subject to a product query or gave a substantive requirement,
+        # don't mistakenly treat their question as a person name! Abort details and fall through to orchestrator.
+        if SUBSTANTIVE_QUERY_RE.search(raw_message):
+            state.lead_prompt_status = "declined_opt_in"
+            logger.info(f"[{session_id[:8]}] Customer changed subject to product query during details collection.")
+            return None
+
         # User gave something without phone or email
         if name and not state.customer_name:
             state.customer_name = name
@@ -347,7 +376,7 @@ def _process_contact_submission(
     reply = (
         f"Thank you, **{final_name}**! I have noted your contact details ({masked}).\n\n"
         f"Would you like to save this conversation so you can continue your chat history anytime?\n\n"
-        f"*(If enabled, you can easily log in whenever you return using your name and the phone number or email you shared).* "
+        f"*(If enabled, you can easily log in whenever you return using your name as username and the phone number or email you shared as password).* "
         f"Would you like to enable chat history?"
     )
     return {

@@ -233,12 +233,12 @@ class ConversationState:
             self.candidate_products = []
             self.active_product = None
 
-    def reset_category(self, new_category: str):
+    def reset_category(self, new_category: Optional[str]):
         """
         Resets only incompatible requirements when the customer changes categories.
         Preserves common fields like daily_volume if applicable.
         """
-        if self.category == new_category:
+        if self.category == new_category and new_category is not None:
             return
         
         # Incompatible requirements are cleared
@@ -251,6 +251,7 @@ class ConversationState:
 
         self.qualification_complete = False
         self.results_loaded = False
+        self.stage = "qualifying"
         self.matched_product_ids = []
         self.displayed_product_ids = []
         self.candidate_products = []
@@ -258,9 +259,30 @@ class ConversationState:
         self.compared_product_ids = []
         self.active_product = None
         self.active_product_id = None
+        self.active_printer_for_consumables = None
         self.awaiting_field = None
         self.pending_question = None
         self.pending_field = None
+        self.unresolved_field_turns = 0
+
+    def reset_subcategory(self, new_subcategory: Optional[str] = None):
+        """
+        Clears subcategory-specific requirements and active products when subcategory changes.
+        """
+        if self.subcategory == new_subcategory and new_subcategory is not None:
+            return
+        self.subcategory = new_subcategory
+        self.qualification_complete = False
+        self.results_loaded = False
+        self.displayed_product_ids = []
+        self.candidate_products = []
+        self.compared_products = []
+        self.compared_product_ids = []
+        self.active_product = None
+        self.active_product_id = None
+        self.active_printer_for_consumables = None
+        self.awaiting_field = None
+        self.unresolved_field_turns = 0
 
     def save_pending_question(self, question: str, field_name: str):
         self.pending_question = question

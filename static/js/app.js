@@ -404,13 +404,66 @@ document.addEventListener('DOMContentLoaded', () => {
       bubble.style.borderLeftColor = themeColor;
     }
     
+    function formatMarkdownTables(raw) {
+      if (!raw || !raw.includes('|')) return raw;
+      const tableBlockRegex = /((?:^[ \t]*\|[^\n]+\|[ \t]*(?:\r?\n|$))+)/gm;
+      return raw.replace(tableBlockRegex, (match) => {
+        const lines = match.trim().split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+        if (lines.length < 2) return match;
+        let sepIdx = -1;
+        for (let i = 0; i < Math.min(3, lines.length); i++) {
+          if (/^\|[\s\-:|]+\|$/.test(lines[i])) {
+            sepIdx = i;
+            break;
+          }
+        }
+        if (sepIdx === -1) return match;
+
+        const headerLines = lines.slice(0, sepIdx);
+        const rowLines = lines.slice(sepIdx + 1);
+
+        let html = '<div class="table-responsive" style="overflow-x: auto; margin: 10px 0; border-radius: 8px; border: 1px solid #e2e8f0; background: #ffffff;">';
+        html += '<table style="width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left; line-height: 1.4;">';
+        
+        if (headerLines.length > 0) {
+          html += '<thead style="background: #f1f5f9; border-bottom: 2px solid #cbd5e1;">';
+          headerLines.forEach(h => {
+            html += '<tr>';
+            const cells = h.split('|').slice(1, -1);
+            cells.forEach(c => {
+              html += `<th style="padding: 8px 10px; font-weight: 600; color: #1e293b;">${c.trim()}</th>`;
+            });
+            html += '</tr>';
+          });
+          html += '</thead>';
+        }
+
+        html += '<tbody>';
+        rowLines.forEach((r, idx) => {
+          const bg = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
+          html += `<tr style="background: ${bg}; border-bottom: 1px solid #f1f5f9;">`;
+          const cells = r.split('|').slice(1, -1);
+          cells.forEach((c, cIdx) => {
+            const isFirst = cIdx === 0;
+            const weight = isFirst ? 'font-weight: 600; color: #334155;' : 'color: #475569;';
+            html += `<td style="padding: 7px 10px; ${weight}">${c.trim()}</td>`;
+          });
+          html += '</tr>';
+        });
+        html += '</tbody></table></div>';
+        return html;
+      });
+    }
+
     // Format markdown bold, italic, line breaks, URLs, emails, and [Options: ...] tags
-    let formattedText = (text || "")
+    let formattedText = formatMarkdownTables(text || "")
       .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
       .replace(/\*([^*]+)\*/g, '<em>$1</em>')
       .replace(/\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #1877f2; text-decoration: underline; font-weight: 500;">$1</a>')
       .replace(/(^|[^">])(https?:\/\/[^\s<]+)/g, '$1<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #1877f2; text-decoration: underline; font-weight: 500;">$2</a>')
-      .replace(/(?:\r\n|\r|\n)/g, '<br>');
+      .replace(/(?:\r\n|\r|\n)/g, '<br>')
+      .replace(/<br>\s*(<div class="table-responsive")/g, '$1')
+      .replace(/(<\/div>)\s*<br>/g, '$1');
 
     // Parse [Options: A | B | C] pills from assistant text
     let parsedChips = [...(chips || [])];
@@ -644,6 +697,10 @@ document.addEventListener('DOMContentLoaded', () => {
         chipBtn.style.cssText = 'background: #ffffff; border: 1px solid #cbd5e1; border-radius: 14px; padding: 5px 12px; font-size: 0.74rem; cursor: pointer; color: #1e293b; font-weight: 500; transition: all 0.15s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.05);';
         chipBtn.textContent = chipText;
         chipBtn.addEventListener('click', () => {
+          if (chipText === '🔑 Open Login' || chipText === 'Open Login') {
+            openCustomerModal();
+            return;
+          }
           if (!isAwaitingReply) {
             messageInput.value = chipText;
             sendMessage(chipText);

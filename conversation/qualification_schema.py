@@ -182,6 +182,10 @@ QUESTIONS_BY_FIELD: Dict[str, Dict[str, Any]] = {
     "scanner_intent": {
         "question": "What type of scanner do you need—high-speed business document scanner, high-resolution photo & film scanner, or a versatile hybrid model with both a flatbed and ADF?",
         "pills": ["Business Documents", "Photo & Film (High-Res)", "Both (Flatbed + ADF)"]
+    },
+    "scanner_intent_professional": {
+        "question": "For professional scanning, do you require a high-resolution A3 graphic & photo/film scanner (Expression 12000XL series) or a heavy-duty A3 production document scanner (WorkForce DS-30000 / DS-32000 series)?",
+        "pills": ["Photo & Graphic (12000XL)", "Production Document (DS-32000)", "Both (Flatbed + ADF)"]
     }
 }
 
@@ -246,8 +250,13 @@ def get_missing_mandatory_fields(category: str, requirements: Dict[str, Any]) ->
         from catalog.subcategory_resolver import resolve_subcategory
         if resolve_subcategory(category, requirements):
             return []
-        if requirements.get("scanner_intent") or requirements.get("subcategory"):
+        if requirements.get("subcategory"):
             return []
+        intent = requirements.get("scanner_intent")
+        if intent and intent in ("both", "photo", "business"):
+            return []
+        if intent == "professional":
+            return ["scanner_intent_professional"]
         return ["scanner_intent"]
 
     mandatory = get_mandatory_fields(category)

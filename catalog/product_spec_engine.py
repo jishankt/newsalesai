@@ -265,16 +265,25 @@ class ProductSpecEngine:
                 )
                 return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
 
-            sp = product.verified.speed or card.get("speed")
+            sp = (
+                product.verified.speed
+                or card.get("speed")
+                or card.get("print_speed")
+                or card.get("scan_speed")
+                or product.specifications_table.get("Print Speed")
+                or product.specifications_table.get("Scanning Speed")
+            )
             if sp:
+                is_sc = "scanner" in product.category or "ds-" in product.id or "expression-12000" in product.id
+                lbl = "scanning speed" if is_sc else "print speed"
                 return RouteResult(
-                    reply=f"The verified print speed for **[{p_name}]({p_url})** is **{sp}** [VERIFIED].",
+                    reply=f"The verified {lbl} for **[{p_name}]({p_url})** is **{sp}** [VERIFIED].",
                     product_cards=[card],
                     source="catalog:single_attribute",
                 )
 
         # ── 2. Maximum Width & Supported Sizes ─────────────────────────────
-        is_width = any(w in msg_l for w in ["maximum width", "max width", "maximum supported", "widest", "print 6x9", "6x9 photos", "support 6x9", "print 8x12", "paper size", "paper sizes", "print size", "print sizes", "photo size", "photo sizes", "supported size", "supported sizes"])
+        is_width = any(w in msg_l for w in ["maximum width", "max width", "maximum supported", "widest", "print 6x9", "6x9 photos", "support 6x9", "print 8x12", "paper size", "paper sizes", "print size", "print sizes", "photo size", "photo sizes", "supported size", "supported sizes", "media size", "media sizes", "scanning range", "document size"])
         if is_width:
             if "cx-02" in product.id and ("6x9" in msg_l or "6×9" in msg_l):
                 reply = f"Yes, the **[{p_name}]({p_url})** supports **6×9 inches** (152 × 229 mm) [VERIFIED], producing up to 180 prints per roll at a verified speed of 20.8 seconds per print [VERIFIED]."
@@ -296,15 +305,23 @@ class ProductSpecEngine:
                 reply = f"The **[{p_name}]({p_url})** supports 8×10″ and 8×12″ media [VERIFIED], with a maximum print width of **8 inches** [INFERRED from listed 8×12 media size]."
                 return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
 
-            if product.verified.max_width_label:
+            sizes = product.supported_print_sizes or product.verified.supported_print_sizes or product.specifications_table.get("Supported Media Sizes")
+            max_w = product.verified.max_width_label or card.get("width")
+            if sizes or max_w:
+                parts = []
+                if max_w:
+                    parts.append(f"maximum width of **{max_w}**")
+                if sizes:
+                    sizes_str = ", ".join(sizes) if isinstance(sizes, list) else str(sizes)
+                    parts.append(f"supported formats: **{sizes_str}**")
                 return RouteResult(
-                    reply=f"The maximum supported print width for **[{p_name}]({p_url})** is **{product.verified.max_width_label}** [VERIFIED].",
+                    reply=f"The verified media specifications for **[{p_name}]({p_url})** are: {'; '.join(parts)} [VERIFIED].",
                     product_cards=[card],
-                    source="catalog:single_attribute"
+                    source="catalog:single_attribute",
                 )
 
         # ── 3. Printing Technology & Liquid Inks ───────────────────────────
-        is_tech_q = any(w in msg_l for w in ["technology", "printing technology", "liquid ink", "liquid-ink", "cartridges", "ink cartridges", "thermal transfer", "dye sub"])
+        is_tech_q = any(w in msg_l for w in ["technology", "printing technology", "liquid ink", "liquid-ink", "cartridges", "ink cartridges", "thermal transfer", "dye sub", "ink type", "type of ink", "what ink", "inks used", "scanner type"])
         if is_tech_q:
             is_citizen = "citizen" in product.id
             if any(k in msg_l for k in ["liquid ink", "liquid-ink", "liquid cartridges", "use liquid"]):
@@ -318,8 +335,29 @@ class ProductSpecEngine:
                 reply = f"The **[{p_name}]({p_url})** uses **Dye sublimation thermal system with an overcoat** [VERIFIED]."
                 return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
 
+            # Epson & other brand verified ink technology
+            if "f500" in product.id or "f100" in product.id:
+                reply = (
+                    f"The **[{p_name}]({p_url})** uses genuine **Epson UltraChrome DS dye-sublimation ink** (4 colors: Cyan, Magenta, Yellow, Black) "
+                    f"with a continuous 140 ml refillable ink tank system, engineered for transfer printing onto hard substrates and polyester textiles [VERIFIED]."
+                )
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+            ink_tech = (
+                getattr(product.verified, "ink_technology", None)
+                or card.get("ink_technology")
+                or product.specifications_table.get("Technology")
+                or product.specifications_table.get("Printing Technology")
+                or product.specifications_table.get("Scanner Type")
+            )
+            if ink_tech:
+                is_sc = "scanner" in product.category or "ds-" in product.id or "expression-12000" in product.id
+                lbl = "scanner technology" if is_sc else "ink technology and printing system"
+                reply = f"The verified {lbl} for **[{p_name}]({p_url})** is **{ink_tech}** [VERIFIED]."
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
         # ── 4. Resolution & Modes ──────────────────────────────────────────
-        is_res = any(w in msg_l for w in ["resolution", "dpi", "print modes", "modes", "high-speed", "high-quality", "300x300", "300x600"])
+        is_res = any(w in msg_l for w in ["resolution", "dpi", "optical resolution", "print modes", "modes", "high-speed", "high-quality", "300x300", "300x600"])
         if is_res:
             if "citizen" in product.id:
                 if any(k in msg_l for k in ["mode mapping", "exact 300", "300x300", "dual mode"]):
@@ -328,6 +366,20 @@ class ProductSpecEngine:
                     reply = f"Yes, the **[{p_name}]({p_url})** provides both **High Speed** (300 × 300 dpi) and **High Quality** (300 × 600 dpi) printing modes."
                 else:
                     reply = f"The **[{p_name}]({p_url})** supports resolutions of **300 dpi** (High Speed mode) and **600 dpi** (High Quality mode)."
+                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+            res = (
+                getattr(product.verified, "resolution", None)
+                or card.get("resolution")
+                or card.get("dpi")
+                or product.specifications_table.get("Resolution")
+                or product.specifications_table.get("Printing Resolution")
+                or product.specifications_table.get("Optical Resolution")
+            )
+            if res:
+                is_sc = "scanner" in product.category or "ds-" in product.id or "expression-12000" in product.id
+                lbl = "optical scanning resolution" if is_sc else "printing resolution"
+                reply = f"The verified {lbl} for **[{p_name}]({p_url})** is **{res}** [VERIFIED]."
                 return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
 
         # ── 5. Finishing Options & Luster & Pattern ────────────────────────
@@ -362,9 +414,40 @@ class ProductSpecEngine:
                 reply = f"No, the **[{p_name}]({p_url})** does not feature ribbon-rewind technology."
                 return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
 
-        # ── 7. Media Capacity ──────────────────────────────────────────────
-        is_capacity = any(w in msg_l for w in ["capacity", "sheets per roll", "prints per roll", "roll capacity", "how many"])
+        # ── 7. Media & Ink Tank Capacity ───────────────────────────────────
+        is_ink_capacity = any(w in msg_l for w in ["ink capacity", "tank capacity", "ink tank", "tank size", "cartridge capacity", "bottle capacity", "how much ink", "ink volume", "tank volume"])
+        is_capacity = is_ink_capacity or any(w in msg_l for w in ["capacity", "sheets per roll", "prints per roll", "roll capacity", "how many"])
         if is_capacity:
+            if is_ink_capacity or "tank" in msg_l or "ink" in msg_l or "cartridge" in msg_l:
+                if "f500" in product.id or "f100" in product.id:
+                    reply = (
+                        f"The **[{p_name}]({p_url})** features an integrated refillable ink tank system with an ink tank capacity of **140 ml per color** "
+                        f"(Black, Cyan, Magenta, Yellow). It uses 140 ml genuine Epson T49N series ink refill bottles that can be replenished even while printing [VERIFIED]."
+                    )
+                    return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+                elif "citizen" in product.id:
+                    reply = (
+                        f"The **[{p_name}]({p_url})** is a roll-based dye-sublimation printer that does not use liquid ink tanks. "
+                        f"It utilizes thermal ribbon and paper roll media kits [VERIFIED]."
+                    )
+                    return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+                else:
+                    yield_cap = (
+                        getattr(product.verified, "cartridge_capacities", None)
+                        or card.get("yield_capacity")
+                        or card.get("consumable_volume")
+                        or card.get("cartridge_sizes")
+                        or product.specifications_table.get("Yield Capacity")
+                        or product.specifications_table.get("Consumable Volume")
+                        or product.specifications_table.get("Cartridge Sizes")
+                    )
+                    if yield_cap:
+                        reply = f"The verified consumable and yield capacity for **[{p_name}]({p_url})** is: **{yield_cap}** [VERIFIED]."
+                        return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+                    ink_tech = getattr(product.verified, "ink_technology", None) or card.get("ink_technology")
+                    if ink_tech and ("ml" in ink_tech.lower() or "tank" in ink_tech.lower() or "cartridge" in ink_tech.lower()):
+                        reply = f"The verified ink capacity and configuration for **[{p_name}]({p_url})** is: **{ink_tech}** [VERIFIED]."
+                        return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
             if "cx-02" in product.id:
                 if "4x6" in msg_l or "4×6" in msg_l:
                     reply = f"The **[{p_name}]({p_url})** produces **400 prints per roll** of 4×6-inch prints (800 prints per 2-roll box of CX2.4X6 media) [VERIFIED]."
@@ -454,9 +537,17 @@ class ProductSpecEngine:
             p_weight = getattr(product.verified, "weight", None) or card.get("weight")
             p_dims = getattr(product.verified, "dimensions", None) or card.get("dimensions")
             if p_weight or p_dims:
+                is_sc = "scanner" in product.category or "ds-" in product.id or "expression-12000" in product.id
+                w_lbl = "Scanner Weight" if is_sc else "Printer Weight"
+                if p_weight and not any(w in msg_l for w in ["dimension", "dimensions", "physical size", "footprint"]):
+                    reply = f"The verified {w_lbl.lower()} for **[{p_name}]({p_url})** is **{p_weight}** [VERIFIED]."
+                    return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+                if p_dims and not any(w in msg_l for w in ["weight", "heavy", "heaviness"]):
+                    reply = f"The verified dimensions (W × D × H) for **[{p_name}]({p_url})** are **{p_dims}** [VERIFIED]."
+                    return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
                 lines = [f"Verified dimensions and weight for the **[{p_name}]({p_url})**:"]
                 if p_weight:
-                    lines.append(f"• **Printer Weight:** {p_weight} [VERIFIED]")
+                    lines.append(f"• **{w_lbl}:** {p_weight} [VERIFIED]")
                 if p_dims:
                     lines.append(f"• **Dimensions (W × D × H):** {p_dims} [VERIFIED]")
                 reply = "\n".join(lines)
@@ -559,43 +650,65 @@ class ProductSpecEngine:
             speed_label = "Print Speed"
 
         speed = (
-            p_dict.get("speed")
+            p_dict.get("print_speed")
+            or p_dict.get("scan_speed")
+            or p_dict.get("speed")
+            or getattr(product.verified, "speed", None)
             or spec_table.get("Print Speed (maximum)")
             or spec_table.get("Print Speed")
             or spec_table.get("Scanning Speed")
-            or "High-speed professional performance"
+            or spec_table.get("Scan Speed")
         )
-        # Clean multi-line speeds
         if isinstance(speed, str):
             speed = re.sub(r"\s+", " ", speed).strip()
 
         size_supported = (
-            p_dict.get("width")
+            spec_table.get("Supported Media Sizes")
+            or (", ".join(product.supported_print_sizes) if product.supported_print_sizes else None)
+            or getattr(product.verified, "max_width_label", None)
+            or p_dict.get("width")
             or spec_table.get("Print Sizes")
-            or spec_table.get("Supported Media Sizes")
+            or spec_table.get("Scanning Range")
             or spec_table.get("ADF Maximum Document Size")
             or spec_table.get("Dimensions")
-            or ("A4 / Long-document scanning" if is_scanner else "Standard professional media")
         )
         if isinstance(size_supported, str):
             size_supported = re.sub(r"\s+", " ", size_supported).strip()
 
         resolution = (
-            spec_table.get("Resolution")
+            getattr(product.verified, "resolution", None)
+            or p_dict.get("dpi")
+            or p_dict.get("resolution")
+            or spec_table.get("Resolution")
             or spec_table.get("Printing Resolution")
             or spec_table.get("Optical Resolution")
-            or ("5760 × 1440 dpi" if "p700" in product.id or "p900" in product.id else ("2400 × 1200 dpi" if "t3100" in product.id or "t5100" in product.id or "t5400" in product.id else "300 × 600 dpi"))
+            or spec_table.get("DPI")
         )
         if isinstance(resolution, str):
             resolution = re.sub(r"(\d+)\s*dpi\s*(\d+)\s*dpi", r"\1 / \2 dpi", resolution, flags=re.IGNORECASE)
             resolution = re.sub(r"\s+", " ", resolution).strip()
 
         weight = (
-            p_dict.get("weight")
+            getattr(product.verified, "weight", None)
+            or p_dict.get("weight")
             or spec_table.get("Product weight")
             or spec_table.get("Product Weight")
             or spec_table.get("Weight")
-            or "Compact professional chassis"
+        )
+
+        dimensions = (
+            getattr(product.verified, "dimensions", None)
+            or p_dict.get("dimensions")
+            or spec_table.get("Dimensions")
+        )
+
+        capacity = (
+            getattr(product.verified, "cartridge_capacities", None)
+            or p_dict.get("yield_capacity")
+            or p_dict.get("consumable_volume")
+            or spec_table.get("Yield Capacity")
+            or spec_table.get("Consumable Volume")
+            or spec_table.get("Cartridge Sizes")
         )
 
         brochure_info = brochure_resolver.get_brochure(product.name) or brochure_resolver.get_brochure(product.id)
@@ -653,15 +766,37 @@ class ProductSpecEngine:
             for f in clean_features:
                 lines.append(f"• {f}")
 
-        lines.extend([
-            "",
-            "**Verified Technical Specifications:**",
-            f"• **Technology:** {tech}",
-            f"• **{speed_label}:** {speed}",
-            f"• **Supported Media Sizes:** {size_supported}",
-            f"• **Resolution:** {resolution}",
-            f"• **Weight / Build:** {weight}",
-        ])
+        specs_list = []
+        if tech:
+            specs_list.append(f"• **Technology:** {tech}")
+        if speed:
+            specs_list.append(f"• **{speed_label}:** {speed}")
+        if size_supported:
+            specs_list.append(f"• **Supported Media Sizes:** {size_supported}")
+        if resolution:
+            specs_list.append(f"• **Resolution:** {resolution}")
+        if weight:
+            specs_list.append(f"• **Weight:** {weight}")
+        if dimensions:
+            specs_list.append(f"• **Dimensions (W × D × H):** {dimensions}")
+        if capacity:
+            specs_list.append(f"• **Consumable / Yield Capacity:** {capacity}")
+        memory = spec_table.get("Memory") or p_dict.get("memory")
+        if memory:
+            specs_list.append(f"• **Memory:** {memory}")
+        adf = spec_table.get("ADF Capacity")
+        if adf:
+            specs_list.append(f"• **Document Feeder (ADF):** {adf}")
+        warranty = spec_table.get("Warranty") or p_dict.get("warranty")
+        if warranty:
+            specs_list.append(f"• **Warranty:** {warranty}")
+
+        if specs_list:
+            lines.extend([
+                "",
+                "**Verified Technical Specifications:**",
+                *specs_list,
+            ])
 
         if product.consumables:
             lines.append(f"• **Consumables:** Genuine high-capacity supplies available (see cards below)")

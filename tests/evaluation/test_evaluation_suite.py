@@ -89,17 +89,17 @@ class TestGroundedRecommendationEngine(unittest.TestCase):
 
     def test_04_hard_eligibility_contradiction_gate(self):
         """Test scanner requirement strictly excludes print-only plotters."""
-        t5100 = self.repo.get_by_id("epson-t5100")  # A0, Print-only (has_scanner = False)
+        t5700d = self.repo.get_by_id("epson-t5700d")  # A0, Print-only (has_scanner = False)
         t5400m = self.repo.get_by_id("epson-t5400m")  # A0, Integrated scanner (has_scanner = True)
 
         # Customer requires A0 + Scanner
         reqs = {"print_size": "A0", "scan_required": True}
-        res_t5100 = eligibility_engine.assess_product(t5100, reqs)
+        res_t5700d = eligibility_engine.assess_product(t5700d, reqs)
         res_t5400m = eligibility_engine.assess_product(t5400m, reqs)
 
-        # T5100 must FAIL eligibility
-        self.assertFalse(res_t5100.is_eligible)
-        self.assertIn("scan_required", res_t5100.failed)
+        # T5700D must FAIL eligibility
+        self.assertFalse(res_t5700d.is_eligible)
+        self.assertIn("scan_required", res_t5700d.failed)
 
         # T5400M must PASS eligibility
         self.assertTrue(res_t5400m.is_eligible)
@@ -113,9 +113,9 @@ class TestGroundedRecommendationEngine(unittest.TestCase):
         eligible = eligibility_engine.filter_candidates(candidates, reqs)
         ranked = product_ranker.rank_candidates(eligible, reqs)
 
-        # Epson T5100 should rank higher than T3100 (which is A1)
+        # Epson T5700D should rank higher than T3100 (which is A1)
         top_product = ranked[0][0]
-        self.assertEqual(top_product.id, "epson-t5100")
+        self.assertEqual(top_product.id, "epson-t5700d")
 
     def test_06_claim_and_numeric_validator(self):
         """Test validator intercepts hallucinated numbers and capabilities."""

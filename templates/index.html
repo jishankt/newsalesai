@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css?v=kepler_rebuild_20260914_0855">
+  <link rel="stylesheet" href="/static/css/style.css?v=kepler_clean_login_modal_20261003">
 </head>
 <body>
 
@@ -208,31 +208,70 @@
     <div class="customer-modal-container">
       <div class="customer-modal-header">
         <div class="customer-modal-title-box">
-          <div class="customer-modal-icon">👤</div>
-          <div>
-            <h3 id="customerModalTitle" style="margin: 0; font-size: 1.05rem; font-weight: 600;">Customer Login</h3>
-            <p id="customerModalSubtitle" style="margin: 2px 0 0 0; font-size: 0.74rem; color: var(--text-secondary);">Log in with your Name and Phone/Email to view past chats</p>
+          <div class="customer-modal-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </div>
+          <div class="customer-modal-header-text">
+            <h3 id="customerModalTitle">Customer Login</h3>
+            <p id="customerModalSubtitle">Sign in with your details to access past conversations & quotes</p>
           </div>
         </div>
-        <button type="button" class="customer-modal-close" id="customerModalCloseBtn">&times;</button>
+        <button type="button" class="customer-modal-close" id="customerModalCloseBtn" aria-label="Close modal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
       </div>
 
       <!-- State 1: Login Form (When Logged Out) -->
       <div class="customer-modal-body" id="customerLoginFormView">
         <div class="customer-login-notice">
-          💡 If you shared your details during a previous conversation, your <strong>Name</strong> is your username and your <strong>Phone Number or Email ID</strong> is your password.
+          <div class="notice-icon-wrap" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+          </div>
+          <div class="notice-text">
+            Previously chatted? Use your <span class="notice-badge">Name</span> as username and <span class="notice-badge">Phone or Email</span> as password.
+          </div>
         </div>
-        <form id="customerLoginForm">
-          <div class="form-group" style="margin-bottom: 12px;">
-            <label class="field-label" for="custUsernameInput">Customer Name (Username)</label>
-            <input type="text" id="custUsernameInput" class="input-field" placeholder="e.g. Tariq Al Mansoor" required autocomplete="name">
+
+        <form id="customerLoginForm" autocomplete="on">
+          <div class="form-group customer-input-group">
+            <label class="field-label" for="custUsernameInput">
+              <span>Customer Name (Username)</span>
+            </label>
+            <div class="input-with-icon">
+              <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+              <input type="text" id="custUsernameInput" class="input-field" placeholder="e.g. Tariq Al Mansoor" required autocomplete="name">
+            </div>
           </div>
-          <div class="form-group" style="margin-bottom: 16px;">
-            <label class="field-label" for="custPasswordInput">Phone Number or Email (Password)</label>
-            <input type="text" id="custPasswordInput" class="input-field" placeholder="e.g. +971 50 123 4567 or email@domain.com" required autocomplete="current-password">
+
+          <div class="form-group customer-input-group">
+            <label class="field-label" for="custPasswordInput">
+              <span>Phone Number or Email (Password)</span>
+            </label>
+            <div class="input-with-icon">
+              <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              <input type="text" id="custPasswordInput" class="input-field" placeholder="e.g. +971 50 123 4567 or email@domain.com" required autocomplete="current-password">
+            </div>
           </div>
+
           <div id="customerLoginError" class="customer-error-msg" style="display: none;"></div>
-          <button type="submit" class="btn-primary" id="customerSubmitLoginBtn" style="width: 100%; justify-content: center; padding: 10px; font-size: 0.9rem;">
+
+          <button type="submit" class="btn-primary customer-login-btn" id="customerSubmitLoginBtn">
             Log In & Load Previous Chats
           </button>
         </form>
@@ -242,18 +281,26 @@
       <div class="customer-modal-body" id="customerProfileView" style="display: none;">
         <div class="customer-profile-card">
           <div class="profile-info-row">
-            <div>
-              <div class="profile-name" id="loggedInCustomerName">Customer Name</div>
-              <div class="profile-meta" id="loggedInCustomerContact">+971 •••••••</div>
+            <div class="profile-avatar-wrap">
+              <div class="profile-avatar-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+              </div>
+              <div>
+                <div class="profile-name" id="loggedInCustomerName">Customer Name</div>
+                <div class="profile-meta" id="loggedInCustomerContact">+971 •••••••</div>
+              </div>
             </div>
-            <button type="button" class="btn-secondary" id="customerLogoutBtn" style="padding: 4px 10px; font-size: 0.75rem;">
+            <button type="button" class="btn-secondary customer-logout-btn" id="customerLogoutBtn">
               Log Out
             </button>
           </div>
         </div>
 
         <div class="past-chats-header">
-          <h4 style="margin: 0; font-size: 0.85rem; font-weight: 600;">Your Previous Conversations</h4>
+          <h4>Your Previous Conversations</h4>
           <span class="chats-count-badge" id="customerChatsCountBadge">0 sessions</span>
         </div>
 
@@ -265,7 +312,7 @@
   </div>
 
   <script src="/static/js/comparison_renderer.js?v=kepler_rebuild_20260915_1207"></script>
-  <script src="/static/js/app.js?v=kepler_rebuild_20260930_customer_auth"></script>
+  <script src="/static/js/app.js?v=kepler_tables_hybrid_20261001"></script>
 </body>
 </html>
 

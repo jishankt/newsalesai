@@ -60,7 +60,7 @@ def normalize_category(raw_text: str, current_category: Optional[str] = None) ->
 
     # 1. Citizen photo check (Citizen brand is exclusively direct dye-sub/thermal photo printers)
     if any(k in text_l for k in [
-        "citizen", "photo booth", "photobooth", "event photo", "event photos",
+        "citizen", "citizon", "citzen", "photo booth", "photobooth", "event photo", "event photos",
         "cz-01", "cx-02", "cy-02", "cx-02w"
     ]) or (
         any(k in text_l for k in ["dye sub", "dyesub", "dye-sub", "dye-sublimation"])
@@ -68,7 +68,8 @@ def normalize_category(raw_text: str, current_category: Optional[str] = None) ->
     ) or (
         # Bare "event" or "events" echoing the chip label — only when not already a different category
         bool(re.search(r"\bevents?\b", text_l))
-        and current_category not in ("office_printer", "photography_large_format", "technical_large_format", "dye_sublimation")
+        and current_category not in ("office_printer", "photography_large_format", "technical_large_format", "dye_sublimation", "scanners", "scanner")
+        and not bool(re.search(r"\b(?:scann?er(?:s|es)?|scanning|scan|plotter|copier|mfp)\b", text_l))
     ):
         if current_category in ("photography_large_format", "photo_printer", "photo"):
             return current_category
@@ -124,7 +125,7 @@ def normalize_category(raw_text: str, current_category: Optional[str] = None) ->
 
     scanner_negated = bool(
         re.search(r"\b(?:scanner|scan|scanning)\s+(?:is\s+)?(?:not\s+(?:needed|required|important|necessary)|no\s+need|unnecessary)\b", text_l)
-        or re.search(r"\b(?:do\s+not\s+need|don'?t\s+need|no\s+need\s+(?:for\s+)?|without|no|not)\b.*?\b(?:scanner|scanning|scan)\b", text_l)
+        or re.search(r"\b(?:do\s+not\s+need|don'?t\s+need|no\s+need\s+(?:for\s+)?|without)\b.*?\b(?:scanner|scanning|scan)\b", text_l)
         or any(neg in text_l for neg in [
             "no scanner", "without scanner", "not scanner", "don't need scanner",
             "dont need scanner", "print only", "printer only", "only print",
@@ -134,23 +135,30 @@ def normalize_category(raw_text: str, current_category: Optional[str] = None) ->
             "actually scan not needed", "actually no scanner", "scanner not critical"
         ])
     )
+    # Affirmative scanner request (e.g. "no, I need scanners" or "no ineed professional scanners") overrides negation
+    if bool(re.search(r"\b(?:i\s+(?:need|want|would\s+like)|looking\s+for|switch\s+to|show\s+me|ineed)\b.*?\b(?:scann?er|scanning)\b", text_l)):
+        scanner_negated = False
 
     if not scanner_negated and (has_scanner_model or (
-        bool(re.search(r"\b(?:scann?e?r?s?|photo\s+scann?e?r?s?|document\s+scann?e?r?s?|business\s+scann?e?r?s?|flatbed\s+scann?e?r?s?|sheetfed\s+scann?e?r?s?|portable\s+scann?e?r?s?|handheld\s+scann?e?r?s?|expression\s+scann?e?r?s?)\b", text_l))
+        bool(re.search(r"\b(?:scann?er(?:s|es)?|scann?r?s?|photo\s+scann?er(?:s|es)?|document\s+scann?er(?:s|es)?|business\s+scann?er(?:s|es)?|flatbed\s+scann?er(?:s|es)?|sheetfed\s+scann?er(?:s|es)?|portable\s+scann?er(?:s|es)?|handheld\s+scann?er(?:s|es)?|expression\s+scann?er(?:s|es)?|hybrid\s+scann?er(?:s|es)?)\b", text_l))
         and (not is_printer_with_scanner or is_explicit_scanner_intent)
         and not is_answering_printer_scanner
     ) or (
         current_category in ("scanners", "scanner") and any(k in text_l for k in [
-            "business", "document", "documents", "photo", "photos", "film", "slide", "both", "hybrid", "flatbed", "adf", "portable", "mobile"
+            "business", "document", "documents", "photo", "photos", "film", "slide", "both", "hybrid", "flatbed", "adf", "portable", "mobile", "professional"
         ]) and not bool(re.search(r"\b(?:printers?|printing|plotters?|copiers?|mfp)\b", text_l))
     ) or (
-        bool(re.search(r"\b(?:professional\s+scanners?)\b", text_l))
+        bool(re.search(r"\b(?:professional\s+scann?er(?:s|es)?)\b", text_l))
     )) and not is_answering_printer_scanner:
         return "scanners"
 
     # 4. Technical / CAD / Plotters (including common typos like 'plottaer')
     # Guard: do not match if CAD or technical is negated (e.g. 'not for CAD', 'printer but not for CAD')
     cad_negated = bool(re.search(r"\b(?:not\s+(?:for\s+)?(?:cad|technical|plotter|blueprint)|no\s+(?:cad|plotter)|don'?t\s+need\s+(?:cad|plotter))\b", text_l))
+    # Affirmative CAD/plotter request (e.g. "no, I need a CAD plotter" or "no I want plotter") overrides negation
+    if bool(re.search(r"\b(?:i\s+(?:need|want|would\s+like|prefer)|looking\s+for|switch\s+to|show\s+me|give\s+me|interested\s+in|ineed|iwant)\b.*?\b(?:cad|technical|plotter|blueprint)\b", text_l)):
+        cad_negated = False
+
     if not cad_negated and (any(k in text_l for k in [
         "cad", "cad drawing", "cad drawings",
         "blueprint", "blueprints",
@@ -164,12 +172,13 @@ def normalize_category(raw_text: str, current_category: Optional[str] = None) ->
     ]) or (
         # "technical" or "drawings" alone, only when not already set to another category
         bool(re.search(r"\b(?:technical|drawings?)\b", text_l))
-        and current_category not in ("office_printer", "photography_large_format", "citizen_photo", "dye_sublimation")
+        and current_category not in ("office_printer", "photography_large_format", "citizen_photo", "dye_sublimation", "scanners", "scanner")
+        and not bool(re.search(r"\b(?:scann?er(?:s|es)?|scanning|scan)\b", text_l))
     )):
         return "technical_large_format"
 
     # 5. Large-Format / Photo check
-    # Also matches single-word replies from the category question ("professional", "photographs")
+    # Also matches single-word replies from the category question ("photographs")
     if any(k in text_l for k in [
         "surecolor", "fine art", "fine-art",
         "canvas", "canvas printer", "canvas printing", "print on canvas",
@@ -182,15 +191,17 @@ def normalize_category(raw_text: str, current_category: Optional[str] = None) ->
         "sc-p", "p700", "p900", "p5300", "p6500", "p7500", "p8500", "p9500", "p20500",
         "professional photography & fine art",
     ]) or (
-        # "professional" alone (echoing chip wording) or bare "photograph(s)"
-        bool(re.search(r"\b(?:professional|photographs?|photography)\b", text_l))
-        and current_category not in ("office_printer", "technical_large_format", "citizen_photo", "dye_sublimation")
+        # Bare "photograph(s)" or "photography" alone (echoing chip wording)
+        bool(re.search(r"\b(?:photographs?|photography)\b", text_l))
+        and current_category not in ("office_printer", "technical_large_format", "citizen_photo", "dye_sublimation", "scanners", "scanner")
+        and not bool(re.search(r"\b(?:scann?er(?:s|es)?|scanning|scan|plotter|copier|mfp)\b", text_l))
     ) or (
         "photo" in text_l and any(k in text_l for k in ["desktop", "gallery", "portrait", "fine art", "commercial", "poster", "posters", "production"])
     ) or (
         bool(re.search(r"\b(?:large\s+format|wide\s+format)\b", text_l))
         and not bool(re.search(r"\b(?:a3|office|workforce|copier|cad|plotter)\b", text_l))
-        and current_category not in ("office_printer", "technical_large_format")
+        and current_category not in ("office_printer", "technical_large_format", "scanners", "scanner")
+        and not bool(re.search(r"\b(?:scann?er(?:s|es)?|scanning|scan)\b", text_l))
     ):
         return "photography_large_format"
 
@@ -210,7 +221,8 @@ def normalize_category(raw_text: str, current_category: Optional[str] = None) ->
     ) or (
         # Bare "documents" echoing the chip label
         bool(re.search(r"\bdocuments?\b", text_l))
-        and current_category not in ("technical_large_format", "photography_large_format", "citizen_photo", "dye_sublimation")
+        and current_category not in ("technical_large_format", "photography_large_format", "citizen_photo", "dye_sublimation", "scanners", "scanner")
+        and not bool(re.search(r"\b(?:scann?er(?:s|es)?|scanning|scan|plotter)\b", text_l))
     ) or (
         not current_category and bool(re.search(r"\b(?:a4|a3)\b", text_l)) and not bool(re.search(r"\ba3\+", text_l))
     ):

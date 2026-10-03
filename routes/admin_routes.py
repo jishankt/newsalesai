@@ -126,6 +126,7 @@ def admin_sessions():
             if search:
                 rows = conn.execute(
                     """SELECT session_id, customer_name,
+                              created_at, updated_at,
                               datetime(created_at,'unixepoch') as created,
                               datetime(updated_at,'unixepoch') as updated,
                               state_json, history_json
@@ -137,6 +138,7 @@ def admin_sessions():
             else:
                 rows = conn.execute(
                     """SELECT session_id, customer_name,
+                              created_at, updated_at,
                               datetime(created_at,'unixepoch') as created,
                               datetime(updated_at,'unixepoch') as updated,
                               state_json, history_json
@@ -153,11 +155,17 @@ def admin_sessions():
             except Exception:
                 state = {}
                 history = []
+            created_str = r["created"]
+            updated_str = r["updated"]
             sessions.append({
                 "session_id": r["session_id"],
-                "customer_name": r["customer_name"],
-                "created": r["created"],
-                "updated": r["updated"],
+                "customer_name": r["customer_name"] or state.get("customer_name") or state.get("contact_name") or (state.get("lead") or {}).get("name"),
+                "created": created_str,
+                "updated": updated_str,
+                "created_at": r["created_at"],
+                "updated_at": r["updated_at"],
+                "created_iso": (created_str.replace(" ", "T") + "Z") if created_str else None,
+                "updated_iso": (updated_str.replace(" ", "T") + "Z") if updated_str else None,
                 "category": state.get("category"),
                 "stage": state.get("stage"),
                 "turns": state.get("turns_count", len(history) // 2),
@@ -178,6 +186,7 @@ def admin_session_detail(session_id: str):
         with _conn() as conn:
             row = conn.execute(
                 """SELECT session_id, customer_name,
+                          created_at, updated_at,
                           datetime(created_at,'unixepoch') as created,
                           datetime(updated_at,'unixepoch') as updated,
                           state_json, history_json
@@ -189,19 +198,28 @@ def admin_session_detail(session_id: str):
                 return jsonify({"success": False, "error": "Session not found"}), 404
 
             leads = conn.execute(
-                "SELECT * FROM commercial_leads WHERE session_id = ? ORDER BY created_at",
+                """SELECT lead_id, session_id, created_at,
+                          datetime(created_at,'unixepoch') as created,
+                          customer_name, company, email, phone, product_interest, notes
+                   FROM commercial_leads WHERE session_id = ? ORDER BY created_at""",
                 (session_id,)
             ).fetchall()
 
         state = json.loads(row["state_json"])
         history = json.loads(row["history_json"])
+        created_str = row["created"]
+        updated_str = row["updated"]
 
         return jsonify({
             "success": True,
             "session_id": row["session_id"],
-            "customer_name": row["customer_name"],
-            "created": row["created"],
-            "updated": row["updated"],
+            "customer_name": row["customer_name"] or state.get("customer_name") or state.get("contact_name") or (state.get("lead") or {}).get("name"),
+            "created": created_str,
+            "updated": updated_str,
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+            "created_iso": (created_str.replace(" ", "T") + "Z") if created_str else None,
+            "updated_iso": (updated_str.replace(" ", "T") + "Z") if updated_str else None,
             "state": state,
             "history": history,
             "leads": [dict(l) for l in leads],
@@ -219,12 +237,29 @@ def admin_leads():
         with _conn() as conn:
             rows = conn.execute(
                 """SELECT lead_id, session_id,
+                          created_at,
                           datetime(created_at,'unixepoch') as created,
                           customer_name, company, email, phone, product_interest, notes
                    FROM commercial_leads ORDER BY created_at DESC LIMIT ?""",
                 (limit,)
             ).fetchall()
-        return jsonify({"success": True, "leads": [dict(r) for r in rows], "count": len(rows)})
+        leads_list = []
+        for r in rows:
+            c_str = r["created"]
+            leads_list.append({
+                "lead_id": r["lead_id"],
+                "session_id": r["session_id"],
+                "customer_name": r["customer_name"],
+                "company": r["company"],
+                "email": r["email"],
+                "phone": r["phone"],
+                "product_interest": r["product_interest"],
+                "notes": r["notes"],
+                "created": c_str,
+                "created_at": r["created_at"],
+                "created_iso": (c_str.replace(" ", "T") + "Z") if c_str else None,
+            })
+        return jsonify({"success": True, "leads": leads_list, "count": len(leads_list)})
     except Exception as e:
         logger.error(f"Leads error: {e}")
         return jsonify({"success": False, "error": str(e)}), 500

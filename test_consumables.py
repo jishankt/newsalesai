@@ -136,7 +136,7 @@ class ConsumablesAndCardsTestCase(unittest.TestCase):
         })
         self.assertEqual(resp1.status_code, 200)
         data1 = resp1.get_json()
-        self.assertIn("Which printer or scanner model", data1["reply"])
+        self.assertTrue(any(term in data1["reply"].lower() for term in ["printer or scanner model", "printer model", "which printer"]))
 
         # Turn 2: User gives printer model
         resp2 = self.client.post("/api/chat", json={

@@ -8,6 +8,7 @@ import re
 from pathlib import Path
 from typing import Dict, List, Optional
 from catalog.schema import NormalizedProduct, VerifiedSpecs, ProductSource
+from catalog.product_resolver import resolve_canonical_id
 
 logger = logging.getLogger("catalog:repository")
 
@@ -763,6 +764,7 @@ class CatalogRepository:
                         c_id = item.get("id")
                         if not c_id:
                             continue
+                        canon_c_id = resolve_canonical_id(c_id)
                         c_id_clean = re.sub(r"[\s\-_]+", "", c_id.lower()).replace("citizen", "").replace("epson", "").replace("sc", "").replace("wf", "")
                         consumables = item.get("consumables", [])
                         img = item.get("image_url")
@@ -770,11 +772,21 @@ class CatalogRepository:
                         disp_name = item.get("display_name")
 
                         matched = False
-                        for p in self.products_by_id.values():
+                        for p in list(self.products_by_id.values()):
                             p_id_clean = re.sub(r"[\s\-_]+", "", p.id.lower()).replace("citizen", "").replace("epson", "").replace("sc", "").replace("wf", "")
                             p_name_clean = re.sub(r"[\s\-_]+", "", p.name.lower()).replace("citizen", "").replace("epson", "").replace("sc", "").replace("wf", "")
-                            if p.id == c_id or p_id_clean == c_id_clean:
+                            p_canon = resolve_canonical_id(p.id)
+                            is_target = (
+                                p.id == c_id
+                                or (canon_c_id and p.id == canon_c_id)
+                                or (p_canon and p_canon in (c_id, canon_c_id))
+                                or p_id_clean == c_id_clean
+                            )
+                            if is_target:
                                 matched = True
+                                self.products_by_id[c_id] = p
+                                if canon_c_id:
+                                    self.products_by_id[canon_c_id] = p
                                 if consumables:
                                     existing_c = p.consumables or []
                                     p.consumables = list(dict.fromkeys(consumables + existing_c))
@@ -789,17 +801,83 @@ class CatalogRepository:
                                     p.verified.dimensions = item["dimensions"]
                                 if item.get("print_speed"):
                                     p.verified.speed = item["print_speed"]
+                                elif item.get("scan_speed"):
+                                    p.verified.speed = item["scan_speed"]
+                                if item.get("dpi"):
+                                    p.verified.resolution = item["dpi"]
+                                elif item.get("optical_resolution"):
+                                    p.verified.resolution = item["optical_resolution"]
                                 if item.get("supported_print_sizes"):
                                     p.supported_print_sizes = list(item["supported_print_sizes"])
                                     p.verified.supported_print_sizes = list(item["supported_print_sizes"])
+                                elif item.get("scanning_range"):
+                                    p.supported_print_sizes = [item["scanning_range"]]
+                                    p.verified.supported_print_sizes = [item["scanning_range"]]
+                                if item.get("max_width_inches"):
+                                    p.verified.max_width_label = f"{item['max_width_inches']} inches"
                                 if item.get("scanner_integrated") is not None:
                                     p.verified.has_scanner = bool(item.get("scanner_integrated"))
+                                if item.get("colour_specification"):
+                                    p.verified.ink_technology = item["colour_specification"]
+                                elif item.get("scanner_type"):
+                                    p.verified.ink_technology = item["scanner_type"]
+                                if item.get("yield_capacity") or item.get("consumable_volume") or item.get("cartridge_sizes"):
+                                    p.verified.cartridge_capacities = item.get("yield_capacity") or item.get("consumable_volume") or item.get("cartridge_sizes")
+                                if item.get("pattern_and_finishing"):
+                                    p.verified.media_handling = item["pattern_and_finishing"]
+                                if item.get("warranty"):
+                                    p.verified.warranty = item["warranty"]
+                                # Populate specifications_table directly
+                                p.specifications_table.setdefault("Print Speed", item.get("print_speed") or item.get("scan_speed"))
+                                p.specifications_table.setdefault("Scanning Speed", item.get("scan_speed"))
+                                p.specifications_table.setdefault("Resolution", item.get("dpi") or item.get("optical_resolution"))
+                                p.specifications_table.setdefault("Printing Resolution", item.get("dpi"))
+                                p.specifications_table.setdefault("Optical Resolution", item.get("optical_resolution") or item.get("dpi"))
+                                p.specifications_table.setdefault("Product Weight", item.get("weight"))
+                                p.specifications_table.setdefault("Weight", item.get("weight"))
+                                p.specifications_table.setdefault("Dimensions", item.get("dimensions"))
+                                if item.get("supported_print_sizes"):
+                                    p.specifications_table.setdefault("Supported Media Sizes", ", ".join(item["supported_print_sizes"]))
+                                    p.specifications_table.setdefault("Print Sizes", ", ".join(item["supported_print_sizes"]))
+                                elif item.get("scanning_range"):
+                                    p.specifications_table.setdefault("Supported Media Sizes", item["scanning_range"])
+                                    p.specifications_table.setdefault("Scanning Range", item["scanning_range"])
+                                if item.get("colour_specification"):
+                                    p.specifications_table.setdefault("Printing Technology", item["colour_specification"])
+                                    p.specifications_table.setdefault("Technology", item["colour_specification"])
+                                elif item.get("scanner_type"):
+                                    p.specifications_table.setdefault("Technology", item["scanner_type"])
+                                    p.specifications_table.setdefault("Scanner Type", item["scanner_type"])
+                                if item.get("cartridge_sizes"):
+                                    p.specifications_table.setdefault("Cartridge Sizes", item["cartridge_sizes"])
+                                if item.get("consumable_volume"):
+                                    p.specifications_table.setdefault("Consumable Volume", item["consumable_volume"])
+                                if item.get("yield_capacity"):
+                                    p.specifications_table.setdefault("Yield Capacity", item["yield_capacity"])
+                                if item.get("memory"):
+                                    p.specifications_table.setdefault("Memory", item["memory"])
+                                if item.get("warranty"):
+                                    p.specifications_table.setdefault("Warranty", item["warranty"])
+                                if item.get("adf_capacity"):
+                                    p.specifications_table.setdefault("ADF Capacity", item["adf_capacity"])
 
                         if not matched:
                             # Index item into catalog
                             brand_val = item.get("brand", "Epson")
                             cat_val = item.get("main_category", "office_printer")
                             p_sizes = item.get("supported_print_sizes", [])
+                            spec_tbl = {
+                                "Print Speed": item.get("print_speed") or item.get("scan_speed"),
+                                "Resolution": item.get("dpi") or item.get("optical_resolution"),
+                                "Weight": item.get("weight"),
+                                "Dimensions": item.get("dimensions"),
+                                "Supported Media Sizes": ", ".join(p_sizes) if p_sizes else item.get("scanning_range"),
+                                "Technology": item.get("colour_specification") or item.get("scanner_type"),
+                                "Yield Capacity": item.get("yield_capacity") or item.get("consumable_volume"),
+                                "Memory": item.get("memory"),
+                                "Warranty": item.get("warranty"),
+                            }
+                            spec_tbl = {k: str(v) for k, v in spec_tbl.items() if v}
                             norm_cat_item = NormalizedProduct(
                                 id=c_id,
                                 canonical_id=c_id,
@@ -816,13 +894,19 @@ class CatalogRepository:
                                     max_width_label=f"{item.get('max_width_inches')} inches" if item.get("max_width_inches") else None,
                                     weight=item.get("weight"),
                                     dimensions=item.get("dimensions"),
-                                    speed=item.get("print_speed"),
+                                    speed=item.get("print_speed") or item.get("scan_speed"),
+                                    resolution=item.get("dpi") or item.get("optical_resolution"),
                                     has_scanner=bool(item.get("scanner_integrated")),
+                                    ink_technology=item.get("colour_specification") or item.get("scanner_type"),
+                                    cartridge_capacities=item.get("yield_capacity") or item.get("consumable_volume") or item.get("cartridge_sizes"),
+                                    media_handling=item.get("pattern_and_finishing"),
+                                    warranty=item.get("warranty"),
                                 ),
                                 source=ProductSource(website_url=web_url),
                                 image_url=img,
                                 consumables=list(consumables),
                                 supported_print_sizes=list(p_sizes),
+                                specifications_table=spec_tbl,
                             )
                             self.products_by_id[c_id] = norm_cat_item
             except Exception as e:

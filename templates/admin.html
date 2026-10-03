@@ -170,14 +170,21 @@
       color: var(--muted); text-transform: uppercase; letter-spacing: .06em;
       border-bottom: 1px solid var(--border); white-space: nowrap;
     }
-    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; cursor: pointer; }
+    thead th.sortable { cursor: pointer; user-select: none; transition: all .15s; }
+    thead th.sortable:hover { color: var(--accent); background: rgba(59,130,246,.05); }
+    thead th.sortable.active-sort { color: var(--accent); }
+    .sort-icon { display: inline-block; margin-left: 4px; font-size: 11px; opacity: 0.65; }
+    .active-sort .sort-icon { opacity: 1; }
+
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .12s; cursor: pointer; }
     tbody tr:last-child { border-bottom: none; }
     tbody tr:hover { background: var(--surface2); }
-    td { padding: 12px 16px; vertical-align: middle; }
+    td { padding: 13px 16px; vertical-align: middle; }
 
     .badge {
-      display: inline-flex; align-items: center;
+      display: inline-flex; align-items: center; gap: 4px;
       padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600;
+      white-space: nowrap;
     }
     .badge-blue   { background: rgba(59,130,246,.15); color: #60a5fa; }
     .badge-green  { background: rgba(16,185,129,.15); color: #34d399; }
@@ -185,6 +192,31 @@
     .badge-purple { background: rgba(99,102,241,.15); color: #a5b4fc; }
     .badge-gray   { background: rgba(100,116,139,.15); color: var(--muted); }
     .badge-pink   { background: rgba(236,72,153,.15); color: #f472b6; }
+    .badge-cyan   { background: rgba(6,182,212,.15); color: #22d3ee; }
+    .badge-orange { background: rgba(249,115,22,.15); color: #fb923c; }
+    .badge-indigo { background: rgba(99,102,241,.15); color: #818cf8; }
+    .badge-turns  { background: rgba(255,255,255,.05); border: 1px solid var(--border); color: var(--text); font-family: monospace; font-size: 11px; border-radius: 6px; padding: 2px 8px; }
+
+    /* Time formatting cell */
+    .time-cell { display: flex; flex-direction: column; gap: 2px; }
+    .time-primary { font-size: 12px; font-weight: 500; color: var(--text); }
+    .time-secondary { font-size: 11px; color: var(--muted); }
+
+    /* Quick Filter Pills */
+    .filter-pills { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .filter-pill {
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--muted); padding: 5px 12px; border-radius: 20px;
+      font-size: 12px; font-weight: 500; cursor: pointer; transition: all .15s;
+    }
+    .filter-pill:hover { color: var(--text); border-color: var(--muted); }
+    .filter-pill.active { background: rgba(59,130,246,.15); color: var(--accent); border-color: var(--accent); }
+
+    /* Copy Button */
+    .btn-copy {
+      opacity: 0.4; transition: opacity .15s; cursor: pointer; border: none; background: none; color: inherit; padding: 2px 4px;
+    }
+    .btn-copy:hover { opacity: 1; color: var(--accent); }
 
     /* ── Chat History Modal ── */
     .overlay {
@@ -246,7 +278,11 @@
     .msg-bubble {
       max-width: 75%; padding: 10px 14px; border-radius: 12px;
       font-size: 13px; line-height: 1.55;
+      word-break: break-word;
     }
+    .msg-bubble strong { font-weight: 600; color: #f8fafc; }
+    .msg-bubble a { color: #60a5fa; text-decoration: underline; word-break: break-all; }
+    .msg-bubble a:hover { color: #93c5fd; }
     .msg-row.bot  .msg-bubble { background: var(--surface2); border-radius: 4px 12px 12px 12px; }
     .msg-row.user .msg-bubble { background: rgba(59,130,246,.18); border-radius: 12px 4px 12px 12px; }
     .msg-time { font-size: 10px; color: var(--muted); margin-top: 4px; }
@@ -670,12 +706,43 @@
     <!-- ── SESSIONS PANEL ── -->
     <div class="panel" id="panel-sessions">
       <div class="table-wrap">
-        <div class="table-toolbar">
-          <div class="search-box">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            <input id="session-search" type="text" placeholder="Search session ID or name…" oninput="debounceSearch()">
+        <div class="table-toolbar" style="flex-wrap:wrap;gap:12px;">
+          <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:280px;">
+            <div class="search-box" style="flex:1;">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input id="session-search" type="text" placeholder="Search session ID, customer, or category…" oninput="debounceSearch()">
+            </div>
+            <select id="session-cat-filter" onchange="onCategoryFilterChange(this.value)" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:12px;cursor:pointer;outline:none;">
+              <option value="">All Categories</option>
+              <option value="technical">Technical CAD</option>
+              <option value="office">Office & Business</option>
+              <option value="photo">Photography</option>
+              <option value="citizen">Event Photos (Citizen)</option>
+              <option value="scanner">Scanners</option>
+              <option value="dye_sublimation">Dye-Sublimation</option>
+            </select>
           </div>
-          <button class="btn btn-primary" onclick="loadSessions()">Reload</button>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="filter-pills">
+              <button class="filter-pill active" onclick="setSessionQuickFilter('all', this)">All</button>
+              <button class="filter-pill" onclick="setSessionQuickFilter('today', this)">Today</button>
+              <button class="filter-pill" onclick="setSessionQuickFilter('active', this)">Active (≥2)</button>
+              <button class="filter-pill" onclick="setSessionQuickFilter('leads', this)">With Leads</button>
+            </div>
+            <button class="btn btn-primary" onclick="loadSessions()">Reload</button>
+          </div>
+        </div>
+        <div style="padding:8px 18px;background:rgba(255,255,255,0.02);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--muted);flex-wrap:wrap;gap:8px;">
+          <div id="session-stats-bar">Loading session stats…</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="display:inline-flex;align-items:center;gap:4px;color:var(--text);font-weight:500;">
+              🕒 Standard Local Time
+            </span>
+            <span style="opacity:0.4;">·</span>
+            <span title="Kepler Tech LLC operates in Gulf Standard Time (GST = UTC+4)" style="color:var(--muted);cursor:help;">
+              Kepler HQ: GST (UTC+4)
+            </span>
+          </div>
         </div>
         <div id="sessions-table-wrap">
           <div class="loader"><div class="spinner"></div> Loading…</div>
@@ -906,20 +973,336 @@
 <script>
   const CAT_LABELS = {
     technical_large_format:   'Technical CAD',
+    technical_cad:            'Technical CAD',
     office_printer:           'Office & Business',
+    office_enterprise:        'Office Enterprise',
     photography_large_format: 'Photography',
+    photo_fine_art:           'Photography & Fine Art',
     citizen_photo:            'Event Photos (Citizen)',
+    photo_booth:              'Photo Booth',
     dye_sublimation:          'Dye-Sublimation',
-    unknown:                  'Unknown',
+    scanners:                 'Document Scanners',
+    scanner:                  'Document Scanners',
+    consumable:               'Consumables & Inks',
+    'Ink Cartridge':          'Ink Cartridges',
+    'Media & Paper':          'Media & Paper',
+    software:                 'Software & RIP',
+    unknown:                  'General / Inquiring',
   };
+
   const CAT_COLORS = {
     technical_large_format:   '#3b82f6',
+    technical_cad:            '#3b82f6',
     office_printer:           '#10b981',
+    office_enterprise:        '#10b981',
     photography_large_format: '#6366f1',
+    photo_fine_art:           '#8b5cf6',
     citizen_photo:            '#f59e0b',
+    photo_booth:              '#f59e0b',
     dye_sublimation:          '#ec4899',
+    scanners:                 '#06b6d4',
+    scanner:                  '#06b6d4',
+    consumable:               '#f97316',
+    'Ink Cartridge':          '#f97316',
+    'Media & Paper':          '#fb923c',
+    software:                 '#818cf8',
     unknown:                  '#64748b',
   };
+
+  const CAT_BADGES = {
+    technical_large_format:   'badge-blue',
+    technical_cad:            'badge-blue',
+    office_printer:           'badge-green',
+    office_enterprise:        'badge-green',
+    photography_large_format: 'badge-purple',
+    photo_fine_art:           'badge-purple',
+    citizen_photo:            'badge-amber',
+    photo_booth:              'badge-amber',
+    dye_sublimation:          'badge-pink',
+    scanners:                 'badge-cyan',
+    scanner:                  'badge-cyan',
+    consumable:               'badge-orange',
+    'Ink Cartridge':          'badge-orange',
+    'Media & Paper':          'badge-orange',
+    software:                 'badge-indigo',
+    unknown:                  'badge-gray',
+  };
+
+  const STAGE_CONFIG = {
+    qualifying:   { label: 'Qualifying',   cls: 'badge-blue' },
+    recommending: { label: 'Recommending', cls: 'badge-green' },
+    comparing:    { label: 'Comparing',    cls: 'badge-purple' },
+    closing:      { label: 'Closing/Quote',cls: 'badge-amber' },
+    handover:     { label: 'Live Handover',cls: 'badge-pink' },
+    open:         { label: 'Active',       cls: 'badge-gray' },
+  };
+
+  /* ── Standard Time Formatting Helper ── */
+  function formatStandardDateTime(tsOrIso, opts = {}) {
+    if (!tsOrIso) return '—';
+    let date;
+    if (typeof tsOrIso === 'number') {
+      date = new Date(tsOrIso > 1e11 ? tsOrIso : tsOrIso * 1000);
+    } else if (typeof tsOrIso === 'string') {
+      const clean = tsOrIso.trim();
+      const s = clean.includes('T') || clean.endsWith('Z') ? clean : clean.replace(' ', 'T') + 'Z';
+      date = new Date(s);
+    } else {
+      date = new Date(tsOrIso);
+    }
+
+    if (isNaN(date.getTime())) return String(tsOrIso);
+
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const isYesterday = date.toDateString() === yesterday.toDateString();
+
+    const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+
+    let datePrefix = '';
+    if (isToday) {
+      datePrefix = 'Today';
+    } else if (isYesterday) {
+      datePrefix = 'Yesterday';
+    } else {
+      datePrefix = date.toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    // Relative elapsed time
+    const diffSec = Math.max(0, Math.floor((now.getTime() - date.getTime()) / 1000));
+    let rel = '';
+    if (diffSec < 60) rel = 'just now';
+    else if (diffSec < 3600) rel = `${Math.floor(diffSec / 60)}m ago`;
+    else if (diffSec < 86400) rel = `${Math.floor(diffSec / 3600)}h ago`;
+    else rel = `${Math.floor(diffSec / 86400)}d ago`;
+
+    // Tooltip with exact Local & Dubai (GST UTC+4) times
+    const fullLocal = date.toLocaleString([], {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: true
+    });
+    const dubaiTime = date.toLocaleTimeString('en-US', {
+      timeZone: 'Asia/Dubai', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+    });
+
+    const tooltip = `Local Time: ${fullLocal}\nDubai (GST UTC+4): ${dubaiTime}\nStatus: ${rel}`;
+
+    if (opts.inline) {
+      return `<span title="${tooltip}" style="cursor:help;">${datePrefix}, ${timeStr} <span style="color:var(--muted);font-size:11px;">(${rel})</span></span>`;
+    }
+
+    return `
+      <div class="time-cell" title="${tooltip}" style="cursor:help;">
+        <div class="time-primary">
+          <span style="${isToday ? 'color:var(--accent);font-weight:600;' : ''}">${datePrefix}</span>, ${timeStr}
+        </div>
+        <div class="time-secondary">⏱ ${rel}</div>
+      </div>
+    `;
+  }
+
+  function showToast(msg) {
+    let t = document.getElementById('admin-toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'admin-toast';
+      t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#1e293b;color:#f8fafc;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:500;box-shadow:0 10px 25px rgba(0,0,0,0.5);border:1px solid #334155;z-index:9999;transition:all .2s ease;opacity:0;transform:translateY(10px);pointer-events:none;';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.opacity = '1';
+    t.style.transform = 'translateY(0)';
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => {
+      t.style.opacity = '0';
+      t.style.transform = 'translateY(10px)';
+    }, 2200);
+  }
+
+  function copySessionId(e, sid) {
+    e.stopPropagation();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(sid).then(() => {
+        showToast('Session ID copied to clipboard');
+      }).catch(() => {
+        prompt('Session ID:', sid);
+      });
+    } else {
+      prompt('Session ID:', sid);
+    }
+  }
+
+  let allSessions = [];
+  let currentSort = { column: 'updated', dir: 'desc' };
+  let currentQuickFilter = 'all';
+  let currentCategoryFilter = '';
+
+  function setSessionQuickFilter(filter, btn) {
+    currentQuickFilter = filter;
+    document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    applySessionFilters();
+  }
+
+  function onCategoryFilterChange(val) {
+    currentCategoryFilter = val;
+    applySessionFilters();
+  }
+
+  function sortSessions(column) {
+    if (currentSort.column === column) {
+      currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+      currentSort.column = column;
+      currentSort.dir = (column === 'turns' || column === 'updated') ? 'desc' : 'asc';
+    }
+    applySessionFilters();
+  }
+
+  function applySessionFilters() {
+    const search = (document.getElementById('session-search').value || '').trim().toLowerCase();
+    let list = [...allSessions];
+
+    // Text search filter (Session ID, Customer name, category, stage)
+    if (search) {
+      list = list.filter(s => {
+        const sid = (s.session_id || '').toLowerCase();
+        const cname = (s.customer_name || '').toLowerCase();
+        const cat = (s.category || '').toLowerCase();
+        const stg = (s.stage || '').toLowerCase();
+        return sid.includes(search) || cname.includes(search) || cat.includes(search) || stg.includes(search);
+      });
+    }
+
+    // Quick filter
+    if (currentQuickFilter === 'today') {
+      const todayStr = new Date().toDateString();
+      list = list.filter(s => {
+        const d = s.updated_at ? new Date(s.updated_at * 1000) : (s.updated ? new Date(s.updated.replace(' ', 'T') + 'Z') : null);
+        return d && d.toDateString() === todayStr;
+      });
+    } else if (currentQuickFilter === 'active') {
+      list = list.filter(s => (s.turns || 0) >= 2);
+    } else if (currentQuickFilter === 'leads') {
+      list = list.filter(s => (s.customer_name && s.customer_name !== 'Anonymous') || (s.stage === 'closing' || s.stage === 'handover'));
+    }
+
+    // Category filter
+    if (currentCategoryFilter) {
+      list = list.filter(s => {
+        const cat = (s.category || '').toLowerCase();
+        return cat.includes(currentCategoryFilter.toLowerCase());
+      });
+    }
+
+    // Sorting
+    list.sort((a, b) => {
+      let va = 0, vb = 0;
+      if (currentSort.column === 'updated') {
+        va = a.updated_at || (a.updated ? new Date(a.updated.replace(' ', 'T') + 'Z').getTime() : 0);
+        vb = b.updated_at || (b.updated ? new Date(b.updated.replace(' ', 'T') + 'Z').getTime() : 0);
+      } else if (currentSort.column === 'turns') {
+        va = a.turns || 0;
+        vb = b.turns || 0;
+      } else if (currentSort.column === 'session_id') {
+        va = a.session_id || '';
+        vb = b.session_id || '';
+      } else if (currentSort.column === 'customer') {
+        va = (a.customer_name || 'Anonymous').toLowerCase();
+        vb = (b.customer_name || 'Anonymous').toLowerCase();
+      } else if (currentSort.column === 'category') {
+        va = (CAT_LABELS[a.category] || a.category || '').toLowerCase();
+        vb = (CAT_LABELS[b.category] || b.category || '').toLowerCase();
+      } else if (currentSort.column === 'stage') {
+        va = (a.stage || '').toLowerCase();
+        vb = (b.stage || '').toLowerCase();
+      }
+      if (va < vb) return currentSort.dir === 'asc' ? -1 : 1;
+      if (va > vb) return currentSort.dir === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    renderSessionRows(list);
+  }
+
+  function renderSessionRows(list) {
+    const statsEl = document.getElementById('session-stats-bar');
+    if (statsEl) {
+      statsEl.innerHTML = `Showing <strong>${list.length}</strong> of <strong>${allSessions.length}</strong> sessions · Arranged by <strong>${currentSort.column.replace('_',' ')}</strong> (${currentSort.dir.toUpperCase()})`;
+    }
+
+    if (!list.length) {
+      document.getElementById('sessions-table-wrap').innerHTML = '<div class="empty">No sessions match current filter criteria</div>';
+      return;
+    }
+
+    const getSortIcon = (col) => {
+      if (currentSort.column !== col) return '<span class="sort-icon">↕</span>';
+      return `<span class="sort-icon">${currentSort.dir === 'asc' ? '▲' : '▼'}</span>`;
+    };
+
+    const rows = list.map(s => {
+      const cat = s.category || 'unknown';
+      const catLabel = CAT_LABELS[cat] || (cat ? cat.replace(/_/g, ' ').replace(/\b\w/g, c=>c.toUpperCase()) : 'General');
+      const badgeCls = CAT_BADGES[cat] || 'badge-gray';
+      const stageInfo = STAGE_CONFIG[s.stage] || { label: (s.stage || 'Active').replace(/_/g, ' ').replace(/\b\w/g, c=>c.toUpperCase()), cls: 'badge-gray' };
+      const timeHtml = formatStandardDateTime(s.updated_at || s.updated_iso || s.updated);
+
+      const custName = s.customer_name && s.customer_name !== 'Anonymous'
+        ? `<span style="font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px;">👤 ${escapeHtml(s.customer_name)}</span>`
+        : `<span style="color:var(--muted);display:flex;align-items:center;gap:6px;">👤 <span style="opacity:0.8;">Guest Visitor</span></span>`;
+
+      const sidDisplay = s.session_id.length > 22
+        ? `${s.session_id.slice(0, 10)}…${s.session_id.slice(-8)}`
+        : s.session_id;
+
+      return `<tr onclick="openSession('${escapeHtml(s.session_id)}')">
+        <td style="width:22%;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+            <span style="font-family:monospace;font-size:12px;color:var(--text);letter-spacing:0.02em;" title="${escapeHtml(s.session_id)}">
+              ${escapeHtml(sidDisplay)}
+            </span>
+            <button class="btn-copy" onclick="copySessionId(event, '${escapeHtml(s.session_id)}')" title="Copy full session ID">📋</button>
+          </div>
+        </td>
+        <td style="width:18%;">${custName}</td>
+        <td style="width:20%;"><span class="badge ${badgeCls}">● ${escapeHtml(catLabel)}</span></td>
+        <td style="width:14%;"><span class="badge ${stageInfo.cls}">${escapeHtml(stageInfo.label)}</span></td>
+        <td style="width:9%;text-align:center;"><span class="badge badge-turns">${s.turns || 0}</span></td>
+        <td style="width:17%;">${timeHtml}</td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('sessions-table-wrap').innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th class="sortable ${currentSort.column === 'session_id' ? 'active-sort' : ''}" style="width:22%;" onclick="sortSessions('session_id')">
+              Session ID ${getSortIcon('session_id')}
+            </th>
+            <th class="sortable ${currentSort.column === 'customer' ? 'active-sort' : ''}" style="width:18%;" onclick="sortSessions('customer')">
+              Customer ${getSortIcon('customer')}
+            </th>
+            <th class="sortable ${currentSort.column === 'category' ? 'active-sort' : ''}" style="width:20%;" onclick="sortSessions('category')">
+              Category ${getSortIcon('category')}
+            </th>
+            <th class="sortable ${currentSort.column === 'stage' ? 'active-sort' : ''}" style="width:14%;" onclick="sortSessions('stage')">
+              Stage ${getSortIcon('stage')}
+            </th>
+            <th class="sortable ${currentSort.column === 'turns' ? 'active-sort' : ''}" style="width:9%;text-align:center;" onclick="sortSessions('turns')">
+              Turns ${getSortIcon('turns')}
+            </th>
+            <th class="sortable ${currentSort.column === 'updated' ? 'active-sort' : ''}" style="width:17%;" onclick="sortSessions('updated')">
+              Last Active ${getSortIcon('updated')}
+            </th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
 
   let searchTimer = null;
   let currentPanel = 'overview';
@@ -933,8 +1316,8 @@
     currentPanel = name;
     const titles = { overview: 'Overview', sessions: 'Chat Sessions', leads: 'Leads', livedesk: 'Live Sales Desk', team: 'Sales Team & Advisors' };
     document.getElementById('page-title').textContent = titles[name] || name;
-    if (name === 'sessions' && document.getElementById('sessions-table-wrap').innerHTML.includes('Loading')) loadSessions();
-    if (name === 'leads' && document.getElementById('leads-table-wrap').innerHTML.includes('Loading')) loadLeads();
+    if (name === 'sessions') loadSessions();
+    if (name === 'leads') loadLeads();
     if (name === 'livedesk') loadLiveDeskQueue();
     if (name === 'team') loadTeam();
   }
@@ -995,44 +1378,21 @@
   async function loadSessions() {
     const search = document.getElementById('session-search').value.trim();
     document.getElementById('sessions-table-wrap').innerHTML = '<div class="loader"><div class="spinner"></div> Loading…</div>';
-    const url = `/api/admin/sessions?limit=100${search ? '&search=' + encodeURIComponent(search) : ''}`;
-    const resp = await fetch(url);
-    const data = await resp.json();
-    if (!data.success) { document.getElementById('sessions-table-wrap').innerHTML = '<div class="empty">Error loading sessions</div>'; return; }
-
-    if (!data.sessions.length) { document.getElementById('sessions-table-wrap').innerHTML = '<div class="empty">No sessions found</div>'; return; }
-
-    const rows = data.sessions.map(s => {
-      const cat = s.category || 'unknown';
-      const catLabel = CAT_LABELS[cat] || cat;
-      const catCol = CAT_COLORS[cat] || '#64748b';
-      const badgeCls = { technical_large_format:'badge-blue', office_printer:'badge-green', photography_large_format:'badge-purple', citizen_photo:'badge-amber', dye_sublimation:'badge-pink', unknown:'badge-gray' }[cat] || 'badge-gray';
-      const stage = s.stage || '—';
-      return `<tr onclick="openSession('${s.session_id}')">
-        <td style="font-family:monospace;font-size:12px;color:var(--muted)">${s.session_id.slice(0,20)}…</td>
-        <td>${s.customer_name || '<span style="color:var(--muted)">Anonymous</span>'}</td>
-        <td><span class="badge ${badgeCls}">${catLabel}</span></td>
-        <td><span class="badge badge-gray">${stage}</span></td>
-        <td style="color:var(--muted)">${s.turns || 0}</td>
-        <td style="color:var(--muted);font-size:12px">${s.updated || '—'}</td>
-      </tr>`;
-    }).join('');
-
-    document.getElementById('sessions-table-wrap').innerHTML = `
-      <table>
-        <thead>
-          <tr>
-            <th>Session ID</th><th>Customer</th><th>Category</th>
-            <th>Stage</th><th>Turns</th><th>Last Active</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>`;
+    const url = `/api/admin/sessions?limit=150${search ? '&search=' + encodeURIComponent(search) : ''}`;
+    try {
+      const resp = await fetch(url);
+      const data = await resp.json();
+      if (!data.success) { document.getElementById('sessions-table-wrap').innerHTML = '<div class="empty">Error loading sessions</div>'; return; }
+      allSessions = data.sessions || [];
+      applySessionFilters();
+    } catch(err) {
+      document.getElementById('sessions-table-wrap').innerHTML = `<div class="empty">Network error: ${escapeHtml(err.message)}</div>`;
+    }
   }
 
   function debounceSearch() {
     clearTimeout(searchTimer);
-    searchTimer = setTimeout(loadSessions, 400);
+    searchTimer = setTimeout(applySessionFilters, 300);
   }
 
   /* ── Leads ── */
@@ -1045,13 +1405,13 @@
     }
     const rows = data.leads.map(l => `
       <tr>
-        <td>${l.lead_id}</td>
-        <td>${l.customer_name || '—'}</td>
-        <td>${l.company || '—'}</td>
-        <td>${l.email || '—'}</td>
-        <td>${l.phone || '—'}</td>
-        <td>${l.product_interest || '—'}</td>
-        <td style="color:var(--muted);font-size:12px">${l.created || '—'}</td>
+        <td style="font-family:monospace;font-size:12px;color:var(--muted)">#${l.lead_id}</td>
+        <td><strong>${escapeHtml(l.customer_name || '—')}</strong></td>
+        <td>${escapeHtml(l.company || '—')}</td>
+        <td><a href="mailto:${escapeHtml(l.email)}" style="color:var(--accent);text-decoration:none;">${escapeHtml(l.email || '—')}</a></td>
+        <td><a href="tel:${escapeHtml(l.phone)}" style="color:var(--text);text-decoration:none;">${escapeHtml(l.phone || '—')}</a></td>
+        <td><span class="badge badge-blue">${escapeHtml(l.product_interest || '—')}</span></td>
+        <td>${formatStandardDateTime(l.created_at || l.created_iso || l.created, { inline: true })}</td>
       </tr>`).join('');
     document.getElementById('leads-table-wrap').innerHTML = `
       <table>
@@ -1077,7 +1437,8 @@
     if (!data.success) { document.getElementById('chat-thread').innerHTML = '<div class="empty">Error loading session</div>'; return; }
 
     document.getElementById('modal-title').textContent = data.customer_name || 'Anonymous Session';
-    document.getElementById('modal-meta').textContent = `${sessionId.slice(0,28)} · ${data.updated}`;
+    const updatedTime = formatStandardDateTime(data.updated_at || data.updated_iso || data.updated, { inline: true });
+    document.getElementById('modal-meta').innerHTML = `<span style="font-family:monospace;">${escapeHtml(sessionId.slice(0,28))}…</span> · ${updatedTime}`;
 
     // Chat thread
     const history = data.history || [];
@@ -1087,7 +1448,7 @@
       document.getElementById('chat-thread').innerHTML = history.map(msg => {
         const role = msg.role || (msg.sender === 'user' ? 'user' : 'assistant');
         const isUser = role === 'user';
-        const text = (msg.content || msg.text || msg.message || '').replace(/</g,'&lt;');
+        const text = formatChatMessage(msg.content || msg.text || msg.message || '');
         return `<div class="msg-row ${isUser ? 'user' : 'bot'}">
           <div class="msg-avatar ${isUser ? 'user-av' : 'bot-av'}">${isUser ? '👤' : '🤖'}</div>
           <div>
@@ -1197,7 +1558,7 @@
         return `<div class="${cls.join(' ')}" onclick="selectLiveDeskSession('${s.session_id}')">
           <div class="q-row-top">
             <span class="q-name">${s.customer_name}</span>
-            <span class="q-time">${s.updated ? s.updated.split(' ')[1] : ''}</span>
+            <span class="q-time">${formatStandardDateTime(s.updated_ts || s.updated_iso || s.updated, { inline: true })}</span>
           </div>
           <div class="q-snippet">${s.last_message ? s.last_message.replace(/</g,'&lt;') : 'No messages yet'}</div>
           <div class="q-tags">
@@ -1241,7 +1602,8 @@
       }
 
       consoleName.textContent = data.customer_name || 'Anonymous Customer';
-      consoleMeta.textContent = `ID: ${sessionId.slice(0, 24)}… · Updated: ${data.updated}`;
+      const updatedDisplay = formatStandardDateTime(data.updated_at || data.updated_iso || data.updated, { inline: true });
+      consoleMeta.innerHTML = `ID: <span style="font-family:monospace;">${sessionId.slice(0, 24)}…</span> · Updated: ${updatedDisplay}`;
 
       const state = data.state || {};
       const isAgentActive = Boolean(state.human_agent_active);
@@ -1336,7 +1698,7 @@
         senderTitle = msg.agent_name ? `Sales Specialist (${msg.agent_name})` : 'Sales Specialist';
       }
 
-      const text = (msg.content || msg.reply || msg.text || '').replace(/</g, '&lt;');
+      const text = formatChatMessage(msg.content || msg.reply || msg.text || '');
 
       return `<div class="msg-row ${rowCls}">
         <div class="msg-avatar ${avCls}">${av}</div>
@@ -1465,6 +1827,17 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
+  }
+
+  function formatChatMessage(text) {
+    if (!text) return '';
+    let escaped = escapeHtml(text);
+    escaped = escaped.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    escaped = escaped.replace(/(^|[^*])\*([^*]+)\*([^*]|$)/g, '$1<em>$2</em>$3');
+    escaped = escaped.replace(/\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    escaped = escaped.replace(/(^|[^">])(https?:\/\/[^\s<]+)/g, '$1<a href="$2" target="_blank" rel="noopener noreferrer">$2</a>');
+    escaped = escaped.replace(/(?:\r\n|\r|\n)/g, '<br>');
+    return escaped;
   }
 
   /* ── Live Desk Actions ── */
@@ -1689,8 +2062,7 @@
         const statusBadge = a.status === 'online' ? '<span class="badge badge-green">🟢 Online</span>' :
                             a.status === 'busy' ? '<span class="badge badge-amber">🟡 Busy</span>' :
                             '<span class="badge badge-gray">⚪ Offline</span>';
-        const roleBadge = a.role === 'admin' ? '<span class="badge badge-purple">Admin</span>' : '<span class="badge badge-blue">Salesman</span>';
-        const lastSeen = a.last_seen ? new Date(a.last_seen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Never';
+        const lastSeen = a.last_seen ? formatStandardDateTime(a.last_seen, { inline: true }) : '<span style="color:var(--muted)">Never</span>';
 
         return `<tr>
           <td>

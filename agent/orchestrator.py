@@ -201,6 +201,43 @@ class Orchestrator:
                                         int((time.time() - start_time) * 1000))
 
         # ── EARLY INTERCEPT: Customer Onboarding & Chat History Flow ────────
+        import config
+        is_login_query = bool(re.search(
+            r"^(?:(?:i\s+want\s+to\s+|how\s+(?:can|do)\s+i\s+|can\s+i\s+|where\s+(?:can|do)\s+i\s+|need\s+to\s+)?(?:log\s*in|sign\s*in)|login|signin)\b",
+            msg_l.strip()
+        )) or any(k in msg_l for k in ["i want to login", "how do i login", "how to login", "login page", "open login"])
+        if is_login_query:
+            if state.customer_id or state.customer_name:
+                cust_display = state.customer_name or "Valued Customer"
+                first_name = cust_display.split()[0] if cust_display else "Customer"
+                reply_text = (
+                    f"You are currently logged in as **{cust_display}**.\n\n"
+                    f"To view or load your past conversations, click the **{first_name}** button at the top right of this chat window.\n\n"
+                    f"How can I assist you with your printing and scanning requirements today?"
+                )
+                chips = ["Office & Business Printers", "Technical CAD Plotters", "Consumables & Inks"]
+            else:
+                reply_text = (
+                    "To log in and access your saved conversations:\n\n"
+                    "1. Click the **Login** button at the top right of this chat window.\n"
+                    "2. Enter your **Customer Name** (Username).\n"
+                    "3. Enter the **Phone Number or Email ID** (Password) you used when registering.\n\n"
+                    "If you haven't created a profile yet, you can simply share your Name and Phone/Email here in the chat, and I'll register it for you!"
+                )
+                chips = ["🔑 Open Login", "Office & Business Printers", "Technical CAD Plotters"]
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="route:customer_login_help",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=chips,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
         from conversation.customer_flow_handler import handle_customer_onboarding
         if state.lead_prompt_status in ("offered_opt_in", "awaiting_details", "offered_history_save"):
             cust_res = handle_customer_onboarding(raw_message, normalized_msg, state, session_id)
@@ -872,17 +909,73 @@ class Orchestrator:
             detected_brand = brand_grp or ("citizen" if code_grp.startswith(("cx", "cy", "cz", "op")) else "epson")
             model_token = code_grp.upper()
         else:
+            # Handle explicit queries for uncarried Citizen product categories (barcode, label, receipt, POS)
+            if re.search(r"\bcitiz[eo]n\b", msg_l) and re.search(r"\b(barcode|label|receipt|pos|thermal\s+(?:label|receipt|transfer)|direct\s+thermal)\b", msg_l):
+                reply_text = (
+                    "Kepler Tech is an authorized distributor specializing exclusively in **Citizen Photo dye-sublimation printers** "
+                    "(engineered for professional photo booths, event photography, and instant portrait printing).\n\n"
+                    "We do not carry Citizen industrial barcode, label, or POS receipt printers. "
+                    "However, we carry the full lineup of genuine Citizen photo printers:\n"
+                    "• **Citizen CX-02:** Compact, high-speed 6-inch dye-sublimation photo printer, ideal for event photography and photo booths.\n"
+                    "• **Citizen CY-02:** High-capacity event photo printer engineered for high-volume commercial printing.\n"
+                    "• **Citizen CZ-01:** Ultra-compact, lightweight 4-inch photo printer for on-the-go mobility.\n"
+                    "• **Citizen CX-02W:** Wide 8-inch photo printer designed for professional studio and event portraits.\n\n"
+                    "Would you like technical specifications or pricing for any of these Citizen photo models?"
+                )
+                citizen_cards = [
+                    catalogue_filter._format_card(p, "citizen_photo", state.requirements)
+                    for p in [
+                        catalogue_loader.get_by_id("citizen-cx-02"),
+                        catalogue_loader.get_by_id("citizen-cy-02"),
+                        catalogue_loader.get_by_id("citizen-cz-01"),
+                        catalogue_loader.get_by_id("citizen-cx-02w"),
+                    ] if p
+                ]
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(
+                    reply=reply_text,
+                    source="route:citizen_uncarried_category",
+                    product_cards=citizen_cards,
+                    consumable_cards=[],
+                    suggested_chips=["Citizen CX-02", "Citizen CY-02", "Citizen CZ-01", "Citizen CX-02W"],
+                    nlp_result=nlp_result,
+                    state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
+
             brand_match = re.search(r"\b(citizen|epson)\s+([a-z0-9][a-z0-9_\-]{2,}(?:\s+[a-z0-9_\-]+)?)\b", msg_l)
             if brand_match:
                 cand_brand = brand_match.group(1)
                 cand_token = brand_match.group(2).strip()
-                generic_words = {"printer", "printers", "plotter", "plotters", "scanner", "scanners", "ink", "inks", 
-                                 "consumable", "consumables", "paper", "papers", "roll", "rolls", "machine", "machines",
-                                 "products", "models", "solutions", "hardware", "authorized", "partner", "distributor"}
-                tok_words = [w for w in cand_token.split() if w not in generic_words]
-                if tok_words:
+                stop_and_generic_words = {
+                    "what", "which", "where", "who", "when", "why", "how",
+                    "is", "are", "was", "were", "be", "been", "being",
+                    "the", "a", "an", "this", "that", "these", "those",
+                    "all", "any", "some", "every", "each", "both",
+                    "buy", "need", "want", "looking", "look", "get", "purchase", "order", "find",
+                    "have", "has", "had", "carry", "stock", "sell", "available", "suggest", "recommend",
+                    "printer", "printers", "plotter", "plotters", "scanner", "scanners", "copier", "copiers",
+                    "machine", "machines", "device", "devices", "unit", "units", "hardware", "equipment",
+                    "product", "products", "model", "models", "solution", "solutions",
+                    "type", "types", "kind", "kinds", "range", "ranges", "lineup", "lineups", "series",
+                    "option", "options", "choice", "choices", "catalog", "catalogue", "list", "line",
+                    "show", "give", "tell", "share", "display", "provide", "compare", "comparison",
+                    "please", "help", "can", "could", "would", "will", "do", "does", "did",
+                    "you", "your", "me", "my", "we", "our", "us", "they", "them", "their", "i",
+                    "best", "good", "better", "top", "new", "cheap", "cost", "price", "pricing", "quote",
+                    "photo", "photos", "photography", "photobooth", "booth", "event", "events",
+                    "office", "commercial", "enterprise", "industrial", "desktop", "portable", "mini",
+                    "ink", "inks", "consumable", "consumables", "cartridge", "cartridges", "paper", "papers", "roll", "rolls", "media", "ribbon",
+                    "authorized", "partner", "distributor", "dealer", "specs", "specifications", "details",
+                    "for", "in", "at", "to", "from", "with", "without", "and", "or", "not", "so", "as", "if", "about"
+                }
+                cand_words = [w for w in re.split(r"[\s\-_]+", cand_token) if w and w not in stop_and_generic_words]
+                has_digit = any(re.search(r"\d", w) for w in cand_words)
+                is_known_series = any(w in {"ecotank", "surelab", "expression", "stylus", "monnalisa", "colorworks"} for w in cand_words)
+                if cand_words and (has_digit or is_known_series):
                     detected_brand = cand_brand
-                    model_token = " ".join(tok_words).title()
+                    model_token = " ".join(cand_words).title()
 
         if model_token and not find_mentioned_catalogue_products(normalized_msg):
             if re.search(r"\b(?:do\s+not\s+substitute|no\s+substitut\w*|don'?t\s+substitute|don'?t\s+suggest|no\s+alternative)\b", msg_l):
@@ -1152,6 +1245,97 @@ class Orchestrator:
             elif any(w in normalized_msg.lower() for w in ["inkjet", "archival", "fine art", "fine-art"]):
                 state.category = "photo_fine_art"
                 state.requirements["printing_technology"] = "inkjet"
+                state.awaiting_field = None
+
+        # Handle awaiting inkjet offering disambiguation (1: Media, 2: Printers, 3: Consumables)
+        if state.awaiting_field == "inkjet_offering":
+            msg_ink_choice = normalized_msg.lower().strip()
+            is_opt1 = bool(re.search(r"^(?:1|option\s*1|first(?:\s*one)?)$", msg_ink_choice)) or any(
+                w in msg_ink_choice for w in ["media", "paper", "fine art", "canvas", "innova", "wallpaper", "roll"]
+            )
+            is_opt2 = bool(re.search(r"^(?:2|option\s*2|second(?:\s*one)?)$", msg_ink_choice)) or any(
+                w in msg_ink_choice for w in ["printer", "machine", "hardware", "device", "plotter", "plotters"]
+            )
+            is_opt3 = bool(re.search(r"^(?:3|option\s*3|third(?:\s*one)?)$", msg_ink_choice)) or any(
+                w in msg_ink_choice for w in ["ink", "cartridge", "cartridges", "consumable", "consumables", "maintenance box"]
+            )
+
+            if is_opt1:
+                return self._build_media_category_response("general", state, nlp_result, start_time)
+            elif is_opt2:
+                state.awaiting_field = "category"
+                state.reset_category(None)
+                state.requirements.pop("daily_volume", None)
+                state.requirements.pop("monthly_volume", None)
+                reply_text = (
+                    "We offer a complete range of commercial inkjet printers tailored for different professional workflows. "
+                    "What will you primarily be printing or scanning—technical CAD drawings, office & business documents, "
+                    "professional photography & fine art, or sublimation merchandise?"
+                )
+                chips_to_return = [
+                    "Technical CAD Plotters",
+                    "Professional Photography & Fine Art",
+                    "Office & Business Documents (A3 / A4)",
+                    "Dye-Sublimation (T-Shirts & Mugs)"
+                ]
+                return self._build_response(
+                    reply=reply_text,
+                    source="qualification:category_prompt",
+                    product_cards=[],
+                    consumable_cards=[],
+                    suggested_chips=chips_to_return,
+                    nlp_result=nlp_result,
+                    state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
+            elif is_opt3:
+                state.awaiting_field = "printer_model"
+                state.requirements.pop("daily_volume", None)
+                state.requirements.pop("monthly_volume", None)
+                reply_text = "I'd be glad to help check genuine ink cartridge availability and pricing! Which printer model do you need inks or maintenance supplies for?"
+                chips_to_return = ["Epson SC-T3100 Inks", "Epson SC-P900 Inks", "Epson SC-P7500 Inks"]
+                return self._build_response(
+                    reply=reply_text,
+                    source="route:consumables",
+                    product_cards=[],
+                    consumable_cards=[],
+                    suggested_chips=chips_to_return,
+                    nlp_result=nlp_result,
+                    state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
+
+        # Handle awaiting media category selection (1: Fine Art, 2: Photo, 3: Canvas, 4: Signage)
+        is_awaiting_media = state.awaiting_field == "media_category" or (
+            not state.awaiting_field
+            and state.last_assistant_response
+            and "Fine Art & Museum Papers (Innova Art & Fabriano)" in state.last_assistant_response
+            and bool(re.search(r"^(?:[1-4]|option\s*[1-4]|first|second|third|fourth)(?:\.|\b)", normalized_msg.lower().strip()))
+        )
+        if is_awaiting_media:
+            msg_cat_choice = normalized_msg.lower().strip()
+            is_cat1 = bool(re.search(r"^(?:1|option\s*1|first(?:\s*one)?|1\.)$", msg_cat_choice)) or any(
+                w in msg_cat_choice for w in ["fine art", "innova", "cotton", "rag", "baryta", "fabriano", "fine art papers"]
+            )
+            is_cat2 = bool(re.search(r"^(?:2|option\s*2|second(?:\s*one)?|2\.)$", msg_cat_choice)) or any(
+                w in msg_cat_choice for w in ["photo", "olmec", "korejet", "lustre", "luster", "gloss", "glossy", "metallic", "dry lab", "photo papers"]
+            )
+            is_cat3 = bool(re.search(r"^(?:3|option\s*3|third(?:\s*one)?|3\.)$", msg_cat_choice)) or any(
+                w in msg_cat_choice for w in ["canvas", "canvases", "gallery wrap", "printable canvases"]
+            )
+            is_cat4 = bool(re.search(r"^(?:4|option\s*4|fourth(?:\s*one)?|4\.)$", msg_cat_choice)) or any(
+                w in msg_cat_choice for w in ["signage", "wallpaper", "wallpapers", "eco-solvent", "eco solvent", "wallcovering", "wallcoverings"]
+            )
+
+            if is_cat1:
+                return self._build_media_category_response("fine_art", state, nlp_result, start_time)
+            elif is_cat2:
+                return self._build_media_category_response("photo", state, nlp_result, start_time)
+            elif is_cat3:
+                return self._build_media_category_response("canvas", state, nlp_result, start_time)
+            elif is_cat4:
+                return self._build_media_category_response("signage", state, nlp_result, start_time)
+            else:
                 state.awaiting_field = None
 
         detected_category = normalize_category(normalized_msg, state.category)
@@ -2043,6 +2227,28 @@ class Orchestrator:
             normalized_msg.lower()
         ))
         if is_purchase_query:
+            # Case 0: Media & Paper purchase inquiry (e.g. "i want to buy a papers", "buy inkjet media", "buy canvas")
+            is_media_purchase = bool(re.search(
+                r"\b(?:papers?|medias?|canvas(?:es)?|fine\s*art|wallpaper|baryta|cotton\s*rag|watercolour|photo\s*papers?|roll\s*papers?)\b",
+                normalized_msg.lower()
+            )) and not any(k in normalized_msg.lower() for k in ["printer", "plotter", "scanner", "copier", "mfp", "machine", "device"])
+            if is_media_purchase:
+                msg_p = normalized_msg.lower()
+                is_fine_art = any(k in msg_p for k in ["fine art", "innova", "cotton rag", "baryta", "fabriano", "watercolour", "etching", "ifa"])
+                is_photo = any(k in msg_p for k in ["photo paper", "photo papers", "olmec", "lustre", "luster", "glossy", "photo gloss", "metallic", "dry lab", "pearl", "kj-p260"])
+                is_canvas = any(k in msg_p for k in ["canvas", "canvases", "gallery wrap", "cotton canvas", "polycotton canvas"])
+                is_signage = any(k in msg_p for k in ["signage", "wallpaper", "eco solvent", "eco-solvent", "poster art"])
+                if is_fine_art:
+                    return self._build_media_category_response("fine_art", state, nlp_result, start_time)
+                elif is_photo:
+                    return self._build_media_category_response("photo", state, nlp_result, start_time)
+                elif is_canvas:
+                    return self._build_media_category_response("canvas", state, nlp_result, start_time)
+                elif is_signage:
+                    return self._build_media_category_response("signage", state, nlp_result, start_time)
+                else:
+                    return self._build_media_category_response("general", state, nlp_result, start_time)
+
             # Case 1: Active consumable or direct consumable SKU
             active_c = getattr(state, "active_consumable", None)
             if not active_c and direct_sku_prod:
@@ -2555,13 +2761,56 @@ class Orchestrator:
             )
 
         # 6b. Comparison Query (Between 2+ Approved Catalogue Products)
+        is_scanner_type_selection = bool(re.search(
+            r"\b(?:both\s*\(?flatbed\s*[\+&]\s*adf\)?|flatbed\s*[\+&]\s*adf|flatbed\s+and\s+adf|both\s+flatbed\s+and\s+adf|both\s*\(flatbed\s*\+\s*adf\)|business\s+documents?|photo\s*&\s*film|photo\s+and\s+film|photo\s*film|hybrids?|flatbeds?|both\s+options|both\s+types|do\s+you\s+have\s+hybrid|professional\s+scann?er(?:s|es)?)\b",
+            normalized_msg.lower()
+        )) or (
+            state.category in ("scanners", "scanner")
+            and bool(re.search(r"\b(?:hybrids?|flatbeds?|both|photo|document|documents|business|professional)\b", normalized_msg.lower()))
+            and not bool(re.search(r"\b(?:printers?|printing|plotters?|copiers?|mfp)\b", normalized_msg.lower()))
+        )
+        if is_scanner_type_selection:
+            state.category = "scanners"
+            if re.search(r"\b(?:both|hybrid|flatbed\s*[\+&]\s*adf|flatbed\s+and\s+adf)\b", normalized_msg.lower()):
+                state.requirements["scanner_intent"] = "both"
+                state.requirements["scanner_type"] = "both"
+                state.requirements["scan_type"] = "flatbed_adf"
+                state.subcategory = "hybrid_scanners"
+            elif "photo" in normalized_msg.lower() or "film" in normalized_msg.lower():
+                state.requirements["scanner_intent"] = "photo"
+                state.requirements["scanner_type"] = "photo"
+                state.subcategory = "photo_scanners"
+            elif "business" in normalized_msg.lower() or "document" in normalized_msg.lower():
+                state.requirements["scanner_intent"] = "business"
+                state.requirements["scanner_type"] = "business"
+                state.subcategory = "business_scanners"
+            elif "professional" in normalized_msg.lower():
+                state.requirements["scanner_intent"] = "professional"
+                state.requirements.pop("subcategory", None)
+                state.requirements.pop("scanner_type", None)
+                state.requirements.pop("scan_type", None)
+                state.subcategory = None
+                state.qualification_complete = False
+            state.displayed_product_ids = []
+            state.compared_products = []
+            state.compared_product_ids = []
+            state.candidate_products = []
+            state.active_product = None
+            state.active_product_id = None
+            state.active_printer_for_consumables = None
+            current_active = None
+            current_active_id = None
+
         is_comparison_query = (
-            understanding.intent == Intent.PRODUCT_COMPARISON
-            or any(w in normalized_msg.lower() for w in [
-                "compare", " vs ", " versus ", "difference between",
-                "which is better", "which is best", "which one is better", "which one should i choose"
-            ])
-            or len(mentioned_products) >= 2
+            not is_scanner_type_selection
+            and (
+                understanding.intent == Intent.PRODUCT_COMPARISON
+                or any(w in normalized_msg.lower() for w in [
+                    "compare", " vs ", " versus ", "difference between",
+                    "which is better", "which is best", "which one is better", "which one should i choose"
+                ])
+                or len(mentioned_products) >= 2
+            )
         )
         comp_sources = list(mentioned_products)
         if is_comparison_query and len(comp_sources) < 2:
@@ -2749,14 +2998,20 @@ class Orchestrator:
                 )
 
         # 6a-2. Specific Specification / Capability Query on Active Product or Mentioned Product (e.g., "print speed?", "CAN I PRINT 2X6 STRIP IN THIS PRINTER?", "resolution?", "yield capacity?", "pattern change?")
+        is_explicit_anaphora_or_attr = (
+            bool(re.search(r"\b(?:it|this|that|the\s+printer|the\s+machine|the\s+model|the\s+scanner|this\s+one|that\s+one)\b", normalized_msg.lower()))
+            or CanonicalEntityNormalizer.is_capability_query(normalized_msg)
+            or bool(re.search(r"\b(?:print\s+speed|scan\s+speed|speed|resolution|dpi|dimensions?|weight|how\s+much|yield|capacity|warranty|wi-?fi|wireless|connectivity|duplex|auto\s+duplex|adf|optical\s+density)\b", normalized_msg.lower()))
+        ) and not any(w in normalized_msg.lower() for w in ["recommend", "options", "models", "show me", "what about", "instead", "switch to", "compare", "vs", "versus", "hybrid", "photo scanner", "business scanner"])
+
         current_active = (
             (mentioned_products[0] if mentioned_products else None)
             or state.active_product
-            or prev_active_product
-            or (catalogue_loader.get_by_id(state.last_explicit_product_id) if getattr(state, "last_explicit_product_id", None) else None)
-            or (catalogue_loader.get_by_id(state.displayed_product_ids[0]) if getattr(state, "displayed_product_ids", None) and len(state.displayed_product_ids) == 1 else None)
+            or (prev_active_product if is_explicit_anaphora_or_attr else None)
+            or (catalogue_loader.get_by_id(state.last_explicit_product_id) if getattr(state, "last_explicit_product_id", None) and is_explicit_anaphora_or_attr else None)
+            or (catalogue_loader.get_by_id(state.displayed_product_ids[0]) if getattr(state, "displayed_product_ids", None) and len(state.displayed_product_ids) == 1 and is_explicit_anaphora_or_attr else None)
         )
-        current_active_id = (current_active.get("id") if isinstance(current_active, dict) else None) or state.active_product_id or prev_active_product_id
+        current_active_id = (current_active.get("id") if isinstance(current_active, dict) else None) or state.active_product_id or (prev_active_product_id if is_explicit_anaphora_or_attr else None)
 
         # Multi-Part Capability Query (Section 7)
         has_multi_scan = bool(re.search(r"\b(?:scan|scanner|scanning|mfp|copier|copy)\b", low_msg_comp))
@@ -2833,7 +3088,7 @@ class Orchestrator:
             if has_multi_weight:
                 wt = act_p.get("weight") or act_p.get("dimensions")
                 if wt:
-                    parts.append(f"• **Weight / Build:** {wt}")
+                    parts.append(f"• **Weight:** {wt}")
 
             if has_multi_speed:
                 sp = act_p.get("print_speed")
@@ -2897,7 +3152,7 @@ class Orchestrator:
             or (state.candidate_products[0] if getattr(state, "candidate_products", []) else None)
         )
         has_multi_prod_compare = len(mentioned_products) >= 2 or any(w in normalized_msg.lower() for w in ["recommend", "which printer", "which model", " vs ", " versus ", "difference between", "what about other"])
-        if spec_target_cand and not has_multi_prod_compare and not is_correction_turn:
+        if spec_target_cand and not has_multi_prod_compare and not is_correction_turn and not is_scanner_type_selection:
             spec_target_id = spec_target_cand.get("id") or spec_target_cand.get("canonical_id")
             if spec_target_id:
                 from catalog.product_spec_engine import product_spec_engine
@@ -2924,7 +3179,10 @@ class Orchestrator:
                             r"\b(?:details?|more\s+details?|view\s+details?|specs?|specifications?|overview|tell\s+me\s+about|full\s+specs?|datasheet|brochure|all\s+specs?|features?)\b",
                             normalized_msg.lower()
                         ))
-                        or getattr(understanding, "requested_action", "") in ("show_product_specs", "show_details")
+                        or (
+                            getattr(understanding, "requested_action", "") in ("show_product_specs", "show_details")
+                            and not bool(re.search(r"\b(?:hybrid|flatbed|adf|scanners?|printers?|plotters?|options|models|types?|recommend)\b", normalized_msg.lower()))
+                        )
                     ) and not CanonicalEntityNormalizer.is_capability_query(normalized_msg) and not bool(re.search(r"\bcan\s+(?:i|it)\b", normalized_msg.lower()))
                     if is_detailed_specs_query:
                         req_summary = state.format_requirements_summary() if hasattr(state, "format_requirements_summary") else ""
@@ -3318,26 +3576,31 @@ class Orchestrator:
                 latency_ms=int((time.time() - start_time) * 1000),
             )
 
-        # 6c. Consumables Inquiry & Media Inquiries
-        is_canvas_media_query = (
-            bool(re.search(r"\b(?:canvas|canvas\s+roll|canvas\s+media|canvas\s+paper)\b", normalized_msg.lower()))
-            and not any(w in normalized_msg.lower() for w in ["printer", "machine", "plotter", "hardware"])
-        )
-        if is_canvas_media_query:
-            state.awaiting_field = None
+        # 6c. Inkjet Media Inquiries & Category Discovery (Innova Art, Olmec, Korejet, Epson)
+        msg_l_media = normalized_msg.lower().strip()
+        has_hw_word = any(w in msg_l_media for w in [
+            "which printer", "need a printer", "buy printer", "printer price", "cost of printer",
+            "plotter", "scanner", "printer specs", "printer specifications", "looking for a printer", "printer model"
+        ])
+
+        # Ambiguous "i need a inkjet" / "i need inkjet" / "looking for inkjet" check
+        is_ambiguous_inkjet = bool(re.search(
+            r"^(?:i\s+(?:need|want|look\s*for)\s+(?:an?\s+)?inkjet|looking\s+for\s+(?:an?\s+)?inkjet|inkjet(?:\s+options)?)$",
+            msg_l_media
+        ))
+        if is_ambiguous_inkjet:
+            state.awaiting_field = "inkjet_offering"
             reply_text = (
-                "Yes, we supply official fine art canvas media rolls compatible with Epson UltraChrome pigment inks (for SureColor P-Series printers):\n\n"
-                "• **Epson Exhibition Canvas Matte** (Available in 17″, 24″, 36″, 44″, and 60″ rolls)\n"
-                "• **Epson Premium Canvas Satin** (Available in 13″, 17″, 24″, 44″, and 60″ rolls)\n"
-                "• **Innova Exhibition Matte Cotton Canvas** (IFA-54)\n"
-                "• **Korejet Pure Cotton Canvas Matte** (370–390 GSM)\n\n"
-                "These media rolls are specifically formulated for water-based pigment inks to achieve museum-grade archival quality and rich contrast. "
-                "Which roll width do you need, or which printer model will you be using?"
+                "I'd be glad to assist you! Across our authorized portfolio, we provide three main inkjet offerings:\n\n"
+                "1. **Inkjet Media & Papers:** Archival fine art cotton rag, photographic lustre/gloss, printable canvases, and commercial wallpapers.\n"
+                "2. **Inkjet Printers (Hardware):** Epson SureColor large-format production plotters & WorkForce office printers.\n"
+                "3. **Inks & Consumables:** Genuine UltraChrome and DURABrite ink cartridges and maintenance boxes.\n\n"
+                "Which of these are you looking for today?"
             )
-            chips_to_return = ["24-inch Canvas", "44-inch Canvas", "Epson SC-P900 Inks", "View Photo Printers"]
+            chips_to_return = ["Inkjet Media & Paper", "Inkjet Printers", "Inks & Consumables"]
             return self._build_response(
                 reply=reply_text,
-                source="route:media_inquiry",
+                source="route:inkjet_disambiguation",
                 product_cards=[],
                 consumable_cards=[],
                 suggested_chips=chips_to_return,
@@ -3345,6 +3608,63 @@ class Orchestrator:
                 state=state,
                 latency_ms=int((time.time() - start_time) * 1000),
             )
+
+        is_media_explicit = bool(re.search(
+            r"\b(?:inkjet\s*medias?|inkjet\s*papers?|inkjet\s*canvas(?:es)?|print\s*medias?|fine\s*art\s*papers?|photo\s*papers?|canvas(?:\s*rolls?|\s*medias?)?|innova(?:\s*art)?|olmec|korejet|baryta|cotton\s*rag|watercolour\s*paper|fabriano|paste\s*up\s*wallpaper|wallpaper\s*medias?|ifa[-\s]?\d+|olm[-\s]?\d+|kj[-\s]?p\d+)\b",
+            msg_l_media
+        ))
+        is_media_generic = bool(re.search(
+            r"\b(?:what\s+medias?|need\s+(?:inkjet\s+)?medias?|have\s+medias?|sell\s+medias?|stock\s+medias?|medias?\s+options|medias?\s+catalogue|medias?\s+list|medias?\s+types|which\s+medias?|types\s+of\s+medias?|papers?\s+and\s+medias?|paper\s+rolls?|roll\s+medias?|buy\s+papers?|buy\s+medias?|need\s+papers?|want\s+papers?|want\s+medias?|photo\s+medias?)\b",
+            msg_l_media
+        ))
+        is_media_chip_selection = any(k in msg_l_media for k in [
+            "fine art papers", "photo papers", "printable canvases", "signage & wallpapers", "signage and wallpapers", "inkjet media & paper", "inkjet media and paper"
+        ])
+
+        if (is_media_explicit or is_media_generic or is_media_chip_selection) and not has_hw_word:
+            is_fine_art = any(k in msg_l_media for k in ["fine art", "innova", "cotton rag", "baryta", "fabriano", "watercolour", "etching", "ifa"])
+            is_photo = any(k in msg_l_media for k in ["photo paper", "photo papers", "olmec", "lustre", "luster", "glossy", "photo gloss", "metallic", "dry lab", "pearl", "kj-p260"])
+            is_canvas = any(k in msg_l_media for k in ["canvas", "canvases", "gallery wrap", "cotton canvas", "polycotton canvas"])
+            is_signage = any(k in msg_l_media for k in ["signage", "wallpaper", "eco solvent", "eco-solvent", "poster art", "ifa 98", "ifa-98", "ifa 96", "ifa-96", "ifa 93", "ifa-93"])
+
+            if is_fine_art and not (is_photo or is_canvas or is_signage):
+                return self._build_media_category_response("fine_art", state, nlp_result, start_time)
+            elif is_photo and not (is_fine_art or is_canvas or is_signage):
+                return self._build_media_category_response("photo", state, nlp_result, start_time)
+            elif is_canvas and not (is_fine_art or is_photo or is_signage):
+                return self._build_media_category_response("canvas", state, nlp_result, start_time)
+            elif is_signage and not (is_fine_art or is_photo or is_canvas):
+                return self._build_media_category_response("signage", state, nlp_result, start_time)
+            else:
+                return self._build_media_category_response("general", state, nlp_result, start_time)
+
+        # Media Roll Width or Sheet Format Selection (e.g. "44-inch rolls", "24-inch rolls", "cut sheets", "44 roll")
+        roll_width_match = re.search(
+            r"\b(17|24|30|36|44|54|60)(?:[\s\"'-]*(?:inch|in|\")[\s-]*)?rolls?\b",
+            msg_l_media
+        )
+        if not roll_width_match:
+            roll_width_match = re.search(
+                r"^(?:(?:show|need|want|have)\s+)?(17|24|30|36|44|54|60)(?:[\s\"'-]*(?:inch|in|\")[\s-]*(?:rolls?)?|\s*rolls?)$",
+                msg_l_media
+            )
+        is_sheet_format = bool(re.search(
+            r"\b(?:cut[\s-]sheets?|sheets?|cut\s+sheets\s*\(a4\s*/\s*a3\+\)|a4\s+sheets?|a3\+?\s*sheets?|a2\s+sheets?)\b",
+            msg_l_media
+        ))
+        has_media_context = (
+            getattr(state, "active_media_category", None) is not None
+            or state.awaiting_field == "media_format"
+            or any(w in msg_l_media for w in ["roll", "rolls", "paper", "media", "canvas", "innova", "sheet"])
+        )
+        if (roll_width_match or is_sheet_format) and has_media_context and not has_hw_word:
+            if roll_width_match:
+                w_val = float(roll_width_match.group(1))
+                format_lbl = f"{int(w_val)}-inch Rolls"
+                return self._build_media_format_response(format_lbl, width_inches=w_val, format_type="roll", state=state, nlp_result=nlp_result, start_time=start_time)
+            elif is_sheet_format:
+                format_lbl = "Cut Sheets (A4 / A3+)"
+                return self._build_media_format_response(format_lbl, width_inches=None, format_type="sheet", state=state, nlp_result=nlp_result, start_time=start_time)
 
         has_negated_ink = bool(re.search(r"\b(?:not|no|don'?t\s+want)\s+ink\b", normalized_msg.lower()))
         has_direct_printer_inquiry = bool(re.search(
@@ -3993,6 +4313,8 @@ class Orchestrator:
                     )
                 else:
                     reply_text = format_rotating_opener(f"Citizen 6-inch photo printer{'s' if len(valid_cards) != 1 else ''}", state)
+            elif state.category == "citizen_photo" or subcategory in ("citizen_photo", "citizen_4_inch", "citizen_8_inch"):
+                reply_text = format_rotating_opener(f"Citizen dye-sublimation photo printer{'s' if len(valid_cards) != 1 else ''}", state)
             elif state.requirements.get("paper_size") == "a3":
                 reply_text = format_rotating_opener(f"A3 multifunction printer{'s' if len(valid_cards) != 1 else ''}", state)
             elif subcategory == "photo_64_production" or state.requirements.get("print_width") == 64:
@@ -4025,8 +4347,10 @@ class Orchestrator:
 
             # Natural language fail-closed validation
             sanitized_reply, _ = validate_and_sanitize_catalogue_text(reply_text, valid_cards)
-            reply_text = sanitized_reply
-            chips_to_return = ["Compare Matching Models", "View Detailed Specifications", "Filter by Requirements"]
+            if state.category == "citizen_photo":
+                chips_to_return = ["Citizen CX-02", "Citizen CY-02", "Citizen CZ-01", "Citizen CX-02W"]
+            else:
+                chips_to_return = ["Compare Matching Models", "View Detailed Specifications", "Filter by Requirements"]
             source = "recommendation:catalogue_list"
 
         # Stale Recommendation / Repetition Prevention Guard
@@ -4175,23 +4499,16 @@ class Orchestrator:
         if reply.startswith("Understood, I've updated"):
             return False
         if (
-            source.startswith("guardrail:")
-            or source.startswith("interceptor:")
+            source.startswith("guardrail:untrusted_instruction")
+            or source.startswith("guardrail:discount_refusal")
             or source.startswith("handover:")
             or source.startswith("customer_flow:")
             or source.startswith("route:customer_flow")
+            or source.startswith("route:customer_login_help")
             or source.startswith("route:memory_recall")
-            or source.startswith("route:purchase:")
-            or source.startswith("route:consumable")
             or source.startswith("route:product_price_inquiry")
-            or source.startswith("route:product_spec_attribute")
-            or source.startswith("route:comparison")
-            or source.startswith("recommendation:catalogue_list")
+            or source.startswith("route:consumable_price_inquiry")
             or source.startswith("route:general_price_inquiry")
-            or source.startswith("route:cost_per_print")
-            or source.startswith("route:yield_pattern_general")
-            or source.startswith("route:product_or_consumable_disambiguation")
-            or source.startswith("route:multi_category")
             or "safe_refusal" in source
             or "refusal" in source
             or "error" in source
@@ -4204,10 +4521,9 @@ class Orchestrator:
         """Extracts authorized qualification follow-up question, preventing LLM from inventing questions."""
         if getattr(state, "pending_question", None):
             return state.pending_question
-        if source.startswith("qualification:") or source.startswith("clarification:"):
-            q_matches = re.findall(r"([^.?!\n]+\?)", reply)
-            if q_matches:
-                return q_matches[-1].strip()
+        q_matches = re.findall(r"([^.?!\n]+\?)", reply or "")
+        if q_matches:
+            return q_matches[-1].strip()
         return None
 
     def _build_evidence_bundle(
@@ -4230,6 +4546,255 @@ class Orchestrator:
             consumable_cards=consumable_cards,
             comparison_data=comparison_data,
             recommendation_audit=recommendation_audit,
+        )
+
+    def _build_media_category_response(
+        self,
+        category_key: str,
+        state: ConversationState,
+        nlp_result: Dict[str, Any],
+        start_time: float,
+    ) -> Dict[str, Any]:
+        from catalog.media_registry import media_registry
+        state.requirements.pop("daily_volume", None)
+        state.requirements.pop("monthly_volume", None)
+        state.active_media_category = category_key
+        state.awaiting_field = "media_format" if category_key != "general" else "media_category"
+
+        if category_key == "fine_art":
+            prods = media_registry.get_by_category("fine_art", limit=6)
+            c_cards = [
+                {
+                    "id": p.sku, "name": p.name, "title": p.name, "sku": p.sku,
+                    "price": None, "price_str": "Price on Request",
+                    "image": p.image_url, "image_url": p.image_url,
+                    "url": p.url, "website_url": p.url,
+                    "badge": f"{p.brand} ({p.weight_gsm}gsm)" if p.weight_gsm else p.brand,
+                    "card_type": "consumable", "category": "Media & Paper",
+                    "description": f"Verified {p.surface_finish} fine art paper from {p.brand}."
+                } for p in prods
+            ]
+            reply_text = (
+                "We supply the complete archival **Innova Art** and **Fabriano** fine art inkjet paper collection:\n\n"
+                "• **[Innova Photo Cotton Rag 315gsm (IFA-11)](https://www.keplertechllc.com/product/innova-photo-cotton-rag-315gsm-ifa-11/)**: 100% cotton, natural white, ultra-smooth archival museum rag.\n"
+                "• **[Innova Smooth Cotton High White (IFA-04 / IFA-14)](https://www.keplertechllc.com/product/innova-smooth-cotton-high-white-215-gsm-ifa-04/)**: Available in 215gsm and 315gsm (Cut-sheets and 24″/44″ rolls).\n"
+                "• **[Innova Soft Textured & Cold Press (IFA-12 / IFA-13)](https://www.keplertechllc.com/product/innova-soft-textured-natural-white-315gsm-ifa-12/)**: 315gsm rough & soft textured watercolour surfaces.\n"
+                "• **[Innova Fabriano Printmaking Rag 310gsm (IFA-107)](https://www.keplertechllc.com/product/innova-fabriano-printmaking-rag-310gsm-ifa-107/)**: Heritage Italian mould-made fourdrinier paper.\n"
+                "• **[Innova Exhibition Photo Baryta 310gsm (IFA-69)](https://www.keplertechllc.com/product/innova-exhibition-photo-baryta-310-gsm-ifa-69/)**: Traditional darkroom barium sulphate coating for exhibition d-max.\n\n"
+                "Which format size do you require (Cut-sheets A4/A3+ or 24″/44″ rolls), or which printer model will you be using?"
+            )
+            chips_to_return = ["Cut Sheets (A4 / A3+)", "24-inch Rolls", "44-inch Rolls", "Request Quotation"]
+            return self._build_response(
+                reply=reply_text,
+                source="route:media_discovery:fine_art",
+                product_cards=[],
+                consumable_cards=c_cards,
+                suggested_chips=chips_to_return,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+        elif category_key == "photo":
+            prods = media_registry.get_by_category("photo", limit=6)
+            c_cards = [
+                {
+                    "id": p.sku, "name": p.name, "title": p.name, "sku": p.sku,
+                    "price": None, "price_str": "Price on Request",
+                    "image": p.image_url, "image_url": p.image_url,
+                    "url": p.url, "website_url": p.url,
+                    "badge": f"{p.brand} ({p.weight_gsm}gsm)" if p.weight_gsm else p.brand,
+                    "card_type": "consumable", "category": "Media & Paper",
+                    "description": f"Verified {p.surface_finish} photo paper from {p.brand}."
+                } for p in prods
+            ]
+            reply_text = (
+                "We stock professional photographic studio papers from **Olmec (by Innova)**, **Korejet**, and **Epson**:\n\n"
+                "• **[Olmec Photo Lustre Heavyweight 260gsm (OLM-59)](https://www.keplertechllc.com/product/olm-59-olmec-photo-lustre-heavyweight-260gsm/)**: Premium anti-glare studio finish (24″ & 44″ rolls).\n"
+                "• **[Olmec Photo Gloss Heavyweight 260gsm (OLM-60)](https://www.keplertechllc.com/product/olm-60-olmec-photo-gloss-heavyweight-260gsm/)**: High-gloss microporous photo paper (24″ & 44″ rolls).\n"
+                "• **[Olmec Photo Metallic Gloss & Lustre 260gsm (OLM-71 / OLM-72)](https://www.keplertechllc.com/product/olm-71-olmec-photo-metallic-gloss-260gsm/)**: Iridescent metallic pearlescent surface.\n"
+                "• **[Olmec Photo Gloss Double Sided 250gsm (OLM-65)](https://www.keplertechllc.com/product/olm-65-olmec-photo-gloss-double-sided-250gsm/)**: Double-sided high gloss for photo books (A4 & A3).\n"
+                "• **[Korejet Premium Luster 260gsm](https://www.keplertechllc.com/product/korejet-premium-luster-photo-paper-260gsm/)**: Production photo rolls in 17″, 24″, 36″, 44″, and 60″.\n"
+                "• **[Korejet Pro Luster Dry Lab 250gsm](https://www.keplertechllc.com/product/korejet-pro-luster-large-format-photo-paper-250-gsm/)**: Specialized photo rolls for dry lab printers (5″, 6″, 8″, 12″).\n\n"
+                "Which finish and roll width do you need for your photo production?"
+            )
+            chips_to_return = ["Olmec Photo Lustre", "Olmec Photo Gloss", "Metallic Photo Paper", "Dry Lab Rolls"]
+            return self._build_response(
+                reply=reply_text,
+                source="route:media_discovery:photo",
+                product_cards=[],
+                consumable_cards=c_cards,
+                suggested_chips=chips_to_return,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+        elif category_key == "canvas":
+            prods = media_registry.get_by_category("canvas", limit=6)
+            c_cards = [
+                {
+                    "id": p.sku, "name": p.name, "title": p.name, "sku": p.sku,
+                    "price": None, "price_str": "Price on Request",
+                    "image": p.image_url, "image_url": p.image_url,
+                    "url": p.url, "website_url": p.url,
+                    "badge": f"{p.brand} ({p.weight_gsm}gsm)" if p.weight_gsm else p.brand,
+                    "card_type": "consumable", "category": "Media & Paper",
+                    "description": f"Verified {p.surface_finish} canvas from {p.brand}."
+                } for p in prods
+            ]
+            reply_text = (
+                "We supply genuine fine art printable canvas rolls for aqueous pigment printers:\n\n"
+                "• **[Innova Exhibition Matte Cotton Canvas (IFA-54)](https://www.keplertechllc.com/product/innova-exhibition-matte-cotton-canvas-ifa-54/)**: 380gsm 100% natural cotton canvas for museum gallery wraps (24″ & 44″).\n"
+                "• **[Innova Exhibition Matte Polycotton Canvas (IFA-55)](https://www.keplertechllc.com/product/innova-exhibition-matte-polycotton-canvas-ifa-55/)**: 380gsm crack-resistant flexible canvas for easy stretching.\n"
+                "• **[Innova Exhibition Gloss Polycotton Canvas (IFA-56)](https://www.keplertechllc.com/product/innova-exhibition-gloss-polycotton-canvas-ifa-56/)**: 390gsm high-gloss canvas for maximum color gamut.\n"
+                "• **[Korejet Artistic Polycotton Canvas Satin 390gsm](https://www.keplertechllc.com/product/korejet-artistic-polycotton-canvas-matte-390-gsm/)**: Satin finish available in 17″, 24″, 36″, 44″, and 60″ rolls.\n"
+                "• **[Epson Exhibition Canvas Matte](https://www.keplertechllc.com/product/s045257-epson-exhibition-canvas-matte-paper-24x40-roll/)**: Acid-free polycotton canvas engineered for UltraChrome inks.\n\n"
+                "What roll width (24″, 44″, or 60″) or finish (Matte or Satin/Gloss) do you need?"
+            )
+            chips_to_return = ["Innova Cotton Canvas", "Innova Polycotton", "Korejet Satin Canvas", "24-inch Canvas"]
+            return self._build_response(
+                reply=reply_text,
+                source="route:media_discovery:canvas",
+                product_cards=[],
+                consumable_cards=c_cards,
+                suggested_chips=chips_to_return,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+        elif category_key == "signage":
+            prods = media_registry.get_by_category("signage", limit=6)
+            c_cards = [
+                {
+                    "id": p.sku, "name": p.name, "title": p.name, "sku": p.sku,
+                    "price": None, "price_str": "Price on Request",
+                    "image": p.image_url, "image_url": p.image_url,
+                    "url": p.url, "website_url": p.url,
+                    "badge": f"{p.brand} ({p.weight_gsm}gsm)" if p.weight_gsm else p.brand,
+                    "card_type": "consumable", "category": "Media & Paper",
+                    "description": f"Verified {p.surface_finish} signage media from {p.brand}."
+                } for p in prods
+            ]
+            reply_text = (
+                "We offer dedicated commercial media for **Eco-Solvent, Latex, and UV** wide-format printers:\n\n"
+                "• **[Innova Eco Solvent Paste Up Wallpaper (IFA-98)](https://www.keplertechllc.com/product/innova-eco-solvent-paste-up-wallpaper-ifa-98/)**: Pre-pasted printable wallcovering for custom murals and interior decor.\n"
+                "• **[Innova Eco Solvent Poly Cotton Canvas (IFA-96)](https://www.keplertechllc.com/product/innova-eco-solvent-poly-cotton-canvas-ifa-96/)**: 380gsm signage canvas (30″, 54″, and 60″ rolls).\n"
+                "• **[Innova Eco Solvent Watercolour Paper (IFA-93)](https://www.keplertechllc.com/product/innova-eco-solvent-watercolour-paper-ifa-93/)**: 240gsm textured fine art paper formulated for solvent inks.\n"
+                "• **[Innova Eco Solvent Velvet Art Paper (IFA-94)](https://www.keplertechllc.com/product/innova-eco-solvent-velvet-art-paper-ifa-94/)**: 240gsm smooth velvet art paper.\n"
+                "• **[Innova Eco Solvent Poster Art Paper 210gsm (IFA-145)](https://www.keplertechllc.com/product/innova-eco-solvent-poster-art-paper-ifa-145/)**: Premium poster and display paper in 30″, 54″, and 60″ rolls.\n\n"
+                "Which roll width (30″, 54″, or 60″) does your machine accommodate?"
+            )
+            chips_to_return = ["Innova Wallpaper (IFA-98)", "Eco Solvent Canvas", "Watercolour Paper", "Request Quotation"]
+            return self._build_response(
+                reply=reply_text,
+                source="route:media_discovery:signage",
+                product_cards=[],
+                consumable_cards=c_cards,
+                suggested_chips=chips_to_return,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+        else:
+            state.awaiting_field = "media_category"
+            reply_text = (
+                "We supply the complete portfolio of verified large-format inkjet media, fine art papers, and canvases:\n\n"
+                "1. **Fine Art & Museum Papers (Innova Art & Fabriano):**\n"
+                "   • 100% Cotton Rag, Mould-Made Fabriano, Etching, and Photo Baryta (215–335 GSM).\n"
+                "2. **Photographic & Studio Papers (Olmec & Korejet):**\n"
+                "   • Resin-coated Lustre, High Gloss, Metallic Gloss/Lustre, and Double-Sided photo papers (190–310 GSM).\n"
+                "3. **Printable Fine Art Canvases (Innova, Korejet & Epson):**\n"
+                "   • Pure Cotton & Polycotton Canvas rolls in Matte, Satin, and Gloss (260–390 GSM).\n"
+                "4. **Signage & Interior Wallcoverings (Eco-Solvent / UV):**\n"
+                "   • Pre-Pasted Printable Wallpaper (IFA-98), Eco Canvas, and Solvent Art Papers.\n\n"
+                "To guide you to the exact verified rolls or cut-sheets, could you tell me:\n"
+                "• **Your printer model or ink type** *(e.g., aqueous pigment like SureColor P-Series, or Eco-Solvent)*?\n"
+                "• **Your preferred finish** *(Smooth Cotton, Photo Lustre, Stretched Canvas, or Wallpaper)*?\n"
+                "• **Format required** *(Cut sheets like A4/A3+, or 17″, 24″, 44″, 60″ rolls)*?"
+            )
+            chips_to_return = [
+                "Fine Art Papers (Innova)",
+                "Photo Papers (Lustre/Gloss)",
+                "Printable Canvases",
+                "Signage & Wallpapers"
+            ]
+            return self._build_response(
+                reply=reply_text,
+                source="route:media_discovery",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=chips_to_return,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+    def _build_media_format_response(
+        self,
+        format_label: str,
+        width_inches: Optional[float],
+        format_type: Optional[str],
+        state: ConversationState,
+        nlp_result: Dict[str, Any],
+        start_time: float,
+    ) -> Dict[str, Any]:
+        from catalog.media_registry import media_registry
+        cat_context = getattr(state, "active_media_category", None) or "fine_art"
+        prods = media_registry.get_by_format_or_width(
+            width_inches=width_inches,
+            format_type=format_type,
+            category=cat_context,
+            limit=6
+        )
+        c_cards = [
+            {
+                "id": p.sku, "name": p.name, "title": p.name, "sku": p.sku,
+                "price": None, "price_str": "Price on Request",
+                "image": p.image_url, "image_url": p.image_url,
+                "url": p.url, "website_url": p.url,
+                "badge": f"{p.brand} ({p.size_label})" if p.size_label else p.brand,
+                "card_type": "consumable", "category": "Media & Paper",
+                "description": f"Verified {p.surface_finish} ({p.weight_gsm}gsm) in {p.size_label} from {p.brand}."
+            } for p in prods
+        ]
+        items_lines = []
+        for p in prods:
+            spec_extra = f": {p.weight_gsm}gsm {p.surface_finish}." if p.weight_gsm else "."
+            items_lines.append(f"• **[{p.name}]({p.url})** (SKU: `{p.sku}`){spec_extra}")
+
+        cat_title = cat_context.replace('_', ' ').title()
+        if width_inches:
+            title_hdr = f"**{int(width_inches)}-inch ({int(width_inches)}″)** wide-format rolls"
+        else:
+            title_hdr = f"**{format_label}**"
+
+        if items_lines:
+            items_block = "\n".join(items_lines)
+            reply_text = (
+                f"Here are our verified {title_hdr} for {cat_title}:\n\n"
+                f"{items_block}\n\n"
+                f"Which roll surface or paper type would you like to review, or what is your target printer model?"
+            )
+        else:
+            reply_text = (
+                f"We stock several {title_hdr} across our catalogue. "
+                "Would you like to check compatibility for a specific printer model or request pricing?"
+            )
+
+        chips_to_return = ["24-inch Rolls", "44-inch Rolls", "Cut Sheets (A4 / A3+)", "Check Printer Compatibility"]
+        if format_label in chips_to_return:
+            chips_to_return.remove(format_label)
+        state.awaiting_field = None
+        state.last_assistant_response = reply_text
+        state.increment_turn()
+        return self._build_response(
+            reply=reply_text,
+            source="route:media_format",
+            product_cards=[],
+            consumable_cards=c_cards,
+            suggested_chips=chips_to_return,
+            nlp_result=nlp_result,
+            state=state,
+            latency_ms=int((time.time() - start_time) * 1000),
         )
 
     def _build_response(
@@ -4372,10 +4937,11 @@ class Orchestrator:
                 reply = re.sub(r"\*\*(?:AED\s*[\d,.]+|Price on Request)[^*]*\*\*", "", reply, flags=re.I)
                 reply = re.sub(r"\bAED\s*[\d,.]+(?:\s*\(Excl\. VAT\))?\b", "", reply, flags=re.I)
                 reply = re.sub(r"\bPrice on Request\b", "", reply, flags=re.I)
-            reply = re.sub(r"\b[\w.+-]+@(?:keplertech\.ae|keplertechllc\.com)\b", "", reply, flags=re.I)
-            if not source.startswith(("customer_flow:", "route:customer_flow")):
-                reply = re.sub(r"\+971[\d\s-]{7,16}", "", reply)
-            if not source.startswith("guardrail:") and not source.startswith(("route:product_price", "route:consumable_price", "route:general_price")):
+            if not source.startswith(("route:purchase", "route:support", "route:business_info", "route:contact", "guardrail:", "route:product_price", "route:consumable_price", "route:general_price")):
+                reply = re.sub(r"\b[\w.+-]+@(?:keplertech\.ae|keplertechllc\.com)\b", "", reply, flags=re.I)
+                if not source.startswith(("customer_flow:", "route:customer_flow")):
+                    reply = re.sub(r"\+971[\d\s-]{7,16}", "", reply)
+            if not source.startswith(("route:purchase", "guardrail:", "route:product_price", "route:consumable_price", "route:general_price", "route:support", "route:contact", "route:business_info")):
                 reply = "\n".join(
                     line for line in reply.splitlines()
                     if not re.search(r"\b(?:contact (?:our|the) (?:sales|support)|sales desk|commercial quotation|bulk delivery quotes|ask for (?:a )?quote|commercial sales|corporate financing|verified pricing|phone:|email:)\b", line, re.I)
@@ -4462,11 +5028,14 @@ class Orchestrator:
 
         is_grounded = (reply != STATIC_SAFE_REFUSAL and not source.endswith("safe_refusal"))
         grounding_status = "verified_catalogue_source" if is_grounded else "FAIL_CLOSED_SAFE"
+        is_llm_generated = getattr(self.response_composer, "last_composition_succeeded", False)
 
         return {
             "type": res_type,
             "reply": reply,
             "message": reply,
+            "llm_generated_message": reply,
+            "is_llm_generated": is_llm_generated,
             "result_count": len(product_cards),
             "subcategory": subcategory or state.subcategory,
             "cards": product_cards,
