@@ -552,7 +552,7 @@ class Orchestrator:
             reqs = dict(state.requirements or {})
             cat = state.category or reqs.get("category")
             cat_display_map = {
-                "office_printer": "Office Enterprise Documents (A3 / A4)",
+                "office_printer": "Office & Business Documents",
                 "technical_large_format": "Technical CAD / GIS Plotters",
                 "photography_large_format": "Photography & Fine Art",
                 "citizen_photo": "Photo Booth / Event Photography",
@@ -1053,7 +1053,7 @@ class Orchestrator:
             suggested_chips = [
                 "Technical CAD Plotters",
                 "Professional Photography",
-                "Office Enterprise Documents",
+                "Office & Business Documents",
                 "Dye-Sublimation (T-Shirts & Mugs)",
             ]
             state.last_assistant_response = reply_text
@@ -1142,7 +1142,7 @@ class Orchestrator:
             suggested_chips = [
                 "Technical CAD Plotters",
                 "Professional Photographs",
-                "Office Enterprise Documents",
+                "Office & Business Documents",
                 "Event Photos (Photo Booth)",
                 "Dye-Sublimation (T-Shirts & Mugs)",
             ]
@@ -1328,7 +1328,7 @@ class Orchestrator:
                     state.stage = "open"
                     chips_to_return = [
                         "Technical CAD Plotters",
-                        "Office Enterprise Documents",
+                        "Office & Business Documents",
                         "Professional Photographs",
                         "Event Photos (Photo Booth)",
                     ]
@@ -1420,7 +1420,7 @@ class Orchestrator:
                 chips_to_return = [
                     "Technical CAD Plotters",
                     "Professional Photography & Fine Art",
-                    "Office & Business Documents (A3 / A4)",
+                    "Office & Business Documents",
                     "Dye-Sublimation (T-Shirts & Mugs)"
                 ]
                 return self._build_response(
@@ -4233,7 +4233,7 @@ class Orchestrator:
         if not state.category:
             reply_text = "What will you primarily print or scan—technical CAD drawings, office & business documents, professional photographs, professional scanners, sublimation merchandise (mugs & T-shirts), or event photos?"
             chips_to_return = [
-                "Office & Business Documents (A3 / A4)",
+                "Office & Business Documents",
                 "Technical CAD Plotters",
                 "Professional Photography & Fine Art",
                 "Professional Scanners",

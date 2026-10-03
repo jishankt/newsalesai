@@ -386,7 +386,9 @@ class ContextualSlotResolver:
                 "office", "business", "workforce",
                 "document", "documents",
                 "invoices", "reports",
+                "office & business documents",
                 "office & business documents (a3 / a4)",
+                "office enterprise documents",
             ]):
                 reqs["category"] = "office_printer"
                 return reqs, corrections

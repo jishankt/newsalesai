@@ -233,7 +233,9 @@ def normalize_category(raw_text: str, current_category: Optional[str] = None) ->
         "a4 multifunction", "a3 multifunction", "a3 or a4", "a4 or a3", "a3 and a4", "a4 and a3",
         "am-c400", "am-c550", "am-c4000", "am-c5000", "am-c6000",
         "wf-c5890", "wf-c878", "wf-c879", "wf-c21000", "em-c800",
+        "office & business documents",
         "office & business documents (a3 / a4)",
+        "office enterprise documents",
     ]) or (
         bool(re.search(r"\bbusiness\b", text_l))
         and any(k in text_l for k in ["printer", "printers", "printing", "document", "documents", "invoices", "office"])
