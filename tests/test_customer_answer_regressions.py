@@ -106,3 +106,19 @@ def test_multiattribute_office_spec_uses_its_catalogued_ink_technology():
     assert "DURABrite Pro" in answer
     assert "UltraChrome" not in answer
     assert "Wi-Fi" in answer
+
+
+def test_office_and_business_documents_chip_routes_to_office_printer_not_scanners():
+    """Ensure clicking 'Office & Business Documents' routes to office_printer, not document scanners."""
+    state = ConversationState(session_id="audit-office-doc-chip")
+    turn1 = talk(state, "hey'")
+    assert state.awaiting_field == "category"
+
+    turn2 = talk(state, "Office & Business Documents")
+    assert state.category == "office_printer"
+    assert state.category != "scanners"
+    assert state.awaiting_field == "paper_size"
+    assert "scanner" not in turn2["reply"].lower() or "office" in turn2["reply"].lower()
+    # Confirm it does NOT recommend document scanners
+    cards = turn2.get("cards", []) + turn2.get("product_cards", [])
+    assert not any("ds-" in (c.get("id") or "").lower() for c in cards)

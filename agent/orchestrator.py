@@ -2905,15 +2905,30 @@ class Orchestrator:
                 latency_ms=int((time.time() - start_time) * 1000),
             )
 
-        # 6b. Comparison Query (Between 2+ Approved Catalogue Products)
-        is_scanner_type_selection = bool(re.search(
-            r"\b(?:both\s*\(?flatbed\s*[\+&]\s*adf\)?|flatbed\s*[\+&]\s*adf|flatbed\s+and\s+adf|both\s+flatbed\s+and\s+adf|both\s*\(flatbed\s*\+\s*adf\)|business\s+documents?|photo\s*&\s*film|photo\s+and\s+film|photo\s*film|hybrids?|flatbeds?|both\s+options|both\s+types|do\s+you\s+have\s+hybrid|professional\s+scann?er(?:s|es)?)\b",
+        # 6b. Comparison Query & Scanner Subcategory Selection Guard
+        is_office_or_printer_query = bool(re.search(
+            r"\b(?:office|printers?|printing|plotters?|copiers?|mfp|workforce\s+pro|workforce\s+enterprise|c5890|am-c)\b",
             normalized_msg.lower()
-        )) or (
+        )) or state.category == "office_printer"
+
+        in_scanner_context = (
             state.category in ("scanners", "scanner")
-            and bool(re.search(r"\b(?:hybrids?|flatbeds?|both|photo|document|documents|business|professional)\b", normalized_msg.lower()))
-            and not bool(re.search(r"\b(?:printers?|printing|plotters?|copiers?|mfp)\b", normalized_msg.lower()))
+            or state.awaiting_field in ("scanner_intent", "scanner_intent_professional", "scanner_type", "scan_type")
         )
+
+        is_scanner_type_selection = False
+        if not is_office_or_printer_query:
+            if in_scanner_context:
+                is_scanner_type_selection = bool(re.search(
+                    r"\b(?:both\s*\(?flatbed\s*[\+&]\s*adf\)?|flatbed\s*[\+&]\s*adf|flatbed\s+and\s+adf|both\s+flatbed\s+and\s+adf|both\s*\(flatbed\s*\+\s*adf\)|business\s+documents?|photo\s*&\s*film|photo\s+and\s+film|photo\s*film|hybrids?|flatbeds?|both\s+options|both\s+types|do\s+you\s+have\s+hybrid|professional\s+scann?er(?:s|es)?|documents?|business|photo|film)\b",
+                    normalized_msg.lower()
+                ))
+            else:
+                is_scanner_type_selection = bool(re.search(
+                    r"\b(?:both\s*\(?flatbed\s*[\+&]\s*adf\)?|flatbed\s*[\+&]\s*adf|flatbed\s+and\s+adf|both\s+flatbed\s+and\s+adf|both\s*\(flatbed\s*\+\s*adf\)|business\s+document\s+scann?er|photo\s*(?:&|and)?\s*(?:film\s+)?scann?er|hybrid\s+scann?er|flatbed\s+scann?er|professional\s+scann?er(?:s|es)?)\b",
+                    normalized_msg.lower()
+                ))
+
         if is_scanner_type_selection:
             state.category = "scanners"
             if re.search(r"\b(?:both|hybrid|flatbed\s*[\+&]\s*adf|flatbed\s+and\s+adf)\b", normalized_msg.lower()):
