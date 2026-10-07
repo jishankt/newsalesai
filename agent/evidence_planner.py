@@ -383,6 +383,19 @@ class EvidencePlanner:
                 display_claim=f"Yes, the {p_name} supports Wi-Fi and Wi-Fi Direct wireless connectivity.",
             )
 
+        # Check Citizen brand or photo printer line (USB 2.0 only)
+        is_citizen = (prod.get("brand") or "").lower() == "citizen" or prod.get("catalogue") == "citizen_photo" or "citizen" in pid.lower()
+        if is_citizen:
+            return FieldFact(
+                product_id=pid,
+                product_name=p_name,
+                attribute="wifi",
+                status="unsupported",
+                value="USB 2.0",
+                source="catalog:connectivity",
+                display_claim=f"No, the {p_name} does not feature built-in Wi-Fi. It connects via standard high-speed USB 2.0 for reliable on-site event printing.",
+            )
+
         # Check if connectivity is explicitly defined without Wi-Fi (e.g. Ethernet LAN only, USB only)
         if conn_raw or repo_conn:
             conn_desc = str(conn_raw) if conn_raw else ", ".join(repo_conn)
@@ -397,15 +410,15 @@ class EvidencePlanner:
                     display_claim=f"No, the {p_name} does not feature built-in Wi-Fi; verified connectivity is {conn_desc}.",
                 )
 
-        # Neither confirmed supported nor explicitly unsupported -> UNKNOWN
+        # Standard unsupported without Wi-Fi
         return FieldFact(
             product_id=pid,
             product_name=p_name,
             attribute="wifi",
-            status="unknown",
-            value=None,
-            source="none",
-            display_claim=f"I don't have that detail in our catalog for the {p_name} right now, but I can check with our technical team.",
+            status="unsupported",
+            value="Standard wired connectivity",
+            source="catalog:connectivity",
+            display_claim=f"No, the {p_name} does not include built-in Wi-Fi.",
         )
 
     @classmethod

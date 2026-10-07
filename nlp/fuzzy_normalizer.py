@@ -50,6 +50,10 @@ DOMAIN_TYPOS = {
     "media": ["medias", "meda", "meedia", "meedias", "mdeia"],
     "all": ["aall", "al", "alll"],
     
+    # Attributes & Performance
+    "fast": ["fst", "faast", "fsat", "fatest"],
+    "speed": ["sped", "speeed", "spead"],
+
     # Brands & Series
     "citizen": ["citizon", "citiizen", "citzen", "cittizen", "citizn"],
     "epson": ["epsn", "epzon", "epsom"],

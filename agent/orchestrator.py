@@ -226,6 +226,96 @@ class Orchestrator:
             explicitly_named = find_mentioned_catalogue_products(normalized_msg)
             if len(explicitly_named) == 1:
                 state.last_explicit_product_id = explicitly_named[0]["id"]
+
+        # ── 1b. Canonical Turn Understanding & Agentic Ledgers ───────────
+        if getattr(state, "question_ledger", None) is None:
+            from conversation.question_ledger import QuestionLedger
+            state.question_ledger = QuestionLedger()
+        if getattr(state, "goal_manager", None) is None:
+            from conversation.goal_manager import GoalManager
+            state.goal_manager = GoalManager()
+
+        from domain.turn_understanding import extract_turn_understanding, TurnUnderstanding
+        canonical_turn = extract_turn_understanding(raw_message, normalized_msg, state)
+        state._current_turn_understanding = canonical_turn
+
+        if canonical_turn.topic_switch:
+            state.goal_manager.handle_topic_switch(
+                new_goal=canonical_turn.customer_goal,
+                new_requirements=canonical_turn.requirements,
+                state=state,
+            )
+
+        for q in canonical_turn.questions:
+            state.question_ledger.register_customer_question(
+                text=q.text,
+                turn_index=state.turn_count,
+                target_product=q.target_product,
+                target_attribute=q.target_attribute,
+                explicit_semantic_key=q.semantic_key,
+            )
+
+        if canonical_turn.mentioned_products:
+            state.set_canonical_focus(canonical_turn.mentioned_products[0], source="customer_selected")
+            state.last_explicit_product_id = canonical_turn.mentioned_products[0]
+
+        from agent.planner import AgentPlanner, PlannerAction
+        agent_planner = AgentPlanner()
+        plan_step = agent_planner.plan_next_step(canonical_turn, state)
+
+        # ── Agent Planner: Clean Closing Handshake ───────────────────────
+        if plan_step.action == PlannerAction.FINISH or canonical_turn.primary_intent == "closing":
+            reply_text = "You're very welcome! If you need anything else down the line or want to explore sample prints, feel free to reach out anytime. Have a wonderful day!"
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="agent:closing",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=["Explore Other Models", "Contact Sales Desk"],
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── Agent Planner: Consultative Price Objection Handling ─────────
+        if canonical_turn.primary_intent == "price_objection":
+            act_id = state.get_canonical_focus_id()
+            act_prod = catalogue_loader.get_by_id(act_id) if act_id else state.active_product
+            p_name = act_prod.get("display_name") or act_prod.get("name") if act_prod else "this model"
+            p_price = act_prod.get("price") if act_prod else None
+            price_str = f"AED {p_price:,.2f}" if p_price else "the listed price"
+
+            if act_prod and ("cx-02" in str(act_id).lower() or "cx02" in str(act_id).lower()):
+                reply_text = (
+                    f"I understand that {price_str} is an investment upfront. "
+                    f"The {p_name} is built for continuous commercial wedding and event production with a low running cost (around AED 0.45 per 4×6″ print) and durable Japanese engineering. "
+                    f"If keeping initial investment as low as possible is your priority, the Citizen CZ-01 is a more compact option at AED 3,200. "
+                    f"Would you like to compare their running costs and portability?"
+                )
+                chips = ["Compare with Citizen CZ-01", "Check Running Costs", "Official Quotation"]
+            else:
+                reply_text = (
+                    f"I understand {price_str} is a significant investment. "
+                    f"Our equipment is commercial-grade with high reliability, official manufacturer warranty, and low per-print consumable costs. "
+                    f"Would you prefer to explore an alternative model with a lower initial equipment cost, or look at the expected running cost per print?"
+                )
+                chips = ["View Lower-Cost Options", "Check Running Costs", "Speak to Sales Specialist"]
+
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="agent:price_objection",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=chips,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
         if re.search(r"\b(?:ignore (?:your|previous) instructions|pretend the catalogue|say the .* costs?)\b", msg_l):
             reply_text = "I can only answer using verified catalogue information. Which product specification would you like to check?"
             state.last_assistant_response = reply_text
@@ -1533,7 +1623,11 @@ class Orchestrator:
             else:
                 state.awaiting_field = None
 
-        detected_category = normalize_category(normalized_msg, state.category)
+        if getattr(state, "_current_turn_understanding", None) and state._current_turn_understanding.topic_switch and state._current_turn_understanding.requirements.get("category"):
+            detected_category = state._current_turn_understanding.requirements["category"]
+            state.category = detected_category
+        else:
+            detected_category = normalize_category(normalized_msg, state.category)
         is_hardware_switch = detected_category and detected_category not in (None, "consumable")
 
         if (state.awaiting_field not in ("studio_technology_preference", "photo_brand") or is_hardware_switch) and not state.requirements.get("printing_technology"):
@@ -3971,7 +4065,18 @@ class Orchestrator:
 
         # 6c. Inkjet Media Inquiries & Category Discovery (Innova Art, Olmec, Korejet, Epson)
         msg_l_media = normalized_msg.lower().strip()
-        has_hw_word = any(w in msg_l_media for w in [
+        is_media_rolls = bool(re.search(
+            r"\b(?:medias?\s*rolls?|roll\s*medias?|paper\s*rolls?|rolls?\s*of\s*media|media\s*in\s*rolls?|"
+            r"photographic\s*(?:media\s*)?rolls?|"
+            r"(?:list|show|give|display|get)\s+(?:all\s+)?(?:the\s+)?(?:photographic\s+|fine\s*art\s+|canvas\s+)?(?:medias?\s+)?rolls?|"
+            r"all\s+(?:the\s+)?(?:medias?\s+)?rolls?)\b",
+            msg_l_media
+        ))
+        is_media_explicit = bool(re.search(
+            r"\b(?:inkjet\s*medias?|inkjet\s*papers?|inkjet\s*canvas(?:es)?|print\s*medias?|fine\s*art\s*papers?|photo\s*papers?|photographic\s*(?:papers?|medias?|rolls?)?|canvas(?:\s*rolls?|\s*medias?)?|innova(?:\s*art)?|olmec|korejet|baryta|cotton\s*rag|watercolour\s*paper|fabriano|paste\s*up\s*wallpaper|wallpaper\s*medias?|ifa[-\s]?\d+|olm[-\s]?\d+|kj[-\s]?p\d+)\b",
+            msg_l_media
+        ))
+        has_hw_word = (any(w in msg_l_media for w in [
             "which printer", "need a printer", "buy printer", "printer price", "cost of printer",
             "plotter", "scanner", "printer specs", "printer specifications", "looking for a printer", "printer model",
             "sc-f", "sc-t", "sc-p", "f500", "f100", "p700", "p900", "p5300", "p6500", "p7500", "p8500", "p9500",
@@ -3982,7 +4087,7 @@ class Orchestrator:
         )) or (
             state.category in ("dye_sublimation", "sublimation", "office_printer", "technical_large_format", "photography_large_format", "citizen_photo", "scanners", "scanner")
             and getattr(state, "active_media_category", None) is None
-        )
+        )) and not (is_media_rolls or is_media_explicit)
 
         # Ambiguous "i need a inkjet" / "i need inkjet" / "looking for inkjet" check
         is_ambiguous_inkjet = bool(re.search(
@@ -4010,18 +4115,8 @@ class Orchestrator:
                 latency_ms=int((time.time() - start_time) * 1000),
             )
 
-        is_media_rolls = bool(re.search(
-            r"\b(?:medias?\s*rolls?|roll\s*medias?|paper\s*rolls?|rolls?\s*of\s*media|media\s*in\s*rolls?|"
-            r"(?:list|show|give|display|get)\s+(?:all\s+)?(?:the\s+)?(?:medias?\s+)?rolls?|"
-            r"all\s+(?:the\s+)?(?:medias?\s+)?rolls?)\b",
-            msg_l_media
-        ))
-        is_media_explicit = bool(re.search(
-            r"\b(?:inkjet\s*medias?|inkjet\s*papers?|inkjet\s*canvas(?:es)?|print\s*medias?|fine\s*art\s*papers?|photo\s*papers?|canvas(?:\s*rolls?|\s*medias?)?|innova(?:\s*art)?|olmec|korejet|baryta|cotton\s*rag|watercolour\s*paper|fabriano|paste\s*up\s*wallpaper|wallpaper\s*medias?|ifa[-\s]?\d+|olm[-\s]?\d+|kj[-\s]?p\d+)\b",
-            msg_l_media
-        ))
         is_media_generic = bool(re.search(
-            r"\b(?:(?:what|which|types\s+of|list|show|have|sell|stock|need|want|buy)\s+(?:all\s+)?(?:the\s+)?(?:inkjet\s+)?(?:medias?|papers?|paper\s+rolls?|media\s+rolls?)|medias?\s+(?:options|catalogue|list|types|rolls?)|paper\s+rolls?|roll\s+medias?|medias?\s*rolls?|papers?\s+and\s+medias?|photo\s+medias?)\b",
+            r"\b(?:(?:what|which|types\s+of|list|show|have|sell|stock|need|want|buy)\s+(?:all\s+)?(?:the\s+)?(?:inkjet\s+)?(?:medias?|papers?|paper\s+rolls?|media\s+rolls?)|medias?\s+(?:options|catalogue|list|types|rolls?)|paper\s+rolls?|roll\s+medias?|medias?\s*rolls?|papers?\s+and\s+medias?|photo\s+medias?|photographic\s+medias?)\b",
             msg_l_media
         )) or is_media_rolls
         is_media_chip_selection = any(k in msg_l_media for k in [
@@ -4030,11 +4125,11 @@ class Orchestrator:
 
         if (is_media_explicit or is_media_generic or is_media_chip_selection) and not has_hw_word:
             is_fine_art = any(k in msg_l_media for k in ["fine art", "innova", "cotton rag", "baryta", "fabriano", "watercolour", "etching", "ifa"])
-            is_photo = any(k in msg_l_media for k in ["photo paper", "photo papers", "olmec", "lustre", "luster", "glossy", "photo gloss", "metallic", "dry lab", "pearl", "kj-p260"])
+            is_photo = any(k in msg_l_media for k in ["photo paper", "photo papers", "photographic", "olmec", "lustre", "luster", "glossy", "photo gloss", "metallic", "dry lab", "pearl", "kj-p260"])
             is_canvas = any(k in msg_l_media for k in ["canvas", "canvases", "gallery wrap", "cotton canvas", "polycotton canvas"])
             is_signage = any(k in msg_l_media for k in ["signage", "wallpaper", "eco solvent", "eco-solvent", "poster art", "ifa 98", "ifa-98", "ifa 96", "ifa-96", "ifa 93", "ifa-93"])
 
-            if is_media_rolls and not (is_fine_art or is_photo or is_canvas or is_signage):
+            if is_media_rolls:
                 return self._build_media_rolls_response(state, nlp_result, start_time)
             elif is_fine_art and not (is_photo or is_canvas or is_signage):
                 return self._build_media_category_response("fine_art", state, nlp_result, start_time)
@@ -4044,8 +4139,6 @@ class Orchestrator:
                 return self._build_media_category_response("canvas", state, nlp_result, start_time)
             elif is_signage and not (is_fine_art or is_photo or is_canvas):
                 return self._build_media_category_response("signage", state, nlp_result, start_time)
-            elif is_media_rolls:
-                return self._build_media_rolls_response(state, nlp_result, start_time)
             else:
                 return self._build_media_category_response("general", state, nlp_result, start_time)
 
@@ -4968,6 +5061,7 @@ class Orchestrator:
             or source.startswith("route:model_detail")
             or source.startswith("route:product_spec_attribute")
             or source.startswith("qualification:")
+            or source.startswith("agent:")
             or "safe_refusal" in source
             or "refusal" in source
             or "error" in source
@@ -5558,16 +5652,16 @@ class Orchestrator:
 
         # Section 21: Clean internal database terms from customer-facing reply
         if reply:
-            if not source.startswith(("route:cost_per_print", "route:product_price", "route:consumable_price", "route:general_price", "route:purchase")):
+            if not source.startswith(("route:cost_per_print", "route:product_price", "route:consumable_price", "route:general_price", "route:purchase", "agent:price_objection")):
                 reply = re.sub(r":\s*\*\*(?:AED\s*[\d,.]+|Price on Request)[^*]*\*\*", "", reply, flags=re.I)
                 reply = re.sub(r"\*\*(?:AED\s*[\d,.]+|Price on Request)[^*]*\*\*", "", reply, flags=re.I)
                 reply = re.sub(r"\bAED\s*[\d,.]+(?:\s*\(Excl\. VAT\))?\b", "", reply, flags=re.I)
                 reply = re.sub(r"\bPrice on Request\b", "", reply, flags=re.I)
-            if not source.startswith(("route:purchase", "route:support", "route:business_info", "route:contact", "guardrail:", "route:product_price", "route:consumable_price", "route:general_price")):
+            if not source.startswith(("route:purchase", "route:support", "route:business_info", "route:contact", "guardrail:", "route:product_price", "route:consumable_price", "route:general_price", "agent:price_objection")):
                 reply = re.sub(r"\b[\w.+-]+@(?:keplertech\.ae|keplertechllc\.com)\b", "", reply, flags=re.I)
                 if not source.startswith(("customer_flow:", "route:customer_flow")):
                     reply = re.sub(r"\+971[\d\s-]{7,16}", "", reply)
-            if not source.startswith(("route:purchase", "guardrail:", "route:product_price", "route:consumable_price", "route:general_price", "route:support", "route:contact", "route:business_info")):
+            if not source.startswith(("route:purchase", "guardrail:", "route:product_price", "route:consumable_price", "route:general_price", "route:support", "route:contact", "route:business_info", "agent:price_objection")):
                 reply = "\n".join(
                     line for line in reply.splitlines()
                     if not re.search(r"\b(?:contact (?:our|the) (?:sales|support)|sales desk|commercial quotation|bulk delivery quotes|ask for (?:a )?quote|commercial sales|corporate financing|verified pricing|phone:|email:)\b", line, re.I)
@@ -5659,6 +5753,29 @@ class Orchestrator:
                 if not state.history_turns or state.history_turns[-1].get("content") != reply:
                     state.history_turns.append({"role": "user", "content": norm_txt})
                     state.history_turns.append({"role": "assistant", "content": reply})
+
+        # Section 22: Answer Relevance Validator & Clean WhatsApp Formatting
+        canonical_turn = getattr(state, "_current_turn_understanding", None)
+        if canonical_turn and getattr(canonical_turn, "questions", None):
+            from validation.answer_relevance_validator import answer_relevance_validator
+            is_valid, repaired_text, failure_reasons = answer_relevance_validator.validate_and_repair(
+                understanding=canonical_turn,
+                response_text=reply,
+                target_product_id=state.get_canonical_focus_id(),
+                product_data=state.active_product,
+            )
+            if not is_valid:
+                logger.info(f"Answer Relevance Validator repaired response: {failure_reasons}")
+                reply = repaired_text
+                state.last_assistant_response = reply
+            if getattr(state, "question_ledger", None):
+                for q in canonical_turn.questions:
+                    state.question_ledger.mark_answered(q.semantic_key, state.turn_count, reply)
+
+        from agent.response_composer import ResponseComposer
+        if reply:
+            reply = ResponseComposer._clean_unwanted_stars(reply)
+            state.last_assistant_response = reply
 
         is_grounded = (reply != STATIC_SAFE_REFUSAL and not source.endswith("safe_refusal"))
         grounding_status = "verified_catalogue_source" if is_grounded else "FAIL_CLOSED_SAFE"

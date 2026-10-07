@@ -39,6 +39,15 @@ def _normalize_category_single(raw_text: str, current_category: Optional[str] = 
     text_l = (raw_text or "").lower()
 
     # Guard: Do NOT hijack or set category for media requests, capability questions, or configuration inquiries
+    is_media_query = bool(re.search(
+        r"\b(?:medias?\s*rolls?|roll\s*medias?|paper\s*rolls?|rolls?\s*of\s*media|media\s*in\s*rolls?|"
+        r"photographic\s*(?:media\s*)?rolls?|"
+        r"inkjet\s*medias?|inkjet\s*papers?|fine\s*art\s*papers?|photo\s*papers?)\b",
+        text_l
+    ))
+    if is_media_query:
+        return None
+
     is_media_request = bool(re.search(r"\b(?:send|show|give|provide|share)\s+(?:me\s+)?(?:a\s+)?(?:photo|photos|picture|pictures|image|images|pic|pics)\b", text_l)) or bool(re.search(r"\b(?:photo|picture|image)\s*\?", text_l))
     if is_media_request and current_category:
         return current_category
@@ -102,17 +111,20 @@ def _normalize_category_single(raw_text: str, current_category: Optional[str] = 
     # 1. Citizen photo check (Citizen brand is exclusively direct dye-sub/thermal photo printers)
     if not has_photo_booth_correction and (any(k in text_l for k in [
         "citizen", "citizon", "citzen", "photo booth", "photobooth", "event photo", "event photos",
-        "cz-01", "cx-02", "cy-02", "cx-02w"
+        "compact photo", "photo printer for events", "event photo printer", "wedding photo printer",
+        "photo printer for weddings", "cz-01", "cx-02", "cy-02", "cx-02w"
     ]) or (
         any(k in text_l for k in ["dye sub", "dyesub", "dye-sub", "dye-sublimation"])
         and any(k in text_l for k in ["photo", "photos", "kiosk", "booth", "event", "4x6", "6x8", "8x10", "8x12"])
     ) or (
-        # Bare "event" or "events" echoing the chip label — only when not already a different category
+        # Bare "event" or "events" echoing the chip label — only when not already a different category (unless explicit switch)
         bool(re.search(r"\bevents?\b", text_l))
-        and current_category not in ("office_printer", "photography_large_format", "technical_large_format", "dye_sublimation", "scanners", "scanner")
+        and (has_explicit_switch or current_category not in ("office_printer", "photography_large_format", "technical_large_format", "dye_sublimation", "scanners", "scanner"))
         and not bool(re.search(r"\b(?:scann?er(?:s|es)?|scanning|scan|plotter|copier|mfp)\b", text_l))
+    ) or (
+        has_explicit_switch and any(k in text_l for k in ["compact photo", "photo printer for events", "event photo", "photo printer for wedding"])
     )):
-        if current_category in ("photography_large_format", "photo_printer", "photo"):
+        if current_category in ("photography_large_format", "photo_printer", "photo") and not has_explicit_switch:
             return current_category
         return "citizen_photo"
 
@@ -195,7 +207,10 @@ def _normalize_category_single(raw_text: str, current_category: Optional[str] = 
 
     # 4. Technical / CAD / Plotters (including common typos like 'plottaer')
     # Guard: do not match if CAD or technical is negated (e.g. 'not for CAD', 'printer but not for CAD')
-    cad_negated = bool(re.search(r"\b(?:not\s+(?:for\s+)?(?:cad|technical|plotter|blueprint)|no\s+(?:cad|plotter)|don'?t\s+need\s+(?:cad|plotter))\b", text_l))
+    cad_negated = bool(re.search(
+        r"\b(?:forget(?:\s+about)?\s+(?:cad|plotters?|printers?|blueprints?)|not\s+(?:for\s+)?(?:cad|technical|plotter|blueprint)|no\s+(?:cad|plotter)|don'?t\s+need\s+(?:cad|plotter)|no\s+longer\s+need\s+(?:cad|plotter))\b",
+        text_l
+    ))
     # Affirmative CAD/plotter request (e.g. "no, I need a CAD plotter" or "no I want plotter") overrides negation
     if bool(re.search(r"\b(?:i\s+(?:need|want|would\s+like|prefer)|looking\s+for|switch\s+to|show\s+me|give\s+me|interested\s+in|ineed|iwant)\b.*?\b(?:cad|technical|plotter|blueprint)\b", text_l)):
         cad_negated = False

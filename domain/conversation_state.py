@@ -14,20 +14,51 @@ from typing import Optional, Dict, Any, List
 
 
 @dataclass
+class CanonicalProductFocus:
+    """Single authoritative product focus across the conversation."""
+    product_id: str
+    product_type: str = "hardware"  # hardware | media | consumable
+    confidence: float = 1.0
+    source: str = "customer_selected"  # customer_selected | system_recommended | comparison_target
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "product_id": self.product_id,
+            "product_type": self.product_type,
+            "confidence": self.confidence,
+            "source": self.source,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "CanonicalProductFocus":
+        return cls(
+            product_id=data.get("product_id", ""),
+            product_type=data.get("product_type", "hardware"),
+            confidence=float(data.get("confidence", 1.0)),
+            source=data.get("source", "customer_selected"),
+        )
+
+
+@dataclass
 class ConversationState:
     """Complete conversation state that preserves customer memory and qualification requirements."""
     session_id: str
 
-    # ── Customer Memory ──────────────────────────────────────────────────
+    # ── Customer Memory & Profile ────────────────────────────────────────
     customer_name: Optional[str] = None
     customer_id: Optional[str] = None
     lead_prompt_status: Optional[str] = None
     customer_phone_or_email: Optional[str] = None
     preferred_language: str = "en"
+    customer_behavior: str = "exploring"  # exploring, technical, comparing, frustrated, closing, high_intent, etc.
+    customer_goal: str = "explore"
 
-    # ── Conversation Control ─────────────────────────────────────────────
+    # ── Conversation Control & Ledger Engines ────────────────────────────
     stage: str = "open"  # open | qualifying | recommending | comparing | consumables | supporting | closing
     active_route: Optional[str] = None
+    canonical_focus: Optional[CanonicalProductFocus] = None
+    question_ledger: Any = None
+    goal_manager: Any = None
     last_intent: Optional[str] = None
     last_dialogue_act: Optional[str] = None
     last_assistant_response: Optional[str] = None
@@ -81,10 +112,68 @@ class ConversationState:
     handover_timestamp: Optional[float] = None
     pending_agent_messages: List[Dict[str, Any]] = field(default_factory=list)
 
+    # ── Canonical Focus & Focus Resolution ───────────────────────────────
+
+    def set_canonical_focus(
+        self,
+        product_id: str,
+        product_type: str = "hardware",
+        source: str = "customer_selected",
+        confidence: float = 1.0,
+    ) -> CanonicalProductFocus:
+        focus = CanonicalProductFocus(
+            product_id=product_id,
+            product_type=product_type,
+            confidence=confidence,
+            source=source,
+        )
+        self.canonical_focus = focus
+        self.active_product_id = product_id
+        return focus
+
+    def get_canonical_focus_id(self) -> Optional[str]:
+        """
+        Unified precedence contract for active product focus:
+        1. Explicit canonical focus set in current turn
+        2. Last explicitly named product ID
+        3. active_product_id
+        4. active_product["id"]
+        5. active_printer_for_consumables
+        6. compared_product_ids[0]
+        7. candidate_products[0]["id"]
+        8. displayed_product_ids[0]
+        """
+        if self.canonical_focus and self.canonical_focus.product_id:
+            return self.canonical_focus.product_id
+        if self.last_explicit_product_id:
+            return self.last_explicit_product_id
+        if self.active_product_id:
+            return self.active_product_id
+        if self.active_product and isinstance(self.active_product, dict) and self.active_product.get("id"):
+            return self.active_product["id"]
+        if self.active_printer_for_consumables:
+            return self.active_printer_for_consumables
+        if self.compared_product_ids:
+            return self.compared_product_ids[0]
+        if self.candidate_products:
+            cand = self.candidate_products[0]
+            if isinstance(cand, dict) and cand.get("id"):
+                return cand["id"]
+        if self.displayed_product_ids:
+            return self.displayed_product_ids[0]
+        return None
+
     # ── Serialization ────────────────────────────────────────────────────
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to dict. Backward-compatible with original CanonicalState."""
+        ql_data = None
+        if self.question_ledger and hasattr(self.question_ledger, "to_list"):
+            ql_data = self.question_ledger.to_list()
+        gm_data = None
+        if self.goal_manager and hasattr(self.goal_manager, "to_dict"):
+            gm_data = self.goal_manager.to_dict()
+
         return {
             "session_id": self.session_id,
             "customer_name": self.customer_name,
@@ -92,6 +181,11 @@ class ConversationState:
             "lead_prompt_status": self.lead_prompt_status,
             "customer_phone_or_email": self.customer_phone_or_email,
             "preferred_language": self.preferred_language,
+            "customer_behavior": self.customer_behavior,
+            "customer_goal": self.customer_goal,
+            "canonical_focus": self.canonical_focus.to_dict() if self.canonical_focus else None,
+            "question_ledger": ql_data,
+            "goal_manager": gm_data,
             "stage": self.stage,
             "active_route": self.active_route,
             "last_intent": self.last_intent,
@@ -143,6 +237,20 @@ class ConversationState:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ConversationState":
         """Deserialize from dict."""
+        focus = None
+        if data.get("canonical_focus"):
+            focus = CanonicalProductFocus.from_dict(data["canonical_focus"])
+
+        ql = None
+        if data.get("question_ledger"):
+            from conversation.question_ledger import QuestionLedger
+            ql = QuestionLedger.from_list(data["question_ledger"])
+
+        gm = None
+        if data.get("goal_manager"):
+            from conversation.goal_manager import GoalManager
+            gm = GoalManager.from_dict(data["goal_manager"])
+
         return cls(
             session_id=data.get("session_id", ""),
             customer_name=data.get("customer_name"),
@@ -150,6 +258,11 @@ class ConversationState:
             lead_prompt_status=data.get("lead_prompt_status"),
             customer_phone_or_email=data.get("customer_phone_or_email"),
             preferred_language=data.get("preferred_language", "en"),
+            customer_behavior=data.get("customer_behavior", "exploring"),
+            customer_goal=data.get("customer_goal", "explore"),
+            canonical_focus=focus,
+            question_ledger=ql,
+            goal_manager=gm,
             stage=data.get("stage", "open"),
             active_route=data.get("active_route"),
             last_intent=data.get("last_intent"),
