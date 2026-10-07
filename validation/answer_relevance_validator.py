@@ -118,11 +118,14 @@ class AnswerRelevanceValidator:
             prod = catalogue_loader.get_by_id(target_product_id)
 
         answers: List[str] = []
-        p_name = prod.get("display_name", prod.get("name", "The printer")) if prod else "The printer"
 
         for q in unanswered_questions:
             sem_key = q.semantic_key
-            if not prod:
+            q_prod_id = q.target_product or target_product_id
+            curr_prod = catalogue_loader.get_by_id(q_prod_id) if q_prod_id else prod
+            curr_name = curr_prod.get("display_name", curr_prod.get("name", "The printer")) if curr_prod else "The printer"
+
+            if not curr_prod:
                 # Try finding from mentioned products or query
                 if sem_key == "wifi_support":
                     answers.append("Could you clarify which printer model you are asking about for Wi-Fi support?")
@@ -134,37 +137,45 @@ class AnswerRelevanceValidator:
                     answers.append(f"Which model would you like me to check for {q.text}?")
                 continue
 
-            specs = prod.get("specifications", {}) or {}
+            specs = curr_prod.get("specifications", {}) or {}
 
             if sem_key == "print_speed":
-                speed = prod.get("print_speed") or specs.get("print_speed") or specs.get("speed")
+                speed = curr_prod.get("print_speed") or specs.get("print_speed") or specs.get("speed")
                 if speed:
-                    answers.append(f"The {p_name} prints at {speed}.")
+                    answers.append(f"The {curr_name} prints at {speed}.")
                 else:
-                    answers.append(f"The {p_name} offers high-speed commercial production printing.")
+                    answers.append(f"The {curr_name} offers high-speed commercial production printing.")
 
             elif sem_key == "wifi_support":
-                conn = prod.get("connectivity") or specs.get("connectivity") or specs.get("interfaces", "")
+                conn = curr_prod.get("connectivity") or specs.get("connectivity") or specs.get("interfaces", "")
+                if not conn and curr_prod.get("id"):
+                    try:
+                        from catalog.repository import catalog_repository as _cr
+                        _np = _cr.get_by_id(curr_prod.get("id"))
+                        if _np and getattr(_np.verified, "connectivity", None):
+                            conn = _np.verified.connectivity
+                    except Exception:
+                        pass
                 conn_str = str(conn).lower() if conn else ""
                 wifi_supported = any(w in conn_str for w in ["wi-fi", "wifi", "wireless"])
                 if wifi_supported:
-                    answers.append(f"Yes, the {p_name} supports Wi-Fi connectivity.")
+                    answers.append(f"Yes, the {curr_name} supports Wi-Fi connectivity.")
                 else:
-                    answers.append(f"No, the {p_name} does not include built-in Wi-Fi; it connects via USB and Ethernet.")
+                    answers.append(f"No, the {curr_name} does not include built-in Wi-Fi; it connects via USB and Ethernet.")
 
             elif sem_key == "media_yield":
                 # Check media yield / rolls per box / prints per roll
-                media_info = prod.get("media_details") or prod.get("yield_info") or specs.get("roll_capacity")
-                if "cx-02" in prod.get("id", "").lower() or "cx02" in prod.get("id", "").lower():
-                    answers.append(f"The {p_name} yields 400 prints per roll for 4x6\" media (800 prints per box, 2 rolls per box).")
-                elif "cz-01" in prod.get("id", "").lower():
-                    answers.append(f"The {p_name} yields 150 prints per roll for 4x6\" media.")
-                elif "cy-02" in prod.get("id", "").lower():
-                    answers.append(f"The {p_name} yields 700 prints per roll for 4x6\" media.")
+                media_info = curr_prod.get("media_details") or curr_prod.get("yield_info") or specs.get("roll_capacity")
+                if "cx-02" in curr_prod.get("id", "").lower() or "cx02" in curr_prod.get("id", "").lower():
+                    answers.append(f"The {curr_name} yields 400 prints per roll for 4x6\" media (800 prints per box, 2 rolls per box).")
+                elif "cz-01" in curr_prod.get("id", "").lower():
+                    answers.append(f"The {curr_name} yields 150 prints per roll for 4x6\" media.")
+                elif "cy-02" in curr_prod.get("id", "").lower():
+                    answers.append(f"The {curr_name} yields 700 prints per roll for 4x6\" media.")
                 elif media_info:
-                    answers.append(f"The {p_name} yields {media_info}.")
+                    answers.append(f"The {curr_name} yields {media_info}.")
                 else:
-                    answers.append(f"The {p_name} uses standard media rolls with high page yields per box.")
+                    answers.append(f"The {curr_name} uses standard media rolls with high page yields per box.")
 
             elif sem_key == "physical_specs":
                 weight = prod.get("weight") or specs.get("weight")
