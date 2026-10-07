@@ -100,13 +100,24 @@ class UniversalFuzzyNormalizer:
                 self.direct_domain_map[t] = canonical
             self.direct_domain_map[canonical] = canonical
 
+    COMMON_WORDS: Set[str] = {
+        "can", "place", "plan", "back", "pack", "man", "fan", "pan", "tan", "van", "ran",
+        "block", "blank", "play", "plate", "pace", "peace", "please", "clean", "clan",
+        "scan", "span", "price", "print", "one", "two", "an", "the", "for", "to", "in",
+        "on", "at", "by", "from", "with", "about", "what", "which", "where", "who", "how",
+        "when", "why", "is", "are", "was", "were", "be", "been", "have", "has", "had",
+        "do", "does", "did", "will", "would", "shall", "should", "may", "might", "must",
+        "want", "need", "like", "order", "buy", "sell", "use", "make", "get", "give", "take",
+        "fine", "line", "page", "pages", "paper", "fast", "speed", "box", "case", "cost"
+    }
+
     def normalize_color(self, token: str) -> Optional[str]:
         """
         Normalizes a color token to canonical color if match/fuzzy distance is close.
         Returns canonical color name or None.
         """
         t = token.lower().strip()
-        if not t:
+        if not t or t in self.COMMON_WORDS:
             return None
 
         # 1. Exact or direct dictionary lookup

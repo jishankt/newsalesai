@@ -19,6 +19,7 @@ class QuestionStatus(str, Enum):
     DEFERRED = "deferred"
     INVALID = "invalid"
     SUPERSEDED = "superseded"
+    NOT_APPLICABLE = "not_applicable"
 
 
 # Canonical Semantic Mapping Patterns
@@ -185,6 +186,22 @@ class QuestionLedger:
         self.items.append(new_item)
         return new_item
 
+    def add_question(
+        self,
+        semantic_key: str,
+        question_text: str,
+        turn_index: int = 1
+    ) -> QuestionItem:
+        """Convenience alias for registering an agent question in test suites."""
+        return self.register_agent_question(semantic_key=semantic_key, question_text=question_text, turn_index=turn_index)
+
+    def get_entry(self, semantic_key: str) -> Optional[QuestionItem]:
+        """Finds question item by semantic key."""
+        for item in self.items:
+            if item.semantic_key == semantic_key:
+                return item
+        return None
+
     def mark_answered(
         self,
         semantic_key: str,
@@ -237,11 +254,21 @@ class QuestionLedger:
         unans = self.get_unanswered_customer_questions()
         return unans[-1] if unans else None
 
-    def supersede_pending_agent_questions(self) -> None:
-        """Marks pending agent qualification questions as superseded (e.g. when user asks a direct spec question)."""
+    def mark_not_applicable(self, semantic_key: str) -> None:
+        """Marks questions matching the semantic key as not applicable."""
+        for item in self.items:
+            if item.semantic_key == semantic_key:
+                item.status = QuestionStatus.NOT_APPLICABLE
+
+    def invalidate_for_topic_switch(self) -> None:
+        """Invalidates pending qualification questions when the customer switches topic/category."""
         for item in self.items:
             if item.origin == "agent" and item.status == QuestionStatus.UNANSWERED:
-                item.status = QuestionStatus.SUPERSEDED
+                item.status = QuestionStatus.NOT_APPLICABLE
+
+    def supersede_pending_agent_questions(self) -> None:
+        """Alias for invalidate_for_topic_switch."""
+        self.invalidate_for_topic_switch()
 
     def to_list(self) -> List[Dict[str, Any]]:
         return [item.to_dict() for item in self.items]

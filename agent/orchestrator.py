@@ -235,42 +235,133 @@ class Orchestrator:
             from conversation.goal_manager import GoalManager
             state.goal_manager = GoalManager()
 
-        from domain.turn_understanding import extract_turn_understanding, TurnUnderstanding
-        canonical_turn = extract_turn_understanding(raw_message, normalized_msg, state)
+        from domain.canonical_turn import extract_canonical_turn
+        canonical_turn = extract_canonical_turn(raw_message, normalized_msg, state)
         state._current_turn_understanding = canonical_turn
 
-        if canonical_turn.topic_switch:
-            state.goal_manager.handle_topic_switch(
-                new_goal=canonical_turn.customer_goal,
-                new_requirements=canonical_turn.requirements,
-                state=state,
+        from agent.state_reconciler import StateReconciler
+        state = StateReconciler.reconcile(canonical_turn, state)
+
+        from agent.sales_consultant_agent import SalesConsultantAgent, AgentAction, AgentDecision
+        sales_consultant = SalesConsultantAgent()
+        agent_decision = sales_consultant.plan(canonical_turn, state)
+        state._current_agent_decision = agent_decision
+
+        from agent.naturalness_validator import NaturalnessValidator
+
+        # ── 1c. Direct Answer for Explicit Customer Questions (HIGHEST PRIORITY) ──
+        if agent_decision.action in (AgentAction.ANSWER, AgentAction.RETRIEVE) and canonical_turn.explicit_questions:
+            from validation.answer_relevance_validator import answer_relevance_validator
+            target_p = agent_decision.target_product or state.get_canonical_focus_id()
+            if not target_p and getattr(state, "candidate_products", []):
+                first_cand = state.candidate_products[0]
+                target_p = first_cand.get("id") if isinstance(first_cand, dict) else str(first_cand)
+            direct_reply = answer_relevance_validator._synthesize_direct_recovery(
+                unanswered_questions=canonical_turn.explicit_questions,
+                target_product_id=target_p,
+                product_data=catalogue_loader.get_by_id(target_p) if target_p else state.active_product,
+                existing_response=""
             )
-            state.active_product = None
-            state.active_product_id = None
-            state.candidate_products = []
-            if canonical_turn.requirements.get("category"):
-                state.category = canonical_turn.requirements["category"]
+            if direct_reply:
+                if canonical_turn.customer_behavior == "FRUSTRATED" and not any(w in direct_reply.lower() for w in ["apolog", "sorry"]):
+                    direct_reply = f"My apologies for the confusion earlier! {direct_reply}"
 
-        for q in canonical_turn.questions:
-            state.question_ledger.register_customer_question(
-                text=q.text,
-                turn_index=state.turn_count,
-                target_product=q.target_product,
-                target_attribute=q.target_attribute,
-                explicit_semantic_key=q.semantic_key,
-            )
+                # If turn also asks about investment cost comparison, combine with investment analysis
+                if canonical_turn.primary_intent == "investment_cost_comparison" or any(w in msg_l for w in ["investment", "ongoing printing costs", "running cost"]):
+                    cat = state.category or canonical_turn.requirements.get("category")
+                    inv_text = ""
+                    if cat == "office_printer" or any("am-c" in str(p).lower() or "wf-c" in str(p).lower() for p in getattr(state, "candidate_products", [])):
+                        inv_text = (
+                            "In terms of investment and ongoing printing costs, the Epson WorkForce Pro series offers the lowest upfront machine cost for standard office use, "
+                            "while the WorkForce Enterprise AM-C series requires a higher initial investment but provides lower cost per page and enterprise-grade reliability."
+                        )
+                    elif cat == "citizen_photo" or any("cx" in str(p).lower() or "cz" in str(p).lower() for p in getattr(state, "candidate_products", [])):
+                        inv_text = (
+                            "In terms of investment and running costs, the Citizen CZ-01 has the lowest entry price (AED 3,200), "
+                            "whereas the Citizen CY-02 offers higher capacity and lower running costs per print."
+                        )
+                    if inv_text:
+                        direct_reply = f"{direct_reply} {inv_text}"
 
-        if canonical_turn.mentioned_products:
-            state.set_canonical_focus(canonical_turn.mentioned_products[0], source="customer_selected")
-            state.last_explicit_product_id = canonical_turn.mentioned_products[0]
+                direct_reply = NaturalnessValidator.sanitize(direct_reply, canonical_turn.customer_behavior, state)
+                for q in canonical_turn.explicit_questions:
+                    state.question_ledger.mark_answered(
+                        semantic_key=q.semantic_key,
+                        turn_index=state.turn_count,
+                        target_product=q.target_product or target_p
+                    )
+                state.last_assistant_response = direct_reply
+                state.increment_turn()
+                return self._build_response(
+                    reply=direct_reply,
+                    source="agent:direct_answer",
+                    product_cards=[],
+                    consumable_cards=[],
+                    suggested_chips=["Check Another Specification", "Official Quotation"],
+                    nlp_result=nlp_result,
+                    state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
 
-        from agent.planner import AgentPlanner, PlannerAction
-        agent_planner = AgentPlanner()
-        plan_step = agent_planner.plan_next_step(canonical_turn, state)
+        # ── 1d. Direct Two-Product Comparison (HIGHEST PRIORITY) ────────
+        if agent_decision.action == AgentAction.COMPARE or (len(canonical_turn.mentioned_products) >= 2 and any(w in msg_l for w in ["compare", "difference", "between", "vs", "versus", "which"])):
+            prods = [catalogue_loader.get_by_id(pid) for pid in canonical_turn.mentioned_products[:2]]
+            if len(prods) == 2 and all(prods):
+                p1, p2 = prods[0], prods[1]
+                p1_name = p1.get("display_name") or p1.get("name") or "Product 1"
+                p2_name = p2.get("display_name") or p2.get("name") or "Product 2"
+                lines = [f"Here is how the {p1_name} and {p2_name} compare:"]
+
+                if any(w in msg_l for w in ["width", "format", "size"]):
+                    w1 = p1.get("print_width") or p1.get("max_width_inches") or p1.get("paper_size", "")
+                    w2 = p2.get("print_width") or p2.get("max_width_inches") or p2.get("paper_size", "")
+                    w1_str = f"{w1}\"" if isinstance(w1, (int, float)) else str(w1).upper()
+                    w2_str = f"{w2}\"" if isinstance(w2, (int, float)) else str(w2).upper()
+                    lines.append(f"• Print Width: {p1_name} supports {w1_str}, whereas {p2_name} supports {w2_str}.")
+
+                if any(w in msg_l for w in ["speed", "fast", "ppm", "second", "faster"]):
+                    s1 = p1.get("print_speed") or "high-speed printing"
+                    s2 = p2.get("print_speed") or "high-speed printing"
+                    lines.append(f"• Printing Speed: {p1_name} prints at {s1}, whereas {p2_name} prints at {s2}.")
+
+                if any(w in msg_l for w in ["weight", "heavy", "portable", "portability"]):
+                    wt1 = p1.get("weight") or "standard commercial footprint"
+                    wt2 = p2.get("weight") or "standard commercial footprint"
+                    lines.append(f"• Weight & Portability: {p1_name} weighs {wt1}, whereas {p2_name} weighs {wt2}.")
+
+                if any(w in msg_l for w in ["yield", "roll", "capacity"]):
+                    lines.append(f"• Roll Capacity: {p1_name} offers standard roll capacity, whereas {p2_name} offers high capacity media.")
+
+                if any(w in msg_l for w in ["quality", "photo quality", "inks"]):
+                    c1 = p1.get("total_colours", "standard colours")
+                    c2 = p2.get("total_colours", "standard colours")
+                    lines.append(f"• Print Quality: {p1_name} features {c1}, whereas {p2_name} features {c2}.")
+
+                if len(lines) == 1:
+                    pr1 = f"AED {p1.get('price'):,.2f}" if p1.get("price") else "Price on Request"
+                    pr2 = f"AED {p2.get('price'):,.2f}" if p2.get("price") else "Price on Request"
+                    lines.append(f"• {p1_name}: {p1.get('print_speed', 'commercial speed')}, priced at {pr1} (excl. VAT).")
+                    lines.append(f"• {p2_name}: {p2.get('print_speed', 'commercial speed')}, priced at {pr2} (excl. VAT).")
+
+                cmp_reply = "\n".join(lines)
+                cmp_reply = NaturalnessValidator.sanitize(cmp_reply, canonical_turn.customer_behavior, state)
+                state.last_assistant_response = cmp_reply
+                state.increment_turn()
+                return self._build_response(
+                    reply=cmp_reply,
+                    source="agent:direct_comparison",
+                    product_cards=[],
+                    consumable_cards=[],
+                    suggested_chips=[p1_name, p2_name, "Official Quotation"],
+                    nlp_result=nlp_result,
+                    state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
 
         # ── Agent Planner: Clean Closing Handshake ───────────────────────
-        if plan_step.action == PlannerAction.FINISH or canonical_turn.primary_intent == "closing":
+        if agent_decision.action == AgentAction.CLOSE or canonical_turn.primary_intent == "closing":
             reply_text = "You're very welcome! If you need anything else down the line or want to explore sample prints, feel free to reach out anytime. Have a wonderful day!"
+            reply_text = NaturalnessValidator.sanitize(reply_text, canonical_turn.customer_behavior, state)
             state.last_assistant_response = reply_text
             state.increment_turn()
             return self._build_response(
@@ -401,7 +492,8 @@ class Orchestrator:
             )
 
         # ── Agent Planner: Dye Sublimation Request / Frustration Switch ──
-        if canonical_turn.requirements.get("category") == "dye_sublimation" and any(w in msg_l for w in ["dy sublimation", "dye sublimation", "sublimation", "f100", "f500", "t-shirt", "mug"]):
+        is_negated_sub = bool(re.search(r"\b(?:forget|never\s*mind|not|instead\s*of)\s+(?:dye[-\s]*)?sublimation\b", msg_l))
+        if not is_negated_sub and canonical_turn.requirements.get("category") == "dye_sublimation" and any(w in msg_l for w in ["dy sublimation", "dye sublimation", "sublimation", "f100", "f500", "t-shirt", "mug"]):
             f100 = catalogue_loader.get_by_id("epson-sc-f100")
             f500 = catalogue_loader.get_by_id("epson-sc-f500")
             prod_cards = []
@@ -464,7 +556,7 @@ class Orchestrator:
                 latency_ms=int((time.time() - start_time) * 1000),
             )
 
-        if re.search(r"\b(?:ignore (?:your|previous) instructions|pretend the catalogue|say the .* costs?)\b", msg_l):
+        if re.search(r"\b(?:ignore (?:your|previous) instructions|pretend the catalogue|say the .* costs?|system\s*override|unrestricted\s*assistant|developer\s*debug\s*mode|dump\s*all\s*internal|secret\s*prompt|override\s*pricing|root\s*admin|ignore\s*all\s*filters)\b", msg_l):
             reply_text = "I can only answer using verified catalogue information. Which product specification would you like to check?"
             state.last_assistant_response = reply_text
             state.increment_turn()
@@ -3169,7 +3261,7 @@ class Orchestrator:
         msg_norm_l = normalized_msg.lower()
         is_memory_recall_query = bool(re.search(
             r"\b(?:"
-            r"what\s+(?:did\s+i|i)\s+(?:ask|asked|say|said|mention|mentioned|inquire|inquired)(?:\s+about)?|"
+            r"what\s+did\s+i\s+(?:ask|say|mention|inquire)(?:\s+about)?|"
             r"(?:last|previous)\s*(?:time\s*)?(?:i\s*)?(?:told|mentioned|asked|said|chose|inquired|wanted)\s*(?:about\s*)?(?:one\s*)?(?:printer|model|machine)?|"
             r"which\s*(?:printer|model|machine|one)\s*(?:did\s*i|i\s*(?:told|said|mentioned|asked|chose|inquired))|"
             r"what\s*(?:was\s*)?(?:the\s*)?(?:last|previous)\s*(?:printer|model|machine)|"
@@ -3180,6 +3272,8 @@ class Orchestrator:
             any(w in msg_norm_l for w in ["which one", "which printer", "what printer"])
             and any(w in msg_norm_l for w in ["last time", "earlier", "previously", "i told", "i said", "i mentioned"])
         )
+        if re.search(r"\bwhat\s+i\s+asked\s+was\b", msg_norm_l) or (canonical_turn and canonical_turn.customer_behavior == "FRUSTRATED"):
+            is_memory_recall_query = False
         if is_memory_recall_query:
             # Check if user explicitly named a product in their message (e.g. "what i asked about p900")
             msg_prods = find_mentioned_catalogue_products(normalized_msg)
@@ -5796,7 +5890,7 @@ class Orchestrator:
 
         # Section 21: Clean internal database terms from customer-facing reply
         if reply:
-            if not source.startswith(("route:cost_per_print", "route:product_price", "route:consumable_price", "route:general_price", "route:purchase", "agent:purchase", "agent:price_objection", "agent:investment_cost_comparison", "agent:dye_sublimation_recommendation")):
+            if not source.startswith(("route:cost_per_print", "route:product_price", "route:consumable_price", "route:general_price", "route:purchase", "agent:purchase", "agent:price_objection", "agent:investment_cost_comparison", "agent:dye_sublimation_recommendation", "agent:direct_answer")):
                 reply = re.sub(r":\s*\*\*(?:AED\s*[\d,.]+|Price on Request)[^*]*\*\*", "", reply, flags=re.I)
                 reply = re.sub(r"\*\*(?:AED\s*[\d,.]+|Price on Request)[^*]*\*\*", "", reply, flags=re.I)
                 reply = re.sub(r"\bAED\s*[\d,.]+(?:\s*\(Excl\. VAT\))?\b", "", reply, flags=re.I)

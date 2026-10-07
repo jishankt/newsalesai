@@ -526,7 +526,7 @@ class ProductSpecEngine:
                 return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
 
         # ── 8. Dimensions and Weight ───────────────────────────────────────
-        is_dim_weight = any(w in msg_l for w in ["weight", "dimensions", "how heavy", "package weight", "product weight", "product dimension", "package dimension"])
+        is_dim_weight = any(w in msg_l for w in ["weight", "weigh", "weighs", "dimensions", "how heavy", "package weight", "product weight", "product dimension", "package dimension"])
         if is_dim_weight:
             if "cx-02" in product.id:
                 reply = (
@@ -614,7 +614,7 @@ class ProductSpecEngine:
             return RouteResult(reply=explanation, product_cards=[card], source="catalog:single_attribute")
 
         # ── 11. Official Standard Price Inquiry ────────────────────────────
-        is_price_q = any(w in msg_l for w in ["price", "cost", "how much", "rate", "rates", "pricing"]) and not any(w in msg_l for w in ["discount", "bargain", "cheaper", "negotiat", "best price"])
+        is_price_q = any(w in msg_l for w in ["price", "cost", "how much", "rate", "rates", "pricing"]) and not any(w in msg_l for w in ["discount", "bargain", "cheaper", "negotiat", "best price", "weigh", "weight"])
         if is_price_q:
             from catalog.price_resolver import price_resolver
             p_dict = product.to_dict()

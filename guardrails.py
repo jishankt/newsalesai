@@ -109,6 +109,9 @@ def is_price_inquiry(user_message: str) -> bool:
     if not user_message:
         return False
     clean_msg = strip_negated_commercial(user_message.lower().strip())
+    # Exclude non-price "how much" inquiries such as weight, dimensions, ink volume
+    if re.search(r"\bhow\s*much\s*(?:does\s*.*?\s*)?weigh\b", clean_msg) or re.search(r"\bhow\s*much\s*weight\b", clean_msg):
+        return False
     return any(re.search(p, clean_msg) for p in PRICE_USER_PATTERNS)
 
 
