@@ -13,9 +13,11 @@ OFFICIAL_SUPPORT_PHONE = "+971 4 323 1008"
 OFFICIAL_WEBSITE_URL = "https://www.keplertechllc.com/"
 
 DISCOUNT_REFUSAL = (
-    "For pricing details, special discounts, bulk promotions, or commercial offers, please check our official website at "
-    f"{OFFICIAL_WEBSITE_URL} or contact our customer support team directly at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}.\n\n"
-    "Commercial details are not provided directly in this chat, but I am here to help you with verified technical specifications, model recommendations, and consumable compatibility from our authorized catalogue."
+    "Our prices are fixed and strictly follow Kepler Tech LLC's official catalogue rates. "
+    "We do not accept price bargaining, negotiations, or ad-hoc discounts.\n\n"
+    f"All listed pricing is verified, transparent, and backed by genuine manufacturer warranty and authorized technical support. "
+    f"Official pricing can be verified directly on our website at {OFFICIAL_WEBSITE_URL}.\n\n"
+    f"For corporate volume orders, project tenders, or formal tax quotations, our commercial sales desk can prepare an official commercial quotation (Email: {OFFICIAL_SUPPORT_EMAIL} | Phone: {OFFICIAL_SUPPORT_PHONE})."
 )
 PRICE_REFUSAL = DISCOUNT_REFUSAL
 
@@ -33,9 +35,9 @@ PRICE_USER_PATTERNS = [
 ]
 
 DISCOUNT_USER_PATTERNS = [
-    r"\b(?:discount|discounts|discounting|bargain|bargaining|coupon|promo|rebate|concession)\b",
+    r"\b(?:discount|discounts|discounting|bargain|bargaining|burgain|burgaining|haggle|haggling|coupon|promo|rebate|concession)\b",
     r"\b(?:negotiat\w*|negosition|negotiable)\b",
-    r"\b(?:cheaper rate|cheaper price|cheaper|best price|special deal|lower the price|reduce the price|reduce price|price drop)\b",
+    r"\b(?:cheaper rate|cheaper price|cheaper|best price|special deal|lower the price|reduce the price|reduce price|price drop|price cut)\b",
     r"\b(?:can you give me a discount|any discount|give discount|give me discount|need discount|less price|more discount)\b",
     r"\b(?:can we negotiate|can i negotiate|price negotiation|negotiate price)\b",
     r"\b(?:give me (?:a )?better price|what is your lowest price|lowest price|minimum price)\b",
@@ -131,14 +133,19 @@ def format_product_price_response(prod: Dict[str, Any], price_info: Dict[str, An
         price_str = price_info.get("price_str") or f"AED {price_info['price']:,.2f}"
         vat = price_info.get("vat_note") or "(Excl. VAT)"
         return (
-            f"The official price for the **{name}** on our website is **{price_str} {vat}**.\n\n"
-            f"You can view complete product specifications or purchase directly on our website at {url}.\n\n"
-            "Would you like details on compatible consumables or technical specifications?"
+            f"The official verified price for the {name} is {price_str} {vat}.\n\n"
+            f"Direct Purchase & Full Specifications:\n"
+            f"👉 [{name} on Website]({url})\n\n"
+            "Our prices are fixed and strictly follow Kepler Tech LLC's official catalogue rates. All purchases include full manufacturer warranty and authorized technical support."
         )
     else:
         return (
-            f"The **{name}** is an enterprise/large-format production system and its price is not listed for direct online checkout on our website.\n\n"
-            f"Please contact our customer support and sales team directly at **{OFFICIAL_SUPPORT_EMAIL}** or **{OFFICIAL_SUPPORT_PHONE}** to receive an official commercial quotation and check availability."
+            f"The {name} is an enterprise/production system. Official commercial pricing is provided on request via an authorized quotation.\n\n"
+            f"Request Official Quotation:\n"
+            f"• Email: {OFFICIAL_SUPPORT_EMAIL}\n"
+            f"• Phone: {OFFICIAL_SUPPORT_PHONE}\n"
+            f"• Product Details: [{name}]({url})\n\n"
+            "Our commercial sales team can prepare an official proforma invoice and confirm stock availability across the UAE."
         )
 
 
@@ -152,11 +159,11 @@ def format_multi_product_price_response(prods_with_price: List[Tuple[Dict[str, A
             price_val = price_info.get("price")
             price_str = price_info.get("price_str") or f"AED {price_val:,.2f}"
             vat = price_info.get("vat_note") or "(Excl. VAT)"
-            lines.append(f"• **{name}**: **{price_str} {vat}**\n  Direct website checkout: {url}\n")
+            lines.append(f"• {name}: {price_str} {vat}\n  Direct website checkout: {url}\n")
         else:
-            lines.append(f"• **{name}**: **Price on Request**\n  Commercial quotation required for enterprise production systems. Details: {url}\n")
+            lines.append(f"• {name}: Price on Request\n  Commercial quotation required for enterprise production systems. Details: {url}\n")
 
-    lines.append(f"For corporate commercial quotations, official tax invoices, or volume orders across the UAE, contact our sales desk directly at **{OFFICIAL_SUPPORT_EMAIL}** or **{OFFICIAL_SUPPORT_PHONE}**.")
+    lines.append(f"For corporate commercial quotations, official tax invoices, or volume orders across the UAE, contact our sales desk directly at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}.")
     return "\n".join(lines)
 
 
@@ -218,6 +225,16 @@ def validate_and_sanitize_response(response_text: str, user_message: str) -> str
 
     # Remove internal grounding/audit tags
     text = re.sub(r"\s*\[(?:VERIFIED|CONFLICT|INFERRED|CALCULATED)[^\]]*\]", "", text)
+
+    # Remove unwanted markdown stars from chat (preserve only standalone model headers like **Model Name**)
+    def _clean_stars(match):
+        content = match.group(1).strip()
+        if re.match(r"^(?:Epson|Citizen|SureColor|WorkForce)\s+[A-Za-z0-9\-]+(?:\s+[A-Za-z0-9\-]+)*$", content):
+            return f"**{content}**"
+        return content
+
+    text = re.sub(r"\*\*([^*\n]+)\*\*", _clean_stars, text)
+    text = re.sub(r"^\s*\*\s+", r"• ", text, flags=re.MULTILINE)
 
     # Clean whitespace
     lines = [re.sub(r"[ \t]+", " ", line).strip() for line in text.splitlines()]

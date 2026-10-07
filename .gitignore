@@ -11,3 +11,7 @@ scratch/
 .env
 data/conversations.db
 *.db
+*.db-journal
+*.db-wal
+*.db-shm
+data/notes.txt

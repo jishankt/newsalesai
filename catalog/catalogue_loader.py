@@ -135,6 +135,15 @@ class CatalogueLoader:
     def get_by_id(self, product_id: str) -> Optional[Dict]:
         return self.products_by_id.get(product_id)
 
+    def get_by_category(self, category: str) -> List[Dict]:
+        cat_lower = category.lower().replace("-", "_").replace(" ", "_")
+        matches = []
+        for p in self.products:
+            c = str(p.get("category") or p.get("main_category") or p.get("catalogue") or "").lower()
+            if cat_lower in c or c in cat_lower:
+                matches.append(p)
+        return matches
+
     def is_approved_id(self, product_id: str) -> bool:
         return product_id in self.approved_ids
 

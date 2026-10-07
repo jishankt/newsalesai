@@ -259,6 +259,19 @@ def get_missing_mandatory_fields(category: str, requirements: Dict[str, Any]) ->
             return ["scanner_intent_professional"]
         return ["scanner_intent"]
 
+    if category in ("dye_sublimation", "sublimation"):
+        # The catalogue has exactly two dye-sublimation models:
+        # SC-F100 (A4 Desktop) and SC-F500 (24-inch Roll).
+        # Once paper_size, print_width, or model is determined, qualification is complete.
+        if (
+            requirements.get("paper_size")
+            or requirements.get("print_width")
+            or requirements.get("model")
+            or requirements.get("subcategory")
+        ):
+            return []
+        return ["paper_size"]
+
     mandatory = get_mandatory_fields(category)
     missing = []
     for f in mandatory:

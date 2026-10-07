@@ -6,7 +6,7 @@
   <title>Kepler Tech LLC — Professional Printers & Consumables (Dubai)</title>
   <meta name="description" content="Authorized distributor of Epson Large Format, Citizen Photo Printers, Innova Media and Genuine Supplies.">
   <meta name="referrer" content="no-referrer">
-  <link rel="stylesheet" href="/static/css/landing.css">
+  <link rel="stylesheet" href="/static/css/landing.css?v=kepler_brand_logo_20261005">
 </head>
 <body>
 
@@ -28,6 +28,7 @@
     <ul class="nav-links">
       <li><a href="/" class="active">Home</a></li>
       <li><a href="https://www.keplertechllc.com/shop/" target="_blank">Products</a></li>
+      <li><a href="/chat" target="_blank" title="Open Full Screen Chat">Full Chat ↗</a></li>
       <li><a href="https://www.keplertechllc.com/about-us/" target="_blank">About</a></li>
       <li><a href="https://www.keplertechllc.com/contact-us/" target="_blank">Contact</a></li>
     </ul>
@@ -145,11 +146,9 @@
   </footer>
 
   <!-- Floating Chatbot Launcher Icon with Notification Badge (Matching Screenshot) -->
-  <button class="chat-widget-trigger" id="chatWidgetTrigger" title="Chat with AI Agent" aria-label="Open Chat">
+  <button class="chat-widget-trigger" id="chatWidgetTrigger" title="Chat with Kepler Assistant" aria-label="Open Chat">
     <div class="chat-widget-badge">1</div>
-    <svg viewBox="0 0 24 24">
-      <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/>
-    </svg>
+    <img src="/static/images/kepler-icon.png" alt="Kepler Assistant" class="launcher-kepler-icon">
   </button>
 
   <!-- BotPenguin Clean Modal Drawer -->
@@ -174,6 +173,16 @@
     window.addEventListener('message', (event) => {
       if (event.data && event.data.type === 'CLOSE_CHAT') {
         chatModal.classList.remove('open');
+      } else if (event.data && event.data.type === 'TOGGLE_FULLSCREEN') {
+        chatModal.classList.toggle('fullscreen');
+        const isFull = chatModal.classList.contains('fullscreen');
+        try {
+          if (chatIframe && chatIframe.contentWindow) {
+            chatIframe.contentWindow.postMessage({ type: 'FULLSCREEN_STATE', isFullscreen: isFull }, '*');
+          }
+        } catch(err) {
+          console.warn('Could not notify iframe of fullscreen state:', err);
+        }
       }
     });
 

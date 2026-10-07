@@ -432,7 +432,7 @@ class OllamaClient:
                 "temperature": temp,
                 "top_p": p_val,
                 "num_ctx": OLLAMA_NUM_CTX,
-                "num_predict": 350,
+                "num_predict": 650,
             }
         }
 

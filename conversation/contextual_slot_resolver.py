@@ -208,22 +208,24 @@ class ContextualSlotResolver:
                 reqs["brand"] = "epson"
                 return reqs, corrections
 
-        # 5. Paper Size (Office or Dye Sublimation)
-        if awaiting_field == "paper_size":
-            if category in ("dye_sublimation", "sublimation"):
+        # 5. Paper Size / Format (Office or Dye Sublimation)
+        if awaiting_field in ("paper_size", "sublimation_format", "print_width"):
+            if category in ("dye_sublimation", "sublimation") or any(k in text_l for k in ["sublimation", "f100", "f500", "sc-f100", "sc-f500"]):
                 if any(k in text_l for k in ["a4", "desktop", "compact", "small", "mugs", "mug", "gifts", "f100", "sc-f100"]):
                     reqs["paper_size"] = "a4"
                     reqs["model"] = "epson-sc-f100"
                     reqs["print_width"] = 8.5
                     reqs["product_line"] = "surecolor_f"
+                    reqs["subcategory"] = "dye_sublimation_desktop"
                     return reqs, corrections
                 if any(k in text_l for k in ["24", "roll", "apparel", "textile", "textiles", "t-shirt", "t-shirts", "sportswear", "signage", "f500", "sc-f500"]):
                     reqs["print_width"] = 24
                     reqs["paper_size"] = "24-inch"
                     reqs["model"] = "epson-sc-f500"
                     reqs["product_line"] = "surecolor_f"
+                    reqs["subcategory"] = "dye_sublimation_24_inch"
                     return reqs, corrections
-            else:
+            if awaiting_field == "paper_size":
                 # Office printer — A4 natural synonyms
                 if any(k in text_l for k in [
                     "a4", "standard", "compact", "letter",

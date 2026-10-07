@@ -342,8 +342,8 @@ def _process_contact_submission(
     state: ConversationState,
     session_id: str
 ) -> Dict[str, Any]:
-    """Helper to register lead and transition to history continuation inquiry."""
-    final_name = name or state.customer_name or "Guest"
+    """Helper to register lead, activate customer profile, and seamlessly continue the conversation."""
+    final_name = name or state.customer_name or "Valued Customer"
     state.customer_name = final_name
     state.customer_phone_or_email = contact
 
@@ -369,20 +369,42 @@ def _process_contact_submission(
     except Exception as e:
         logger.warning(f"Could not persist commercial lead: {e}")
 
-    state.lead_prompt_status = "offered_history_save"
-    logger.info(f"[{session_id[:8]}] Details captured for session. Prompting history save.")
+    # Immediately activate customer account and link conversation session
+    customer = customer_repository.create_or_update_customer(
+        name=final_name,
+        contact=contact,
+        phone=phone,
+        email=email
+    )
+    state.customer_id = customer.customer_id
+    state.customer_name = customer.display_name
+    state.lead_prompt_status = "history_enabled"
+    customer_repository.link_session(session_id, customer.customer_id, customer.display_name)
+    logger.info(f"[{session_id[:8]}] Customer account activated via in-chat login (id={customer.customer_id})")
 
-    masked = mask_contact(contact)
+    # Seamlessly continue previous inquiry or pending question
+    if state.pending_question:
+        continue_text = f"We can now continue where you left off:\n\n{state.pending_question}"
+        chips = [c for c in (state.last_suggested_chips or []) if c not in ("Yes, I'm interested", "No, thanks", "No, continue as guest")]
+    elif state.category:
+        cat_display = state.category.replace("_", " ").title()
+        continue_text = f"We can now continue with your **{cat_display}** requirements. What specific specifications or models can I help you explore?"
+        chips = [c for c in (state.last_suggested_chips or []) if c not in ("Yes, I'm interested", "No, thanks", "No, continue as guest")]
+    else:
+        continue_text = (
+            "To pick up where we left off regarding finding the right printer for you: "
+            "what will you primarily print—office & business documents, technical CAD drawings, professional photographs, or sublimation merchandise?"
+        )
+        chips = ["Office & Business Documents", "Technical CAD Plotters", "Professional Photographs", "Dye-Sublimation (T-Shirts & Mugs)"]
+
     reply = (
-        f"Thank you, **{final_name}**! I have noted your contact details ({masked}).\n\n"
-        f"Would you like to save this conversation so you can continue your chat history anytime?\n\n"
-        f"*(If enabled, you can easily log in whenever you return using your name as username and the phone number or email you shared as password).* "
-        f"Would you like to enable chat history?"
+        f"🎉 Welcome, **{customer.display_name}**! You are now logged in and your chat history is saved.\n\n"
+        f"{continue_text}"
     )
     return {
         "reply": reply,
-        "source": "customer_flow:offered_history_save",
-        "suggested_chips": ["Yes, save chat history", "No, continue as guest"],
+        "source": "customer_flow:history_enabled",
+        "suggested_chips": chips,
         "active_agent": "Front Desk"
     }
 
@@ -391,12 +413,15 @@ def should_trigger_opt_in_prompt(state: ConversationState) -> bool:
     """
     Determines if it's the right moment during normal chatting to ask the initial opt-in question.
     Only triggers if:
+    - Opt-in prompt is explicitly enabled in config
     - Customer is not already logged in
     - Opt-in has not been offered or declined before
     - At least 1 turn has occurred (customer has interacted)
     """
     import config
     if not getattr(config, "CUSTOMER_LOGIN_ENABLED", False):
+        return False
+    if not getattr(config, "CUSTOMER_OPT_IN_PROMPT_ENABLED", False):
         return False
     if state.customer_id:
         return False

@@ -113,6 +113,8 @@ class MediaRegistry:
         limit: int = 6
     ) -> List[MediaProduct]:
         cat_low = (category or "").lower().strip()
+        if cat_low in ("all", "general", "general_roll", "rolls", "any", "none"):
+            cat_low = ""
         results = []
         for p in self.products:
             if cat_low and p.category != cat_low:

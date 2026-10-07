@@ -275,6 +275,7 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
             vat = cards[0].get("vat_note") if cards else (product.get("vat_note") or "")
 
             q_lower = (raw_message or "").lower()
+            reply = None
             if any(w in q_lower for w in ["technology", "inkjet", "thermal", "dye sub", "dyesub", "type of printer"]):
                 is_citizen = any(c in p_name.lower() for c in ["citizen", "cx-02", "cx02", "cz-01", "cz01", "cy-02", "cy02"])
                 tech = product.get("ink_technology") or product.get("verified", {}).get("ink_technology") or ("Dye-Sublimation Thermal Transfer" if is_citizen else "PrecisionCore MicroTFP")
@@ -285,11 +286,10 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
                         reply = f"Yes, [{p_name}]({p_url}) uses professional **{tech}** inkjet technology."
                 else:
                     reply = f"The [{p_name}]({p_url}) operates on professional **{tech}** technology."
-            is_availability_query = any(w in q_lower for w in [
+            elif any(w in q_lower for w in [
                 "available in your catalogue", "available in catalogue", "in your catalogue", "in your catalog",
                 "in catalogue", "in catalog", "available in your catalog", "do you have", "is it available", "in stock", "available on your website"
-            ])
-            if is_availability_query:
+            ]):
                 reply = (
                     f"Yes, the **[{p_name}]({p_url})** is officially **listed in our authorized catalogue** as an authorized Citizen photo printer distributed by Kepler Tech LLC.\n\n"
                     f"*(Note on stock availability: While this model is actively listed in our official product catalogue, live physical warehouse stock inventory is confirmed upon order placement.)*\n\n"
@@ -297,18 +297,33 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
                 )
             elif any(k in q_lower for k in ["price", "cost", "how much", "rate"]):
                 reply = f"The [{p_name}]({p_url}) is officially listed at **{price_str}** {vat}. Here are the verified specifications — {desc.rstrip('.')}."
+
             req_summary = state.format_requirements_summary() if hasattr(state, "format_requirements_summary") else ""
             req_prefix = f"*(Matched against your specified requirements: {req_summary})*\n\n" if req_summary else ""
-            if detailed_specs and any(w in q_lower for w in ["spec", "specs", "specification", "specifications", "detail", "details", "description", "full description", "overview", "what is", "about", "tell me about"]):
-                reply = detailed_specs["reply"]
-                if req_prefix and not any(k in reply.lower() for k in ["matched against", "based on your requirement", "according to your"]):
-                    reply = req_prefix + reply
-            elif detailed_specs and not any(w in q_lower for w in ["recommend", "options", "suggest"]):
-                reply = detailed_specs["reply"]
-                if req_prefix and not any(k in reply.lower() for k in ["matched against", "based on your requirement", "according to your"]):
-                    reply = req_prefix + reply
-            else:
-                reply = f"{req_prefix}Here are the verified specifications for [{p_name}]({p_url}) — {desc.rstrip('.')}."
+
+            if not reply:
+                has_specific_question = (
+                    bool(re.search(r"\b(?:what|which|how|does|can|why|where|is\s+it)\b", q_lower))
+                    or "?" in q_lower
+                    or any(term in q_lower for term in [
+                        "surface", "surfaces", "substrate", "substrates", "print on", "prints on",
+                        "speed", "ppm", "resolution", "dpi", "width", "dimensions", "weight",
+                        "wifi", "wi-fi", "wireless", "ethernet", "network",
+                        "finish", "finishes", "finishing", "matte", "glossy", "luster", "lustre",
+                        "ink", "inks", "cartridge", "tank", "yield", "capacity", "rewind", "cutter",
+                        "media", "paper", "sizes", "cost", "price", "warranty", "memory", "feeder"
+                    ])
+                )
+                if not has_specific_question and detailed_specs and any(w in q_lower for w in ["spec", "specs", "specification", "specifications", "detail", "details", "description", "full description", "overview", "tell me about"]):
+                    reply = detailed_specs["reply"]
+                    if req_prefix and not any(k in reply.lower() for k in ["matched against", "based on your requirement", "according to your"]):
+                        reply = req_prefix + reply
+                elif not has_specific_question and detailed_specs and not any(w in q_lower for w in ["recommend", "options", "suggest"]):
+                    reply = detailed_specs["reply"]
+                    if req_prefix and not any(k in reply.lower() for k in ["matched against", "based on your requirement", "according to your"]):
+                        reply = req_prefix + reply
+                else:
+                    reply = f"{req_prefix}Here are the verified specifications for [{p_name}]({p_url}) — {desc.rstrip('.')}."
 
             consumable_cards = []
             if any(w in q_lower for w in ["ink", "inks", "cartridge", "cartridges", "consumable", "consumables", "ribbon", "paper roll", "supplies"]):
@@ -404,6 +419,11 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
                     clean_h = [h for h in headings if not h.lower().startswith("discover") and not h.lower().startswith("product")][:4]
                     reply_parts.append(f"Key features include: {', '.join(clean_h or headings[:4])}.")
 
+            if any(w in q_lower for w in ["surface", "surfaces", "substrate", "substrates", "print on", "prints on", "finish", "finishes", "finishing", "matte", "glossy", "luster"]):
+                pat = product.get("pattern_and_finishing") or product.get("verified", {}).get("pattern_and_finishing")
+                if pat:
+                    reply_parts.append(f"Surface finishes and media handling: {pat}.")
+
             if width and any(w in q_lower for w in ["size", "width", "dimensions", "large", "print size"]):
                 reply_parts.append(f"It supports print sizes up to {width}.")
             if speed and any(w in q_lower for w in ["speed", "fast", "ppm", "seconds"]):
@@ -413,7 +433,19 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
                 reason = product.get("comparison_highlights") or product.get("recommendation_reason") or product.get("intended_usage") or product.get("description", "")
                 reply_parts.append(f"It was recommended because: {reason.rstrip('.')}.")
             
-            if any(w in q_lower for w in ["spec", "specs", "specification", "specifications", "description", "overview", "detail", "details", "website"]):
+            has_specific_question = (
+                bool(re.search(r"\b(?:what|which|how|does|can|why|where|is\s+it)\b", q_lower))
+                or "?" in q_lower
+                or any(term in q_lower for term in [
+                    "surface", "surfaces", "substrate", "substrates", "print on", "prints on",
+                    "speed", "ppm", "resolution", "dpi", "width", "dimensions", "weight",
+                    "wifi", "wi-fi", "wireless", "ethernet", "network",
+                    "finish", "finishes", "finishing", "matte", "glossy", "luster", "lustre",
+                    "ink", "inks", "cartridge", "tank", "yield", "capacity", "rewind", "cutter",
+                    "media", "paper", "sizes", "cost", "price", "warranty", "memory", "feeder"
+                ])
+            )
+            if not has_specific_question and any(w in q_lower for w in ["spec", "specs", "specification", "specifications", "description", "overview", "detail", "details", "website"]):
                 from catalog.product_spec_engine import product_spec_engine
                 detailed = product_spec_engine.get_product_detailed_specs(product.get("id", product.get("sku", "")))
                 if detailed:
@@ -430,9 +462,13 @@ def handle(understanding: LLMUnderstanding, state: ConversationState,
                 desc = product.get("description") or product.get("full_description", "")[:250]
                 reply_parts.append(desc.rstrip("."))
             
-            reply = " ".join(reply_parts)
-
-            cards_to_show = state.candidate_products[:1] if state.candidate_products else [catalog_tool_executor.format_card(product)]
+            disp_list = list(state.displayed_product_ids) if state and state.displayed_product_ids else []
+            is_explicit_cards = any(w in (raw_message or "").lower() for w in [
+                "show card", "show cards", "show product card", "show printer card", "show again",
+                "show options", "show recommendations", "show all options", "show products", "show printers"
+            ])
+            raw_candidates = state.candidate_products[:1] if state.candidate_products else [catalog_tool_executor.format_card(product)]
+            cards_to_show = raw_candidates if (is_explicit_cards or not disp_list) else []
             return RouteResult(
                 reply=reply,
                 product_cards=cards_to_show,

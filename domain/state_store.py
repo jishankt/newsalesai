@@ -360,6 +360,15 @@ class SessionLockManager:
                 except RuntimeError:
                     pass
 
+    def force_reset(self, session_id: str) -> None:
+        """Forces release and replaces session lock when a turn is cancelled or superseded."""
+        with self._mutex:
+            entry = self._locks.get(session_id)
+            if entry:
+                entry["last_active"] = time.time()
+                entry["active_holders"] = 0
+                entry["lock"] = threading.Lock()
+
     def _cleanup_idle_locked(self, now: float) -> None:
         to_del = [
             sid for sid, e in self._locks.items()

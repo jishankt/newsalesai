@@ -150,9 +150,43 @@ class Orchestrator:
                 ollama_client = OllamaClient(base_url=OLLAMA_BASE_URL, default_model=DEFAULT_MODEL)
             except Exception:
                 pass
-        self.ollama_client = ollama_client
+        self._ollama_client = ollama_client
         self.llm_engine = LLMUnderstandingEngine(ollama_client)
         self.response_composer = ResponseComposer(ollama_client)
+        from workflow.engine import WorkflowEngine
+        self.workflow_engine = WorkflowEngine(ollama_client=ollama_client)
+
+    @property
+    def ollama_client(self):
+        return getattr(self, "_ollama_client", None)
+
+    @ollama_client.setter
+    def ollama_client(self, client):
+        self._ollama_client = client
+        if hasattr(self, "workflow_engine") and self.workflow_engine:
+            self.workflow_engine.ollama_client = client
+
+    def execute_workflow(
+        self,
+        raw_message: str,
+        session_id: str = "default-session",
+        history: Optional[List[Dict[str, str]]] = None,
+        state: Optional[ConversationState] = None,
+        model_name: str = None,
+    ) -> Dict[str, Any]:
+        """
+        Executes a turn through the deterministic 12-node workflow pipeline:
+        Customer Message -> NORMALIZE -> LOAD_STATE -> UNDERSTAND -> RESOLVE_CONTEXT ->
+        UPDATE_STATE -> DECISION -> EXECUTE_NODE -> VERIFIED_EVIDENCE ->
+        RESPONSE_AI -> VALIDATE -> SAVE_STATE
+        """
+        return self.workflow_engine.run(
+            raw_message=raw_message,
+            session_id=session_id,
+            state=state,
+            history=history,
+            model_name=model_name,
+        )
 
     def process_turn(
         self,
@@ -200,6 +234,40 @@ class Orchestrator:
                                         ["View Technical Specifications"], nlp_result, state,
                                         int((time.time() - start_time) * 1000))
 
+        # ── EARLY INTERCEPT: Bot Identity & Developer Inquiry ──────────────
+        if re.search(r"\b(?:who\s+(?:developed|created|built|made|programmed|designed)\s+(?:you|this\s+bot|keplerbot)|who\s+are\s+you|what\s+is\s+your\s+name)\b", msg_l):
+            reply_text = (
+                "I am **KeplerBot**, an AI sales consultant developed by the engineering team at **Kepler Tech LLC** (Dubai, UAE).\n\n"
+                "I provide verified technical specifications, commercial pricing, and configuration guidance across our full catalogue of commercial printers, scanners, and original consumables. How can I assist you with your equipment requirements today?"
+            )
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(reply_text, "identity:bot_developer", [], [],
+                                        [], nlp_result, state,
+                                        int((time.time() - start_time) * 1000))
+
+        # ── EARLY INTERCEPT: Language Capabilities Inquiry ─────────────────
+        is_lang_query = bool(re.search(
+            r"\b(?:(?:do\s+)?(?:you|u)\s+(?:know|speak|understand)|can\s+(?:you|u)\s+speak)\s+(?:other\s+languages?|[a-zA-Z]+)\b"
+            r"|\b(?:(?:do\s+)?(?:you|u)\s+(?:know|speak|understand)\s+(?:tamil|arabic|hindi|malayalam|telugu|french|spanish|urdu|bengali|german|russian|chinese))\b",
+            msg_l
+        ))
+        if is_lang_query:
+            lang_match = re.search(r"\b(?:(?:do\s+)?(?:you|u)\s+(?:know|speak|understand)|can\s+(?:you|u)\s+speak)\s+([a-zA-Z]+)\b", msg_l)
+            queried_lang = lang_match.group(1).lower() if lang_match else ""
+            if queried_lang == "english":
+                reply_text = "Yes, I communicate in English! How can I assist you with our printers, scanners, or consumables today?"
+            else:
+                reply_text = (
+                    "No, I only communicate in English. All our product specifications, pricing, and consultation services are provided strictly in English.\n\n"
+                    "How can I assist you with our printers, scanners, or consumables today?"
+                )
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(reply_text, "capability:language", [], [],
+                                        [], nlp_result, state,
+                                        int((time.time() - start_time) * 1000))
+
         # ── EARLY INTERCEPT: Customer Onboarding & Chat History Flow ────────
         import config
         is_login_query = bool(re.search(
@@ -217,14 +285,11 @@ class Orchestrator:
                 )
                 chips = ["Office & Business Printers", "Technical CAD Plotters", "Consumables & Inks"]
             else:
+                state.lead_prompt_status = "awaiting_details"
                 reply_text = (
-                    "To log in and access your saved conversations:\n\n"
-                    "1. Click the **Login** button at the top right of this chat window.\n"
-                    "2. Enter your **Customer Name** (Username).\n"
-                    "3. Enter the **Phone Number or Email ID** (Password) you used when registering.\n\n"
-                    "If you haven't created a profile yet, you can simply share your Name and Phone/Email here in the chat, and I'll register it for you!"
+                    "To log in and save your preferences or access past chat history, please provide your **Name** and your **Phone Number or Email ID**."
                 )
-                chips = ["🔑 Open Login", "Office & Business Printers", "Technical CAD Plotters"]
+                chips = ["No, continue as guest"]
             state.last_assistant_response = reply_text
             state.increment_turn()
             return self._build_response(
@@ -301,6 +366,28 @@ class Orchestrator:
                 nlp_result=nlp_result, state=state,
                 latency_ms=int((time.time() - start_time) * 1000),
             )
+
+        # ── EARLY INTERCEPT: Explicit request to re-display active product card ──
+        is_redisplay_card = bool(re.search(
+            r"\b(?:show\s+(?:the\s+)?(?:product\s+|printer\s+)?cards?\s*(?:again)?|see\s+(?:the\s+)?(?:product\s+|printer\s+)?cards?\s*(?:again)?)\b",
+            msg_l
+        ))
+        if is_redisplay_card and (state.active_product or state.candidate_products):
+            act_p = state.active_product or (catalogue_loader.get_by_id(state.candidate_products[0].get("id")) if state.candidate_products else None)
+            if act_p:
+                p_name = act_p.get("display_name") or act_p.get("name")
+                reply_text = f"Here is the verified product card for the **{p_name}** again."
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(
+                    reply=reply_text,
+                    source="interceptor:redisplay_card",
+                    product_cards=[catalogue_filter._format_card(act_p, act_p.get("subcategory"), state.requirements)],
+                    consumable_cards=[],
+                    suggested_chips=["View Compatible Consumables", "View Technical Specifications"],
+                    nlp_result=nlp_result, state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
 
         # ── EARLY INTERCEPT: Datasheet / Brochure request with active product ──
         # Catches: "data sheet", "dsts sheet", "datasheet", "brochure", "catalog", etc.
@@ -411,50 +498,13 @@ class Orchestrator:
                 latency_ms=int((time.time() - start_time) * 1000),
             )
 
-        is_cpp_inquiry = bool(re.search(
-            r"\b(?:cost\s*per\s*(?:print|page|copy)|per\s*(?:print|page|copy)\s*cost|cpp|running\s*cost(?:s)?|printing\s*cost(?:s)?)\b",
-            msg_l
-        ))
-        has_media_price = bool(re.search(r"\b(?:media|inks?|cartridges?|ribbons?|paper|consumables?)\b.*\b(?:cost|price)\b", msg_l)) or bool(re.search(r"\b(?:cost|price)\b.*\b(?:media|inks?|cartridges?|ribbons?|paper|consumables?)\b", msg_l))
-        is_commercial = (has_media_price or not is_cpp_inquiry) and (is_price_inquiry(normalized_msg) or is_discount_inquiry(normalized_msg) or bool(re.search(r"\b(?:quotes?|quotations?|discounts?|cost)\b", msg_l)))
-        requested_supplies = bool(re.search(r"\b(?:inks?|cartridges?|ribbons?|media|paper|consumables?)\b", msg_l))
-        if is_commercial and requested_supplies:
-            supply_candidates = find_mentioned_catalogue_products(normalized_msg)
-            supply_model = supply_candidates[0] if supply_candidates else state.active_product
-            if supply_model:
-                from agent.evidence_planner import evidence_planner
-                name = supply_model.get("display_name") or supply_model["id"]
-                wants_ink = bool(re.search(r"\b(?:inks?|cartridges?)\b", msg_l))
-                if wants_ink:
-                    fact, cards = evidence_planner._evaluate_ink(supply_model)
-                    reply_text = fact.display_claim
-                else:
-                    cards = consumables_engine.get_printer_consumables(name, limit=25)
-                    cards = [c for c in cards if str(c.get("category", "")).lower() in ("media & paper", "media", "ribbon")]
-                    reply_text = f"Listed media for the **{name}**: " + (", ".join(f"{c.get('name')} ({c.get('sku')})" for c in cards) if cards else "none verified in the catalogue") + "."
-                reply_text += " Commercial details are not provided in this chat."
-                state.last_assistant_response = reply_text
-                state.increment_turn()
-                return self._build_response(reply_text, "route:consumables:product_only", [], cards,
-                                            ["View Technical Specifications"], nlp_result, state,
-                                            int((time.time() - start_time) * 1000))
-        if is_commercial:
-            named = find_mentioned_catalogue_products(normalized_msg)
-            if len(named) == 1:
-                state.active_product = named[0]
-                state.active_product_id = named[0]["id"]
-            prod_name = named[0].get('display_name') if named else None
-            if is_discount_inquiry(normalized_msg) or bool(re.search(r"\b(?:discounts?|bargain|negotiat)\b", msg_l)):
-                reply_text = format_rotating_pricing_redirect(state, prod_name)
-                source = "guardrail:discount_refusal"
-            else:
-                reply_text = format_rotating_pricing_redirect(state, prod_name)
-                source = "guardrail:commercial_policy"
+        # ── EARLY INTERCEPT: Discount & Bargaining Refusal ─────────────────
+        if is_discount_inquiry(normalized_msg) or bool(re.search(r"\b(?:discounts?|bargain|burgain|negotiat|price drop|price cut|lower the price|reduce the price|reduce price|less price)\b", msg_l)):
+            reply_text = DISCOUNT_REFUSAL
             state.last_assistant_response = reply_text
             state.increment_turn()
-            return self._build_response(reply_text, source, [], [],
-                                        ["Speak to Human Agent", "View Technical Specifications", "Compatible Consumables"],
-                                        nlp_result, state, int((time.time() - start_time) * 1000))
+            return self._build_response(reply_text, "guardrail:discount_refusal", [], [],
+                                        [], nlp_result, state, int((time.time() - start_time) * 1000))
 
         if re.search(r"\b(?:how\s+(?:can|do)\s+i\s+(?:buy|order|purchase)|where\s+can\s+i\s+(?:buy|order|purchase)|buy\s+this|purchase\s+link)\b", msg_l):
             named = find_mentioned_catalogue_products(normalized_msg)
@@ -1498,6 +1548,10 @@ class Orchestrator:
                 if state.awaiting_field:
                     state.awaiting_field = None
 
+        if state.category in ("photography_large_format", "photo_printer", "photo"):
+            if state.requirements.get("application") in ("photo_booth", "photobooth"):
+                state.requirements.pop("application", None)
+
         # Track previous state for natural conversational feedback
         prev_requirements = dict(state.requirements)
         prev_awaiting_field = state.awaiting_field
@@ -2241,7 +2295,7 @@ class Orchestrator:
                 if len(mentioned_products) == 1:
                     state.active_product = mentioned_products[0]
                     state.active_product_id = mentioned_products[0].get("id")
-            else:
+            elif len(mentioned_products) < 2:
                 for rp in ref_result.resolved_products:
                     if rp.get("id") not in [m.get("id") for m in mentioned_products]:
                         mentioned_products.append(rp)
@@ -2289,9 +2343,40 @@ class Orchestrator:
                 state=state, latency_ms=int((time.time() - start_time) * 1000),
             )
 
+        is_purchase_query = bool(re.search(
+            r"\b(?:"
+            r"how\s+(?:can|do|should)\s+(?:i|we)\s+(?:buy|purchase|order|get|checkout)\b"
+            r"|how\s+to\s+(?:buy|purchase|order|get)\b"
+            r"|where\s+(?:can|do|should)\s+(?:i|we)\s+(?:buy|purchase|order|get)\b"
+            r"|where\s+to\s+(?:buy|purchase|order)\b"
+            r"|where\s+can\s+we\s+buy\b"
+            r"|(?:i\s+|we\s+)?(?:want|wish|need)\s+(?:to\s+)?(?:buy|purchase|order|place\s+an?\s+order)\b"
+            r"|ready\s+to\s+(?:buy|purchase|order)\b"
+            r"|(?:can|could)\s+(?:i|we)\s+(?:buy|purchase|order)\b"
+            r"|(?:buy|purchase|order|place\s+an?\s+order\s+for)\s+(?:this|now|it|today|online|these|those)\b"
+            r"|buy\s+this\b"
+            r"|(?:please|plz|kindly)\s+(?:order|place\s+an?\s+order|buy|purchase)\b"
+            r"|(?:order|place\s+an?\s+order|buy|purchase)\s+(?:it|this|now|today|these|all)\b"
+            r"|\b(?:plz|please)\s+order\b"
+            r"|purchase\s+link\b"
+            r"|order\s+link\b"
+            r"|buying\s+link\b"
+            r"|how\s+can\s+i\s+buy\b"
+            r"|how\s+do\s+i\s+buy\b"
+            r"|how\s+to\s+buy\b"
+            r"|(?:create|generate|send|give|make|prepare|need|want|get)\s+(?:a\s+|me\s+)?(?:formal\s+|commercial\s+|official\s+)?(?:quotation|quote|quatation)\b"
+            r"|\b(?:quatation|quotation)\b"
+            r"|\bquote\s+(?:for\s+this|for\s+these|for\s+it|please|plz)\b"
+            r"|\border\s+(?:this|these|it|them)\s+\d+\b"
+            r"|\border\s+\d+\s*(?:units?|pcs?|pieces?|printers?|machines?)?\b"
+            r"|\b(?:i\s+want\s+order|want\s+order)\b"
+            r")",
+            normalized_msg.lower()
+        ))
+
         if CanonicalEntityNormalizer.is_capability_query(normalized_msg):
             nlp_result["intent"] = "CHECK_SPECS"
-        elif ref_result.needs_clarification and not mentioned_products and not (
+        elif ref_result.needs_clarification and not is_purchase_query and not mentioned_products and not (
             any(w in normalized_msg.lower() for w in ["recommend", "options", "models", "what do you have", "show me"])
         ):
             reply_text = ref_result.clarification_question or "Could you clarify which model you are referring to?"
@@ -2324,10 +2409,8 @@ class Orchestrator:
         if unapproved_detected and (not mentioned_products or is_explicit_unapproved_query) and not is_answering_consumables:
             unapproved_names = ", ".join([m.upper() for m in unapproved_detected[:2]])
             reply_text = (
-                f"I checked our system, but that model ({unapproved_names}) is not present in our approved catalogue. "
-                "As an authorized Kepler Tech distributor, we specialize in official Epson SureColor Technical (T-Series), Photo & Fine Art (P-Series), "
-                "WorkForce Office printers, SureColor F-Series Sublimation printers (SC-F100, SC-F500), and Citizen Photo printers. "
-                "I'd be glad to help find an authorized equivalent—what type of printing application are you looking to support?"
+                f"I don't have that product in our catalog ({unapproved_names}). "
+                "What type of printing are you looking to do? I'd be happy to find the best match from our range."
             )
             chips_to_return = [
                 "Office & Business Documents",
@@ -2349,28 +2432,7 @@ class Orchestrator:
                 latency_ms=int((time.time() - start_time) * 1000),
             )
 
-        # 6a-00. Direct Purchase / Ordering Intent Route
-        is_purchase_query = bool(re.search(
-            r"\b(?:"
-            r"how\s+(?:can|do|should)\s+(?:i|we)\s+(?:buy|purchase|order|get|checkout)\b"
-            r"|how\s+to\s+(?:buy|purchase|order|get)\b"
-            r"|where\s+(?:can|do|should)\s+(?:i|we)\s+(?:buy|purchase|order|get)\b"
-            r"|where\s+to\s+(?:buy|purchase|order)\b"
-            r"|where\s+can\s+we\s+buy\b"
-            r"|(?:i\s+|we\s+)?(?:want|wish|need)\s+to\s+(?:buy|purchase|order|place\s+an?\s+order)\b"
-            r"|ready\s+to\s+(?:buy|purchase|order)\b"
-            r"|(?:can|could)\s+(?:i|we)\s+(?:buy|purchase|order)\b"
-            r"|(?:buy|purchase|order|place\s+an?\s+order\s+for)\s+(?:this|now|it|today|online)\b"
-            r"|buy\s+this\b"
-            r"|purchase\s+link\b"
-            r"|order\s+link\b"
-            r"|buying\s+link\b"
-            r"|how\s+can\s+i\s+buy\b"
-            r"|how\s+do\s+i\s+buy\b"
-            r"|how\s+to\s+buy\b"
-            r")",
-            normalized_msg.lower()
-        ))
+        # 6a-00. Direct Purchase / Ordering Intent / Commercial Quotation Route
         if is_purchase_query:
             # Case 0: Media & Paper purchase inquiry (e.g. "i want to buy a papers", "buy inkjet media", "buy canvas")
             is_media_purchase = bool(re.search(
@@ -2383,6 +2445,7 @@ class Orchestrator:
                 is_photo = any(k in msg_p for k in ["photo paper", "photo papers", "olmec", "lustre", "luster", "glossy", "photo gloss", "metallic", "dry lab", "pearl", "kj-p260"])
                 is_canvas = any(k in msg_p for k in ["canvas", "canvases", "gallery wrap", "cotton canvas", "polycotton canvas"])
                 is_signage = any(k in msg_p for k in ["signage", "wallpaper", "eco solvent", "eco-solvent", "poster art"])
+                is_rolls = any(k in msg_p for k in ["roll", "rolls", "rool", "rools"])
                 if is_fine_art:
                     return self._build_media_category_response("fine_art", state, nlp_result, start_time)
                 elif is_photo:
@@ -2391,6 +2454,8 @@ class Orchestrator:
                     return self._build_media_category_response("canvas", state, nlp_result, start_time)
                 elif is_signage:
                     return self._build_media_category_response("signage", state, nlp_result, start_time)
+                elif is_rolls:
+                    return self._build_media_rolls_response(state, nlp_result, start_time)
                 else:
                     return self._build_media_category_response("general", state, nlp_result, start_time)
 
@@ -2412,16 +2477,11 @@ class Orchestrator:
                 sku_label = f" (SKU: `{c_sku}`)" if c_sku else ""
                 price_mention = f" Official website price is **{c_price} {c_vat}**." if c_price else ""
 
+                price_mention = f" Price: {c_price} {c_vat}." if c_price else ""
                 reply_text = (
-                    f"You can purchase **{c_name}**{sku_label} directly through Kepler Tech LLC:{price_mention}\n\n"
-                    f"🛒 **1. Official Online Store:**\n"
-                    f"Order directly with verified pricing and secure online checkout on our website:\n"
-                    f"👉 [Buy {c_name} on Website]({c_url})\n\n"
-                    f"📞 **2. Direct Sales Desk & Bulk Quotations:**\n"
-                    f"For corporate purchase orders, tax invoices, or bulk deliveries across the UAE, contact our customer support team:\n"
-                    f"• **Email:** {OFFICIAL_SUPPORT_EMAIL}\n"
-                    f"• **Phone:** {OFFICIAL_SUPPORT_PHONE}\n"
-                    f"• **Location:** Kepler Tech LLC, Dubai, UAE"
+                    f"Sure — you can order the {c_name}{sku_label} directly on our official store here:\n\n"
+                    f"👉 [{c_name} on Website]({c_url}){price_mention}\n\n"
+                    "Let me know if you would like me to prepare a formal quote or help you with media and additional supplies!"
                 )
                 chips_to_return = ["Order on Website", "Contact Sales Desk", "View Compatible Printers"]
                 state.last_assistant_response = reply_text
@@ -2437,7 +2497,7 @@ class Orchestrator:
                     latency_ms=int((time.time() - start_time) * 1000),
                 )
 
-            # Case 2: Active or mentioned hardware product
+            # Case 2: Active or mentioned hardware product / commercial quotation
             # Disambiguate: If the user query is a broad inquiry (e.g. "i want to buy a printer", "buy a scanner")
             # without mentioning a specific model, or refers to a different category than the active product,
             # do not bind to the active product.
@@ -2462,56 +2522,92 @@ class Orchestrator:
                         target_prod = state.active_product
                     elif state.active_product_id:
                         target_prod = catalogue_loader.get_by_id(state.active_product_id)
+                    elif getattr(state, "candidate_products", []):
+                        target_prod = state.candidate_products[0]
             else:
                 if state.category in ("scanners", "scanner") and bool(re.search(r"\b(?:printers?|printing|plotters?|copiers?|mfp)\b", low_msg)):
                     state.reset_category(None)
 
-            if target_prod:
+            # Inferred target product for quotation inquiries if not already bound
+            if not target_prod and not getattr(state, "candidate_products", []):
+                if any(k in low_msg for k in ["quotation", "quatation", "quote", "order"]):
+                    if any(k in low_msg for k in ["office", "workforce", "c878", "c579", "c5890", "a4", "a3"]):
+                        prods = catalogue_loader.get_by_category("office_printers")
+                        if prods:
+                            target_prod = prods[0]
+                    elif any(k in low_msg for k in ["large format", "plotter", "surecolor", "sc-t", "sc-p", "technical", "cad"]):
+                        prods = catalogue_loader.get_by_category("large_format_printers")
+                        if prods:
+                            target_prod = prods[0]
+                    elif any(k in low_msg for k in ["scanner", "scanners", "ds-", "v850"]):
+                        prods = catalogue_loader.get_by_category("scanners")
+                        if prods:
+                            target_prod = prods[0]
+                    elif any(k in low_msg for k in ["photo", "lab", "sl-d", "d1000", "minilab"]):
+                        prods = catalogue_loader.get_by_category("photo_production_printers")
+                        if prods:
+                            target_prod = prods[0]
+                    else:
+                        prods = catalogue_loader.get_by_category("office_printers")
+                        if prods:
+                            target_prod = prods[0]
+
+            disp_prods = [catalogue_loader.get_by_id(pid) for pid in getattr(state, "displayed_product_ids", []) if catalogue_loader.get_by_id(pid)]
+            has_multi_cand = (getattr(state, "candidate_products", []) and len(state.candidate_products) > 0) or len(disp_prods) > 0
+
+            if target_prod or has_multi_cand:
                 from catalog.price_resolver import price_resolver
                 from agent.tool_executor import catalog_tool_executor
+                from catalog.quotation_generator import parse_quantity, is_multi_product_order, generate_quotation
 
-                p_name = target_prod.get("display_name") or target_prod.get("name") or "Product"
-                price_info = price_resolver.get_price_info(prod=target_prod)
-                p_url = price_info.get("url") or target_prod.get("website_url") or OFFICIAL_WEBSITE_URL
-                has_online_price = not price_info.get("is_request") and price_info.get("price")
-                card = catalog_tool_executor.format_card(target_prod, card_type="hardware")
-
-                if has_online_price:
-                    p_price = price_info.get("price_str") or f"AED {price_info['price']:,.2f}"
-                    p_vat = price_info.get("vat_note") or "(Excl. VAT)"
-                    reply_text = (
-                        f"You can order the **{p_name}** directly through Kepler Tech LLC (Official Website Price: **{p_price} {p_vat}**):\n\n"
-                        f"🛒 **1. Official Online Store:**\n"
-                        f"View full technical specifications and place your order online:\n"
-                        f"👉 [Buy {p_name} on Website]({p_url})\n\n"
-                        f"📞 **2. Commercial Sales, Delivery & Installation:**\n"
-                        f"For corporate financing, official quotation, or on-site delivery and installation in the UAE:\n"
-                        f"• **Email:** {OFFICIAL_SUPPORT_EMAIL}\n"
-                        f"• **Phone:** {OFFICIAL_SUPPORT_PHONE}\n"
-                        f"• **Location:** Kepler Tech LLC, Dubai, UAE"
-                    )
+                # Determine products and quantities
+                is_multi = is_multi_product_order(normalized_msg)
+                if is_multi and getattr(state, "candidate_products", []) and len(state.candidate_products) >= 2:
+                    products_to_quote = list(state.candidate_products[:3])
+                    quantities_to_quote = [1] * len(products_to_quote)
+                elif is_multi and len(disp_prods) >= 2:
+                    seen_pids = set()
+                    uniq_disp = []
+                    for dp in disp_prods:
+                        if dp["id"] not in seen_pids:
+                            seen_pids.add(dp["id"])
+                            uniq_disp.append(dp)
+                    products_to_quote = uniq_disp[:3]
+                    quantities_to_quote = [1] * len(products_to_quote)
+                elif is_multi and mentioned_products and len(mentioned_products) >= 2:
+                    products_to_quote = list(mentioned_products[:3])
+                    quantities_to_quote = [1] * len(products_to_quote)
                 else:
-                    reply_text = (
-                        f"The **{p_name}** is an enterprise/production system supplied through Kepler Tech LLC's authorized commercial channel:\n\n"
-                        f"📞 **To Place an Order or Request an Official Quotation:**\n"
-                        f"Our sales engineering team handles commercial supply, warranty, and delivery across the UAE:\n"
-                        f"• **Email:** {OFFICIAL_SUPPORT_EMAIL}\n"
-                        f"• **Phone:** {OFFICIAL_SUPPORT_PHONE}\n"
-                        f"• **Website Details:** [View {p_name} on Website]({p_url})\n"
-                        f"• **Location:** Kepler Tech LLC, Dubai, UAE\n\n"
-                        f"Would you like us to prepare a commercial quotation or check consumable compatibility?"
-                    )
-                chips_to_return = ["Request Official Quote", "Contact Sales Desk", "Compatible Consumables"]
-                state.active_product = target_prod
-                state.active_product_id = target_prod.get("id")
+                    if not target_prod:
+                        if getattr(state, "candidate_products", []):
+                            target_prod = state.candidate_products[0]
+                        elif disp_prods:
+                            target_prod = disp_prods[0]
+                    qty = parse_quantity(normalized_msg)
+                    products_to_quote = [target_prod]
+                    quantities_to_quote = [qty]
+
+                # Generate comprehensive commercial quotation, register CRM lead, and notify sales engineering
+                quo_result = generate_quotation(
+                    items=products_to_quote,
+                    quantities=quantities_to_quote,
+                    state=state,
+                    session_id=session_id,
+                    user_message=normalized_msg,
+                )
+                reply_text = quo_result["reply"]
+                cards = [catalog_tool_executor.format_card(p, card_type="hardware") for p in products_to_quote]
+
+                state.active_product = products_to_quote[0]
+                state.active_product_id = products_to_quote[0].get("id")
                 state.last_assistant_response = reply_text
                 state.increment_turn()
                 return self._build_response(
                     reply=reply_text,
-                    source="route:purchase:hardware",
-                    product_cards=[card],
+                    source="route:purchase:quotation",
+                    product_cards=cards,
                     consumable_cards=[],
-                    suggested_chips=chips_to_return,
+                    suggested_chips=[],
                     nlp_result=nlp_result,
                     state=state,
                     latency_ms=int((time.time() - start_time) * 1000),
@@ -2549,9 +2645,17 @@ class Orchestrator:
                     latency_ms=int((time.time() - start_time) * 1000),
                 )
 
-        # 6a-cpp. Real-time Cost-Per-Print / Cost-Per-Page (CPP) Inquiry Route
+        # 6a-cpp. Real-time Cost-Per-Print / Cost-Per-Page (CPP) & Investment Inquiry Route
         is_cpp_inquiry = bool(re.search(
             r"\b(?:cost\s*per\s*(?:print|page|copy)|per\s*(?:print|page|copy)\s*cost|cpp|running\s*cost(?:s)?|printing\s*cost(?:s)?)\b",
+            normalized_msg.lower()
+        ))
+        is_investment_q = bool(re.search(
+            r"\b(?:investment|invest|hardware\s*cost|machine\s*cost|purchase\s*cost|upfront|initial\s*cost|printer\s*price|printer\s*cost|buying\s*cost|total\s*cost)\b",
+            normalized_msg.lower()
+        ))
+        is_rec_q = bool(re.search(
+            r"\b(?:which\s+(?:one\s+)?(?:is\s+)?(?:best|better|recommended|preferable)|what\s+should\s+i\s+(?:choose|buy|get)|recommend|best\s+for\s+me)\b",
             normalized_msg.lower()
         ))
         if is_cpp_inquiry:
@@ -2560,8 +2664,21 @@ class Orchestrator:
             prods_to_calc = []
             if mentioned_products:
                 prods_to_calc = mentioned_products
-            elif getattr(state, "candidate_products", []) and len(state.candidate_products) >= 2 and any(w in normalized_msg.lower() for w in ["each", "both", "all", "compare"]):
+            elif getattr(state, "candidate_products", []) and len(state.candidate_products) >= 2 and (
+                any(w in normalized_msg.lower() for w in ["each", "both", "all", "compare", "which", "better", "best", "vs", "versus"])
+                or is_rec_q or is_investment_q
+            ):
                 prods_to_calc = state.candidate_products
+            elif getattr(state, "compared_products", []) and len(state.compared_products) >= 2 and (
+                any(w in normalized_msg.lower() for w in ["each", "both", "all", "compare", "which", "better", "best", "vs", "versus"])
+                or is_rec_q or is_investment_q
+            ):
+                prods_to_calc = state.compared_products
+            elif getattr(state, "displayed_product_ids", []) and len(state.displayed_product_ids) >= 2 and (
+                any(w in normalized_msg.lower() for w in ["each", "both", "all", "compare", "which", "better", "best", "vs", "versus"])
+                or is_rec_q or is_investment_q
+            ):
+                prods_to_calc = [catalogue_loader.get_by_id(pid) for pid in state.displayed_product_ids if catalogue_loader.get_by_id(pid)]
             elif state.active_product:
                 target_p = state.active_product if isinstance(state.active_product, dict) else (state.active_product.to_dict() if hasattr(state.active_product, "to_dict") else None)
                 if target_p:
@@ -2573,6 +2690,35 @@ class Orchestrator:
             elif getattr(state, "candidate_products", []):
                 prods_to_calc = [state.candidate_products[0]]
 
+            # Deduplicate by canonical ID
+            seen_ids = set()
+            dedup_prods = []
+            for p in prods_to_calc:
+                p_id = (p.get("id") or p.get("canonical_id") or "").lower()
+                if p_id and p_id not in seen_ids:
+                    seen_ids.add(p_id)
+                    dedup_prods.append(p)
+            prods_to_calc = dedup_prods
+
+            # If recommendation or investment query and only 1 product resolved, expand from displayed products
+            if len(prods_to_calc) < 2 and (is_rec_q or is_investment_q):
+                for pid in getattr(state, "displayed_product_ids", []):
+                    dp = catalogue_loader.get_by_id(pid)
+                    if dp:
+                        p_id = (dp.get("id") or dp.get("canonical_id") or "").lower()
+                        if p_id and p_id not in seen_ids:
+                            seen_ids.add(p_id)
+                            prods_to_calc.append(dp)
+
+            if not prods_to_calc and (is_rec_q or is_investment_q):
+                # Fallback to Citizen photo printers if photo context
+                p_cands = [
+                    catalogue_loader.get_by_id("citizen-cz-01"),
+                    catalogue_loader.get_by_id("citizen-cx-02"),
+                    catalogue_loader.get_by_id("citizen-cy-02"),
+                ]
+                prods_to_calc = [p for p in p_cands if p]
+
             # Detect format if mentioned in normalized_msg
             fmt = None
             for f_cand in ["4x6", "4×6", "6x8", "6×8", "5x7", "5×7", "8x10", "8×10", "8x12", "8×12", "4.5x8", "4.5×8", "a4", "a3"]:
@@ -2580,7 +2726,23 @@ class Orchestrator:
                     fmt = f_cand
                     break
 
-            if prods_to_calc:
+            cards_to_show = []
+            if (is_investment_q or is_rec_q) and len(prods_to_calc) >= 2:
+                reply_text = cost_per_print_calculator.build_investment_and_running_cost_comparison(prods_to_calc, print_format=fmt)
+                # Multi-question support: If speed was also asked, include verified speed!
+                if any(w in normalized_msg.lower() for w in ["speed", "ppm", "ipm", "print speed", "printing speed"]):
+                    speed_lines = ["Verified Printing Speed:"]
+                    for p in prods_to_calc:
+                        p_name = p.get("display_name") or p.get("name") or p.get("id")
+                        p_speed = p.get("print_speed") or p.get("speed")
+                        if not p_speed:
+                            specs = p.get("specifications_table") or {}
+                            p_speed = specs.get("Print Speed") or specs.get("Speed") or specs.get("Printing Speed") or specs.get("ISO Print Speed")
+                        speed_lines.append(f"• {p_name}: {p_speed or 'Refer to catalogue technical sheet'}")
+                    reply_text = f"{chr(10).join(speed_lines)}\n\n{reply_text}"
+                from agent.tool_executor import catalog_tool_executor
+                cards_to_show = [catalog_tool_executor.format_card(p, card_type="hardware") for p in prods_to_calc[:3]]
+            elif prods_to_calc:
                 state.active_product = prods_to_calc[0]
                 state.active_product_id = prods_to_calc[0].get("id")
                 state.active_printer_for_consumables = prods_to_calc[0].get("display_name") or prods_to_calc[0].get("name")
@@ -2588,19 +2750,26 @@ class Orchestrator:
                 for p in prods_to_calc:
                     p_id = p.get("id") or p.get("canonical_id") or ""
                     p_name = p.get("display_name") or p.get("name") or p_id
-                    res = cost_per_print_calculator.calculate_cost_per_print(p_id, print_format=fmt, printer_name=p_name)
+                    res = cost_per_print_calculator.calculate_cost_per_print(
+                        p_id,
+                        print_format=fmt,
+                        printer_name=p_name,
+                        include_hardware_price=is_investment_q,
+                    )
                     explanations.append(res.explanation or "Print cost cannot be verified from the available data.")
                 reply_text = "\n\n---\n\n".join(explanations)
+                from agent.tool_executor import catalog_tool_executor
+                cards_to_show = [catalog_tool_executor.format_card(p, card_type="hardware") for p in prods_to_calc[:2]]
             else:
                 reply_text = cost_per_print_calculator.get_all_citizen_cost_summary()
 
-            chips_to_return = ["View Inks & Media", "Managed Print Services"]
+            chips_to_return = ["View Inks & Media", "Managed Print Services", "Request Official Quote"]
             state.last_assistant_response = reply_text
             state.increment_turn()
             return self._build_response(
                 reply=reply_text,
                 source="route:cost_per_print",
-                product_cards=[],
+                product_cards=cards_to_show,
                 consumable_cards=[],
                 suggested_chips=chips_to_return,
                 nlp_result=nlp_result,
@@ -2685,6 +2854,8 @@ class Orchestrator:
                     target_prods = mentioned_products[:3]
                 elif not mentioned_products and getattr(state, "compared_products", None) and len(state.compared_products) >= 2:
                     target_prods = state.compared_products[:3]
+                elif not mentioned_products and getattr(state, "candidate_products", None) and len(state.candidate_products) >= 2:
+                    target_prods = state.candidate_products[:3]
 
                 if target_prods:
                     from catalog.price_resolver import price_resolver
@@ -2701,7 +2872,7 @@ class Orchestrator:
                         source="route:product_price_inquiry",
                         product_cards=cards,
                         consumable_cards=[],
-                        suggested_chips=["Request Official Quote", "View Technical Specifications", "Compatible Consumables"],
+                        suggested_chips=[],
                         nlp_result=nlp_result,
                         state=state,
                         latency_ms=int((time.time() - start_time) * 1000),
@@ -2732,7 +2903,7 @@ class Orchestrator:
                         source="route:product_price_inquiry",
                         product_cards=[card],
                         consumable_cards=[],
-                        suggested_chips=["View Technical Specifications", "Compatible Consumables", "Request Official Quote"],
+                        suggested_chips=[],
                         nlp_result=nlp_result,
                         state=state,
                         latency_ms=int((time.time() - start_time) * 1000),
@@ -2746,7 +2917,7 @@ class Orchestrator:
                         source="route:general_price_inquiry",
                         product_cards=[],
                         consumable_cards=[],
-                        suggested_chips=["Technical CAD Plotters", "Photo Printers", "Office Enterprise MFPs", "View Consumables"],
+                        suggested_chips=[],
                         nlp_result=nlp_result,
                         state=state,
                         latency_ms=int((time.time() - start_time) * 1000),
@@ -3099,12 +3270,16 @@ class Orchestrator:
                 state.stage = "comparing"
                 state.last_assistant_response = reply_text
                 state.increment_turn()
+                if any("f500" in str(p.get("id", "")).lower() or "f100" in str(p.get("id", "")).lower() for p in comp_products):
+                    chips_comp = ["View Technical Specifications", "Compatible Sublimation Inks & Media", "Talk to Sales Specialist"]
+                else:
+                    chips_comp = ["View Technical Specifications", "Compatible Consumables", "Talk to Sales Specialist"]
                 return self._build_response(
                     reply=reply_text,
                     source="route:comparison",
                     product_cards=cards,
                     consumable_cards=[],
-                    suggested_chips=["View Technical Specifications", "Compatible Consumables"],
+                    suggested_chips=chips_comp,
                     nlp_result=nlp_result,
                     state=state,
                     latency_ms=int((time.time() - start_time) * 1000),
@@ -3334,16 +3509,33 @@ class Orchestrator:
                         latency_ms=int((time.time() - start_time) * 1000),
                     )
                 else:
+                    has_specific_question_intent = (
+                        bool(re.search(r"\b(?:what|which|how|does|can|why|where|is\s+it)\b", normalized_msg.lower()))
+                        or "?" in normalized_msg
+                        or any(term in normalized_msg.lower() for term in [
+                            "surface", "surfaces", "substrate", "substrates", "print on", "prints on",
+                            "speed", "ppm", "resolution", "dpi", "width", "dimensions", "weight",
+                            "wifi", "wi-fi", "wireless", "ethernet", "network",
+                            "finish", "finishes", "finishing", "matte", "glossy", "luster", "lustre",
+                            "ink", "inks", "cartridge", "tank", "yield", "capacity", "rewind", "cutter",
+                            "media", "paper", "sizes", "cost", "price", "warranty", "memory", "feeder"
+                        ])
+                    )
                     is_detailed_specs_query = (
-                        bool(re.search(
-                            r"\b(?:details?|more\s+details?|view\s+details?|specs?|specifications?|overview|tell\s+me\s+about|full\s+specs?|datasheet|brochure|all\s+specs?|features?)\b",
-                            normalized_msg.lower()
-                        ))
-                        or (
-                            getattr(understanding, "requested_action", "") in ("show_product_specs", "show_details")
-                            and not bool(re.search(r"\b(?:hybrid|flatbed|adf|scanners?|printers?|plotters?|options|models|types?|recommend)\b", normalized_msg.lower()))
+                        not has_specific_question_intent
+                        and (
+                            bool(re.search(
+                                r"\b(?:details?|more\s+details?|view\s+details?|specs?|specifications?|overview|tell\s+me\s+about|full\s+specs?|datasheet|brochure|all\s+specs?)\b",
+                                normalized_msg.lower()
+                            ))
+                            or (
+                                getattr(understanding, "requested_action", "") in ("show_product_specs", "show_details")
+                                and not bool(re.search(r"\b(?:hybrid|flatbed|adf|scanners?|printers?|plotters?|options|models|types?|recommend)\b", normalized_msg.lower()))
+                            )
                         )
-                    ) and not CanonicalEntityNormalizer.is_capability_query(normalized_msg) and not bool(re.search(r"\bcan\s+(?:i|it)\b", normalized_msg.lower()))
+                        and not CanonicalEntityNormalizer.is_capability_query(normalized_msg)
+                        and not bool(re.search(r"\bcan\s+(?:i|it)\b", normalized_msg.lower()))
+                    )
                     if is_detailed_specs_query:
                         req_summary = state.format_requirements_summary() if hasattr(state, "format_requirements_summary") else ""
                         detail_specs = product_spec_engine.get_product_detailed_specs(spec_target_id, normalized_msg, requirements_summary=req_summary)
@@ -3374,12 +3566,18 @@ class Orchestrator:
                             state.active_printer_for_consumables = spec_target_cand.get("display_name")
                             state.last_assistant_response = reply_text
                             state.increment_turn()
+                            if state.category in ("dye_sublimation", "sublimation") or "f500" in str(spec_target_id) or "f100" in str(spec_target_id):
+                                other_model = "SC-F100" if "f500" in str(spec_target_id) else "SC-F500"
+                                spec_chips = ["Compatible Sublimation Inks & Media", f"Compare with {other_model}", "Talk to Sales Specialist"]
+                            else:
+                                spec_chips = ["View Compatible Consumables", "Compare with Another Model", "Request Quotation"]
+
                             return self._build_response(
                                 reply=reply_text,
                                 source="route:product_spec_attribute:detailed",
                                 product_cards=cards,
                                 consumable_cards=[],
-                                suggested_chips=["View Compatible Consumables", "Compare with Another Model", "Request Quotation"],
+                                suggested_chips=spec_chips,
                                 nlp_result=nlp_result,
                                 state=state,
                                 latency_ms=int((time.time() - start_time) * 1000),
@@ -3409,7 +3607,9 @@ class Orchestrator:
                 "ink capacity", "pattern", "pattern change", "finish", "finishes", "finishing",
                 "glossy", "matte", "partial matte", "nozzle check", "media change", "paper change",
                 "drop-in", "wifi", "wi-fi", "wireless", "connectivity", "network", "ethernet",
-                "what media", "media can it", "media support"
+                "what media", "media can it", "media support",
+                "surface", "surfaces", "substrate", "substrates", "print on", "prints on",
+                "what surface", "which surface", "what can it print on", "what material", "materials"
             ])
             and not any(w in normalized_msg.lower() for w in [
                 "find", "recommend", "show all", "compare", "vs",
@@ -3482,17 +3682,23 @@ class Orchestrator:
                 if p_cart and p_cart not in (p_yield or ""):
                     reply_text += f"• **Cartridge / Media Packs:** {p_cart}\n"
                 reply_text += f"\n*(Verified from official catalogue: {p_entry.get('source_catalogue')})*"
-            # Pattern, Finishing & Media Handling inquiry
+            # Pattern, Finishing, Surface & Media Handling inquiry
             elif any(w in normalized_msg.lower() for w in [
+                "surface", "surfaces", "substrate", "substrates", "print on", "prints on", "what can it print", "which surface", "what surface",
                 "pattern", "pattern change", "finish", "finishes", "finishing",
                 "glossy", "matte", "partial matte", "nozzle check", "media change", "paper change", "drop-in"
             ]):
-                p_pat = p_entry.get("pattern_and_finishing")
-                reply_text = (
-                    f"Here are the verified finishing and pattern options for the **{p_name}**:\n\n"
-                    f"• **Finishing & Pattern Handling:** {p_pat}\n\n"
-                    f"*(Verified from official catalogue: {p_entry.get('source_catalogue')})*"
-                )
+                from catalog.product_spec_engine import product_spec_engine
+                spec_res = product_spec_engine.answer_single_attribute(act_id, normalized_msg)
+                if spec_res and spec_res.reply:
+                    reply_text = spec_res.reply
+                else:
+                    p_pat = p_entry.get("pattern_and_finishing")
+                    reply_text = (
+                        f"Here are the verified finishing and media specifications for the **{p_name}**:\n\n"
+                        f"• **Finishing & Media Handling:** {p_pat}\n\n"
+                        f"*(Verified from official catalogue: {p_entry.get('source_catalogue')})*"
+                    )
             # Connectivity / Wi-Fi inquiry
             elif any(w in normalized_msg.lower() for w in ["wifi", "wi-fi", "wireless", "ethernet", "bluetooth", "connectivity", "network"]):
                 from agent.evidence_planner import evidence_planner
@@ -3540,12 +3746,20 @@ class Orchestrator:
 
             state.last_assistant_response = reply_text
             state.increment_turn()
+            if state.category in ("dye_sublimation", "sublimation") or str(act_id).startswith("epson-sc-f"):
+                if "f500" in str(act_id):
+                    chips_spec = ["Compatible Sublimation Inks & Media", "Compare with SC-F100", "Talk to Sales Specialist"]
+                else:
+                    chips_spec = ["Compatible Sublimation Inks & Media", "Compare with SC-F500", "Talk to Sales Specialist"]
+            else:
+                chips_spec = ["Compatible Consumables", "Compare with Alternative", "Talk to Sales Specialist"]
+
             return self._build_response(
                 reply=reply_text,
                 source="route:product_spec_attribute",
                 product_cards=prod_cards,
                 consumable_cards=[],
-                suggested_chips=["View Technical Specifications", "Compatible Consumables"],
+                suggested_chips=chips_spec,
                 nlp_result=nlp_result,
                 state=state,
                 latency_ms=int((time.time() - start_time) * 1000),
@@ -3584,8 +3798,16 @@ class Orchestrator:
 
         # 6b. Exact Model Detail Inquiry (For one of the 43 approved products)
         has_negated_ink = bool(re.search(r"\b(?:not|no|don'?t\s+want)\s+ink\b", normalized_msg.lower()))
+        is_hw_selection_phrase = bool(re.search(
+            r"\b(?:sc-f500|sc-f100|sc-[tp]\d{3,5}|cx-02|cy-02|cz-01|a4 desktop|24-inch roll|\(sc-f500\)|\(sc-f100\))\b",
+            normalized_msg.lower()
+        )) or (
+            state.category in ("dye_sublimation", "sublimation")
+            and any(k in normalized_msg.lower() for k in ["f500", "f100", "24", "desktop", "roll"])
+        )
         has_ink_keyword = (
             not has_negated_ink
+            and not is_hw_selection_phrase
             and state.awaiting_field != "photo_form_factor"
             and "photo_form_factor" not in det_reqs
             and bool(re.search(
@@ -3610,7 +3832,12 @@ class Orchestrator:
         ):
             # Check if this inquiry occurs in a consumables context (e.g. after customer inquired about consumables)
             # and the user did not explicitly specify hardware printer intent vs consumables.
-            has_consumables_context = bool(
+            is_hardware_qualification = (
+                state.stage == "qualifying"
+                or state.category in ("dye_sublimation", "sublimation", "office_printer", "technical_large_format", "photography_large_format", "citizen_photo", "scanners")
+                or state.awaiting_field in ("paper_size", "sublimation_format", "print_width", "photo_form_factor", "photo_brand", "scanner_required", "daily_volume")
+            )
+            has_consumables_context = not is_hardware_qualification and bool(
                 state.active_printer_for_consumables
                 or state.active_route in ("consumables", "consumable", "route:consumables")
                 or (state.history_turns and any(
@@ -3622,7 +3849,7 @@ class Orchestrator:
             )
 
             has_explicit_hardware = bool(re.search(
-                r"\b(?:printers?|plotters?|machines?|hardware|devices?|specs?|specifications?|features?|print\s*speed|speed|speeds|ppm|brochures?|datasheets?|dimensions?|resolutions?|how\s+fast|dpi|warranty|roll\s+adapter|cut\s*sheet|without\s+roll|with\s+roll|weights?|weigh|lighter|heavier|compare|comparison|portable|portability)\b",
+                r"\b(?:printers?|plotters?|machines?|hardware|devices?|specs?|specifications?|features?|print\s*speed|speed|speeds|ppm|brochures?|datasheets?|dimensions?|resolutions?|how\s+fast|dpi|warranty|roll\s+adapter|cut\s*sheet|without\s+roll|with\s+roll|roll|rolls|desktop|a4|24-inch|weights?|weigh|lighter|heavier|compare|comparison|portable|portability)\b",
                 normalized_msg.lower()
             ))
 
@@ -3695,7 +3922,13 @@ class Orchestrator:
             else:
                 target_prod = mentioned_products[0]
                 reply_text, cards = build_model_detail_response(target_prod)
-                chips = ["View Compatible Consumables", "Compare with Alternative"]
+                t_id = target_prod.get("id", "")
+                if t_id == "epson-sc-f500" or "f500" in t_id:
+                    chips = ["View Technical Specifications", "Compatible Sublimation Inks & Media", "Compare with SC-F100"]
+                elif t_id == "epson-sc-f100" or "f100" in t_id:
+                    chips = ["View Technical Specifications", "Compatible Sublimation Inks & Media", "Compare with SC-F500"]
+                else:
+                    chips = ["View Technical Specifications", "Compatible Consumables", "Compare with Alternative"]
 
             state.active_product = target_prod
             state.active_product_id = target_prod["id"]
@@ -3740,8 +3973,16 @@ class Orchestrator:
         msg_l_media = normalized_msg.lower().strip()
         has_hw_word = any(w in msg_l_media for w in [
             "which printer", "need a printer", "buy printer", "printer price", "cost of printer",
-            "plotter", "scanner", "printer specs", "printer specifications", "looking for a printer", "printer model"
-        ])
+            "plotter", "scanner", "printer specs", "printer specifications", "looking for a printer", "printer model",
+            "sc-f", "sc-t", "sc-p", "f500", "f100", "p700", "p900", "p5300", "p6500", "p7500", "p8500", "p9500",
+            "t3100", "t5100", "t3400", "t5400", "t7700", "am-c", "wf-c", "cx-02", "cy-02", "cz-01", "desktop", "hardware", "machine"
+        ]) or bool(re.search(
+            r"\b(?:printer|plotter|scanner|mfp|hardware|machine|sc[-\s]?[tpf]\d{3,5}|f[15]00|cx[-\s]?02|cy[-\s]?02|cz[-\s]?01)\b",
+            msg_l_media
+        )) or (
+            state.category in ("dye_sublimation", "sublimation", "office_printer", "technical_large_format", "photography_large_format", "citizen_photo", "scanners", "scanner")
+            and getattr(state, "active_media_category", None) is None
+        )
 
         # Ambiguous "i need a inkjet" / "i need inkjet" / "looking for inkjet" check
         is_ambiguous_inkjet = bool(re.search(
@@ -3769,16 +4010,22 @@ class Orchestrator:
                 latency_ms=int((time.time() - start_time) * 1000),
             )
 
+        is_media_rolls = bool(re.search(
+            r"\b(?:medias?\s*rolls?|roll\s*medias?|paper\s*rolls?|rolls?\s*of\s*media|media\s*in\s*rolls?|"
+            r"(?:list|show|give|display|get)\s+(?:all\s+)?(?:the\s+)?(?:medias?\s+)?rolls?|"
+            r"all\s+(?:the\s+)?(?:medias?\s+)?rolls?)\b",
+            msg_l_media
+        ))
         is_media_explicit = bool(re.search(
             r"\b(?:inkjet\s*medias?|inkjet\s*papers?|inkjet\s*canvas(?:es)?|print\s*medias?|fine\s*art\s*papers?|photo\s*papers?|canvas(?:\s*rolls?|\s*medias?)?|innova(?:\s*art)?|olmec|korejet|baryta|cotton\s*rag|watercolour\s*paper|fabriano|paste\s*up\s*wallpaper|wallpaper\s*medias?|ifa[-\s]?\d+|olm[-\s]?\d+|kj[-\s]?p\d+)\b",
             msg_l_media
         ))
         is_media_generic = bool(re.search(
-            r"\b(?:what\s+medias?|need\s+(?:inkjet\s+)?medias?|have\s+medias?|sell\s+medias?|stock\s+medias?|medias?\s+options|medias?\s+catalogue|medias?\s+list|medias?\s+types|which\s+medias?|types\s+of\s+medias?|papers?\s+and\s+medias?|paper\s+rolls?|roll\s+medias?|buy\s+papers?|buy\s+medias?|need\s+papers?|want\s+papers?|want\s+medias?|photo\s+medias?)\b",
+            r"\b(?:(?:what|which|types\s+of|list|show|have|sell|stock|need|want|buy)\s+(?:all\s+)?(?:the\s+)?(?:inkjet\s+)?(?:medias?|papers?|paper\s+rolls?|media\s+rolls?)|medias?\s+(?:options|catalogue|list|types|rolls?)|paper\s+rolls?|roll\s+medias?|medias?\s*rolls?|papers?\s+and\s+medias?|photo\s+medias?)\b",
             msg_l_media
-        ))
+        )) or is_media_rolls
         is_media_chip_selection = any(k in msg_l_media for k in [
-            "fine art papers", "photo papers", "printable canvases", "signage & wallpapers", "signage and wallpapers", "inkjet media & paper", "inkjet media and paper"
+            "fine art papers", "photo papers", "printable canvases", "signage & wallpapers", "signage and wallpapers", "inkjet media & paper", "inkjet media and paper", "media rolls", "all media rolls"
         ])
 
         if (is_media_explicit or is_media_generic or is_media_chip_selection) and not has_hw_word:
@@ -3787,7 +4034,9 @@ class Orchestrator:
             is_canvas = any(k in msg_l_media for k in ["canvas", "canvases", "gallery wrap", "cotton canvas", "polycotton canvas"])
             is_signage = any(k in msg_l_media for k in ["signage", "wallpaper", "eco solvent", "eco-solvent", "poster art", "ifa 98", "ifa-98", "ifa 96", "ifa-96", "ifa 93", "ifa-93"])
 
-            if is_fine_art and not (is_photo or is_canvas or is_signage):
+            if is_media_rolls and not (is_fine_art or is_photo or is_canvas or is_signage):
+                return self._build_media_rolls_response(state, nlp_result, start_time)
+            elif is_fine_art and not (is_photo or is_canvas or is_signage):
                 return self._build_media_category_response("fine_art", state, nlp_result, start_time)
             elif is_photo and not (is_fine_art or is_canvas or is_signage):
                 return self._build_media_category_response("photo", state, nlp_result, start_time)
@@ -3795,6 +4044,8 @@ class Orchestrator:
                 return self._build_media_category_response("canvas", state, nlp_result, start_time)
             elif is_signage and not (is_fine_art or is_photo or is_canvas):
                 return self._build_media_category_response("signage", state, nlp_result, start_time)
+            elif is_media_rolls:
+                return self._build_media_rolls_response(state, nlp_result, start_time)
             else:
                 return self._build_media_category_response("general", state, nlp_result, start_time)
 
@@ -3814,8 +4065,8 @@ class Orchestrator:
         ))
         has_media_context = (
             getattr(state, "active_media_category", None) is not None
-            or state.awaiting_field == "media_format"
-            or any(w in msg_l_media for w in ["roll", "rolls", "paper", "media", "canvas", "innova", "sheet"])
+            or state.awaiting_field in ("media_format", "media_category")
+            or (any(w in msg_l_media for w in ["innova", "olmec", "korejet", "baryta", "cotton rag", "fabriano", "fine art paper", "media", "roll"]) and not has_hw_word)
         )
         if (roll_width_match or is_sheet_format) and has_media_context and not has_hw_word:
             if roll_width_match:
@@ -4118,7 +4369,11 @@ class Orchestrator:
                         reply_text = f"Certainly! Here are the verified{color_label} inks and media compatible with **{p_name}**:\n\n{items_text}"
                     else:
                         reply_text = f"We could not find verified consumable items with confirmed SKUs and links for the **{p_name}** in the current catalogue."
-                chips_to_return = ["Order Consumables", "View Printer Specifications"]
+                if state.category in ("dye_sublimation", "sublimation") or "f500" in str(p_name).lower() or "f100" in str(p_name).lower():
+                    other_model = "SC-F100" if "f500" in str(p_name).lower() else "SC-F500"
+                    chips_to_return = ["View Technical Specifications", f"Compare with {other_model}", "Talk to Sales Specialist"]
+                else:
+                    chips_to_return = ["View Technical Specifications", "Compare Matching Models", "Talk to Sales Specialist"]
             else:
                 if p_name:
                     state.awaiting_field = None
@@ -4246,7 +4501,14 @@ class Orchestrator:
 
         # 7a. If category is still unknown, prompt for category
         if not state.category:
-            reply_text = "What will you primarily print or scan—technical CAD drawings, office & business documents, professional photographs, professional scanners, sublimation merchandise (mugs & T-shirts), or event photos?"
+            is_unclear = (
+                getattr(understanding, "intent", None) in (Intent.UNCLEAR, Intent.OUT_OF_SCOPE)
+                or not any(w in normalized_msg.lower() for w in [
+                    "printer", "print", "plotter", "scanner", "scan", "copier", "machine", "device", "recommend", "suggest", "buy", "looking for", "need a"
+                ])
+            )
+            prefix = "Could you tell me that again? " if is_unclear and len(normalized_msg.strip()) > 0 else ""
+            reply_text = f"{prefix}What will you primarily print—office & business documents, technical CAD drawings, professional photographs & fine art, sublimation merchandise (mugs & T-shirts), or event photos?"
             chips_to_return = [
                 "Office & Business Documents",
                 "Technical CAD Plotters",
@@ -4310,7 +4572,10 @@ class Orchestrator:
                 elif next_field == "daily_volume":
                     state.requirements["daily_volume"] = 100
                 elif next_field == "paper_size":
-                    state.requirements["paper_size"] = "a4"
+                    if any(w in msg_l for w in ["a3", "multi", "various", "both", "large", "wide"]):
+                        state.requirements["paper_size"] = "a3"
+                    else:
+                        state.requirements["paper_size"] = "a4"
                 state.awaiting_field = None
                 state.unresolved_field_turns = 0
                 state.qualification_complete = True
@@ -4321,11 +4586,18 @@ class Orchestrator:
                 cards, no_match = catalogue_filter.filter_and_rank(state.category, subcategory, state.requirements)
                 if not no_match and cards:
                     valid_cards = validate_product_cards(cards)
-                    state.displayed_product_ids = [c["id"] for c in valid_cards]
                     state.results_loaded = True
                     cat_name = state.category.replace('_', ' ').title() if state.category else "Printer"
                     opener_str = format_rotating_opener(f"top {cat_name} models", state)
                     reply_text = f"{opener_str} (you can refine or compare anytime):"
+                    bullets = []
+                    for c in valid_cards[:4]:
+                        title = c.get("title") or c.get("name") or c.get("id")
+                        speed = c.get("speed") or c.get("print_speed") or c.get("scan_speed")
+                        desc = f" ({speed})" if speed else ""
+                        bullets.append(f"• **{title}**{desc}")
+                    if bullets:
+                        reply_text += "\n\n" + "\n".join(bullets)
                     chips_to_return = ["Compare Matching Models", "View Detailed Specifications", "Filter by Requirements"]
                     state.last_assistant_response = reply_text
                     state.increment_turn()
@@ -4386,7 +4658,6 @@ class Orchestrator:
         else:
             # Validate cards fail-closed (all IDs must belong to 41 approved catalogue entries)
             valid_cards = validate_product_cards(cards)
-            state.displayed_product_ids = [c["id"] for c in valid_cards]
             state.results_loaded = True
             product_cards = valid_cards
             if len(valid_cards) == 1:
@@ -4473,6 +4744,21 @@ class Orchestrator:
                     )
                 else:
                     reply_text = format_rotating_opener(f"Citizen 6-inch photo printer{'s' if len(valid_cards) != 1 else ''}", state)
+            elif state.category in ("dye_sublimation", "sublimation") or subcategory in ("dye_sublimation_24_inch", "dye_sublimation_desktop"):
+                if subcategory == "dye_sublimation_24_inch" or state.requirements.get("model") == "epson-sc-f500" or state.requirements.get("print_width") == 24:
+                    reply_text = (
+                        f"{format_rotating_opener('24-inch dye-sublimation printer', state)}:\n\n"
+                        "The **Epson SureColor SC-F500** is an authorized 24-inch dye-sublimation production printer engineered for apparel, sportswear, soft signage, mugs, and promotional merchandise. "
+                        "It features refillable 140ml ink tanks (UltraChrome DS), auto-switching between 24-inch roll media and cut-sheet feed, and a compact desktop footprint."
+                    )
+                    chips_to_return = ["View Technical Specifications", "Compatible Sublimation Inks & Media", "Compare with SC-F100"]
+                else:
+                    reply_text = (
+                        f"{format_rotating_opener('desktop dye-sublimation printer', state)}:\n\n"
+                        "The **Epson SureColor SC-F100** is a compact A4 desktop dye-sublimation printer designed for mugs, phone covers, mouse mats, and small promotional items. "
+                        "It features refillable 140ml bottle ink tanks (UltraChrome DS), Wi-Fi connectivity, and a space-saving desktop design."
+                    )
+                    chips_to_return = ["View Technical Specifications", "Compatible Sublimation Inks & Media", "Compare with SC-F500"]
             elif state.category == "citizen_photo" or subcategory in ("citizen_photo", "citizen_4_inch", "citizen_8_inch"):
                 reply_text = format_rotating_opener(f"Citizen dye-sublimation photo printer{'s' if len(valid_cards) != 1 else ''}", state)
             elif state.requirements.get("paper_size") == "a3":
@@ -4491,7 +4777,7 @@ class Orchestrator:
             else:
                 reply_text = format_rotating_opener(f"catalogue printer{'s' if len(valid_cards) != 1 else ''}", state)
 
-            if valid_cards:
+            if valid_cards and not state.category in ("dye_sublimation", "sublimation"):
                 bullets = []
                 for c in valid_cards[:4]:
                     title = c.get("title") or c.get("name") or c.get("id")
@@ -4509,6 +4795,10 @@ class Orchestrator:
             sanitized_reply, _ = validate_and_sanitize_catalogue_text(reply_text, valid_cards)
             if state.category == "citizen_photo":
                 chips_to_return = ["Citizen CX-02", "Citizen CY-02", "Citizen CZ-01", "Citizen CX-02W"]
+            elif state.category in ("dye_sublimation", "sublimation"):
+                pass  # already set to contextually relevant sublimation chips above
+            elif len(valid_cards) == 1:
+                chips_to_return = ["View Technical Specifications", "Compatible Consumables", "Filter by Requirements"]
             else:
                 chips_to_return = ["Compare Matching Models", "View Detailed Specifications", "Filter by Requirements"]
             source = "recommendation:catalogue_list"
@@ -4576,7 +4866,7 @@ class Orchestrator:
             prod = catalog_repository.get_by_id(c_id)
 
         if not prod:
-            return "That model is not present in our approved catalogue. Could you please specify your printing requirements again—such as what you plan to print (technical CAD drawings, office documents, or photos) and your desired print size?"
+            return "I don't have that product in our catalog. What type of printing and sizes do you need? I'd be happy to suggest the best option from our range."
 
         # Handle consumables route regeneration
         if route_result and (getattr(route_result, "consumable_cards", None) or "consumable" in (getattr(route_result, "source", "") or "")):
@@ -4669,11 +4959,15 @@ class Orchestrator:
             or source.startswith("route:product_price_inquiry")
             or source.startswith("route:consumable_price_inquiry")
             or source.startswith("route:general_price_inquiry")
-            or source.startswith("recommendation:epson_brand_discovery")
-            or source.startswith("recommendation:citizen_brand_discovery")
-            or source.startswith("recommendation:broad_catalog_discovery")
+            or source.startswith("route:cost_per_print")
+            or source.startswith("recommendation:")
             or source.startswith("route:unverified_product")
             or source.startswith("route:citizen_uncarried_category")
+            or source.startswith("route:consumables")
+            or source.startswith("route:comparison")
+            or source.startswith("route:model_detail")
+            or source.startswith("route:product_spec_attribute")
+            or source.startswith("qualification:")
             or "safe_refusal" in source
             or "refusal" in source
             or "error" in source
@@ -4903,12 +5197,12 @@ class Orchestrator:
         start_time: float,
     ) -> Dict[str, Any]:
         from catalog.media_registry import media_registry
-        cat_context = getattr(state, "active_media_category", None) or "fine_art"
+        cat_context = getattr(state, "active_media_category", None) or "all"
         prods = media_registry.get_by_format_or_width(
             width_inches=width_inches,
             format_type=format_type,
-            category=cat_context,
-            limit=6
+            category=cat_context if cat_context not in ("rolls", "general", "general_roll", "all") else None,
+            limit=8
         )
         c_cards = [
             {
@@ -4924,13 +5218,17 @@ class Orchestrator:
         items_lines = []
         for p in prods:
             spec_extra = f": {p.weight_gsm}gsm {p.surface_finish}." if p.weight_gsm else "."
-            items_lines.append(f"• **[{p.name}]({p.url})** (SKU: `{p.sku}`){spec_extra}")
+            items_lines.append(f"• [{p.name}]({p.url}) (SKU: `{p.sku}`){spec_extra}")
 
-        cat_title = cat_context.replace('_', ' ').title()
-        if width_inches:
-            title_hdr = f"**{int(width_inches)}-inch ({int(width_inches)}″)** wide-format rolls"
+        if cat_context in ("rolls", "general", "general_roll", "all"):
+            cat_title = "our wide-format media collections"
         else:
-            title_hdr = f"**{format_label}**"
+            cat_title = cat_context.replace('_', ' ').title()
+
+        if width_inches:
+            title_hdr = f"{int(width_inches)}-inch ({int(width_inches)}″) wide-format rolls"
+        else:
+            title_hdr = f"{format_label}"
 
         if items_lines:
             items_block = "\n".join(items_lines)
@@ -4962,6 +5260,86 @@ class Orchestrator:
             latency_ms=int((time.time() - start_time) * 1000),
         )
 
+    def _build_media_rolls_response(
+        self,
+        state: ConversationState,
+        nlp_result: Dict[str, Any],
+        start_time: float,
+    ) -> Dict[str, Any]:
+        from catalog.media_registry import media_registry
+
+        state.requirements.pop("daily_volume", None)
+        state.requirements.pop("monthly_volume", None)
+        state.active_media_category = "rolls"
+        state.awaiting_field = "media_format"
+
+        flagship_skus = [
+            "OLM-59",          # Olmec Photo Lustre 260gsm (Photo)
+            "OLM-60",          # Olmec Photo Gloss 260gsm (Photo)
+            "KJP260PL24",      # Korejet Premium Luster 260gsm 24" roll (Photo)
+            "IFA-11",          # Innova Photo Cotton Rag 315gsm (Fine Art)
+            "IFA-04",          # Innova Smooth Cotton High White (Fine Art)
+            "IFA-54",          # Innova Exhibition Matte Cotton Canvas (Canvas)
+            "C13S041846",      # Epson Premium Canvas Satin (Canvas)
+            "IFA-98",          # Innova Eco Solvent Paste Up Wallpaper (Signage)
+        ]
+        prods = []
+        for s in flagship_skus:
+            p = media_registry.get_by_sku(s)
+            if not p:
+                fams = media_registry.family_map.get(s, [])
+                if fams:
+                    p = fams[0]
+            if p and p not in prods:
+                prods.append(p)
+
+        c_cards = [
+            {
+                "id": p.sku, "name": p.name, "title": p.name, "sku": p.sku,
+                "price": None, "price_str": "Price on Request",
+                "image": p.image_url, "image_url": p.image_url,
+                "url": p.url, "website_url": p.url,
+                "badge": f"{p.brand} ({p.size_label})" if p.size_label else p.brand,
+                "card_type": "consumable", "category": "Media & Paper",
+                "description": f"Verified {p.surface_finish} roll ({p.weight_gsm}gsm) from {p.brand}."
+            } for p in prods
+        ]
+
+        reply_text = (
+            "We supply genuine wide-format media rolls across four verified collections:\n\n"
+            "1. Photographic Rolls (Olmec & Korejet)\n"
+            "• Olmec Photo Lustre 260gsm (OLM-59) – 24″ & 44″ rolls\n"
+            "• Olmec Photo Gloss 260gsm (OLM-60) – 24″ & 44″ rolls\n"
+            "• Korejet Premium Luster 260gsm – 17″, 24″, 36″, 44″, 60″ rolls\n\n"
+            "2. Archival Fine Art Rolls (Innova Art & Fabriano)\n"
+            "• Innova Photo Cotton Rag 315gsm (IFA-11) – 24″ & 44″ rolls\n"
+            "• Innova Smooth Cotton High White (IFA-04 / IFA-14) – 24″ & 44″ rolls\n"
+            "• Innova Exhibition Photo Baryta 310gsm (IFA-69) – 24″ & 44″ rolls\n\n"
+            "3. Printable Canvas Rolls (Innova, Korejet & Epson)\n"
+            "• Innova Exhibition Matte Cotton Canvas 380gsm (IFA-54) – 24″ & 44″ rolls\n"
+            "• Korejet Artistic Polycotton Canvas Satin 390gsm – 24″, 36″, 44″, 60″ rolls\n"
+            "• Epson Premium Canvas Satin – 17″, 24″, 44″ rolls\n\n"
+            "4. Signage & Wallcoverings (Innova Eco-Solvent / UV)\n"
+            "• Innova Pre-Pasted Wallpaper (IFA-98) – 30″, 54″, 60″ rolls\n"
+            "• Innova Eco Solvent Poly Cotton Canvas (IFA-96) – 30″, 54″, 60″ rolls\n\n"
+            "Which roll width (e.g. 24″, 44″, 60″) or surface finish do you need for your printer?"
+        )
+
+        chips_to_return = ["24-inch Rolls", "44-inch Rolls", "Photo Lustre Rolls", "Canvas Rolls", "Fine Art Rolls"]
+
+        state.last_assistant_response = reply_text
+        state.increment_turn()
+        return self._build_response(
+            reply=reply_text,
+            source="route:media_discovery:rolls",
+            product_cards=[],
+            consumable_cards=c_cards,
+            suggested_chips=chips_to_return,
+            nlp_result=nlp_result,
+            state=state,
+            latency_ms=int((time.time() - start_time) * 1000),
+        )
+
     def _build_response(
         self,
         reply: str,
@@ -4978,28 +5356,104 @@ class Orchestrator:
     ) -> Dict[str, Any]:
         if source.startswith("guardrail:discount_refusal"):
             reply = DISCOUNT_REFUSAL
-        elif source.startswith(("route:product_price_inquiry", "route:consumable_price_inquiry", "route:general_price_inquiry")):
-            reply = "I can help with verified product specifications and compatibility. Pricing and commercial details are not provided in this chat. Official pricing and quotations are available on our official website (https://www.keplertechllc.com/)."
-        # Sanitize suggested chips against commercial quote/handover leaks
-        sanitized_chips = []
-        for ch in (suggested_chips or []):
-            ch_l = ch.lower()
-            if any(forbidden in ch_l for forbidden in ["quote", "quotation", "sales desk", "contact sales", "handover", "discount", "order on website"]):
-                continue
-            if ch not in sanitized_chips:
-                sanitized_chips.append(ch)
-        if not sanitized_chips:
-            sanitized_chips = ["View Technical Specifications", "Compatible Consumables"]
-        suggested_chips = sanitized_chips
+        elif not reply and source.startswith(("route:product_price_inquiry", "route:consumable_price_inquiry", "route:general_price_inquiry")):
+            reply = GENERAL_PRICE_DIRECT
+
+        # Strict flow buttons enforcement:
+        # Only permit suggestion chips that are part of the active qualification flow,
+        # category selection, or guest login. Strip all generic ad-hoc/unwanted buttons.
+        is_flow_source = source.startswith(("qualification:category_prompt", "qualification:next_question")) or any("guest" in str(ch).lower() for ch in (suggested_chips or []))
+        if not is_flow_source:
+            suggested_chips = []
+        else:
+            sanitized_chips = []
+            for ch in (suggested_chips or []):
+                ch_l = ch.lower()
+                if any(forbidden in ch_l for forbidden in ["quote", "quotation", "sales desk", "contact sales", "handover", "discount", "order on website"]):
+                    continue
+                if ch not in sanitized_chips:
+                    sanitized_chips.append(ch)
+            suggested_chips = sanitized_chips
 
         # Sanitize product cards and consumable cards per chatbot product policy
+        # Requirement: Send verified product card only once per product per conversation;
+        # do not repeat cards on follow-up attribute/specification questions.
+        raw_msg_lower = (nlp_result.get("raw_text") or nlp_result.get("normalized_text") or "").lower()
+        is_explicit_show_cards = any(k in raw_msg_lower for k in [
+            "show card", "show cards", "show product card", "show printer card", "show again",
+            "show options", "show recommendations", "show all options", "show products", "show printers"
+        ])
+
+        def _is_card_already_displayed(card_dict: Dict[str, Any], disp_list: List[str]) -> bool:
+            if not disp_list or not isinstance(card_dict, dict):
+                return False
+            def _norm(s):
+                return re.sub(r"[^a-z0-9]", "", str(s).lower())
+            keys = set()
+            for f in ("id", "sku", "model", "canonical_id"):
+                v = card_dict.get(f)
+                if v:
+                    keys.add(str(v).strip().lower())
+                    keys.add(_norm(v))
+            specs_t = card_dict.get("specifications_table") or {}
+            for sk in ("SKU", "sku", "Model", "model"):
+                v = specs_t.get(sk)
+                if v:
+                    keys.add(str(v).strip().lower())
+                    keys.add(_norm(v))
+            n_str = (card_dict.get("name") or "") + " " + (card_dict.get("display_name") or "") + " " + (card_dict.get("model") or "")
+            n_models = re.findall(r"\b(?:sc-?)?(?:[tpf]\d{3,5}[a-z0-9]*|ds-?\d{3,5}[a-z0-9]*|cx-?[0-9o]{1,2}[a-z0-9]*|cy-?[0-9o]{1,2}[a-z0-9]*|cz-?[0-9o]{1,2}[a-z0-9]*|am-?c\d{3,4}[a-z0-9]*|wf-?(?:c|m)?\d{3,5}[a-z0-9]*)\b", n_str.lower())
+            for nm in n_models:
+                keys.add(nm)
+                keys.add(_norm(nm))
+            for d in disp_list:
+                ds = str(d).strip().lower()
+                dn = _norm(ds)
+                if ds in keys or dn in keys:
+                    return True
+                for k in keys:
+                    if len(k) >= 4 and (k in ds or ds in k):
+                        return True
+                    if len(dn) >= 4 and len(k) >= 4 and (k in dn or dn in k):
+                        return True
+            return False
+
+        is_recommendation_flow = (
+            source.startswith("recommendation:")
+            or source.startswith("catalog:")
+            or source.startswith("agent:product_specialist")
+        )
+
         sanitized_prod_cards = []
         for c in (product_cards or []):
             if isinstance(c, dict):
+                if _is_card_already_displayed(c, state.displayed_product_ids) and not is_explicit_show_cards and not is_recommendation_flow and not source.startswith("route:purchase"):
+                    cid = c.get("id") or c.get("name")
+                    logger.info(f"Suppressing duplicate product card for '{cid}' - already displayed in session.")
+                    continue
+
                 c_clean = dict(c)
-                for key in ("price", "price_formatted", "price_str", "currency", "vat_note"):
-                    c_clean[key] = None
-                c_clean["is_request"] = False
+                if c.get("price"):
+                    c_clean["price"] = float(c["price"])
+                    c_clean["price_formatted"] = c.get("price_formatted") or f"AED {float(c['price']):,.2f}"
+                    c_clean["price_str"] = c.get("price_str") or c_clean["price_formatted"]
+                    c_clean["currency"] = c.get("currency") or "AED"
+                    c_clean["vat_note"] = c.get("vat_note") or "(Excl. VAT)"
+                    c_clean["is_request"] = False
+                elif c.get("price_str") and c.get("price_str") != "Price on Request":
+                    c_clean["price_formatted"] = c.get("price_str")
+                    c_clean["price_str"] = c.get("price_str")
+                    c_clean["currency"] = c.get("currency") or "AED"
+                    c_clean["vat_note"] = c.get("vat_note") or "(Excl. VAT)"
+                    c_clean["is_request"] = False
+                else:
+                    c_clean["price"] = None
+                    c_clean["price_formatted"] = "Price on Request"
+                    c_clean["price_str"] = "Price on Request"
+                    c_clean["currency"] = "AED"
+                    c_clean["vat_note"] = ""
+                    c_clean["is_request"] = True
+
                 c_clean["actions"] = [
                     a for a in c_clean.get("actions", [])
                     if a.lower() not in ("lead", "handover", "quote")
@@ -5013,9 +5467,16 @@ class Orchestrator:
             else:
                 sanitized_prod_cards.append(c)
         product_cards = sanitized_prod_cards
+
+        # Record newly displayed cards and aliases into state.displayed_product_ids
+        for c in product_cards:
+            if isinstance(c, dict):
+                for f in ("id", "sku", "model", "canonical_id"):
+                    v = c.get(f)
+                    if v and str(v) not in state.displayed_product_ids:
+                        state.displayed_product_ids.append(str(v))
         consumable_cards = [
-            {k: v for k, v in card.items() if k not in ("price", "price_formatted", "price_str", "currency", "vat_note")}
-            if isinstance(card, dict) else card
+            dict(card) if isinstance(card, dict) else card
             for card in (consumable_cards or [])
         ]
 
@@ -5097,7 +5558,7 @@ class Orchestrator:
 
         # Section 21: Clean internal database terms from customer-facing reply
         if reply:
-            if not source.startswith("route:cost_per_print"):
+            if not source.startswith(("route:cost_per_print", "route:product_price", "route:consumable_price", "route:general_price", "route:purchase")):
                 reply = re.sub(r":\s*\*\*(?:AED\s*[\d,.]+|Price on Request)[^*]*\*\*", "", reply, flags=re.I)
                 reply = re.sub(r"\*\*(?:AED\s*[\d,.]+|Price on Request)[^*]*\*\*", "", reply, flags=re.I)
                 reply = re.sub(r"\bAED\s*[\d,.]+(?:\s*\(Excl\. VAT\))?\b", "", reply, flags=re.I)
@@ -5119,8 +5580,10 @@ class Orchestrator:
 
         # Check if we should attach the opt-in prompt during normal chatting
         from conversation.customer_flow_handler import should_trigger_opt_in_prompt
+        import config
         if (
-            should_trigger_opt_in_prompt(state)
+            getattr(config, "CUSTOMER_OPT_IN_PROMPT_ENABLED", False)
+            and should_trigger_opt_in_prompt(state)
             and not source.startswith(("customer_flow:", "guardrail:", "interceptor:"))
             and not source.endswith("safe_refusal")
             and reply != STATIC_SAFE_REFUSAL
@@ -5136,6 +5599,12 @@ class Orchestrator:
             state.last_assistant_response = reply
             suggested_chips = ["Yes, I'm interested", "No, thanks"] + [
                 c for c in (suggested_chips or []) if c not in ("Yes, I'm interested", "No, thanks")
+            ]
+        elif not getattr(config, "CUSTOMER_OPT_IN_PROMPT_ENABLED", False):
+            # Keep suggestion buttons strictly relevant to the first question and followed product questions
+            suggested_chips = [
+                c for c in (suggested_chips or [])
+                if c not in ("Yes, I'm interested", "No, thanks", "Yes, save chat history", "No, continue as guest")
             ]
 
         res_type = "product_list" if product_cards else ("no_exact_match" if "no_match" in source else "message")

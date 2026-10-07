@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SalesAI Workflow & Product Decision Flowcharts — Kepler Tech LLC</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --primary: #1877f2;
+      --primary-dark: #0d5cb6;
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface-border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-green: #10b981;
+      --accent-purple: #8b5cf6;
+      --accent-amber: #f59e0b;
+      --accent-cyan: #06b6d4;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    header {
+      max-width: 1300px;
+      margin: 0 auto 30px auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--surface-border);
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-logo {
+      width: 44px;
+      height: 44px;
+      background: #ffffff;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .brand-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .brand-titles h1 {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-titles p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .nav-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 18px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn-outline {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--surface-border);
+      color: var(--text);
+    }
+
+    .btn-outline:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    main {
+      max-width: 1300px;
+      margin: 0 auto;
+    }
+
+    /* Tab Switcher */
+    .tab-nav {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--surface-border);
+      padding-bottom: 12px;
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      padding: 10px 20px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .tab-btn:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .tab-btn.active {
+      color: #ffffff;
+      background: var(--primary);
+    }
+
+    .tab-pane {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .tab-pane.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 28px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+
+    .card-header {
+      margin-bottom: 20px;
+    }
+
+    .card-header h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-header p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .mermaid-box {
+      background: #090d16;
+      border: 1px solid var(--surface-border);
+      border-radius: 10px;
+      padding: 24px;
+      overflow-x: auto;
+      text-align: center;
+    }
+
+    /* Product Reference Grid */
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .product-item {
+      background: #090d16;
+      border: 1px solid var(--surface-border);
+      border-radius: 10px;
+      padding: 16px;
+      border-left: 4px solid var(--primary);
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .product-item:hover {
+      transform: translateY(-2px);
+      border-color: var(--primary);
+    }
+
+    .product-item.office { border-left-color: #3b82f6; }
+    .product-item.cad { border-left-color: #06b6d4; }
+    .product-item.photo { border-left-color: #8b5cf6; }
+    .product-item.citizen { border-left-color: #10b981; }
+    .product-item.sublimation { border-left-color: #f59e0b; }
+    .product-item.scanner { border-left-color: #ec4899; }
+
+    .product-cat-tag {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+      display: inline-block;
+    }
+
+    .product-item.office .product-cat-tag { color: #60a5fa; }
+    .product-item.cad .product-cat-tag { color: #22d3ee; }
+    .product-item.photo .product-cat-tag { color: #a78bfa; }
+    .product-item.citizen .product-cat-tag { color: #34d399; }
+    .product-item.sublimation .product-cat-tag { color: #fbbf24; }
+    .product-item.scanner .product-cat-tag { color: #f472b6; }
+
+    .product-name {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+
+    .product-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    footer {
+      max-width: 1300px;
+      margin: 40px auto 0 auto;
+      text-align: center;
+      padding-top: 20px;
+      border-top: 1px solid var(--surface-border);
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand-wrap">
+      <div class="brand-logo">
+        <img src="/static/images/kepler-icon-transparent.png" alt="Kepler Tech">
+      </div>
+      <div class="brand-titles">
+        <h1>SalesAI Workflow & Product Architecture</h1>
+        <p>Interactive Qualification Flowcharts with Exact Product Models — Kepler Tech LLC</p>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <a href="/chat" target="_blank" class="btn btn-primary">Open Live Chat ↗</a>
+      <a href="/" target="_blank" class="btn btn-outline">Store Front</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="tab-nav">
+      <button class="tab-btn active" onclick="switchTab('tab-products')">🎯 Product Qualification Flowchart (with Models)</button>
+      <button class="tab-btn" onclick="switchTab('tab-system')">⚙️ System Architecture & Turn Lifecycle</button>
+      <button class="tab-btn" onclick="switchTab('tab-roster')">📋 41-Approved Catalogue Roster</button>
+    </div>
+
+    <!-- TAB 1: PRODUCT QUALIFICATION FLOWCHART -->
+    <div class="tab-pane active" id="tab-products">
+      <div class="card">
+        <div class="card-header">
+          <h2><span>🎯</span> Comprehensive Product Qualification Tree</h2>
+          <p>Follows customer intent from initial requirement down to specific certified hardware models</p>
+        </div>
+        <div class="mermaid-box">
+          <pre class="mermaid">
+flowchart TD
+    START(["👤 Customer Inquiry / Prompt"]) --> CAT{"Identify Primary Category"}
+
+    %% Office
+    CAT -->|"Office / Multifunction"| OFF["Office Enterprise"]
+    OFF --> OFF_SIZE{"Paper Size?"}
+    OFF_SIZE -->|"A4 Output"| A4_TECH{"Technology & Speed"}
+    A4_TECH -->|"Standard MFP (34 ppm)"| M_WF5890["WorkForce Pro WF-C5890DWF"]
+    A4_TECH -->|"Compact RIPS (25 ppm)"| M_EMC800["WorkForce Pro EM-C800"]
+    A4_TECH -->|"Line-Head Enterprise (40 ppm)"| M_AMC400["WorkForce Enterprise AM-C400"]
+    A4_TECH -->|"Line-Head Enterprise (55 ppm)"| M_AMC550["WorkForce Enterprise AM-C550"]
+
+    OFF_SIZE -->|"A3 Output"| A3_TECH{"Duty & Volume Class"}
+    A3_TECH -->|"Departmental RIPS (25 ppm)"| M_A3_RIPS["WorkForce Pro WF-C878R / WF-C879R"]
+    A3_TECH -->|"Enterprise Line-Head (40 ppm)"| M_AMC4000["WorkForce Enterprise AM-C4000"]
+    A3_TECH -->|"Enterprise Line-Head (50 ppm)"| M_AMC5000["WorkForce Enterprise AM-C5000"]
+    A3_TECH -->|"Enterprise Line-Head (60 ppm)"| M_AMC6000["WorkForce Enterprise AM-C6000"]
+    A3_TECH -->|"Ultra High-Speed (100 ppm)"| M_WFC21000["WorkForce Enterprise WF-C21000 D4TW"]
+
+    %% Technical CAD
+    CAT -->|"CAD / Blueprint / GIS"| TECH["Technical Large Format"]
+    TECH --> T_WIDTH{"Plotter Width?"}
+    T_WIDTH -->|"24-inch (A1)"| T24_OPT{"Configuration"}
+    T24_OPT -->|"Entry Desktop"| M_T3100["SureColor SC-T3100"]
+    T24_OPT -->|"Production Single Roll"| M_T3700E["SureColor SC-T3700E"]
+    T24_OPT -->|"Production Dual Roll"| M_T3700D["SureColor SC-T3700D / SC-T3700DE"]
+
+    T_WIDTH -->|"36-inch (A0)"| T36_SCAN{"Integrated Scanner?"}
+    T36_SCAN -->|"Print-Only"| M_T36_PRT["SureColor SC-T5100 / SC-T5405 / SC-T5700D"]
+    T36_SCAN -->|"Scan & Copy MFP"| M_T36_MFP["SureColor SC-T5100M / SC-T5400M / SC-T5700DM"]
+
+    T_WIDTH -->|"44-inch Production"| T44_SCAN{"Multifunction?"}
+    T44_SCAN -->|"Print-Only"| M_T7700D["SureColor SC-T7700D / SC-T7700DL (1.6L ink)"]
+    T44_SCAN -->|"MFP Dual-Roll"| M_T7700DM["SureColor SC-T7700DM"]
+
+    %% Photography
+    CAT -->|"Photo / Fine Art / Gallery"| PHO["Photography & Fine Art"]
+    PHO --> P_WIDTH{"Print Width / Application?"}
+    P_WIDTH -->|"13-inch (A3+)"| M_P700["SureColor SC-P700 (UltraChrome PRO10)"]
+    P_WIDTH -->|"17-inch (A2+)"| P17_OPT{"Roll or Heavy Duty?"}
+    P17_OPT -->|"Desktop Sheet"| M_P900["SureColor SC-P900"]
+    P17_OPT -->|"Panoramic Roll"| M_P900R["SureColor SC-P900 with Roll Unit"]
+    P17_OPT -->|"10-Colour Heavy Duty"| M_P5300["SureColor SC-P5300"]
+
+    P_WIDTH -->|"24-inch Gallery"| P24_OPT{"Proofing / Calibration?"}
+    P24_OPT -->|"Commercial Compact"| M_P6500["SureColor SC-P6500E / D / DE"]
+    P24_OPT -->|"12-Colour Master"| M_P7500["SureColor SC-P7500"]
+    P24_OPT -->|"Automated Spectro"| M_P7500S["SureColor SC-P7500 with Spectro"]
+
+    P_WIDTH -->|"44-inch Production"| P44_OPT{"Proofing / Calibration?"}
+    P44_OPT -->|"Production MFP"| M_P8500["SureColor SC-P8500D / SC-P8500DM"]
+    P44_OPT -->|"Master Studio PRO12"| M_P9500["SureColor SC-P9500"]
+    P44_OPT -->|"Spectro Proofer"| M_P9500S["SureColor SC-P9500 with Spectro"]
+
+    P_WIDTH -->|"64-inch Production"| M_P20500["SureColor SC-P20500 (1.6L Bulk Inks)"]
+
+    %% Citizen Photo
+    CAT -->|"Photo Booth / Instant Photo"| CTZ["Citizen Dye-Sub Photo"]
+    CTZ --> C_SIZE{"Print Format?"}
+    C_SIZE -->|"4-inch Ultra-Compact"| M_CZ01["Citizen CZ-01"]
+    C_SIZE -->|"6-inch Event Photos"| M_CX02["Citizen CX-02 (Fast) / Citizen CY-02 (700 prints)"]
+    C_SIZE -->|"8-inch Wide Event"| M_CX02W["Citizen CX-02W (8x10 & 8x12)"]
+
+    %% Dye Sublimation
+    CAT -->|"Apparel / T-Shirt / Mug"| DYE["Dye Sublimation"]
+    DYE --> D_SIZE{"Volume & Format?"}
+    D_SIZE -->|"A4 Desktop Gifts"| M_F100["SureColor SC-F100 (Tanks)"]
+    D_SIZE -->|"24-inch Roll Apparel"| M_F500["SureColor SC-F500 (24″ Sublimation)"]
+
+    %% Scanners
+    CAT -->|"Scanning Solutions"| SCN["Professional Scanners"]
+    SCN --> S_TYPE{"Type of Documents?"}
+    S_TYPE -->|"Graphic & Fine Art Film"| M_12000XL["Expression 12000XL / 12000XL Pro"]
+    S_TYPE -->|"Books & Stacks (Hybrid)"| M_HYBRID["WorkForce DS-1630 / DS-6500 / DS-60000 / DS-70000"]
+    S_TYPE -->|"Fast Sheetfed Business"| M_SHEETFED["WorkForce DS-530II / DS-790WN / DS-800WN / DS-32000"]
+          </pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: SYSTEM ARCHITECTURE & LIFECYCLE -->
+    <div class="tab-pane" id="tab-system">
+      <div class="card">
+        <div class="card-header">
+          <h2><span>⚙️</span> End-to-End Chat Turn Lifecycle & Multi-Input Processing</h2>
+          <p>Sequence diagram showing user interaction, debouncing, session locking, and LLM grounding</p>
+        </div>
+        <div class="mermaid-box">
+          <pre class="mermaid">
+sequenceDiagram
+    autonumber
+    actor User as 👤 Customer
+    participant UI as 🖥️ Chat Widget (app.js)
+    participant API as 🌐 Flask API (app.py)
+    participant Lock as 🔒 Session Lock Manager
+    participant Norm as 🧠 Normalizer & Intent Resolver
+    participant LLM as 🤖 Ollama (qwen2.5:32b)
+    participant Filter as 🔍 Catalogue Filter (41-Catalogue)
+    participant Comp as ✍️ Response Composer
+
+    User->>UI: Types "i need a photo booth printer"
+    Note over UI: Non-blocking UI (user input remains active)
+    User->>UI: Types "sorry i want photo printer" (Correction)
+    Note over UI: Debounces 1200ms -> bundles both inputs
+    UI->>API: POST /api/chat {messages: ["...photo booth...", "...sorry photo printer..."]}
+    
+    API->>Lock: force_reset(session_id) & acquire_lock()
+    Lock-->>API: Lock acquired (supersedes older pending turns)
+
+    API->>Norm: normalize_category(combined_text)
+    Note over Norm: Scans from bottom up -> Detects correction -> photography_large_format
+    
+    API->>LLM: _extract_semantic_features(prompt)
+    LLM-->>Norm: Intent=correction, application=photography
+    
+    API->>Filter: filter_products(category="photography_large_format", reqs)
+    Note over Filter: Filters SC-P models, excludes photo_booth and Citizen
+    Filter-->>API: returns [SC-P700, SC-P900, SC-P5300...]
+    
+    API->>Comp: compose_response(context, verified_candidates)
+    Comp-->>API: Grounded response asking compact vs large-format
+    API->>Lock: release_lock(session_id)
+    API-->>UI: 200 OK {reply, product_cards}
+    UI->>User: Displays single coherent response addressing photo printer
+          </pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: 41-APPROVED CATALOGUE ROSTER -->
+    <div class="tab-pane" id="tab-roster">
+      <div class="card">
+        <div class="card-header">
+          <h2><span>📋</span> Official Kepler Tech 41-Catalogue Hardware Matrix</h2>
+          <p>Categorized portfolio guaranteed against hallucinations and website-only inventory</p>
+        </div>
+        <div class="product-grid">
+          <!-- Office -->
+          <div class="product-item office">
+            <span class="product-cat-tag">Office Enterprise A4</span>
+            <div class="product-name">WorkForce Pro WF-C5890DWF</div>
+            <div class="product-desc">Compact A4 colour business MFP, high-yield ink packs up to 10k pages, 25 ppm.</div>
+          </div>
+          <div class="product-item office">
+            <span class="product-cat-tag">Office Enterprise A4</span>
+            <div class="product-name">WorkForce Enterprise AM-C400 / AM-C550</div>
+            <div class="product-desc">40–55 ppm Heat-Free line-head enterprise A4 MFPs with low power consumption.</div>
+          </div>
+          <div class="product-item office">
+            <span class="product-cat-tag">Office Enterprise A3</span>
+            <div class="product-name">WorkForce Pro WF-C878R / WF-C879R</div>
+            <div class="product-desc">A3 Replaceable Ink Pack System delivering up to 86,000 monochrome / 50,000 colour pages.</div>
+          </div>
+          <div class="product-item office">
+            <span class="product-cat-tag">Office Enterprise A3</span>
+            <div class="product-name">WorkForce Enterprise AM-C4000 / 5000 / 6000</div>
+            <div class="product-desc">Departmental Line-Head MFPs (40, 50, 60 ppm) with modular finishers & staple units.</div>
+          </div>
+          <div class="product-item office">
+            <span class="product-cat-tag">Office Enterprise A3</span>
+            <div class="product-name">WorkForce Enterprise WF-C21000 D4TW</div>
+            <div class="product-desc">Flagship 100 ppm ultra-high speed departmental line-head inkjet MFP.</div>
+          </div>
+
+          <!-- Technical -->
+          <div class="product-item cad">
+            <span class="product-cat-tag">Technical CAD 24″</span>
+            <div class="product-name">SureColor SC-T3100</div>
+            <div class="product-desc">Entry-level 24″ desktop / floorstand technical plotter with auto sheet & roll feed.</div>
+          </div>
+          <div class="product-item cad">
+            <span class="product-cat-tag">Technical CAD 24″</span>
+            <div class="product-name">SureColor SC-T3700D / SC-T3700DE</div>
+            <div class="product-desc">24″ production plotter with dual-roll automatic switching and red ink gamut enhancement.</div>
+          </div>
+          <div class="product-item cad">
+            <span class="product-cat-tag">Technical CAD 36″</span>
+            <div class="product-name">SureColor SC-T5100 / SC-T5405</div>
+            <div class="product-desc">36″ high-accuracy CAD/GIS plotters for architectural drawings and line diagrams.</div>
+          </div>
+          <div class="product-item cad">
+            <span class="product-cat-tag">Technical CAD 36″ MFP</span>
+            <div class="product-name">SureColor SC-T5100M / SC-T5700DM</div>
+            <div class="product-desc">36″ large-format multifunction systems with integrated dual-light CIS scanner.</div>
+          </div>
+          <div class="product-item cad">
+            <span class="product-cat-tag">Technical CAD 44″</span>
+            <div class="product-name">SureColor SC-T7700D / SC-T7700DL</div>
+            <div class="product-desc">44″ production plotters with dual-roll media handling and bulk 1.6L ink supply.</div>
+          </div>
+
+          <!-- Photography -->
+          <div class="product-item photo">
+            <span class="product-cat-tag">Photo & Fine Art 13″ & 17″</span>
+            <div class="product-name">SureColor SC-P700 / SC-P900</div>
+            <div class="product-desc">A3+ and A2+ 10-colour UltraChrome PRO10 with Carbon Black Overcoat and optional roll unit.</div>
+          </div>
+          <div class="product-item photo">
+            <span class="product-cat-tag">Photo & Fine Art 17″</span>
+            <div class="product-name">SureColor SC-P5300</div>
+            <div class="product-desc">17″ production-grade 10-colour professional photo printer with built-in roll feed.</div>
+          </div>
+          <div class="product-item photo">
+            <span class="product-cat-tag">Photo & Fine Art 24″ & 44″</span>
+            <div class="product-name">SureColor SC-P7500 / SC-P9500</div>
+            <div class="product-desc">12-colour UltraChrome PRO12 master studio printers with 99% Pantone and optional Spectro.</div>
+          </div>
+          <div class="product-item photo">
+            <span class="product-cat-tag">Photo & Fine Art 64″</span>
+            <div class="product-name">SureColor SC-P20500</div>
+            <div class="product-desc">64″ flagship fine art & production printer with 12-colour bulk 1.6L ink packs.</div>
+          </div>
+
+          <!-- Citizen Photo -->
+          <div class="product-item citizen">
+            <span class="product-cat-tag">Citizen Photo Booth</span>
+            <div class="product-name">Citizen CZ-01</div>
+            <div class="product-desc">Ultra-compact, lightweight 4-inch dye-sublimation photo printer for mobile photo booths.</div>
+          </div>
+          <div class="product-item citizen">
+            <span class="product-cat-tag">Citizen Event Photo</span>
+            <div class="product-name">Citizen CX-02 / CY-02</div>
+            <div class="product-desc">6-inch high-speed dye-sublimation event printers with ribbon rewind and 700-print capacity.</div>
+          </div>
+          <div class="product-item citizen">
+            <span class="product-cat-tag">Citizen Wide Photo</span>
+            <div class="product-name">Citizen CX-02W</div>
+            <div class="product-desc">8-inch wide format dye-sub printer delivering 8x10″ and 8x12″ instant lab prints.</div>
+          </div>
+
+          <!-- Dye Sublimation -->
+          <div class="product-item sublimation">
+            <span class="product-cat-tag">Dye Sublimation Desktop</span>
+            <div class="product-name">SureColor SC-F100</div>
+            <div class="product-desc">A4 refillable tank dye-sub printer for mugs, phone covers, keychains, and custom merchandise.</div>
+          </div>
+          <div class="product-item sublimation">
+            <span class="product-cat-tag">Dye Sublimation 24″</span>
+            <div class="product-name">SureColor SC-F500</div>
+            <div class="product-desc">24″ wide-format sublimation roll printer for textiles, apparel, jerseys, and rigid substrates.</div>
+          </div>
+
+          <!-- Scanners -->
+          <div class="product-item scanner">
+            <span class="product-cat-tag">Fine Art Scanner</span>
+            <div class="product-name">Expression 12000XL / 12000XL Pro</div>
+            <div class="product-desc">A3 high-resolution 2400 x 4800 dpi scanner with transparency unit for film and negatives.</div>
+          </div>
+          <div class="product-item scanner">
+            <span class="product-cat-tag">Workgroup Document Scanners</span>
+            <div class="product-name">WorkForce DS-530II / DS-790WN / DS-900WN</div>
+            <div class="product-desc">High-speed 35 to 70 ppm sheetfed document scanners with network touchscreen and dual-sided scanning.</div>
+          </div>
+          <div class="product-item scanner">
+            <span class="product-cat-tag">Production Flatbed Scanners</span>
+            <div class="product-name">WorkForce DS-60000 / DS-70000</div>
+            <div class="product-desc">Heavy-duty A3 flatbed scanners with 200-sheet ADF for archival and corporate records.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    &copy; 2026 Kepler Tech LLC &bull; Official Epson & Citizen Partner &bull; SalesAI Conversational System
+  </footer>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {
+        darkMode: true,
+        background: '#090d16',
+        primaryColor: '#1877f2',
+        primaryTextColor: '#f8fafc',
+        primaryBorderColor: '#334155',
+        lineColor: '#60a5fa',
+        secondaryColor: '#1e293b',
+        tertiaryColor: '#0f172a'
+      }
+    });
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      
+      event.target.classList.add('active');
+      const pane = document.getElementById(tabId);
+      if (pane) {
+        pane.classList.add('active');
+      }
+    }
+  </script>
+</body>
+</html>

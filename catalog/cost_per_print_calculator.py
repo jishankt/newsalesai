@@ -39,6 +39,8 @@ class CostCalculationResult:
     currency: str = "AED"
     verification_date: str = "September 2026"
     source_reference: str = "Kepler Tech official store / Manufacturer specifications"
+    hardware_price_aed: Optional[float] = None
+    hardware_price_formatted: Optional[str] = None
     notes: Optional[str] = None
     explanation: Optional[str] = None
 
@@ -188,7 +190,8 @@ class CostPerPrintCalculator:
         cls,
         printer_id: str,
         print_format: Optional[str] = None,
-        printer_name: Optional[str] = None
+        printer_name: Optional[str] = None,
+        include_hardware_price: bool = False,
     ) -> CostCalculationResult:
         """
         Calculates verified cost per print for a specific printer and format.
@@ -239,13 +242,20 @@ class CostPerPrintCalculator:
                 cost_per_print = round(box_price / total_prints, 2)
                 cost_per_print_exact = box_price / total_prints
 
+                from catalog.price_resolver import price_resolver
+                hw_info = price_resolver.get_price_info(citizen_matched)
+                hw_price = hw_info.get("price")
+                hw_price_str = hw_info.get("price_str") or (f"AED {hw_price:,.2f}" if hw_price else None)
+                hw_line = f"• **Hardware Investment:** **{hw_price_str} Excl. VAT**\n" if (include_hardware_price and hw_price_str) else ""
+
                 explanation = (
                     f"Verified cost per {target_fmt}″ print for **{pname}**:\n"
+                    f"{hw_line}"
                     f"• **Consumable Kit:** [{m_info['name']}]({m_info['url']}) (SKU: `{m_info['sku']}`)\n"
                     f"• **Sold Pack Contents:** Box of {m_info['rolls_per_box']} rolls + {m_info['rolls_per_box']} matched ribbons ({m_info['prints_per_roll']:,} prints/roll = **{total_prints:,} usable prints** per box)\n"
                     f"• **Verified Pack Price:** AED {box_price:,.2f} Excl. VAT\n"
                     f"• **Calculation Formula:** AED {box_price:,.2f} ÷ {total_prints:,} prints = **AED {cost_per_print:.2f} per print** ({cost_per_print_exact:.4f} AED exact)\n"
-                    f"*(Source: Kepler Tech official media price catalogue, September 2026. Hardware selling prices and commercial details are not provided in this chat per company commercial policy.)*"
+                    f"*(Source: Kepler Tech official catalogue, September 2026. Consumable pricing in AED Excl. 5% VAT.)*"
                 )
 
                 return CostCalculationResult(
@@ -262,6 +272,8 @@ class CostPerPrintCalculator:
                     package_yield_prints=total_prints,
                     rolls_per_box=m_info["rolls_per_box"],
                     prints_per_roll=m_info["prints_per_roll"],
+                    hardware_price_aed=hw_price,
+                    hardware_price_formatted=hw_price_str,
                     explanation=explanation,
                 )
 
@@ -337,6 +349,132 @@ class CostPerPrintCalculator:
                 )
         lines.append("\n*Calculation: Sold box price ÷ verified usable prints per box. Prices as of September 2026 from Kepler Tech official catalogue.*")
         return "\n".join(lines)
+
+    @classmethod
+    def build_investment_and_running_cost_comparison(
+        cls,
+        printers: List[Any],
+        print_format: Optional[str] = None
+    ) -> str:
+        """
+        Builds a comprehensive comparison and recommendation answering investment and running cost.
+        Includes:
+        - Hardware investment prices (Excl. VAT)
+        - Media pack pricing and cost per print
+        - Side-by-side comparison table
+        - Practical recommendation based on budget vs volume (ROI / breakeven)
+        """
+        from catalog.price_resolver import price_resolver
+
+        items = []
+        fmt = (print_format or "4x6").lower().replace("×", "x")
+
+        calc_instance = cls()
+        for p in printers:
+            p_dict = p if isinstance(p, dict) else (p.to_dict() if hasattr(p, "to_dict") else {})
+            p_id = p_dict.get("id") or p_dict.get("canonical_id") or ""
+            p_name = p_dict.get("display_name") or p_dict.get("name") or p_id
+
+            res = calc_instance.calculate_cost_per_print(p_id, print_format=fmt, printer_name=p_name)
+            hw_info = price_resolver.get_price_info(p_id, prod=p_dict)
+            hw_price = hw_info.get("price")
+            hw_price_str = hw_info.get("price_str") or (f"AED {hw_price:,.2f}" if hw_price else "Price on Request")
+
+            items.append({
+                "id": p_id,
+                "name": p_name,
+                "hw_price": hw_price,
+                "hw_price_str": hw_price_str,
+                "res": res,
+            })
+
+        if not items:
+            return cls.get_all_citizen_cost_summary()
+
+        # Check if printers are office printers vs photo printers
+        is_office = any(
+            (p.get("category") if isinstance(p, dict) else getattr(p, "category", "")) in ("office_printer", "business_a4", "business_a3")
+            or "workforce" in ((p.get("display_name") if isinstance(p, dict) else getattr(p, "display_name", "")) or "").lower()
+            for p in printers
+        )
+
+        cost_col = "Running Cost (ISO Page)" if is_office else f"Running Cost ({fmt}″)"
+        yield_col = "High-Yield Ink Packs & Pages" if is_office else "Media Kit & Yield"
+
+        # Build comparison table
+        table_rows = [
+            "### Investment & Running Cost Comparison (AED Excl. VAT)\n",
+            f"| Printer Model | Upfront Investment (Hardware) | {yield_col} | Media Pack Price | {cost_col} |",
+            "| :--- | :--- | :--- | :--- | :--- |",
+        ]
+
+        for it in items:
+            res = it["res"]
+            if res.status == "verified" and res.consumable_sku:
+                yield_info = f"`{res.consumable_sku}` ({res.package_yield_prints:,} prints / {res.rolls_per_box} rolls)"
+                pack_p = f"AED {res.package_price_aed:,.2f}"
+                cpp_str = f"AED {res.cost_per_print_aed:.2f}"
+            elif is_office:
+                yield_info = "High-capacity RIPS ink packs (up to 50k–86k pages)"
+                pack_p = "Catalogue price"
+                cpp_str = "Ultra-low CPP (Enterprise Page)"
+            else:
+                yield_info = "Refer to media specifications"
+                pack_p = "Catalogue price"
+                cpp_str = res.cost_per_print_formatted or "Custom estimate"
+
+            table_rows.append(
+                f"| {it['name']} | {it['hw_price_str']} Excl. VAT | {yield_info} | {pack_p} | {cpp_str} |"
+            )
+
+        table_md = "\n".join(table_rows)
+
+        # Build intelligent recommendation
+        rec_lines = []
+        verified_items = [it for it in items if it["hw_price"] and it["res"].cost_per_print_aed]
+        if len(verified_items) >= 2:
+            sorted_by_hw = sorted(verified_items, key=lambda x: x["hw_price"])
+            cheapest_hw = sorted_by_hw[0]
+
+            sorted_by_cpp = sorted(verified_items, key=lambda x: x["res"].cost_per_print_aed)
+            cheapest_cpp = sorted_by_cpp[0]
+
+            rec_lines.append("### Which One Is Best for You?")
+            rec_lines.append("")
+            rec_lines.append("1. **Lowest Initial Investment (Best for tight budgets & mobile setups):**")
+            rec_lines.append(f"   • **{cheapest_hw['name']} ({cheapest_hw['hw_price_str']})** requires the lowest upfront capital.")
+            if len(sorted_by_hw) > 1:
+                hw_diff = sorted_by_hw[1]["hw_price"] - cheapest_hw["hw_price"]
+                rec_lines.append(f"   • It saves you **AED {hw_diff:,.2f}** upfront compared to {sorted_by_hw[1]['name']}.")
+            if "cz-01" in cheapest_hw["id"].lower():
+                rec_lines.append("   • Weighing only **5.8 kg**, it is ultra-compact and ideal for portable photo booths and lower daily print volumes.")
+            rec_lines.append("")
+
+            rec_lines.append("2. **Lowest Running Cost (Best for commercial volume & ongoing profitability):**")
+            rec_lines.append(f"   • **{cheapest_cpp['name']} ({cheapest_cpp['hw_price_str']})** delivers the lowest running cost at **AED {cheapest_cpp['res'].cost_per_print_aed:.2f} per print**.")
+
+            if cheapest_hw["id"] != cheapest_cpp["id"]:
+                hw_diff = cheapest_cpp["hw_price"] - cheapest_hw["hw_price"]
+                cpp_diff = cheapest_hw["res"].cost_per_print_aed - cheapest_cpp["res"].cost_per_print_aed
+                if cpp_diff > 0:
+                    breakeven_prints = int(round(hw_diff / cpp_diff))
+                    rec_lines.append(f"   • **Breakeven ROI:** You save **AED {cpp_diff:.2f} per print**. After printing approximately **{breakeven_prints:,} photos**, the media savings completely offset the initial AED {hw_diff:,.2f} hardware price difference.")
+                    rec_lines.append(f"   • For retail studios, event companies, or daily kiosk operations, the lower cost per print yields significantly higher profit margins.")
+            rec_lines.append("")
+
+            rec_lines.append("**Final Recommendation:**")
+            rec_lines.append(f"• Choose **{cheapest_hw['name']}** if you want the lowest startup cost and travel portability.")
+            rec_lines.append(f"• Choose **{cheapest_cpp['name']}** if you plan steady commercial volume where consumable savings will quickly surpass the hardware difference.")
+
+        explanation = (
+            f"Here is the verified investment and running cost comparison:\n\n"
+            f"{table_md}\n\n"
+            f"*(Source: Kepler Tech official catalogue, September 2026. All prices Excl. 5% VAT.)*"
+        )
+        if rec_lines:
+            explanation += "\n\n" + "\n".join(rec_lines)
+
+        return explanation
 
 
 cost_per_print_calculator = CostPerPrintCalculator()

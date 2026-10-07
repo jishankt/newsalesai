@@ -13,12 +13,14 @@ from agents.receptionist_agent import ReceptionistAgent, receptionist_agent
 from agents.product_catalog_agent import ProductCatalogAgent, product_catalog_agent
 from agents.technical_rag_agent import TechnicalRagAgent, technical_rag_agent
 from agents.sales_lead_agent import SalesLeadAgent, sales_lead_agent
+from agents.pydantic_ai_agent import PydanticAiSpecialistAgent, pydantic_ai_specialist
 
 SPECIALIST_AGENTS: Dict[str, BaseSpecialistAgent] = {
     receptionist_agent.agent_id: receptionist_agent,
     product_catalog_agent.agent_id: product_catalog_agent,
     technical_rag_agent.agent_id: technical_rag_agent,
     sales_lead_agent.agent_id: sales_lead_agent,
+    pydantic_ai_specialist.agent_id: pydantic_ai_specialist,
 }
 
 
@@ -28,7 +30,7 @@ def get_agent_by_id(agent_id: str) -> Optional[BaseSpecialistAgent]:
 
 
 def list_agent_metadata() -> list:
-    """Returns metadata list of all 4 registered sub-agents."""
+    """Returns metadata list of all registered sub-agents."""
     return [agent.get_info() for agent in SPECIALIST_AGENTS.values()]
 
 
@@ -42,6 +44,8 @@ __all__ = [
     "technical_rag_agent",
     "SalesLeadAgent",
     "sales_lead_agent",
+    "PydanticAiSpecialistAgent",
+    "pydantic_ai_specialist",
     "SPECIALIST_AGENTS",
     "get_agent_by_id",
     "list_agent_metadata",

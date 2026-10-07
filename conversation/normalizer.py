@@ -19,7 +19,23 @@ from conversation.canonical_entity_normalizer import CanonicalEntityNormalizer
 
 
 def normalize_category(raw_text: str, current_category: Optional[str] = None) -> Optional[str]:
-    """Deterministically identifies or switches product category."""
+    """Deterministically identifies or switches product category, handling multiple inputs and corrections."""
+    if not raw_text:
+        return current_category
+
+    # If the user sent multiple inputs or lines, inspect the latest inputs first
+    lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
+    if len(lines) > 1:
+        for line in reversed(lines):
+            cat = _normalize_category_single(line, current_category)
+            if cat:
+                return cat
+
+    return _normalize_category_single(raw_text, current_category)
+
+
+def _normalize_category_single(raw_text: str, current_category: Optional[str] = None) -> Optional[str]:
+    """Internal category detector for a single input text line."""
     text_l = (raw_text or "").lower()
 
     # Guard: Do NOT hijack or set category for media requests, capability questions, or configuration inquiries
@@ -77,8 +93,14 @@ def normalize_category(raw_text: str, current_category: Optional[str] = None) ->
     if current_category in ("office_printer", "technical_large_format", "photography_large_format", "dye_sublimation", "scanners", "scanner") and bool(re.search(r"\bcitiz[eo]n\b", text_l)):
         return "citizen_photo"
 
+    # Guard: Detect explicit correction from photo booth to photo printer
+    has_photo_booth_correction = bool(re.search(
+        r"\b(?:sorry|actually|instead|i\s+meant|my\s+bad|not|no)\b.*?\b(?:photo\s+printer|photo\s+printing|fine\s*art|gallery)\b",
+        text_l
+    )) or bool(re.search(r"\b(?:photo\s+printer)\b.*?\b(?:not|no|instead\s+of)\s+(?:photo\s*booth|photobooth)\b", text_l))
+
     # 1. Citizen photo check (Citizen brand is exclusively direct dye-sub/thermal photo printers)
-    if any(k in text_l for k in [
+    if not has_photo_booth_correction and (any(k in text_l for k in [
         "citizen", "citizon", "citzen", "photo booth", "photobooth", "event photo", "event photos",
         "cz-01", "cx-02", "cy-02", "cx-02w"
     ]) or (
@@ -89,7 +111,7 @@ def normalize_category(raw_text: str, current_category: Optional[str] = None) ->
         bool(re.search(r"\bevents?\b", text_l))
         and current_category not in ("office_printer", "photography_large_format", "technical_large_format", "dye_sublimation", "scanners", "scanner")
         and not bool(re.search(r"\b(?:scann?er(?:s|es)?|scanning|scan|plotter|copier|mfp)\b", text_l))
-    ):
+    )):
         if current_category in ("photography_large_format", "photo_printer", "photo"):
             return current_category
         return "citizen_photo"
@@ -331,10 +353,17 @@ def extract_deterministic_requirements(text: str, category: Optional[str] = None
             reqs["colour_mode"] = "colour"
 
     # ── 5. Application ───────────────────────────────────────────────────
-    cad_negated = bool(re.search(r"\b(?:not\s+(?:for\s+)?(?:cad|technical|plotter|blueprint)|no\s+(?:cad|plotter)|don'?t\s+need\s+(?:cad|plotter))\b", text_l))
-    if not cad_negated and any(k in text_l for k in ["cad", "blueprint", "engineering", "architect", "gis", "technical", "drawings", "plans", "plotter", "plotters", "plottaer", "plottaers"]):
+    has_photo_booth_correction = bool(re.search(
+        r"\b(?:sorry|actually|instead|i\s+meant|my\s+bad|not|no)\b.*?\b(?:photo\s+printer|photo\s+printing|fine\s*art|gallery)\b",
+        text_l
+    )) or bool(re.search(r"\b(?:photo\s+printer)\b.*?\b(?:not|no|instead\s+of)\s+(?:photo\s*booth|photobooth)\b", text_l))
+
+    cad_keywords = ["cad", "blueprint", "engineering", "architect", "gis", "drawings", "plans", "plotter", "plotters", "plottaer", "plottaers"]
+    is_technical_drawing = bool(re.search(r"\btechnical\s+(?:drawings?|plans?|prints?|drafting|line\s*work)\b", text_l))
+    cad_negated = bool(re.search(r"\b(?:not\s+(?:for\s+)?(?:cad|technical|plotter|blueprint))\b", text_l))
+    if not cad_negated and (any(k in text_l for k in cad_keywords) or is_technical_drawing):
         reqs["application"] = "cad"
-    elif any(k in text_l for k in ["photo booth", "booth", "event photo", "events", "mobile photo booth"]):
+    elif not has_photo_booth_correction and any(k in text_l for k in ["photo booth", "booth", "event photo", "events", "mobile photo booth"]):
         reqs["application"] = "photo_booth"
         reqs["usage_environment"] = "photo_booth"
     elif any(k in text_l for k in ["fine art", "gallery", "exhibition", "canvas", "canvas printing"]):
@@ -351,6 +380,9 @@ def extract_deterministic_requirements(text: str, category: Optional[str] = None
         reqs["usage_environment"] = "retail_kiosk"
     elif any(k in text_l for k in ["studio portrait", "portrait studio", "studio", "studio portraiture"]):
         reqs["usage_environment"] = "studio"
+    elif has_photo_booth_correction:
+        reqs["application"] = "photography"
+        corrections["application"] = "photography"
 
     # ── 6. Roll and Spectro Configurations ───────────────────────────────
     if any(k in text_l for k in ["roll adapter", "roll media", "panoramic", "roll printing"]):
@@ -396,25 +428,33 @@ def extract_deterministic_requirements(text: str, category: Optional[str] = None
     if any(k in text_l for k in [
         "epson desktop (fine art / a3+ / a2+)", "epson desktop", "epson fine art", "epson photo",
         "epson", "fine art", "a3+", "a2+"
-    ]):
+    ]) or has_photo_booth_correction:
         reqs["photo_brand"] = "epson"
         reqs["brand"] = "Epson"
-        if is_correction:
+        if is_correction or has_photo_booth_correction:
             corrections["photo_brand"] = "epson"
             corrections["brand"] = "Epson"
-    elif any(k in text_l for k in [
+    elif not has_photo_booth_correction and ((any(k in text_l for k in [
         "citizen (photo booth / events)", "citizen photo", "citizen", "photo booth",
         "event photo", "event photography", "instant photo", "dye-sub photo"
     ]) or (
         "portable" in text_l and not any(k in text_l for k in ["desktop", "compact", "fine art", "a3+", "a2+", "gallery", "canvas", "p700", "p900"])
     ) or (
         bool(reqs.get("print_sizes")) and not any(k in text_l for k in ["epson", "fine art", "a3+", "a2+", "p700", "p900"])
-    ):
+    ))):
         reqs["photo_brand"] = "citizen"
         reqs["brand"] = "Citizen"
         if is_correction:
             corrections["photo_brand"] = "citizen"
             corrections["brand"] = "Citizen"
+
+    if has_photo_booth_correction:
+        reqs.pop("usage_environment", None)
+        corrections.pop("usage_environment", None)
+        if reqs.get("product_line") == "citizen":
+            reqs.pop("product_line", None)
+        if corrections.get("product_line") == "citizen":
+            corrections.pop("product_line", None)
 
     # ── 7. Explicit Product Line Normalization ───────────────────────────
     # A. Explicit corrections & contrast
@@ -472,7 +512,7 @@ def extract_deterministic_requirements(text: str, category: Optional[str] = None
             corrections["product_line"] = "surecolor_p"
 
     # G. Citizen
-    elif any(k in text_l for k in ["citizen printer", "citizen photo", "cz-01", "cx-02", "cy-02", "cx-02w"]):
+    elif not has_photo_booth_correction and any(k in text_l for k in ["citizen printer", "citizen photo", "cz-01", "cx-02", "cy-02", "cx-02w"]):
         reqs["product_line"] = "citizen"
         if is_correction:
             corrections["product_line"] = "citizen"

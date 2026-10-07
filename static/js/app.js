@@ -15,6 +15,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const resetContextBtn = document.getElementById('resetContextBtn');
   const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
   const closeChatBtn = document.getElementById('closeChatBtn');
+  const expandChatBtn = document.getElementById('expandChatBtn');
+  const expandIcon = document.getElementById('expandIcon');
+  const compressIcon = document.getElementById('compressIcon');
   const sidebar = document.getElementById('sidebar');
 
   // Config inputs
@@ -133,6 +136,45 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Expand / Fullscreen toggle button
+  function toggleFullscreenIcons(full) {
+    if (expandIcon && compressIcon) {
+      expandIcon.style.display = full ? 'none' : 'block';
+      compressIcon.style.display = full ? 'block' : 'none';
+    }
+  }
+
+  if (expandChatBtn) {
+    expandChatBtn.addEventListener('click', () => {
+      const inIframe = window.self !== window.top;
+      if (inIframe) {
+        try {
+          window.parent.postMessage({ type: 'TOGGLE_FULLSCREEN' }, '*');
+        } catch (e) {
+          window.open('/chat', '_blank');
+        }
+      } else {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+          toggleFullscreenIcons(true);
+        } else {
+          document.exitFullscreen().catch(() => {});
+          toggleFullscreenIcons(false);
+        }
+      }
+    });
+  }
+
+  window.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'FULLSCREEN_STATE') {
+      toggleFullscreenIcons(Boolean(event.data.isFullscreen));
+    }
+  });
+
+  document.addEventListener('fullscreenchange', () => {
+    toggleFullscreenIcons(Boolean(document.fullscreenElement));
+  });
+
   // Update header on company name change
   companyNameInput.addEventListener('input', () => {
     headerCompanyName.textContent = `${companyNameInput.value.trim() || 'Kepler Tech'} Assistant`;
@@ -143,13 +185,35 @@ document.addEventListener('DOMContentLoaded', () => {
     sidebar.classList.toggle('open');
   });
 
+  // Multi-input Batching & Turn Management State
+  let unansweredUserMessages = [];
+  let multiInputDebounceTimer = null;
+  let activeAbortController = null;
+  const MULTI_INPUT_DEBOUNCE_MS = 1200; // Bundle multiple inputs within 1.2s into a single turn
+
+  // Ensure typing indicator exists and stays at the bottom of the conversation
+  function ensureTypingIndicator() {
+    let el = document.getElementById('typingIndicator');
+    if (!el) {
+      el = showTypingIndicator();
+    } else {
+      messagesContainer.appendChild(el);
+      scrollToBottom();
+    }
+    return el;
+  }
+
+  function removeTypingIndicator() {
+    const el = document.getElementById('typingIndicator');
+    if (el) el.remove();
+  }
+
   // Quick test prompt chips
   document.querySelectorAll('.prompt-chip').forEach(btn => {
     btn.addEventListener('click', () => {
       const text = btn.getAttribute('data-text');
-      if (text && !isAwaitingReply) {
-        messageInput.value = text;
-        sendMessage(text);
+      if (text) {
+        enqueueUserMessage(text);
       }
     });
   });
@@ -158,19 +222,18 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'SEND_PROMPT' && event.data.text) {
       const text = event.data.text.trim();
-      if (text && !isAwaitingReply) {
-        messageInput.value = text;
-        sendMessage(text);
+      if (text) {
+        enqueueUserMessage(text);
       }
     }
   });
 
-  // Chat Form submit
+  // Chat Form submit: NEVER blocks the user from sending multiple inputs!
   chatForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const text = messageInput.value.trim();
-    if (!text || isAwaitingReply) return;
-    sendMessage(text);
+    if (!text) return;
+    enqueueUserMessage(text);
   });
 
   // Health check button
@@ -199,6 +262,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Reset conversation button
   clearChatBtn.addEventListener('click', async () => {
+    if (multiInputDebounceTimer) clearTimeout(multiInputDebounceTimer);
+    if (activeAbortController) {
+      try { activeAbortController.abort(); } catch (e) {}
+      activeAbortController = null;
+    }
+    unansweredUserMessages = [];
+    isAwaitingReply = false;
+    removeTypingIndicator();
+
     try {
       await fetch('/api/reset', {
         method: 'POST',
@@ -227,14 +299,58 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 250);
   }
 
-  // Send message implementation
-  async function sendMessage(text) {
-    appendMessage('user', text);
-    messageInput.value = '';
-    isAwaitingReply = true;
-    sendBtn.disabled = true;
+  // Non-blocking Enqueue: Immediately shows user message, keeps input box open, and queues for single bot answer
+  function enqueueUserMessage(text) {
+    if (!text) return;
+    const cleanText = text.trim();
+    if (!cleanText) return;
 
-    const typingEl = showTypingIndicator();
+    // 1. Immediately append to chat UI as a user bubble
+    appendMessage('user', cleanText);
+    clientLastMessageCount++;
+    messageInput.value = '';
+    messageInput.focus();
+
+    // 2. Add to unanswered turn buffer so all inputs are preserved until answered
+    unansweredUserMessages.push(cleanText);
+
+    // 3. Keep typing indicator active at the bottom
+    ensureTypingIndicator();
+
+    // 4. If an HTTP request was already in-flight for this session, abort it so it won't render an outdated reply
+    if (activeAbortController) {
+      try {
+        activeAbortController.abort();
+      } catch (e) {}
+      activeAbortController = null;
+
+      // Invalidate on server so server releases lock immediately
+      fetch('/api/chat/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId })
+      }).catch(() => {});
+    }
+
+    // 5. Reset batch debounce timer
+    if (multiInputDebounceTimer) {
+      clearTimeout(multiInputDebounceTimer);
+    }
+
+    // Wait MULTI_INPUT_DEBOUNCE_MS after latest input to give user time to send corrections or extra details
+    multiInputDebounceTimer = setTimeout(() => {
+      dispatchPendingTurn();
+    }, MULTI_INPUT_DEBOUNCE_MS);
+  }
+
+  // Dispatches all accumulated user inputs in a single API call for one coherent bot response
+  async function dispatchPendingTurn() {
+    if (unansweredUserMessages.length === 0) return;
+
+    const messagesToSend = [...unansweredUserMessages];
+
+    ensureTypingIndicator();
+    isAwaitingReply = true;
 
     const companyContext = {
       company_name: companyNameInput.value.trim(),
@@ -245,39 +361,75 @@ document.addEventListener('DOMContentLoaded', () => {
       additional_info: additionalInfoInput.value.trim()
     };
 
+    const combinedMessage = messagesToSend.join('\n');
     const payload = {
-      message: text,
+      message: combinedMessage,
+      messages: messagesToSend,
       session_id: sessionId,
       company_context: companyContext,
       model: ollamaModelInput.value.trim(),
       ollama_base_url: ollamaUrlInput.value.trim()
     };
 
+    activeAbortController = new AbortController();
+
     let data;
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        signal: activeAbortController.signal
       });
-
-      typingEl.remove();
 
       if (response.ok) {
         data = await response.json();
+        // Clear unanswered buffer now that this turn succeeded!
+        unansweredUserMessages = [];
+      } else if (response.status === 409) {
+        // Superseded by newer turn, ignore silently
+        return;
+      } else if (response.status === 429) {
+        // Server lock or rate limit momentary wait, retry once after 1.5s
+        await new Promise(r => setTimeout(r, 1500));
+        const retryResp = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: activeAbortController ? activeAbortController.signal : undefined
+        });
+        if (retryResp.ok) {
+          data = await retryResp.json();
+          unansweredUserMessages = [];
+        } else if (retryResp.status === 409) {
+          return;
+        } else {
+          removeTypingIndicator();
+          appendMessage('bot', "I apologize, but I encountered an issue processing your message. Could you try asking again?", "System Alert", [], null, null, [], [], [], DEFAULT_AGENT);
+          return;
+        }
       } else {
+        removeTypingIndicator();
         appendMessage('bot', "I apologize, but I encountered an issue processing your message. Could you try asking again?", "System Alert", [], null, null, [], [], [], DEFAULT_AGENT);
         return;
       }
     } catch (err) {
-      typingEl.remove();
+      if (err.name === 'AbortError') {
+        // Cancelled because user sent a newer message, ignore
+        return;
+      }
+      removeTypingIndicator();
       console.error('Network error during chat:', err);
       appendMessage('bot', "I'm having trouble connecting to the backend right now. Please ensure the server is active.", "Offline", [], null, null, [], [], [], DEFAULT_AGENT);
       return;
     } finally {
-      isAwaitingReply = false;
-      sendBtn.disabled = false;
-      messageInput.focus();
+      if (!activeAbortController || !activeAbortController.signal.aborted) {
+        activeAbortController = null;
+      }
+      if (unansweredUserMessages.length === 0) {
+        isAwaitingReply = false;
+        removeTypingIndicator();
+      }
     }
 
     if (data) {
@@ -298,6 +450,9 @@ document.addEventListener('DOMContentLoaded', () => {
           activeAgent,
           data.comparison_data || null
         );
+        if (data.customer && data.customer.logged_in) {
+          setLoggedInCustomer(data.customer);
+        }
         clientLastMessageCount++;
       } catch (renderErr) {
         console.error('Error rendering assistant reply:', renderErr);
@@ -377,19 +532,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const avatar = document.createElement('div');
     avatar.className = 'message-avatar';
     if (sender === 'bot') {
-      avatar.innerHTML = `
-        <svg viewBox="0 0 32 32" width="20" height="20" fill="none">
-          <rect x="6" y="9" width="20" height="15" rx="5" fill="${themeColor}"/>
-          <rect x="3" y="14" width="3" height="5" rx="1.5" fill="${themeColor}"/>
-          <rect x="26" y="14" width="3" height="5" rx="1.5" fill="${themeColor}"/>
-          <path d="M16 5v4" stroke="${themeColor}" stroke-width="2.2" stroke-linecap="round"/>
-          <circle cx="16" cy="4" r="1.8" fill="${themeColor}"/>
-          <rect x="9" y="12" width="14" height="9" rx="3" fill="#ffffff"/>
-          <circle cx="12.5" cy="15.8" r="1.5" fill="${themeColor}"/>
-          <circle cx="19.5" cy="15.8" r="1.5" fill="${themeColor}"/>
-          <path d="M14 18.2c.6.6 1.4.6 2 0" stroke="${themeColor}" stroke-width="1.3" stroke-linecap="round"/>
-        </svg>
-      `;
+      avatar.innerHTML = `<img src="/static/images/kepler-icon-transparent.png" alt="Kepler" class="bot-msg-avatar-img">`;
     } else {
       avatar.style.display = 'none';
     }
@@ -526,6 +669,32 @@ document.addEventListener('DOMContentLoaded', () => {
           ? `<div class="card-configs-badge">⚙️ Configurations: ${p.available_configurations.join(', ')}</div>`
           : '';
 
+        // Price details
+        let priceHtml = '';
+        if (p.price && !p.is_request) {
+          const formatted = p.price_str || p.price_formatted || `AED ${Number(p.price).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+          const vat = p.vat_note || '(Excl. VAT)';
+          priceHtml = `
+            <div class="card-price-row">
+              <span class="card-price-val">${formatted}</span>
+              <span class="card-price-vat">${vat}</span>
+            </div>
+          `;
+        } else if (p.price_str && p.price_str !== 'Price on Request') {
+          priceHtml = `
+            <div class="card-price-row">
+              <span class="card-price-val">${p.price_str}</span>
+              ${p.vat_note ? `<span class="card-price-vat">${p.vat_note}</span>` : ''}
+            </div>
+          `;
+        } else {
+          priceHtml = `
+            <div class="card-price-row">
+              <span class="card-price-request">Commercial Quote on Request</span>
+            </div>
+          `;
+        }
+
         card.innerHTML = `
           <div class="card-img-wrap" title="Click to view image">
             <img src="${cardImg}" alt="${modelName}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='/static/images/printer-placeholder.svg';">
@@ -534,6 +703,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="card-cat-badge">${subcategoryLabel || categoryLabel}</span>
           </div>
           <div class="card-title" title="${modelName}">${modelName}</div>
+          ${priceHtml}
           ${configsHtml}
           ${reasonsHtml}
           <div class="card-actions-row">
@@ -615,12 +785,31 @@ document.addEventListener('DOMContentLoaded', () => {
         const cUrl = c.source_url || c.url || c.website_url || '#';
         const cTitle = c.title || c.name;
 
+        let cPriceHtml = '';
+        if (c.price) {
+          const cFormatted = c.price_str || c.price_formatted || `AED ${Number(c.price).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+          const cVat = c.vat_note || '(Excl. VAT)';
+          cPriceHtml = `
+            <div class="card-price-row" style="margin: 2px 0 4px;">
+              <span class="card-price-val" style="font-size: 0.8rem;">${cFormatted}</span>
+              <span class="card-price-vat" style="font-size: 0.65rem;">${cVat}</span>
+            </div>
+          `;
+        } else if (c.price_str && c.price_str !== 'Price on Request') {
+          cPriceHtml = `
+            <div class="card-price-row" style="margin: 2px 0 4px;">
+              <span class="card-price-val" style="font-size: 0.8rem;">${c.price_str}</span>
+            </div>
+          `;
+        }
+
         cCard.innerHTML = `
           <div class="consumable-img-wrap" title="Click to enlarge">
             <img src="${cImg}" alt="${c.name}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png';">
           </div>
           <div class="consumable-title" title="${cTitle}">${cTitle}</div>
           <div class="consumable-sku">${c.sku}</div>
+          ${cPriceHtml}
           <div class="consumable-actions" style="margin-top: auto; padding-top: 4px;">
             <a href="${cUrl}" target="_blank" class="card-btn" style="color: var(--chat-blue); font-size: 0.68rem; padding: 4px 6px; text-align: center; text-decoration: none; background: #f0f2f5;">
               View on Website ↗
@@ -701,10 +890,7 @@ document.addEventListener('DOMContentLoaded', () => {
             openCustomerModal();
             return;
           }
-          if (!isAwaitingReply) {
-            messageInput.value = chipText;
-            sendMessage(chipText);
-          }
+          enqueueUserMessage(chipText);
         });
         chipsBar.appendChild(chipBtn);
       });
@@ -726,7 +912,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const avatar = document.createElement('div');
     avatar.className = 'message-avatar';
-    avatar.textContent = 'CR';
+    avatar.innerHTML = `<img src="/static/images/kepler-icon-transparent.png" alt="Kepler" class="bot-msg-avatar-img">`;
 
     const bubble = document.createElement('div');
     bubble.className = 'message-bubble typing-bubble';
@@ -877,7 +1063,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (customerAuthBtn) {
     customerAuthBtn.addEventListener('click', () => {
-      openCustomerModal();
+      if (currentCustomer) {
+        openCustomerModal();
+      } else {
+        enqueueUserMessage("login");
+      }
     });
   }
 

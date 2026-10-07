@@ -204,13 +204,19 @@ def _levenshtein(s1: str, s2: str) -> int:
     return prev[-1]
 
 
-def build_model_detail_response(product: Dict[str, Any]) -> Tuple[str, List[Dict[str, Any]]]:
+def build_model_detail_response(product: Optional[Dict[str, Any]]) -> Tuple[str, List[Dict[str, Any]]]:
     """Builds verified description, specs, and card for an exact model inquiry."""
+    if not product or not isinstance(product, dict):
+        return "Could you please specify which printer model you would like to view specifications for?", []
+
+    name = product.get("display_name") or product.get("model") or product.get("name")
+    if not name or str(name).strip().lower() in ("none", "null", ""):
+        return "Could you please specify which printer model you would like to view specifications for?", []
+
     from catalog.catalogue_filter import catalogue_filter
     card = catalogue_filter._format_card(product, product.get("subcategory"), {})
 
-    name = product.get("display_name")
-    cat = product.get("catalogue", "").replace("_", " ").title()
+    cat = (product.get("catalogue") or product.get("category") or "").replace("_", " ").title()
     subcat = product.get("subcategory", "").replace("_", " ").title()
     width = product.get("max_width_inches")
     functions = "/".join([f.title() for f in (product.get("functions") or ["Print"])])

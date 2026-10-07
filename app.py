@@ -4,7 +4,7 @@ Connects with Ollama (gpt-oss:20b), runs NLP normalization, intent extraction,
 enforces strict commercial guardrails, and guarantees zero-hallucination grounding.
 """
 
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, session, send_file
 from flask_cors import CORS
 from datetime import timedelta
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -13,6 +13,8 @@ import uuid
 import re
 import logging
 import requests
+import threading
+from typing import Dict, List, Any, Optional
 from config import (
     PORT,
     DEBUG,
@@ -147,6 +149,12 @@ def chat_full():
     return render_template("index.html")
 
 
+@app.route("/flowchart")
+def workflow_flowchart():
+    """Serves the interactive visual workflow and product decision flowchart."""
+    return send_file("static/workflow_flowchart.html")
+
+
 @app.route("/api/config", methods=["GET"])
 def get_config():
     """Returns current default company context and model configuration without internal Ollama URL."""
@@ -277,11 +285,29 @@ def poll_chat():
     return jsonify(poll_data)
 
 
+_session_active_turns: Dict[str, str] = {}
+_session_turn_mutex = threading.Lock()
+
+
+@app.route("/api/chat/cancel", methods=["POST"])
+def cancel_chat():
+    """Signals cancellation or supersede of the active turn for a session."""
+    data = request.get_json(silent=True) or {}
+    session_id = data.get("session_id")
+    if session_id:
+        with _session_turn_mutex:
+            _session_active_turns[session_id] = str(uuid.uuid4())
+        session_lock_manager.force_reset(session_id)
+        logger.info(f"Session {session_id} active turn invalidated/cancelled and lock reset.")
+    return jsonify({"success": True, "message": "Turn invalidated."})
+
+
 @app.route("/api/chat", methods=["POST"])
 def chat():
     """
     Main conversational endpoint:
     - Normalizes user text and extracts NLP entities & intent
+    - Supports single string message or multi-message array (batching multiple consecutive inputs)
     - Fast-paths commercial rules (price/discount refusal)
     - Performs RAG retrieval over scraped product corpus
     - Handles product comparison (Section D) or deep specifications
@@ -298,17 +324,24 @@ def chat():
     if data.get("model") and data["model"] not in ALLOWED_MODELS:
         return jsonify({"error": f"Model not allowed: '{data['model']}'"}), 400
 
-    if "message" not in data:
-        return jsonify({"error": "Missing 'message' field"}), 400
+    # Extract messages: support both multiple inputs array ("messages") and single string ("message")
+    input_messages: List[str] = []
+    if "messages" in data and isinstance(data["messages"], list):
+        input_messages = [str(m).strip() for m in data["messages"] if str(m).strip()]
 
-    if not isinstance(data["message"], str):
-        return jsonify({"error": "'message' field must be a string"}), 400
+    if not input_messages:
+        if "message" not in data:
+            return jsonify({"error": "Missing 'message' or 'messages' field"}), 400
+        if not isinstance(data["message"], str):
+            return jsonify({"error": "'message' field must be a string"}), 400
+        single_msg = data["message"].strip()
+        if not single_msg:
+            return jsonify({"error": "Empty message", "message": "Message cannot be empty or whitespace only"}), 400
+        input_messages = [single_msg]
 
-    raw_message = data["message"].strip()
-    if not raw_message:
-        return jsonify({"error": "Empty message", "message": "Message cannot be empty or whitespace only"}), 400
+    raw_message = "\n".join(input_messages)
 
-    if len(data["message"]) > 4000:
+    if len(raw_message) > 4000:
         return jsonify({"error": "Message exceeds maximum allowed length of 4000 characters"}), 400
 
     session_id = data.get("session_id")
@@ -317,6 +350,18 @@ def chat():
             return jsonify({"error": "Invalid session_id format"}), 400
     else:
         session_id = str(uuid.uuid4())
+
+    # Rapid Consecutive WhatsApp Message Aggregation
+    try:
+        from conversation.message_buffer import message_buffer
+        raw_message = message_buffer.get_combined_prompt(session_id, raw_message)
+    except Exception:
+        pass
+
+    turn_token = str(uuid.uuid4())
+    with _session_turn_mutex:
+        _session_active_turns[session_id] = turn_token
+    session_lock_manager.force_reset(session_id)
 
     # Rate Limiting Guard: check IP and session limits
     client_ip = get_client_ip(request)
@@ -344,12 +389,12 @@ def chat():
         }), 429
 
     try:
-        return _process_chat_turn(raw_message, session_id, model_name, request_id, session_prefix, turn_start_time)
+        return _process_chat_turn(raw_message, session_id, model_name, request_id, session_prefix, turn_start_time, turn_token=turn_token, input_messages=input_messages)
     finally:
         session_lock_manager.release(session_id)
 
 
-def _process_chat_turn(raw_message, session_id, model_name, request_id, session_prefix, turn_start_time):
+def _process_chat_turn(raw_message, session_id, model_name, request_id, session_prefix, turn_start_time, turn_token=None, input_messages=None):
     # 1. NLP Analysis: Normalization, Intent Classification, Entity Extraction
     nlp_result = analyze_input(raw_message)
     normalized_msg = nlp_result["normalized_text"]
@@ -535,10 +580,29 @@ def _process_chat_turn(raw_message, session_id, model_name, request_id, session_
     state = orchestrator_res["state"]
     retrieved_items = orchestrator_res.get("retrieved_items", [])
 
+    # Check if this turn was superseded by a newer user message batch
+    if turn_token:
+        with _session_turn_mutex:
+            latest_turn = _session_active_turns.get(session_id)
+            if latest_turn and latest_turn != turn_token:
+                logger.info(f"[{session_prefix}] req_id={request_id} superseded by turn {latest_turn}. Skipping commit.")
+                return jsonify({
+                    "success": False,
+                    "superseded": True,
+                    "message": "Turn superseded by newer user input."
+                }), 409
+
     # Save state and history turns via canonical state_manager
-    state.history_turns.append({"role": "user", "content": normalized_msg})
+    inputs_to_save = input_messages or [raw_message]
+    if len(inputs_to_save) > 1:
+        for single_input in inputs_to_save:
+            state.history_turns.append({"role": "user", "content": single_input})
+            history.append({"role": "user", "content": single_input})
+    else:
+        state.history_turns.append({"role": "user", "content": normalized_msg})
+        history.append({"role": "user", "content": raw_message})
+
     state.history_turns.append({"role": "assistant", "content": assistant_reply})
-    history.append({"role": "user", "content": normalized_msg})
     history.append({"role": "assistant", "content": assistant_reply})
     state_manager.save(state, history)
 
@@ -570,6 +634,12 @@ def _process_chat_turn(raw_message, session_id, model_name, request_id, session_
     response_payload = {
         "success": True,
         "session_id": session_id,
+        "customer": {
+            "customer_id": state.customer_id,
+            "name": state.customer_name,
+            "display_name": state.customer_name,
+            "logged_in": True
+        } if state.customer_id else None,
         "reply": assistant_reply,
         "message": assistant_reply,
         "llm_generated_message": orchestrator_res.get("llm_generated_message") or assistant_reply,
@@ -601,6 +671,8 @@ def _process_chat_turn(raw_message, session_id, model_name, request_id, session_
             "status": grounding_result.get("status", "verified_catalogue_source"),
             "notes": grounding_result.get("notes", [])
         },
+        "execution_trace": orchestrator_res.get("execution_trace", []),
+        "ascii_trace": orchestrator_res.get("ascii_trace") or orchestrator_res.get("trace_summary", ""),
         "turns_count": len(history) // 2
     }
 
@@ -610,6 +682,31 @@ def _process_chat_turn(raw_message, session_id, model_name, request_id, session_
 
     return jsonify(response_payload)
 
+
+@app.route("/api/workflow/run", methods=["POST"])
+def run_workflow_api():
+    """
+    Executes a customer message directly through the deterministic 12-node workflow layer.
+    Returns the grounded answer, product/consumable cards, and full execution trace.
+    """
+    data = request.get_json(silent=True) or {}
+    message = data.get("message") or data.get("raw_message") or ""
+    session_id = data.get("session_id") or "workflow-session"
+    model_name = data.get("model_name")
+
+    if not message.strip():
+        return jsonify({"error": "message is required"}), 400
+
+    state = state_manager.get_or_create(session_id)
+    history = state_manager.get_history(session_id)
+    res = new_orchestrator.execute_workflow(
+        raw_message=message,
+        session_id=session_id,
+        history=history,
+        state=state,
+        model_name=model_name,
+    )
+    return jsonify(res)
 
 
 @app.route("/api/agents", methods=["GET"])

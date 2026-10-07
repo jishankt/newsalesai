@@ -71,8 +71,8 @@ class ProductSpecEngine:
         card = catalog_tool_executor.format_card(product.to_dict(), card_type="hardware")
 
         # If user is asking for general overview, specs sheet, or tell me about, return None (handled by detailed specs)
-        if any(w in msg_l for w in ["tell me about", "what is the", "what is citizen", "overview", "full description", "spec sheet", "all specs", "complete specs", "how does"]):
-            if not any(attr in msg_l for attr in ["speed", "width", "technology", "ink", "resolution", "finish", "luster", "capacity", "weight", "dimensions", "rewind", "interface", "yield", "pattern"]):
+        if any(w in msg_l for w in ["tell me about", "what is citizen", "overview", "full description", "spec sheet", "all specs", "complete specs", "how does"]):
+            if not any(attr in msg_l for attr in ["speed", "width", "technology", "ink", "resolution", "finish", "surface", "surfaces", "substrate", "substrates", "print on", "luster", "capacity", "weight", "dimensions", "rewind", "interface", "yield", "pattern", "price", "cost", "how much", "rate"]):
                 return None
 
         # ── 0. Multi-Specification Query Handler (2+ specifications requested) ──
@@ -382,21 +382,56 @@ class ProductSpecEngine:
                 reply = f"The verified {lbl} for **[{p_name}]({p_url})** is **{res}** [VERIFIED]."
                 return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
 
-        # ── 5. Finishing Options & Luster & Pattern ────────────────────────
-        is_finish = any(w in msg_l for w in ["finish", "finishes", "finishing", "luster", "matte", "glossy", "pattern"])
+        # ── 5. Finishing Options & Luster & Pattern & Surfaces ─────────────
+        is_finish = any(w in msg_l for w in [
+            "surface", "surfaces", "substrate", "substrates", "print on", "prints on", "what can it print", "materials can it print",
+            "finish", "finishes", "finishing", "luster", "matte", "glossy", "partial matte", "pattern"
+        ])
         if is_finish:
-            if "cx-02" in product.id:
+            if "cz-01" in product.id:
+                reply = (
+                    f"The **[{p_name}]({p_url})** prints on **roll-fed dye-sublimation photo paper** and offers three verified surface finishes without changing media rolls:\n\n"
+                    f"• **Surface Finishes:** **Glossy**, **Matte**, and **Partial Matte**.\n"
+                    f"• **Finishing Control:** All surface finishes are produced electronically via thermal printhead overcoat control from the exact same media roll.\n"
+                    f"• **Supported Media Sizes:** 4×6-inch and 4.5×4.5-inch dye-sublimation photo rolls."
+                )
+                return RouteResult(reply=reply, product_cards=[], source="catalog:single_attribute")
+            elif "cx-02" in product.id:
                 if "luster" in msg_l:
                     reply = f"The **[{p_name}]({p_url})** specification table lists **Glossy and Matte** finishing options (achieved via thermal overcoat control). While some promotional overviews mention luster, the verified manufacturer hardware specification supports glossy and matte finishes."
                 else:
-                    reply = f"The **[{p_name}]({p_url})** specification table supports **Glossy and Matte** finishing options via overcoat thermal control."
-                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
-            elif "cz-01" in product.id:
-                reply = f"The **[{p_name}]({p_url})** offers **Glossy, Matte, and Partial Matte** finishing options without changing media, achieved electronically via thermal printhead overcoat control [VERIFIED]."
-                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+                    reply = (
+                        f"The **[{p_name}]({p_url})** prints on **roll-fed dye-sublimation photo media** and supports **Glossy and Matte** surface finishes (selectable via the driver from the same media roll).\n\n"
+                        f"• **Supported Media Sizes:** 4×6, 5×7, 6×8, and 6×9 inches, plus 2×6-inch photo booth strips."
+                    )
+                return RouteResult(reply=reply, product_cards=[], source="catalog:single_attribute")
             elif "cy-02" in product.id or "cx-02w" in product.id:
-                reply = f"The **[{p_name}]({p_url})** offers **Glossy and Matte** finishing options [VERIFIED]."
-                return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+                reply = f"The **[{p_name}]({p_url})** prints on roll-fed dye-sublimation photo media with **Glossy and Matte** surface finishes selectable via the driver [VERIFIED]."
+                return RouteResult(reply=reply, product_cards=[], source="catalog:single_attribute")
+            elif "f100" in product.id or "f500" in product.id:
+                reply = (
+                    f"The **[{p_name}]({p_url})** prints dye-sublimation ink onto **DS Transfer sublimation paper**, which is heat-pressed onto:\n\n"
+                    f"• **Fabric & Apparel:** 100% polyester and poly-blend fabrics, T-shirts, sportswear, and apparel.\n"
+                    f"• **Coated Hard Surfaces:** Sublimation-coated mugs, ceramic tiles, aluminium photo panels, phone covers, and mouse pads."
+                )
+                return RouteResult(reply=reply, product_cards=[], source="catalog:single_attribute")
+            elif "p900" in product.id or "p700" in product.id:
+                reply = (
+                    f"The **[{p_name}]({p_url})** prints on professional photographic and fine art surfaces:\n\n"
+                    f"• **Photo & Fine Art:** Glossy, Semi-Matte, Lustre, Metallic Gloss, 100% Cotton Rag, and Canvas.\n"
+                    f"• **Specialty Surfaces:** Rigid posterboard up to 1.5mm thick, roll papers, and direct-to-surface printable CDs/DVDs."
+                )
+                return RouteResult(reply=reply, product_cards=[], source="catalog:single_attribute")
+            elif "sc-t" in product.id or "t3100" in product.id or "t5100" in product.id or "t5400" in product.id or "t5700" in product.id:
+                reply = (
+                    f"The **[{p_name}]({p_url})** prints on technical and CAD media:\n\n"
+                    f"• **Supported Media:** Plain paper, bond paper, tracing paper/vellum, blueprint, and matte coated presentation roll media."
+                )
+                return RouteResult(reply=reply, product_cards=[], source="catalog:single_attribute")
+            elif product.to_dict().get("pattern_and_finishing"):
+                pat = product.to_dict().get("pattern_and_finishing")
+                reply = f"The **[{p_name}]({p_url})** supports the following verified surface finishing and media handling options:\n\n• {pat}"
+                return RouteResult(reply=reply, product_cards=[], source="catalog:single_attribute")
 
         # ── 6. Ribbon Rewind ───────────────────────────────────────────────
         is_rewind = any(w in msg_l for w in ["ribbon-rewind", "ribbon rewind", "rewind feature", "rewind ribbon", "save media"])
@@ -577,6 +612,20 @@ class ProductSpecEngine:
             sku_found = sku_match.group(1).upper()
             status, explanation = consumable_registry.check_sku_compatibility(sku_found, product.id)
             return RouteResult(reply=explanation, product_cards=[card], source="catalog:single_attribute")
+
+        # ── 11. Official Standard Price Inquiry ────────────────────────────
+        is_price_q = any(w in msg_l for w in ["price", "cost", "how much", "rate", "rates", "pricing"]) and not any(w in msg_l for w in ["discount", "bargain", "cheaper", "negotiat", "best price"])
+        if is_price_q:
+            from catalog.price_resolver import price_resolver
+            p_dict = product.to_dict()
+            pr_info = price_resolver.get_price_info(identifier=product.id, prod=p_dict)
+            if pr_info and pr_info.get("price"):
+                p_val = pr_info["price"]
+                vat = pr_info.get("vat_note", "(Excl. VAT)")
+                reply = f"The official standard list price for the **[{p_name}]({p_url})** is **AED {p_val:,.2f}** {vat} [VERIFIED]."
+            else:
+                reply = f"The **[{p_name}]({p_url})** is an enterprise/commercial model available on a quotation basis (**Price on Request**). Official quotations are confirmed upon order placement."
+            return RouteResult(reply=reply, product_cards=[], source="catalog:single_attribute")
 
         return None
 

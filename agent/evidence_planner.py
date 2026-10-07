@@ -405,7 +405,7 @@ class EvidencePlanner:
             status="unknown",
             value=None,
             source="none",
-            display_claim=f"Wi-Fi connectivity is not listed in the verified catalogue specifications for the {p_name} and is unknown.",
+            display_claim=f"I don't have that detail in our catalog for the {p_name} right now, but I can check with our technical team.",
         )
 
     @classmethod
@@ -507,7 +507,7 @@ class EvidencePlanner:
             status="unknown",
             value=None,
             source="none",
-            display_claim=f"Compatible consumables and ink specifications for the {p_name} are not listed in the verified catalogue and are unknown.",
+            display_claim=f"I don't have that detail in our catalog for the {p_name} right now, but I can check with our technical team.",
         ), []
 
     @classmethod

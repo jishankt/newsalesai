@@ -435,9 +435,11 @@ def decide(understanding: LLMUnderstanding, state: ConversationState, raw_messag
 
     is_consultative = any(w in msg_lower for w in ["recommend", "suggest", "which printer", "what printer", "guide me", "help me choose"])
     if discovered_category:
-        is_category_change = state.category != discovered_category
+        is_category_change = state.category is not None and state.category != discovered_category
         if is_category_change:
             state.reset_category(discovered_category)
+        elif state.category is None:
+            state.category = discovered_category
 
         if is_consultative and not min_qualification_satisfied(state):
             return RouteDecision(

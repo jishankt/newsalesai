@@ -90,6 +90,10 @@ TYPO_CORRECTIONS: Dict[str, str] = {
     r"\bsacnners?\b": "scanners",
     r"\brool\b": "roll",
     r"\brools\b": "rolls",
+    r"\baall\b": "all",
+    r"\bmedias\b": "media",
+    r"\bmeedias?\b": "media",
+    r"\bmedas?\b": "media",
     r"\binsh\b": "inch",
     r"\binshes\b": "inches",
     r"\bcxo2\b": "CX02",
@@ -237,6 +241,15 @@ def normalize_text(text: str) -> Dict[str, Any]:
             if matched_str.lower() != replacement.lower():
                 applied_corrections.append(f"{matched_str} -> {replacement}")
             normalized = re.sub(pattern, replacement, normalized, flags=re.IGNORECASE)
+
+    # 3b. Apply Universal Fuzzy & Vocabulary Normalizer (colors, media, models)
+    try:
+        from nlp.fuzzy_normalizer import fuzzy_normalizer
+        normalized, fuzzy_corrs = fuzzy_normalizer.normalize_text_tokens(normalized)
+        for fc in fuzzy_corrs:
+            applied_corrections.append(f"{fc['original']} -> {fc['normalized']}")
+    except Exception:
+        pass
 
     # 4. Restore protected SKUs
     for token, original_sku in protected_skus.items():

@@ -45,11 +45,13 @@ class ResponseComposer:
         Falls back safely to the verified AnswerPlan or deterministic_draft on failure.
         """
         self.last_composition_succeeded = False
-        # Determine fallback text directly from verified answer plan if available
+        # Determine fallback text directly from verified answer plan or rich deterministic draft
         fallback_text = ""
-        if context.answer_plan:
+        if context.deterministic_draft and ("### " in context.deterministic_draft or "\n• " in context.deterministic_draft):
+            fallback_text = context.deterministic_draft
+        elif context.answer_plan:
             fallback_text = context.answer_plan.render_deterministic_answer()
-        if not fallback_text and context.verified_evidence and context.verified_evidence.answer_plan:
+        elif context.verified_evidence and context.verified_evidence.answer_plan:
             fallback_text = context.verified_evidence.answer_plan.render_deterministic_answer()
         if not fallback_text:
             fallback_text = context.deterministic_draft or ""
@@ -120,7 +122,7 @@ class ResponseComposer:
                     self._offline_cooldown_until = 0.0
                     self.last_composition_succeeded = True
                     logger.info(f"Grounded response composed successfully ({comp_res.get('latency_ms')}ms)")
-                    return composed_text
+                    return self._clean_unwanted_stars(composed_text)
 
                 logger.warning(f"Composed reply failed validation: {violations}. Attempting 1 bounded regeneration.")
 
@@ -154,7 +156,7 @@ class ResponseComposer:
                         self._offline_cooldown_until = 0.0
                         self.last_composition_succeeded = True
                         logger.info("Regenerated response passed validation successfully.")
-                        return regen_text
+                        return self._clean_unwanted_stars(regen_text)
                     logger.warning(f"Regenerated reply failed validation again: {violations_2}. Falling back to verified plan.")
             else:
                 self._offline_cooldown_until = time.time() + 10.0
@@ -166,6 +168,24 @@ class ResponseComposer:
         # Safe Fail-Closed Fallback directly from verified plan
         self.last_composition_succeeded = False
         return fallback_text
+
+    @staticmethod
+    def _clean_unwanted_stars(text: str) -> str:
+        """
+        Removes unwanted markdown asterisks/stars from chat responses:
+        - **phrase** -> phrase
+        - *phrase* -> phrase
+        - Leading bullet stars '* item' -> '• item'
+        """
+        if not text:
+            return text
+        # Remove bold asterisks **phrase** -> phrase
+        cleaned = re.sub(r"\*\*([^*]+)\*\*", r"\1", text)
+        # Remove italic asterisks *phrase* -> phrase
+        cleaned = re.sub(r"(?<!\*|\n)\*([^*\n]+)\*(?!\*)", r"\1", cleaned)
+        # Replace bullet stars * item -> • item
+        cleaned = re.sub(r"^\s*\*\s+", r"• ", cleaned, flags=re.MULTILINE)
+        return cleaned.strip()
 
     def _extract_customer_questions(self, message: str) -> List[str]:
         """
@@ -239,10 +259,22 @@ class ResponseComposer:
         text_lower = composed_text.lower()
         violations: List[str] = []
 
-        # 1. Product Policy Guard (Rule 7: No prices, discounts, quote offers, or handover suggestions)
-        # Check for price / currency mentions
-        if re.search(r"\b(?:aed|\$|usd|eur|gbp)\s*\d+", text_lower) or re.search(r"\b\d+\s*(?:aed|usd|dollars|dirhams)\b", text_lower):
-            violations.append("prohibited_policy:price_leaked")
+        # 1. Product Policy Guard (Rule 7: No unprompted prices, discounts, quote offers, or handover suggestions)
+        # Allow price mentions when price/cost/investment was requested or is in the verified evidence
+        is_price_requested = bool(re.search(
+            r"\b(?:price|cost|how\s+much|rate|investment|running\s*cost|cpp|aed|pricing|budget)\b",
+            (getattr(context, "original_message", "") or getattr(context, "normalized_message", "") or "").lower()
+        ))
+        is_price_allowed = (
+            is_price_requested
+            or getattr(context, "intent", "") in ("PRICE_INQUIRY", "COMMERCIAL_PRICING", "COST_PER_PRINT")
+            or "cost" in str(getattr(context, "target_route", "")).lower()
+            or "price" in str(getattr(context, "target_route", "")).lower()
+            or ("aed" in str(getattr(context, "deterministic_draft", "") or "").lower())
+        )
+        if not is_price_allowed:
+            if re.search(r"\b(?:aed|\$|usd|eur|gbp)\s*\d+", text_lower) or re.search(r"\b\d+\s*(?:aed|usd|dollars|dirhams)\b", text_lower):
+                violations.append("prohibited_policy:price_leaked")
 
         # Check for quotation offers
         if re.search(r"\b(?:prepare\s+(?:an?\s+)?(?:official\s+)?quotation|prepare\s+(?:an?\s+)?quote|quote\s+for\s+you|official\s+quote\s+offer)\b", text_lower):
@@ -365,6 +397,14 @@ class ResponseComposer:
                     clean_p = part.strip("().,")
                     approved_tokens.add(clean_p)
                     approved_tokens.add(clean_p.replace("-", ""))
+
+        for c in (getattr(context.verified_evidence, "consumable_cards", []) or []):
+            c_name = (c.get("name") or c.get("title") or "").lower()
+            for part in re.split(r"[\s,]+", c_name):
+                if re.search(r"\d", part) and len(part) >= 3:
+                    clean_c = part.strip("().,")
+                    approved_tokens.add(clean_c)
+                    approved_tokens.add(clean_c.replace("-", ""))
 
         # Check for model-like tokens (e.g. p7060, t5280, wf-c5710, sc-t9999)
         found_models = re.findall(r"\b(?:epson\s+|citizen\s+|surecolor\s+|workforce\s+)?((?:sc|wf|am|em|cx|cy|cz|op|ds|es|xp|et|l|p|t)[-\s]?[a-z]?\d{2,5}[a-z0-9]*)\b", text_lower)

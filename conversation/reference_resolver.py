@@ -81,9 +81,13 @@ class ReferenceResolver:
                         prod = p
                         break
             if not prod:
-                rp = catalog_repository.get_by_id(item)
-                if rp:
-                    prod = rp.to_dict()
+                try:
+                    from rag.retriever import rag_retriever
+                    rp = rag_retriever.get_by_id(item) or rag_retriever.get_by_sku(item)
+                    if rp:
+                        prod = rp
+                except Exception:
+                    pass
             if prod:
                 res_prod = dict(prod)
                 res_prod["id"] = item
@@ -164,16 +168,34 @@ class ReferenceResolver:
         # Determine reference source lists from state
         active_prod = cls._to_prod_dict(getattr(state, "active_product", None))
         displayed_ids = getattr(state, "displayed_product_ids", []) or []
-        displayed_prods = [cls._to_prod_dict(pid) for pid in displayed_ids if cls._to_prod_dict(pid)]
+        seen_disp = set()
+        displayed_prods = []
+        for pid in displayed_ids:
+            p = cls._to_prod_dict(pid)
+            if p and p.get("id") and p["id"] not in seen_disp:
+                displayed_prods.append(p)
+                seen_disp.add(p["id"])
 
         candidate_prods_raw = getattr(state, "candidate_products", []) or []
-        candidate_prods = [cls._to_prod_dict(p) for p in candidate_prods_raw if cls._to_prod_dict(p)]
+        seen_cand = set()
+        candidate_prods = []
+        for cp in candidate_prods_raw:
+            p = cls._to_prod_dict(cp)
+            if p and p.get("id") and p["id"] not in seen_cand:
+                candidate_prods.append(p)
+                seen_cand.add(p["id"])
 
         compared_ids = getattr(state, "compared_product_ids", []) or []
         compared_prods_raw = getattr(state, "compared_products", []) or []
         if not compared_prods_raw and compared_ids:
             compared_prods_raw = compared_ids
-        compared_prods = [cls._to_prod_dict(p) for p in compared_prods_raw if cls._to_prod_dict(p)]
+        seen_comp = set()
+        compared_prods = []
+        for cp in compared_prods_raw:
+            p = cls._to_prod_dict(cp)
+            if p and p.get("id") and p["id"] not in seen_comp:
+                compared_prods.append(p)
+                seen_comp.add(p["id"])
 
         # Ordered pool of context products: active product takes precedence, then compared, displayed, candidates
         context_pool: List[Dict[str, Any]] = []
@@ -274,7 +296,9 @@ class ReferenceResolver:
                 mapping["last printer"] = pname
 
         # "These two" / "both" resolution
-        both_match = bool(re.search(r"\b(?:these\s+two|both\s+(?:of\s+them|models|printers)?|the\s+two\s+models|difference\s+between\s+these\s+two)\b", text_l))
+        both_match = bool(re.search(r"\b(?:these\s+two|both\s+(?:of\s+them|models|printers|machines)\b|the\s+two\s+models|difference\s+between\s+these\s+two)\b", text_l))
+        if not both_match and re.search(r"\bboth\b", text_l) and not re.search(r"\bboth\s+(?:investment|cost|options?|features?|specs?|aspects?|ways?|cases?)\b", text_l):
+            both_match = True
         if both_match:
             if len(ordered_list) >= 2:
                 for p in ordered_list[:2]:

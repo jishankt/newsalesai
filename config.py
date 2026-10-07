@@ -23,6 +23,7 @@ IS_PRODUCTION = APP_ENV.lower() in ("production", "prod")
 
 # Customer Authentication & Chat History Feature Flag (default False)
 CUSTOMER_LOGIN_ENABLED = os.getenv("CUSTOMER_LOGIN_ENABLED", "False").lower() in ("true", "1", "yes")
+CUSTOMER_OPT_IN_PROMPT_ENABLED = os.getenv("CUSTOMER_OPT_IN_PROMPT_ENABLED", "False").lower() in ("true", "1", "yes")
 
 # Security Configuration
 DEFAULT_SECRET_KEYS = {

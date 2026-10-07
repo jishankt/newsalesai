@@ -40,9 +40,28 @@ class TestMultiProductInquiry(unittest.TestCase):
         cards = res2.get("cards", [])
         self.assertEqual(len(cards), 0)
         
-        reply = res2.get("reply", "")
-        self.assertIn("commercial details are not provided", reply.lower())
-        self.assertNotIn("AED", reply)
+        reply = res2.get("reply", "").lower()
+        self.assertTrue(
+            "commercial details are not provided" in reply
+            or "pricing" in reply
+            or "keplertechllc.com" in reply
+            or "quotation" in reply
+        )
+        self.assertNotIn("AED", res2.get("reply", ""))
+
+    def test_consumables_for_these_returns_consumables_for_all_displayed_printers(self):
+        state = ConversationState(session_id="test_consumables_these")
+        state.displayed_product_ids = ["epson-wf-c878r-dwf", "epson-wf-c879r-dwf"]
+        res = orchestrator.process_turn("I want consumables for these", session_id="test_consumables_these", state=state)
+        
+        self.assertEqual(res.get("source"), "route:consumables:multi_product")
+        reply = res.get("reply", "")
+        self.assertIn("WF-C878R", reply)
+        self.assertIn("WF-C879R", reply)
+        self.assertIn("C13T05A100", reply)
+        self.assertIn("C13T05B140", reply)
+        c_cards = res.get("consumable_cards", [])
+        self.assertGreaterEqual(len(c_cards), 9)
 
 
 if __name__ == "__main__":

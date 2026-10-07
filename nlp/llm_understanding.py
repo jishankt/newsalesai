@@ -170,7 +170,7 @@ class LLMUnderstandingEngine:
 
         # 5. Corrections
         corrections = {}
-        if re.search(r"\b(?:actually|instead|correction|my\s+bad|i\s+meant)\b", low):
+        if re.search(r"\b(?:actually|instead|correction|my\s+bad|i\s+meant|sorry|wait|no|not)\b", low):
             if re.search(r"\b(?:a0|36[\s-]*(?:inch|in|\"))\b", low):
                 corrections["print_width"] = 36
                 corrections["paper_size"] = "A0"
@@ -201,6 +201,10 @@ class LLMUnderstandingEngine:
         elif re.search(r"\b(?:44[\s-]*(?:inch|in|\")|44inch)\b", low):
             reqs["print_width"] = 44
             reqs["paper_size"] = "44-inch"
+        elif re.search(r"\b(?:a3|a3\+|tabloid|ledger|multi[\s-]*size|multiple\s+sizes?|various\s+sizes?|both\s+a3\s+and\s+a4)\b", low):
+            reqs["paper_size"] = "A3"
+        elif re.search(r"\b(?:a4|letter|legal)\b", low):
+            reqs["paper_size"] = "A4"
 
         # Scanner requirement with strict negation
         if re.search(r"\b(?:do\s+not\s+need|don'?t\s+need|no\s+need|without|no)\b.*?\b(?:scanner|scanning|scan)\b", low) or re.search(r"\b(?:scanner|scan|scanning)\s+(?:not\s+(?:needed|required|important|necessary)|no\s+need)\b", low):
@@ -223,7 +227,13 @@ class LLMUnderstandingEngine:
         if not cad_negated and any(k in low for k in ["cad", "architecture", "architect", "engineering", "blueprint", "drawing", "drawings", "plotter"]):
             reqs["application"] = "architecture/CAD"
         elif any(k in low for k in ["photo booth", "wedding", "events", "photobooth"]):
-            reqs["application"] = "photo_booth"
+            is_photo_printer_correction = bool(re.search(r"\b(?:sorry|instead|actually|not|no)\b.*?\b(?:photo\s+printer|photo|fine\s*art)\b", low)) or bool(re.search(r"\b(?:photo\s+printer)\b.*?\b(?:not\s+photo\s*booth)\b", low))
+            if not is_photo_printer_correction:
+                reqs["application"] = "photo_booth"
+            elif any(k in low for k in ["photo printer", "photo printing", "photography"]):
+                reqs["application"] = "photography"
+        elif any(k in low for k in ["photo printer", "photo printing", "photography", "fine art"]):
+            reqs["application"] = "photography"
 
         # 7. Customer Goal
         customer_goal = ""
@@ -279,17 +289,39 @@ class LLMUnderstandingEngine:
         if not words:
             return True
 
-        # Direct comparison, superlative queries, specifications, and website lookups can be handled deterministically
+        # Direct comparison, superlative queries, specifications, prices, and running costs can be handled deterministically (<1ms)
         if any(w in msg_l for w in [
+            "cost per print", "cost per page", "cost per copy", "per print cost", "per page cost",
+            "running cost", "running costs", "printing cost", "printing costs", "cpp",
+            "investment", "invest", "hardware cost", "machine cost", "initial cost", "upfront",
+            "price", "prices", "pricing", "how much", "rate", "rates", "cost of",
             "fastest", "faster", "highest speed", "print speed", "quickest", "print faster",
             "highest capacity", "largest roll", "most prints", "max capacity", "print capacity",
-            "most portable", "lightest", "smallest", "most compact", "how heavy", "weight of",
+            "most portable", "lightest", "smallest", "most compact", "how heavy", "weight of", "weight",
             "widest", "highest resolution", "max resolution", "print 8x12", "8 inch citizen", "8-inch citizen",
             "compare", " vs ", " versus ", "difference between", "differences between", "difference",
-            "which is better", "which is best", "which one is better", "which one should i choose",
-            "ribbon rewind", "inkjet or dye sub", "dye sub or inkjet",
+            "which is better", "which is best", "which one is better", "which one is best",
+            "which one should i choose", "which should i buy", "which do you recommend", "best for me", "better for me",
+            "ribbon rewind", "inkjet or dye sub", "dye sub or inkjet", "overcoat", "finishing", "glossy", "matte",
             "specifications", "description", "datasheet", "brochure", "website",
-            "product description", "detailed specs", "technical specs"
+            "product description", "detailed specs", "technical specs", "warranty", "guarantee"
+        ]):
+            return True
+
+        # If customer message mentions any approved hardware model or brand
+        if any(m in msg_l for m in [
+            "cz-01", "cz01", "cx-02", "cx02", "cy-02", "cy02", "cx-02w", "cx02w",
+            "sc-p700", "sc-p900", "sc-t3100", "sc-t5100", "sc-f100", "sc-f500",
+            "am-c4000", "am-c5000", "am-c6000", "am-c550", "wf-c5890", "wf-c878r", "wf-c879r",
+            "citizen", "epson"
+        ]):
+            return True
+
+        # Common greetings and business/contact lookups
+        if any(w in msg_l for w in [
+            "hello", "hi", "hey", "good morning", "good afternoon", "good evening",
+            "contact", "phone", "email", "address", "location", "timings", "hours", "where are you",
+            "thank you", "thanks"
         ]):
             return True
 

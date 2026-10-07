@@ -240,6 +240,9 @@ class ConversationState:
         """
         if self.category == new_category and new_category is not None:
             return
+        if self.category is None and new_category is not None:
+            self.category = new_category
+            return
         
         # Incompatible requirements are cleared
         preserved_volume = self.requirements.get("daily_volume")

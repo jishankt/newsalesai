@@ -178,17 +178,23 @@ body {
 }
 
 .assistant-avatar {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   background: #ffffff;
-  color: var(--active-agent-theme, #10b981);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
-  transition: color 0.35s ease;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.assistant-avatar-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  display: block;
 }
 
 .assistant-info {
@@ -300,14 +306,22 @@ body {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: #e4e6eb;
-  color: #1877f2;
+  background: #ffffff;
+  border: 1px solid var(--border-light, #e4e6eb);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.85rem;
   flex-shrink: 0;
   margin-top: 2px;
+  overflow: hidden;
+}
+
+.bot-msg-avatar-img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  display: block;
 }
 
 .message-row.user .message-avatar {
