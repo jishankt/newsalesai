@@ -169,14 +169,19 @@ class OllamaClient:
         Sends generation request to Ollama /api/generate.
         If Ollama is unreachable, uses fallback engine adhering to prompt guidelines.
         """
-        target_model = model or self.default_model
         payload = {
             "model": target_model,
             "prompt": prompt,
-            "stream": False
+            "stream": False,
+            "keep_alive": OLLAMA_KEEP_ALIVE,
+            "options": {
+                "num_ctx": OLLAMA_NUM_CTX,
+                "num_predict": 180,
+                "temperature": OLLAMA_RESPONSE_TEMPERATURE,
+            }
         }
         if options:
-            payload["options"] = options
+            payload["options"].update(options)
 
         endpoint = f"{self.base_url}/api/generate"
 
@@ -262,7 +267,7 @@ class OllamaClient:
                 "temperature": temp,
                 "top_p": OLLAMA_TOP_P,
                 "num_ctx": OLLAMA_NUM_CTX,
-                "num_predict": 180,
+                "num_predict": 120,
             }
         }
 
@@ -347,7 +352,7 @@ class OllamaClient:
             "stream": False,
             "temperature": temp,
             "top_p": p_val,
-            "max_tokens": 450,
+            "max_tokens": 180,
         }
         endpoint = f"{self.base_url}/v1/chat/completions"
         last_error_kind = None
@@ -432,7 +437,7 @@ class OllamaClient:
                 "temperature": temp,
                 "top_p": p_val,
                 "num_ctx": OLLAMA_NUM_CTX,
-                "num_predict": 650,
+                "num_predict": 180,
             }
         }
 

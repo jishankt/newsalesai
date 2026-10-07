@@ -105,7 +105,7 @@ class ResponseComposer:
             comp_res = self.ollama_client.compose(
                 messages=messages,
                 model=model_name,
-                temperature=0.15,
+                temperature=0.0,
             )
 
             if comp_res.get("success") and comp_res.get("response"):
@@ -142,7 +142,7 @@ class ResponseComposer:
                 regen_res = self.ollama_client.compose(
                     messages=retry_messages,
                     model=model_name,
-                    temperature=0.1,
+                    temperature=0.0,
                 )
 
                 if regen_res.get("success") and regen_res.get("response"):

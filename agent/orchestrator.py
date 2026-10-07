@@ -435,6 +435,35 @@ class Orchestrator:
                 latency_ms=int((time.time() - start_time) * 1000),
             )
 
+        # ── Agent Planner: Clean Purchase Intent & Direct Ordering ───────
+        if canonical_turn.primary_intent == "purchase_intent" or any(
+            phrase in msg_l for phrase in ["want to order", "ready to order", "how to buy", "how do i order", "place an order", "ready to purchase", "want to buy this", "order this"]
+        ):
+            act_cons = getattr(state, "active_consumable", None)
+            act_id = state.get_canonical_focus_id()
+            act_prod = act_cons or (catalogue_loader.get_by_id(act_id) if act_id else state.active_product)
+            p_name = act_prod.get("display_name") or act_prod.get("name") or act_prod.get("title") if act_prod else "this equipment"
+            p_url = act_prod.get("product_url") or act_prod.get("url") or "https://www.keplertechllc.com" if act_prod else "https://www.keplertechllc.com"
+            reply_text = (
+                f"You can place your order directly for the {p_name} through our official website link at {p_url}, "
+                f"or our sales desk at sales@keplertech.ae can generate an official tax invoice and arrange express UAE delivery. "
+                f"Would you prefer to order online or receive an official invoice?"
+            )
+            chips = ["Order Online", "Request Official Invoice", "Contact Sales Desk"]
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            c_cards = [act_cons] if act_cons else []
+            return self._build_response(
+                reply=reply_text,
+                source="agent:purchase_intent",
+                product_cards=[],
+                consumable_cards=c_cards,
+                suggested_chips=chips,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
         if re.search(r"\b(?:ignore (?:your|previous) instructions|pretend the catalogue|say the .* costs?)\b", msg_l):
             reply_text = "I can only answer using verified catalogue information. Which product specification would you like to check?"
             state.last_assistant_response = reply_text
@@ -5767,16 +5796,16 @@ class Orchestrator:
 
         # Section 21: Clean internal database terms from customer-facing reply
         if reply:
-            if not source.startswith(("route:cost_per_print", "route:product_price", "route:consumable_price", "route:general_price", "route:purchase", "agent:price_objection", "agent:investment_cost_comparison", "agent:dye_sublimation_recommendation")):
+            if not source.startswith(("route:cost_per_print", "route:product_price", "route:consumable_price", "route:general_price", "route:purchase", "agent:purchase", "agent:price_objection", "agent:investment_cost_comparison", "agent:dye_sublimation_recommendation")):
                 reply = re.sub(r":\s*\*\*(?:AED\s*[\d,.]+|Price on Request)[^*]*\*\*", "", reply, flags=re.I)
                 reply = re.sub(r"\*\*(?:AED\s*[\d,.]+|Price on Request)[^*]*\*\*", "", reply, flags=re.I)
                 reply = re.sub(r"\bAED\s*[\d,.]+(?:\s*\(Excl\. VAT\))?\b", "", reply, flags=re.I)
                 reply = re.sub(r"\bPrice on Request\b", "", reply, flags=re.I)
-            if not source.startswith(("route:purchase", "route:support", "route:business_info", "route:contact", "guardrail:", "route:product_price", "route:consumable_price", "route:general_price", "agent:price_objection")):
+            if not source.startswith(("route:purchase", "agent:purchase", "route:support", "route:business_info", "route:contact", "guardrail:", "route:product_price", "route:consumable_price", "route:general_price", "agent:price_objection")):
                 reply = re.sub(r"\b[\w.+-]+@(?:keplertech\.ae|keplertechllc\.com)\b", "", reply, flags=re.I)
                 if not source.startswith(("customer_flow:", "route:customer_flow")):
                     reply = re.sub(r"\+971[\d\s-]{7,16}", "", reply)
-            if not source.startswith(("route:purchase", "guardrail:", "route:product_price", "route:consumable_price", "route:general_price", "route:support", "route:contact", "route:business_info", "agent:price_objection")):
+            if not source.startswith(("route:purchase", "agent:purchase", "guardrail:", "route:product_price", "route:consumable_price", "route:general_price", "route:support", "route:contact", "route:business_info", "agent:price_objection")):
                 reply = "\n".join(
                     line for line in reply.splitlines()
                     if not re.search(r"\b(?:contact (?:our|the) (?:sales|support)|sales desk|commercial quotation|bulk delivery quotes|ask for (?:a )?quote|commercial sales|corporate financing|verified pricing|phone:|email:)\b", line, re.I)
