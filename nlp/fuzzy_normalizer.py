@@ -108,7 +108,8 @@ class UniversalFuzzyNormalizer:
         "when", "why", "is", "are", "was", "were", "be", "been", "have", "has", "had",
         "do", "does", "did", "will", "would", "shall", "should", "may", "might", "must",
         "want", "need", "like", "order", "buy", "sell", "use", "make", "get", "give", "take",
-        "fine", "line", "page", "pages", "paper", "fast", "speed", "box", "case", "cost"
+        "fine", "line", "page", "pages", "paper", "fast", "speed", "box", "case", "cost",
+        "hello", "hi", "hey", "help", "well", "tell", "below", "allow", "fellow"
     }
 
     def normalize_color(self, token: str) -> Optional[str]:
