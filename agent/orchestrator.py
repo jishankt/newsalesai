@@ -245,6 +245,11 @@ class Orchestrator:
                 new_requirements=canonical_turn.requirements,
                 state=state,
             )
+            state.active_product = None
+            state.active_product_id = None
+            state.candidate_products = []
+            if canonical_turn.requirements.get("category"):
+                state.category = canonical_turn.requirements["category"]
 
         for q in canonical_turn.questions:
             state.question_ledger.register_customer_question(
@@ -309,6 +314,120 @@ class Orchestrator:
                 reply=reply_text,
                 source="agent:price_objection",
                 product_cards=[],
+                consumable_cards=[],
+                suggested_chips=chips,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── Agent Planner: Natural Warm Greeting ─────────────────────────
+        if canonical_turn.primary_intent == "greeting":
+            reply_text = "Hello and welcome to Kepler Tech! How can I assist you with your printing solutions today?"
+            chips = [
+                "Office & Business Printers",
+                "Technical CAD Plotters",
+                "Photo & Fine Art Printers",
+                "Dye-Sublimation (T-Shirts & Mugs)",
+            ]
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="agent:greeting",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=chips,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── Agent Planner: Concise Clarification ("what?" case) ──────────
+        is_confusion = canonical_turn.primary_intent == "confusion" or normalized_msg.lower().strip() in (
+            "what", "what?", "what ?", "huh", "huh?", "pardon", "pardon?", "excuse me?", "i don't understand"
+        )
+        if is_confusion:
+            reply_text = "Apologies for any confusion. Could you please let me know which specific detail or model you'd like me to clarify?"
+            chips = ["Compare Models", "Pricing Details", "Technical Specifications", "Talk to Specialist"]
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="agent:confusion_recovery",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=chips,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── Agent Planner: Investment Cost / Budget Comparison ───────────
+        if canonical_turn.primary_intent == "investment_cost_comparison":
+            cat = state.category or canonical_turn.requirements.get("category")
+            if cat == "office_printer" or any("am-c" in str(p).lower() or "wf-c" in str(p).lower() for p in getattr(state, "candidate_products", [])):
+                reply_text = (
+                    "If keeping your initial upfront investment as low as possible is your priority, the Epson WorkForce Pro WF-C5890 DWF is the most cost-effective choice for standard A4 business printing.\n\n"
+                    "If your priority is high-speed continuous output and long-term duty cycle, the WorkForce Enterprise AM-C400 and AM-C550 are higher upfront investments built with enterprise line-head technology for heavy workloads (40–55 ppm).\n\n"
+                    "Would you prefer to prioritize lowest machine cost or maximum production speed?"
+                )
+                chips = ["Epson WF-C5890 DWF", "Epson AM-C400 (40 ppm)", "Official Quotation"]
+            elif cat == "citizen_photo" or any("cx" in str(p).lower() or "cz" in str(p).lower() for p in getattr(state, "candidate_products", [])):
+                reply_text = (
+                    "For initial investment versus running cost:\n\n"
+                    "• Citizen CZ-01 — AED 3,200 upfront (est. AED 0.98 per 4x6\" print). Best if keeping initial investment as low as possible is the priority.\n"
+                    "• Citizen CY-02 — AED 3,400 upfront (est. AED 0.45 per 4x6\" print). Costs slightly more initially, but significantly lower running cost over time.\n"
+                    "• Citizen CX-02 — AED 4,385 upfront. Premium event production workhorse with 8.4-second speed."
+                )
+                chips = ["Citizen CZ-01 (AED 3,200)", "Citizen CY-02 (AED 3,400)", "Citizen CX-02 (AED 4,385)"]
+            else:
+                reply_text = (
+                    "To help recommend the best option for your investment, could you share whether you want to minimize upfront machine cost or prioritize lowest running cost per print over time?"
+                )
+                chips = ["Lowest Upfront Cost", "Lowest Running Cost", "Talk to Sales Specialist"]
+
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="agent:investment_cost_comparison",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=chips,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── Agent Planner: Dye Sublimation Request / Frustration Switch ──
+        if canonical_turn.requirements.get("category") == "dye_sublimation" and any(w in msg_l for w in ["dy sublimation", "dye sublimation", "sublimation", "f100", "f500", "t-shirt", "mug"]):
+            f100 = catalogue_loader.get_by_id("epson-sc-f100")
+            f500 = catalogue_loader.get_by_id("epson-sc-f500")
+            prod_cards = []
+            if f100:
+                prod_cards.append(catalogue_filter._format_card(f100, "dye_sublimation", state.requirements))
+            if f500:
+                prod_cards.append(catalogue_filter._format_card(f500, "dye_sublimation", state.requirements))
+
+            prefix = "My apologies for the confusion earlier! " if canonical_turn.primary_intent == "frustration" or "what you answering" in msg_l else ""
+            reply_text = (
+                f"{prefix}For dye-sublimation printing (apparel, mugs, and promotional merchandise), we supply two official Epson SureColor systems:\n\n"
+                "1. Epson SureColor SC-F100 (AED 1,950.00 Excl. VAT) — Compact A4 desktop dye-sublimation printer with refillable ink tanks. Ideal for mugs, phone cases, and small bespoke items.\n"
+                "2. Epson SureColor SC-F500 — 24-inch roll-fed dye-sublimation printer with auto-sheet feeder. Designed for apparel, textiles, soft signage, and hard substrates.\n\n"
+                "Which format fits your business needs—the compact A4 desktop model (SC-F100) or the 24-inch roll system (SC-F500)?"
+            )
+            chips = ["Epson SC-F100 (A4 Desktop)", "Epson SC-F500 (24-inch Roll)", "Inks & Sublimation Papers"]
+            state.category = "dye_sublimation"
+            state.active_product = f100
+            state.active_product_id = "epson-sc-f100"
+            state.candidate_products = ["epson-sc-f100", "epson-sc-f500"]
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="agent:dye_sublimation_recommendation",
+                product_cards=prod_cards,
                 consumable_cards=[],
                 suggested_chips=chips,
                 nlp_result=nlp_result,
@@ -4572,7 +4691,7 @@ class Orchestrator:
             ]
         )
         is_social_intent = understanding.intent in (
-            Intent.CUSTOMER_INTRODUCTION, Intent.POSITIVE_FEEDBACK, Intent.SMALL_TALK
+            Intent.CUSTOMER_INTRODUCTION, Intent.POSITIVE_FEEDBACK, Intent.SMALL_TALK, Intent.GREETING
         )
         if is_frustrated or is_social_intent:
             from routes.social_route import handle as handle_social
@@ -4594,14 +4713,10 @@ class Orchestrator:
 
         # 7a. If category is still unknown, prompt for category
         if not state.category:
-            is_unclear = (
-                getattr(understanding, "intent", None) in (Intent.UNCLEAR, Intent.OUT_OF_SCOPE)
-                or not any(w in normalized_msg.lower() for w in [
-                    "printer", "print", "plotter", "scanner", "scan", "copier", "machine", "device", "recommend", "suggest", "buy", "looking for", "need a"
-                ])
-            )
-            prefix = "Could you tell me that again? " if is_unclear and len(normalized_msg.strip()) > 0 else ""
-            reply_text = f"{prefix}What will you primarily print—office & business documents, technical CAD drawings, professional photographs & fine art, sublimation merchandise (mugs & T-shirts), or event photos?"
+            if state.last_assistant_response and "What will you primarily print" in state.last_assistant_response:
+                reply_text = "To recommend the most suitable machine, could you share what you'll be printing (for example: office documents, CAD blueprints, photos, or merchandise)?"
+            else:
+                reply_text = "What will you primarily print—office & business documents, technical CAD drawings, professional photographs & fine art, sublimation merchandise (mugs & T-shirts), or event photos?"
             chips_to_return = [
                 "Office & Business Documents",
                 "Technical CAD Plotters",
@@ -5652,7 +5767,7 @@ class Orchestrator:
 
         # Section 21: Clean internal database terms from customer-facing reply
         if reply:
-            if not source.startswith(("route:cost_per_print", "route:product_price", "route:consumable_price", "route:general_price", "route:purchase", "agent:price_objection")):
+            if not source.startswith(("route:cost_per_print", "route:product_price", "route:consumable_price", "route:general_price", "route:purchase", "agent:price_objection", "agent:investment_cost_comparison", "agent:dye_sublimation_recommendation")):
                 reply = re.sub(r":\s*\*\*(?:AED\s*[\d,.]+|Price on Request)[^*]*\*\*", "", reply, flags=re.I)
                 reply = re.sub(r"\*\*(?:AED\s*[\d,.]+|Price on Request)[^*]*\*\*", "", reply, flags=re.I)
                 reply = re.sub(r"\bAED\s*[\d,.]+(?:\s*\(Excl\. VAT\))?\b", "", reply, flags=re.I)

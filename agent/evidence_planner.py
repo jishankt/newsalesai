@@ -147,9 +147,11 @@ class EvidencePlanner:
             attrs.append("t_shirt_capability")
         if re.search(r"\b(?:send|show|share|see|view|provide)\b.{0,45}\b(?:photo|picture|image)\b|\b(?:photo|picture|image)\s+of\b", msg_l) and "media_request" not in attrs:
             attrs.append("media_request")
-        if any(w in msg_l for w in ["difference between", "diffrance bw", "between this two", "between these two", "compare this two", "compare these two", "tell both"]) and "configuration_difference" not in attrs:
-            attrs.append("configuration_difference")
-        if any(w in msg_l for w in ["what i asked", "what did i ask", "my previous question", "earlier question"]) and "prior_question_recall" not in attrs:
+        has_complaint_or_switch = any(w in msg_l for w in [
+            "what you answering", "why are you answering", "not answering", "didn't answer",
+            "not what i asked", "can you give", "i want", "sublimation", "switch", "different"
+        ])
+        if any(w in msg_l for w in ["what did i ask", "my previous question", "earlier question"]) and not has_complaint_or_switch and "prior_question_recall" not in attrs:
             attrs.append("prior_question_recall")
         if any(w in msg_l for w in ["price", "cost", "how much", "quote", "quotation", "rate", "discount"]):
             attrs.append("price")
@@ -701,7 +703,7 @@ class EvidencePlanner:
                     f"To confirm: the {p_name} is an aqueous fine-art/photo printer and cannot print on T-shirts or apparel."
                 )
             else:
-                recall_claim = f"Earlier you asked: \"{prior_q}\" regarding the {p_name}."
+                recall_claim = f"Regarding your question about {p_name}, here are the verified product details."
 
             return FieldFact(
                 product_id=pid,

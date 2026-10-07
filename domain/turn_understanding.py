@@ -248,8 +248,32 @@ def extract_turn_understanding(
     urgency = "low"
     purchase_readiness = "low"
 
+    # Greeting
+    if bool(re.search(r"^(?:hello|hi|hey|good\s+morning|good\s+afternoon|good\s+evening)\b", msg_l.strip())) and len(msg_l.split()) <= 3:
+        primary_intent = "greeting"
+        dialogue_act = "social"
+        customer_stage = "opening"
+        customer_behavior = "exploring"
+        customer_goal = "explore"
+
+    # Confusion / "what?" case
+    elif msg_l.strip() in ["what", "what?", "what ?", "huh", "huh?", "pardon", "pardon?", "excuse me?", "i don't understand", "i didnt understand"]:
+        primary_intent = "confusion"
+        dialogue_act = "clarification"
+        customer_stage = "evaluation"
+        customer_behavior = "confused"
+        customer_goal = "clarify"
+
+    # Investment Cost Comparison
+    elif re.search(r"\b(?:which\s+(?:one\s+)?(?:is\s+)?(?:better|cheaper|lower|best)\s+(?:for\s+)?(?:the\s+)?(?:investment|upfront|initial|running|budget|cost|price)|better\s+for\s+(?:the\s+)?investment\s+cost|which\s+(?:one\s+)?(?:is\s+)?(?:cheaper|more\s+affordable|budget\s+friendly))\b", msg_l):
+        primary_intent = "investment_cost_comparison"
+        dialogue_act = "compare"
+        customer_stage = "comparison"
+        customer_behavior = "price_sensitive"
+        customer_goal = "compare_products"
+
     # Closing
-    if any(w in msg_l for w in ["thanks", "thank you", "that's all", "thats all", "done", "bye", "goodbye"]) and not any(w in msg_l for w in ["but", "what about", "how about", "can you", "and"]):
+    elif any(w in msg_l for w in ["thanks", "thank you", "that's all", "thats all", "done", "bye", "goodbye"]) and not any(w in msg_l for w in ["but", "what about", "how about", "can you", "and"]):
         primary_intent = "closing"
         dialogue_act = "closing"
         customer_stage = "closing"
@@ -265,7 +289,7 @@ def extract_turn_understanding(
         customer_goal = "evaluate_price"
 
     # Frustration
-    elif any(w in msg_l for w in ["you didn't answer", "you did not answer", "answer me", "answer my question", "ignored my question", "wrong answer", "stupid bot"]):
+    elif any(w in msg_l for w in ["what i asked what you answering", "you didn't answer", "you did not answer", "answer me", "answer my question", "ignored my question", "wrong answer", "stupid bot", "not what i asked", "stop repeating"]):
         primary_intent = "frustration"
         dialogue_act = "objection"
         customer_stage = "evaluation"
@@ -318,7 +342,7 @@ def extract_turn_understanding(
     elif re.search(r"\b(?:office|business\s*documents?|workforce|copier)\b", msg_l):
         requirements["category"] = "office_printer"
         requirements["application"] = "office_documents"
-    elif re.search(r"\b(?:sublimation|t-shirts?|mugs?|merchandise)\b", msg_l):
+    elif re.search(r"\b(?:dy[\s-]*sublimation|dye[\s-]*sublimation|sublimation|t-shirts?|mugs?|merchandise)\b", msg_l):
         requirements["category"] = "dye_sublimation"
         requirements["application"] = "apparel"
 

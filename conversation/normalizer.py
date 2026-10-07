@@ -131,14 +131,14 @@ def _normalize_category_single(raw_text: str, current_category: Optional[str] = 
     # 2. Dye-sublimation / T-Shirt / Merchandise printers (SC-F100, SC-F500)
     if any(k in text_l for k in [
         "f100", "sc-f100", "sc f100", "f500", "sc-f500", "sc f500",
-        "sublimation", "dye-sublimation", "dye sublimation",
+        "sublimation", "dye-sublimation", "dye sublimation", "dy sublimation", "dy-sublimation", "dye sublimaton",
         "t-shirt printing", "t shirt printing", "tshirt printing",
         "t-shirt printer", "t shirt printer", "tshirt printer",
         "t-shirts printer", "t shirts printer", "tshirts printer",
         "mug printing", "mugs printing", "jersey printing",
         "textile sublimation", "fabric sublimation", "apparel sublimation",
     ]) or (
-        any(k in text_l for k in ["dye sub", "dyesub", "dye-sub"])
+        any(k in text_l for k in ["dye sub", "dyesub", "dye-sub", "dy sub", "dy-sub"])
     ) or (
         any(k in text_l for k in ["t-shirt", "t shirt", "tshirt", "t-shirts", "tshirts"])
         and any(k in text_l for k in ["print", "printer", "printing", "transfer"])

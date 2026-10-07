@@ -267,3 +267,31 @@ def test_scenario_q_no_match_requirement_alternatives():
     res = orchestrator.process_turn("I need a 24-inch plotter with integrated scanner.", state=state)
     reply = res.get("reply", "")
     assert any(w in reply.lower() for w in ["36", "wider", "scanner", "catalogue", "match"])
+
+
+def test_scenario_r_confusion_recovery_and_investment_comparison():
+    """R. Confusion & Investment Cost: handles 'what?' politely and compares investment costs cleanly."""
+    state = ConversationState(session_id="scen_r")
+    state.category = "office_printer"
+    state.requirements = {"paper_size": "a4", "daily_volume": 190}
+    state.candidate_products = ["epson-am-c550", "epson-am-c400", "epson-wf-c5890-dwf", "epson-em-c800"]
+
+    # Investment cost comparison
+    res1 = orchestrator.process_turn("which one is better for the investment cost?", state=state)
+    r1 = res1.get("reply", "")
+    assert "wf-c5890" in r1.lower()
+    assert "investment" in r1.lower() or "cost" in r1.lower()
+    assert "**" not in r1
+
+    # Confusion / "what?" case: must not re-dump bullet points
+    res2 = orchestrator.process_turn("what?", state=state)
+    r2 = res2.get("reply", "")
+    assert any(w in r2.lower() for w in ["apolog", "clarify", "confusion", "which specific"])
+    assert "•" not in r2
+
+    # Frustration + Dye sublimation switch
+    res3 = orchestrator.process_turn("what i asked what you answering can you give dy sublimation printer", state=state)
+    r3 = res3.get("reply", "")
+    assert "sc-f100" in r3.lower() or "sublimation" in r3.lower()
+    assert "earlier you asked" not in r3.lower()
+    assert "**" not in r3

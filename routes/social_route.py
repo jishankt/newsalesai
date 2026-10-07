@@ -53,11 +53,11 @@ def handle(understanding: LLMUnderstanding, state: ConversationState) -> RouteRe
         if state.customer_name:
             reply = f"Hello, {state.customer_name}! Great to connect with you. How can I help you find the right printing setup or consumables today?"
         else:
-            reply = "Hello and welcome to Kepler Tech! Whether you're upgrading your studio, scaling up CAD blueprints, or looking for reliable office printing, I'm here to find the perfect solution for you. What project or equipment can I help you with today?"
+            reply = "Hello and welcome to Kepler Tech! How can I assist you with your printing solutions today?"
 
         return RouteResult(
             reply=reply,
-            suggested_chips=[],
+            suggested_chips=["Office & Business Printers", "Technical CAD Plotters", "Photo & Fine Art", "Dye-Sublimation (T-Shirts & Mugs)"],
             product_cards=[],
             consumable_cards=[],
             source="route:social",
