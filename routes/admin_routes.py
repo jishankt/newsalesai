@@ -713,3 +713,103 @@ def delete_agent(agent_id: str):
         return jsonify({"success": False, "error": "Failed to delete agent"}), 500
 
 
+# ── Workflow Execution & Observability Endpoints (n8n-style Dashboard) ─────
+from persistence.trace_repository import trace_repository, broadcaster
+from flask import Response, stream_with_context
+
+
+@admin_bp.route("/api/admin/workflow/executions", methods=["GET"])
+def admin_workflow_executions():
+    """Returns list of real conversational turn execution traces."""
+    limit = min(int(request.args.get("limit", 50)), 200)
+    offset = max(int(request.args.get("offset", 0)), 0)
+    status = request.args.get("status")
+    search = request.args.get("search")
+
+    traces = trace_repository.list_traces(limit=limit, offset=offset, status=status, search=search)
+    total = trace_repository.count_traces(status=status, search=search)
+    return jsonify({
+        "success": True,
+        "total": total,
+        "count": len(traces),
+        "executions": traces
+    })
+
+
+@admin_bp.route("/api/admin/workflow/executions/<execution_id>", methods=["GET"])
+def admin_workflow_execution_detail(execution_id: str):
+    """Returns complete execution trace and ordered node events."""
+    trace = trace_repository.get_trace(execution_id)
+    if not trace:
+        return jsonify({"success": False, "error": "Execution trace not found"}), 404
+
+    events = trace_repository.get_trace_events(execution_id)
+    return jsonify({
+        "success": True,
+        "execution": trace.to_dict(),
+        "events": [e.to_dict() for e in events]
+    })
+
+
+@admin_bp.route("/api/admin/workflow/executions/<execution_id>/events", methods=["GET"])
+def admin_workflow_execution_events(execution_id: str):
+    """Returns chronologically ordered node events for an execution."""
+    events = trace_repository.get_trace_events(execution_id)
+    return jsonify({
+        "success": True,
+        "execution_id": execution_id,
+        "count": len(events),
+        "events": [e.to_dict() for e in events]
+    })
+
+
+@admin_bp.route("/api/admin/workflow/health", methods=["GET"])
+def admin_workflow_health():
+    """Workflow trace system health check."""
+    total = trace_repository.count_traces()
+    return jsonify({
+        "success": True,
+        "status": "healthy",
+        "service": "salesai_execution_tracer",
+        "total_executions": total
+    })
+
+
+@admin_bp.route("/api/admin/workflow/stream", methods=["GET"])
+def admin_workflow_stream():
+    """
+    Server-Sent Events (SSE) live execution stream.
+    Emits real-time trace_started, node_event, and trace_completed events.
+    """
+    sub_q = broadcaster.subscribe()
+
+    def event_stream():
+        try:
+            # Initial connection handshake
+            yield f"event: connected\ndata: {json.dumps({'status': 'connected', 'timestamp': time.time()})}\n\n"
+            while True:
+                try:
+                    msg = sub_q.get(timeout=15.0)
+                    evt_name = msg.get("event", "message")
+                    evt_data = json.dumps(msg.get("data", {}))
+                    yield f"event: {evt_name}\ndata: {evt_data}\n\n"
+                except queue.Empty:
+                    # Keep-alive heartbeat ping
+                    yield f": heartbeat {time.time()}\n\n"
+        except GeneratorExit:
+            pass
+        finally:
+            broadcaster.unsubscribe(sub_q)
+
+    return Response(
+        stream_with_context(event_stream()),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        }
+    )
+
+
+

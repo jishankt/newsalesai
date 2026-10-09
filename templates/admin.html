@@ -621,6 +621,412 @@
       transition: opacity .15s;
     }
     .toast-action:hover { opacity: .9; }
+
+    /* ── N8N-STYLE WORKFLOW CANVAS ── */
+    .workflow-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .workflow-toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .workflow-toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .workflow-title-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .workflow-title {
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--text);
+    }
+    .workflow-select {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 13px;
+      outline: none;
+      cursor: pointer;
+    }
+    .workflow-workspace {
+      display: grid;
+      grid-template-columns: 290px 1fr 340px;
+      gap: 16px;
+      height: calc(100vh - 190px);
+      min-height: 580px;
+    }
+    @media (max-width: 1400px) {
+      .workflow-workspace {
+        grid-template-columns: 260px 1fr 300px;
+      }
+    }
+    @media (max-width: 1100px) {
+      .workflow-workspace {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+    }
+    .workflow-sidebar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .workflow-sidebar-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255,255,255,0.01);
+    }
+    .workflow-exec-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .workflow-exec-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .workflow-exec-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+    .workflow-exec-card.active {
+      border-color: var(--accent);
+      background: rgba(59,130,246,0.12);
+      box-shadow: 0 0 12px rgba(59,130,246,0.2);
+    }
+    .exec-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .exec-card-query {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.3;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .exec-card-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+    }
+
+    /* ── Canvas Viewport ── */
+    .workflow-canvas-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+    .workflow-canvas-header {
+      padding: 10px 18px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0,0,0,0.2);
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 5;
+    }
+    .workflow-canvas-viewport {
+      flex: 1;
+      overflow: auto;
+      position: relative;
+      background-color: #0b0d13;
+      background-image: radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1px);
+      background-size: 24px 24px;
+      cursor: grab;
+      user-select: none;
+    }
+    .workflow-canvas-viewport:active {
+      cursor: grabbing;
+    }
+    .workflow-canvas-stage {
+      position: absolute;
+      top: 0;
+      left: 0;
+      min-width: 1400px;
+      min-height: 800px;
+      transform-origin: 0 0;
+      transition: transform 0.1s ease-out;
+    }
+    .workflow-svg-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .workflow-nodes-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
+    }
+
+    /* ── Canvas Node Cards ── */
+    .wf-node {
+      position: absolute;
+      width: 210px;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .wf-node:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+      border-color: rgba(255,255,255,0.3);
+    }
+    .wf-node.selected {
+      outline: 2px solid var(--accent);
+      box-shadow: 0 0 20px rgba(59,130,246,0.4);
+    }
+    .wf-node.status-completed {
+      border-color: #10b981;
+      background: linear-gradient(180deg, rgba(16,185,129,0.07) 0%, var(--surface) 100%);
+    }
+    .wf-node.status-running {
+      border-color: #3b82f6;
+      box-shadow: 0 0 16px rgba(59,130,246,0.3);
+      animation: wf-pulse 1.5s infinite;
+    }
+    @keyframes wf-pulse {
+      0%, 100% { border-color: #3b82f6; }
+      50% { border-color: #60a5fa; }
+    }
+    .wf-node.status-failed {
+      border-color: #ef4444;
+      background: linear-gradient(180deg, rgba(239,68,68,0.08) 0%, var(--surface) 100%);
+    }
+    .wf-node.status-skipped {
+      opacity: 0.45;
+      border-style: dashed;
+    }
+    .wf-node.status-handover {
+      border-color: #f59e0b;
+      background: linear-gradient(180deg, rgba(245,158,11,0.08) 0%, var(--surface) 100%);
+    }
+    .wf-node-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .wf-node-icon-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--text);
+    }
+    .wf-node-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--surface2);
+      color: var(--muted);
+    }
+    .wf-node-type {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .wf-node-summary {
+      font-size: 11px;
+      color: var(--text);
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .wf-node-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 4px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+    }
+
+    /* Connector Ports */
+    .wf-port {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--surface);
+      border: 2px solid var(--accent);
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    .wf-port-in { left: -6px; }
+    .wf-port-out { right: -6px; }
+
+    /* SVG Connector Lines */
+    .wf-edge {
+      stroke: var(--border);
+      stroke-width: 2.2px;
+      fill: none;
+      transition: stroke 0.2s ease;
+    }
+    .wf-edge.active {
+      stroke: #10b981;
+      stroke-width: 2.5px;
+    }
+    .wf-edge.running {
+      stroke: #3b82f6;
+      stroke-dasharray: 6;
+      animation: dash 1s linear infinite;
+    }
+    @keyframes dash {
+      to { stroke-dashoffset: -12; }
+    }
+
+    /* ── Inspector Panel ── */
+    .workflow-inspector-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .inspector-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0,0,0,0.15);
+    }
+    .inspector-tab {
+      flex: 1;
+      padding: 12px 10px;
+      border: none;
+      background: none;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s ease;
+    }
+    .inspector-tab:hover { color: var(--text); }
+    .inspector-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      background: rgba(59,130,246,0.05);
+    }
+    .inspector-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+    .empty-inspector {
+      text-align: center;
+      padding: 40px 16px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .inspector-section {
+      margin-bottom: 18px;
+    }
+    .inspector-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .inspector-val-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12.5px;
+      line-height: 1.45;
+      color: var(--text);
+      word-break: break-word;
+    }
+    .inspector-kv-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .inspector-kv-table td {
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .inspector-kv-key {
+      color: var(--muted);
+      width: 40%;
+    }
+    .inspector-kv-val {
+      color: var(--text);
+      font-weight: 500;
+    }
   </style>
 </head>
 <body>
@@ -647,6 +1053,12 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><circle cx="12" cy="11" r="3"/></svg>
       Live Sales Desk
       <span id="nav-attention-badge" class="badge badge-amber" style="display:none;margin-left:auto;padding:2px 6px;font-size:10px;">0</span>
+    </button>
+    <div class="nav-label" style="margin-top:16px">Observability</div>
+    <button class="nav-item" onclick="showPanel('workflow',this)" id="nav-workflow">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><circle cx="18" cy="6" r="3"/><path d="M6 9v3a3 3 0 0 0 3 3h6"/><path d="M18 9v6"/></svg>
+      Workflow Canvas
+      <span class="live-dot" style="margin-left:auto;width:6px;height:6px;" title="Real-time execution stream"></span>
     </button>
     <div class="nav-label" style="margin-top:16px">Activity</div>
     <button class="nav-item" onclick="showPanel('sessions',this)" id="nav-sessions">
@@ -877,6 +1289,96 @@
         </div>
         <div id="team-table-wrap">
           <div class="loader"><div class="spinner"></div> Loading…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── WORKFLOW / N8N-STYLE AGENT EXECUTION CANVAS PANEL ── -->
+    <div class="panel" id="panel-workflow">
+      <!-- Workflow Top Toolbar -->
+      <div class="workflow-toolbar">
+        <div class="workflow-toolbar-left">
+          <div class="workflow-title-box">
+            <span class="workflow-title">AI Decision & Execution Flow</span>
+            <span id="workflow-sse-badge" class="badge badge-green" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;">
+              <span class="live-dot" style="width:6px;height:6px;"></span> <span id="workflow-sse-text">Live Stream Connected</span>
+            </span>
+          </div>
+          <div class="search-box" style="width:260px;">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input id="workflow-search-input" type="text" placeholder="Search execution ID, session, query…" oninput="debounceWorkflowSearch()">
+          </div>
+          <select id="workflow-status-filter" onchange="loadWorkflowExecutions()" class="workflow-select">
+            <option value="all">All Statuses</option>
+            <option value="completed">Completed</option>
+            <option value="running">Running</option>
+            <option value="failed">Failed</option>
+            <option value="handed_off">Handed Off</option>
+          </select>
+        </div>
+        <div class="workflow-toolbar-right">
+          <button class="btn btn-ghost" onclick="workflowZoomIn()" title="Zoom In" style="padding:6px 10px;">＋</button>
+          <button class="btn btn-ghost" onclick="workflowZoomOut()" title="Zoom Out" style="padding:6px 10px;">－</button>
+          <button class="btn btn-ghost" onclick="workflowResetZoom()" title="Fit to Screen" style="padding:6px 10px;">⛶ Fit</button>
+          <button class="btn btn-ghost" onclick="loadWorkflowExecutions()" title="Refresh" style="padding:6px 12px;">↻ Refresh</button>
+        </div>
+      </div>
+
+      <!-- Main Workflow Layout Grid -->
+      <div class="workflow-workspace">
+        <!-- Col 1: Executions Feed -->
+        <div class="workflow-sidebar">
+          <div class="workflow-sidebar-header">
+            <span>Conversational Turns</span>
+            <span id="workflow-exec-count" class="badge badge-blue">0</span>
+          </div>
+          <div class="workflow-exec-list" id="workflow-exec-list">
+            <div class="loader"><div class="spinner"></div> Loading executions…</div>
+          </div>
+        </div>
+
+        <!-- Col 2: n8n-style Node Canvas -->
+        <div class="workflow-canvas-container" id="workflow-canvas-container">
+          <!-- Active Execution Banner -->
+          <div class="workflow-canvas-header" id="workflow-canvas-header">
+            <div id="workflow-active-meta" style="font-weight:600;color:var(--text);">Select an execution from the feed to inspect runtime flow</div>
+            <div id="workflow-legend" style="display:flex;align-items:center;gap:12px;font-size:11px;color:var(--muted);">
+              <span><span style="color:#10b981;">●</span> Completed</span>
+              <span><span style="color:#3b82f6;">●</span> Running</span>
+              <span><span style="color:#ef4444;">●</span> Failed</span>
+              <span><span style="color:#f59e0b;">●</span> Handover</span>
+              <span><span style="color:#64748b;">○</span> Skipped</span>
+            </div>
+          </div>
+          <!-- Zoomable Canvas Viewport -->
+          <div class="workflow-canvas-viewport" id="workflow-canvas-viewport">
+            <div class="workflow-canvas-stage" id="workflow-canvas-stage">
+              <!-- SVG Connector Layer for curved bezier edges -->
+              <svg class="workflow-svg-layer" id="workflow-svg-layer"></svg>
+              <!-- Interactive Node Graph rendered here -->
+              <div class="workflow-nodes-layer" id="workflow-nodes-layer">
+                <!-- Dynamically rendered connected cards -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Col 3: Node Inspector & Timeline -->
+        <div class="workflow-inspector-panel" id="workflow-inspector-panel">
+          <div class="inspector-tabs">
+            <button class="inspector-tab active" id="tab-btn-node" onclick="switchInspectorTab('node')">Node Inspector</button>
+            <button class="inspector-tab" id="tab-btn-timeline" onclick="switchInspectorTab('timeline')">Timeline (<span id="timeline-count">0</span>)</button>
+          </div>
+          <div class="inspector-content" id="inspector-content-node">
+            <div id="node-inspector-body">
+              <div class="empty-inspector">Click any node on the canvas to inspect inputs, outputs, validation, and evidence</div>
+            </div>
+          </div>
+          <div class="inspector-content" id="inspector-content-timeline" style="display:none;">
+            <div id="timeline-inspector-body">
+              <div class="empty-inspector">No events loaded</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1321,12 +1823,20 @@
     document.getElementById('panel-' + name).classList.add('active');
     btn.classList.add('active');
     currentPanel = name;
-    const titles = { overview: 'Overview', sessions: 'Chat Sessions', leads: 'Leads', livedesk: 'Live Sales Desk', team: 'Sales Team & Advisors' };
+    const titles = {
+      overview: 'Overview',
+      sessions: 'Chat Sessions',
+      leads: 'Leads',
+      livedesk: 'Live Sales Desk',
+      team: 'Sales Team & Advisors',
+      workflow: 'Live Agent Execution Dashboard',
+    };
     document.getElementById('page-title').textContent = titles[name] || name;
     if (name === 'sessions') loadSessions();
     if (name === 'leads') loadLeads();
     if (name === 'livedesk') loadLiveDeskQueue();
     if (name === 'team') loadTeam();
+    if (name === 'workflow') loadWorkflowDashboard();
   }
 
   /* ── Stats ── */
@@ -2335,6 +2845,604 @@
     selectLiveDeskSession(sessionId);
     const toasts = document.querySelectorAll('.escalation-toast');
     toasts.forEach(t => t.remove());
+  }
+
+  /* ── Live n8n-Style Workflow Canvas & Observability ── */
+  let workflowExecutions = [];
+  let selectedExecutionId = null;
+  let selectedNodeId = null;
+  let workflowEvents = [];
+  let workflowEventSource = null;
+  let workflowZoom = 0.9;
+  let workflowPan = { x: 30, y: 30 };
+  let isPanningCanvas = false;
+  let panStart = { x: 0, y: 0 };
+  let workflowSearchTimer = null;
+  let workflowStageInitialized = false;
+
+  const WORKFLOW_NODES_SPEC = [
+    { id: 'node_receive', label: '1. Inbound Ingest', type: 'TRIGGER', icon: '📥', sub: 'Customer message ingress', x: 40, y: 220 },
+    { id: 'node_understand', label: '2. Understand & Context', type: 'NLU', icon: '🧠', sub: 'Intent & Entity Extraction', x: 290, y: 220 },
+    { id: 'node_reconcile', label: '3. State Reconcile', type: 'MEMORY', icon: '🔄', sub: 'Memory, session & stage sync', x: 540, y: 220 },
+    { id: 'node_plan', label: '4. Action Planner', type: 'ROUTER', icon: '🧭', sub: 'Deterministic policy branching', x: 790, y: 220 },
+    // Tool / Action branches
+    { id: 'node_tool_comparison', label: '5a. Product Compare', type: 'ANALYSIS', icon: '⚖️', sub: 'Side-by-side spec evaluation', x: 1060, y: 40, branch: 'compare' },
+    { id: 'node_tool_catalogue', label: '5b. Catalogue Search', type: 'RETRIEVAL', icon: '🔍', sub: 'Inventory & evidence query', x: 1060, y: 160, branch: 'catalogue' },
+    { id: 'node_tool_direct', label: '5c. Direct Consultant', type: 'CONSULTANT', icon: '💬', sub: 'Clarification & guidance', x: 1060, y: 280, branch: 'direct' },
+    { id: 'node_tool_handover', label: '5d. Live Desk Handover', type: 'ESCALATION', icon: '🚨', sub: 'Escalation to human advisor', x: 1060, y: 400, branch: 'handover' },
+    // Downstream verification & generation pipeline
+    { id: 'node_evidence', label: '6. Evidence Grounding', type: 'GROUNDING', icon: '📚', sub: 'Strict spec validation', x: 1330, y: 220 },
+    { id: 'node_compose', label: '7. Prompt Composer', type: 'SYNTHESIS', icon: '✍️', sub: 'Kepler Tech persona prompt', x: 1580, y: 220 },
+    { id: 'node_validate', label: '8. Guard & Safety', type: 'VALIDATION', icon: '🛡️', sub: 'Anti-hallucination & price guard', x: 1830, y: 220 },
+    { id: 'node_stop', label: '9. Stop Condition', type: 'CONTROL', icon: '⏹️', sub: 'Loop prevention & policy check', x: 2080, y: 220 },
+    { id: 'node_deliver', label: '10. Omnichannel Dispatch', type: 'DISPATCH', icon: '🚀', sub: 'Final delivery via Web/WhatsApp', x: 2330, y: 220 }
+  ];
+
+  const WORKFLOW_EDGES_SPEC = [
+    { from: 'node_receive', to: 'node_understand' },
+    { from: 'node_understand', to: 'node_reconcile' },
+    { from: 'node_reconcile', to: 'node_plan' },
+    // Router branching
+    { from: 'node_plan', to: 'node_tool_comparison' },
+    { from: 'node_plan', to: 'node_tool_catalogue' },
+    { from: 'node_plan', to: 'node_tool_direct' },
+    { from: 'node_plan', to: 'node_tool_handover' },
+    // Branch convergences
+    { from: 'node_tool_comparison', to: 'node_evidence' },
+    { from: 'node_tool_catalogue', to: 'node_evidence' },
+    { from: 'node_tool_direct', to: 'node_evidence' },
+    { from: 'node_tool_handover', to: 'node_deliver' },
+    // Final linear verification pipe
+    { from: 'node_evidence', to: 'node_compose' },
+    { from: 'node_compose', to: 'node_validate' },
+    { from: 'node_validate', to: 'node_stop' },
+    { from: 'node_stop', to: 'node_deliver' }
+  ];
+
+  function loadWorkflowDashboard() {
+    initWorkflowViewportInteraction();
+    initWorkflowSSE();
+    loadWorkflowExecutions();
+  }
+
+  function initWorkflowViewportInteraction() {
+    if (workflowStageInitialized) return;
+    workflowStageInitialized = true;
+
+    const viewport = document.getElementById('workflow-canvas-viewport');
+    const stage = document.getElementById('workflow-canvas-stage');
+    if (!viewport || !stage) return;
+
+    applyWorkflowTransform();
+
+    viewport.addEventListener('mousedown', (e) => {
+      if (e.target.closest('.wf-node')) return;
+      isPanningCanvas = true;
+      panStart.x = e.clientX - workflowPan.x;
+      panStart.y = e.clientY - workflowPan.y;
+      viewport.style.cursor = 'grabbing';
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isPanningCanvas) return;
+      workflowPan.x = e.clientX - panStart.x;
+      workflowPan.y = e.clientY - panStart.y;
+      applyWorkflowTransform();
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (isPanningCanvas) {
+        isPanningCanvas = false;
+        if (viewport) viewport.style.cursor = 'grab';
+      }
+    });
+
+    viewport.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
+      const newZoom = Math.min(1.8, Math.max(0.35, workflowZoom * zoomFactor));
+      
+      const rect = viewport.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      workflowPan.x = mouseX - (mouseX - workflowPan.x) * (newZoom / workflowZoom);
+      workflowPan.y = mouseY - (mouseY - workflowPan.y) * (newZoom / workflowZoom);
+      workflowZoom = newZoom;
+      applyWorkflowTransform();
+    }, { passive: false });
+  }
+
+  function applyWorkflowTransform() {
+    const stage = document.getElementById('workflow-canvas-stage');
+    if (stage) {
+      stage.style.transform = `translate(${workflowPan.x}px, ${workflowPan.y}px) scale(${workflowZoom})`;
+    }
+  }
+
+  function workflowZoomIn() {
+    workflowZoom = Math.min(1.8, workflowZoom + 0.15);
+    applyWorkflowTransform();
+  }
+
+  function workflowZoomOut() {
+    workflowZoom = Math.max(0.35, workflowZoom - 0.15);
+    applyWorkflowTransform();
+  }
+
+  function workflowResetZoom() {
+    workflowZoom = 0.85;
+    workflowPan = { x: 40, y: 40 };
+    applyWorkflowTransform();
+  }
+
+  function debounceWorkflowSearch() {
+    clearTimeout(workflowSearchTimer);
+    workflowSearchTimer = setTimeout(loadWorkflowExecutions, 300);
+  }
+
+  async function loadWorkflowExecutions() {
+    const search = document.getElementById('workflow-search-input')?.value.trim() || '';
+    const status = document.getElementById('workflow-status-filter')?.value || 'all';
+    const listEl = document.getElementById('workflow-exec-list');
+    if (!listEl) return;
+
+    let url = `/api/admin/workflow/executions?limit=60`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    if (status && status !== 'all') url += `&status=${encodeURIComponent(status)}`;
+
+    try {
+      const resp = await fetch(url);
+      const data = await resp.json();
+      if (!data.success) {
+        listEl.innerHTML = `<div class="empty-inspector">Failed to load: ${escapeHtml(data.error || 'Server error')}</div>`;
+        return;
+      }
+
+      workflowExecutions = data.executions || [];
+      const countEl = document.getElementById('workflow-exec-count');
+      if (countEl) countEl.textContent = workflowExecutions.length;
+
+      if (workflowExecutions.length === 0) {
+        listEl.innerHTML = `
+          <div class="empty-inspector">
+            <div style="font-size:24px;margin-bottom:8px;">🔍</div>
+            No execution traces found matching your filter.<br>
+            Execute customer chats to generate live traces.
+          </div>`;
+        return;
+      }
+
+      listEl.innerHTML = workflowExecutions.map(exec => {
+        const isActive = exec.execution_id === selectedExecutionId ? ' active' : '';
+        const dur = exec.total_duration_ms > 0 ? `${exec.total_duration_ms.toFixed(0)}ms` : '—';
+        const dateStr = exec.started_at ? new Date(exec.started_at * 1000).toLocaleTimeString() : '—';
+        let statusBadge = `<span class="badge badge-green">completed</span>`;
+        if (exec.status === 'running') statusBadge = `<span class="badge badge-blue">running</span>`;
+        else if (exec.status === 'failed') statusBadge = `<span class="badge badge-red">failed</span>`;
+        else if (exec.status === 'handed_off') statusBadge = `<span class="badge badge-amber">handover</span>`;
+
+        const queryText = exec.input_preview || exec.summary || `Turn: ${exec.execution_id.slice(0, 10)}`;
+
+        return `
+          <div class="workflow-exec-card${isActive}" onclick="selectExecution('${exec.execution_id}')" id="exec-card-${exec.execution_id}">
+            <div class="exec-card-top">
+              <span>${dateStr}</span>
+              ${statusBadge}
+            </div>
+            <div class="exec-card-query" title="${escapeHtml(queryText)}">${escapeHtml(queryText)}</div>
+            <div class="exec-card-meta">
+              <span>⏱ ${dur}</span>
+              <span style="font-family:monospace;font-size:10px;">${escapeHtml(exec.execution_id.slice(0, 12))}</span>
+              ${exec.final_action ? `<span class="badge badge-gray" style="font-size:9px;">${escapeHtml(exec.final_action)}</span>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Auto-select first if none selected or previous selection missing
+      if (!selectedExecutionId || !workflowExecutions.some(x => x.execution_id === selectedExecutionId)) {
+        if (workflowExecutions.length > 0) {
+          selectExecution(workflowExecutions[0].execution_id);
+        }
+      }
+    } catch (e) {
+      console.error('Error loading executions:', e);
+      listEl.innerHTML = `<div class="empty-inspector">Failed to fetch executions: ${escapeHtml(e.message)}</div>`;
+    }
+  }
+
+  async function selectExecution(executionId) {
+    selectedExecutionId = executionId;
+    document.querySelectorAll('.workflow-exec-card').forEach(el => el.classList.remove('active'));
+    const cardEl = document.getElementById(`exec-card-${executionId}`);
+    if (cardEl) cardEl.classList.add('active');
+
+    try {
+      const resp = await fetch(`/api/admin/workflow/executions/${executionId}`);
+      const data = await resp.json();
+      if (!data.success) return;
+
+      const exec = data.execution;
+      workflowEvents = data.events || [];
+
+      // Update canvas header banner
+      const bannerEl = document.getElementById('workflow-active-meta');
+      if (bannerEl) {
+        const dur = exec.total_duration_ms > 0 ? `${exec.total_duration_ms.toFixed(1)} ms` : 'In progress';
+        const stClass = exec.status === 'completed' ? 'badge-green' : (exec.status === 'failed' ? 'badge-red' : (exec.status === 'handed_off' ? 'badge-amber' : 'badge-blue'));
+        bannerEl.innerHTML = `
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <span style="font-weight:700;color:var(--text);font-size:13px;">Execution: <code style="color:var(--accent);font-size:12px;">${escapeHtml(exec.execution_id)}</code></span>
+            <span class="badge ${stClass}" style="text-transform:uppercase;">${escapeHtml(exec.status)}</span>
+            <span style="color:var(--muted);font-size:11px;">⏱ Total: <strong>${dur}</strong></span>
+            <span style="color:var(--muted);font-size:11px;">Session: <code>${escapeHtml(exec.session_id ? exec.session_id.slice(0, 14) : '—')}</code></span>
+            ${exec.final_action ? `<span class="badge badge-purple" style="font-size:10px;">Action: ${escapeHtml(exec.final_action)}</span>` : ''}
+          </div>
+        `;
+      }
+
+      renderWorkflowCanvas(exec, workflowEvents);
+      renderTimeline(workflowEvents);
+
+      // Auto-inspect first or failed event
+      if (!selectedNodeId || !workflowEvents.some(e => matchEventToNode(e) === selectedNodeId)) {
+        const priorityEv = workflowEvents.find(e => e.status === 'failed') || workflowEvents[workflowEvents.length - 1] || workflowEvents[0];
+        if (priorityEv) {
+          selectNode(matchEventToNode(priorityEv));
+        }
+      } else {
+        selectNode(selectedNodeId);
+      }
+    } catch (e) {
+      console.error('Failed to select execution:', e);
+    }
+  }
+
+  function matchEventToNode(ev) {
+    if (!ev) return 'node_receive';
+    if (ev.node_id === 'node_tool') {
+      const toolName = (ev.tool_name || '').toLowerCase();
+      if (toolName.includes('compare')) return 'node_tool_comparison';
+      if (toolName.includes('handover') || toolName.includes('escalate')) return 'node_tool_handover';
+      if (toolName.includes('search') || toolName.includes('catalogue') || toolName.includes('recommend') || toolName.includes('filter')) return 'node_tool_catalogue';
+      return 'node_tool_direct';
+    }
+    return ev.node_id;
+  }
+
+  function renderWorkflowCanvas(exec, events) {
+    const nodesLayer = document.getElementById('workflow-nodes-layer');
+    const svgLayer = document.getElementById('workflow-svg-layer');
+    if (!nodesLayer || !svgLayer) return;
+
+    // Build event lookup by mapped node ID
+    const eventMap = {};
+    const executedNodeIds = new Set();
+    for (const ev of events) {
+      const mappedId = matchEventToNode(ev);
+      eventMap[mappedId] = ev;
+      executedNodeIds.add(mappedId);
+    }
+
+    // Render Nodes
+    nodesLayer.innerHTML = WORKFLOW_NODES_SPEC.map(spec => {
+      const ev = eventMap[spec.id];
+      let statusClass = 'status-skipped';
+      let statusBadge = '<span class="wf-node-badge">SKIPPED</span>';
+      let durationStr = '—';
+      let summaryStr = spec.sub;
+
+      if (ev) {
+        if (ev.status === 'completed') {
+          statusClass = spec.id === 'node_tool_handover' ? 'status-handover' : 'status-completed';
+          statusBadge = `<span class="wf-node-badge" style="color:#10b981;background:rgba(16,185,129,0.15)">DONE</span>`;
+        } else if (ev.status === 'running') {
+          statusClass = 'status-running';
+          statusBadge = `<span class="wf-node-badge" style="color:#3b82f6;background:rgba(59,130,246,0.15)">RUNNING</span>`;
+        } else if (ev.status === 'failed') {
+          statusClass = 'status-failed';
+          statusBadge = `<span class="wf-node-badge" style="color:#ef4444;background:rgba(239,68,68,0.15)">FAILED</span>`;
+        }
+        durationStr = ev.duration_ms > 0 ? `${ev.duration_ms.toFixed(1)} ms` : '0 ms';
+        summaryStr = ev.output_summary || ev.input_summary || spec.sub;
+      }
+
+      const isSel = spec.id === selectedNodeId ? ' selected' : '';
+
+      return `
+        <div class="wf-node ${statusClass}${isSel}" id="wf-card-${spec.id}" style="left:${spec.x}px;top:${spec.y}px;" onclick="selectNode('${spec.id}')">
+          <div class="wf-port wf-port-in"></div>
+          <div class="wf-node-header">
+            <div class="wf-node-icon-title">
+              <span style="font-size:16px;">${spec.icon}</span>
+              <span>${escapeHtml(spec.label)}</span>
+            </div>
+            ${statusBadge}
+          </div>
+          <div class="wf-node-type">${escapeHtml(spec.type)}</div>
+          <div class="wf-node-summary" title="${escapeHtml(summaryStr)}">${escapeHtml(summaryStr)}</div>
+          <div class="wf-node-footer">
+            <span>⏱ ${durationStr}</span>
+            <span style="font-family:monospace;font-size:9.5px;color:var(--muted);">${spec.id}</span>
+          </div>
+          <div class="wf-port wf-port-out"></div>
+        </div>
+      `;
+    }).join('');
+
+    // Render Bezier SVG Edges
+    const NODE_WIDTH = 210;
+    const NODE_HEIGHT = 105;
+    const PORT_OFFSET_Y = 52;
+
+    const nodePosMap = {};
+    for (const spec of WORKFLOW_NODES_SPEC) {
+      nodePosMap[spec.id] = { x: spec.x, y: spec.y };
+    }
+
+    svgLayer.innerHTML = WORKFLOW_EDGES_SPEC.map(edge => {
+      const src = nodePosMap[edge.from];
+      const dst = nodePosMap[edge.to];
+      if (!src || !dst) return '';
+
+      const startX = src.x + NODE_WIDTH + 6;
+      const startY = src.y + PORT_OFFSET_Y;
+      const endX = dst.x - 6;
+      const endY = dst.y + PORT_OFFSET_Y;
+
+      const dx = Math.max(40, (endX - startX) * 0.5);
+      const d = `M ${startX} ${startY} C ${startX + dx} ${startY}, ${endX - dx} ${endY}, ${endX} ${endY}`;
+
+      const fromActive = executedNodeIds.has(edge.from);
+      const toActive = executedNodeIds.has(edge.to);
+      const isEdgeActive = fromActive && toActive;
+      const toEv = eventMap[edge.to];
+      const isRunning = isEdgeActive && toEv && toEv.status === 'running';
+
+      let edgeClass = 'wf-edge';
+      if (isRunning) edgeClass += ' running';
+      else if (isEdgeActive) edgeClass += ' active';
+
+      return `<path class="${edgeClass}" d="${d}" />`;
+    }).join('');
+  }
+
+  function selectNode(nodeId) {
+    selectedNodeId = nodeId;
+    document.querySelectorAll('.wf-node').forEach(n => n.classList.remove('selected'));
+    const nodeEl = document.getElementById(`wf-card-${nodeId}`);
+    if (nodeEl) nodeEl.classList.add('selected');
+
+    const spec = WORKFLOW_NODES_SPEC.find(s => s.id === nodeId);
+    const ev = workflowEvents.find(e => matchEventToNode(e) === nodeId);
+    const bodyEl = document.getElementById('node-inspector-body');
+    if (!bodyEl) return;
+
+    if (!spec) {
+      bodyEl.innerHTML = `<div class="empty-inspector">Select a node from the workflow canvas to inspect execution details</div>`;
+      return;
+    }
+
+    const title = spec.label;
+    const nodeType = spec.type;
+    const status = ev ? ev.status : 'skipped';
+    const dur = ev && ev.duration_ms > 0 ? `${ev.duration_ms.toFixed(2)} ms` : (ev ? '0 ms' : 'Not reached');
+    const ts = ev && ev.timestamp ? new Date(ev.timestamp * 1000).toLocaleTimeString() : '—';
+    const inputSummary = ev && ev.input_summary ? ev.input_summary : 'None';
+    const outputSummary = ev && ev.output_summary ? ev.output_summary : 'None';
+
+    let evidenceHtml = '<div style="color:var(--muted);font-size:12px;">No catalogue items referenced at this step.</div>';
+    if (ev && ev.evidence_refs) {
+      let refs = [];
+      try {
+        refs = typeof ev.evidence_refs === 'string' ? JSON.parse(ev.evidence_refs) : ev.evidence_refs;
+      } catch (e) {
+        refs = [ev.evidence_refs];
+      }
+      if (Array.isArray(refs) && refs.length > 0) {
+        evidenceHtml = `
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            ${refs.map(r => {
+              const item = typeof r === 'object' ? r : { title: String(r) };
+              return `
+                <div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;">
+                  <div style="font-weight:600;font-size:12px;color:var(--text);">${escapeHtml(item.model_name || item.title || 'Product Reference')}</div>
+                  <div style="display:flex;gap:10px;font-size:11px;color:var(--muted);margin-top:4px;">
+                    ${item.sku ? `<span>SKU: <code>${escapeHtml(item.sku)}</code></span>` : ''}
+                    ${item.price_aed ? `<span style="color:var(--accent);">AED ${escapeHtml(String(item.price_aed))}</span>` : ''}
+                    ${item.stock_status ? `<span class="badge badge-green" style="font-size:9.5px;">${escapeHtml(item.stock_status)}</span>` : ''}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      }
+    }
+
+    let statusPill = `<span class="badge badge-gray">SKIPPED</span>`;
+    if (status === 'completed') statusPill = `<span class="badge badge-green">COMPLETED</span>`;
+    else if (status === 'running') statusPill = `<span class="badge badge-blue">RUNNING</span>`;
+    else if (status === 'failed') statusPill = `<span class="badge badge-red">FAILED</span>`;
+
+    bodyEl.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div>
+          <div style="font-size:15px;font-weight:700;color:var(--text);">${spec.icon} ${escapeHtml(title)}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;font-family:monospace;">${escapeHtml(spec.id)} · ${escapeHtml(nodeType)}</div>
+        </div>
+        ${statusPill}
+      </div>
+
+      <div class="inspector-section">
+        <div class="inspector-label">Execution Timing</div>
+        <table class="inspector-kv-table">
+          <tr><td class="inspector-kv-key">Started:</td><td class="inspector-kv-val">${ts}</td></tr>
+          <tr><td class="inspector-kv-key">Duration:</td><td class="inspector-kv-val"><strong>${dur}</strong></td></tr>
+          <tr><td class="inspector-kv-key">Status:</td><td class="inspector-kv-val">${escapeHtml(status)}</td></tr>
+        </table>
+      </div>
+
+      <div class="inspector-section">
+        <div class="inspector-label">Input / Context Summary</div>
+        <div class="inspector-val-box">${escapeHtml(inputSummary)}</div>
+      </div>
+
+      <div class="inspector-section">
+        <div class="inspector-label">Output / Resolution Summary</div>
+        <div class="inspector-val-box">${escapeHtml(outputSummary)}</div>
+      </div>
+
+      <div class="inspector-section">
+        <div class="inspector-label">Grounding & Evidence References</div>
+        ${evidenceHtml}
+      </div>
+
+      ${ev && ev.error_metadata && ev.error_metadata !== '{}' ? `
+        <div class="inspector-section">
+          <div class="inspector-label" style="color:#ef4444;">Error & Diagnostic Data</div>
+          <div class="inspector-val-box" style="border-color:rgba(239,68,68,0.3);color:#fca5a5;font-family:monospace;font-size:11px;">
+            ${escapeHtml(typeof ev.error_metadata === 'string' ? ev.error_metadata : JSON.stringify(ev.error_metadata, null, 2))}
+          </div>
+        </div>
+      ` : ''}
+    `;
+  }
+
+  function renderTimeline(events) {
+    const countEl = document.getElementById('timeline-count');
+    if (countEl) countEl.textContent = events.length;
+
+    const bodyEl = document.getElementById('timeline-inspector-body');
+    if (!bodyEl) return;
+
+    if (events.length === 0) {
+      bodyEl.innerHTML = `<div class="empty-inspector">No events recorded for this execution trace</div>`;
+      return;
+    }
+
+    bodyEl.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        ${events.map((ev, idx) => {
+          const spec = WORKFLOW_NODES_SPEC.find(s => s.id === matchEventToNode(ev));
+          const name = spec ? spec.label : ev.node_id;
+          const icon = spec ? spec.icon : '⚙️';
+          const dur = ev.duration_ms > 0 ? `${ev.duration_ms.toFixed(1)}ms` : '0ms';
+          const time = ev.timestamp ? new Date(ev.timestamp * 1000).toLocaleTimeString() : '—';
+          const isFailed = ev.status === 'failed';
+          const stColor = isFailed ? '#ef4444' : '#10b981';
+
+          return `
+            <div style="background:var(--surface2);border:1px solid var(--border);border-left:3px solid ${stColor};border-radius:8px;padding:10px 12px;cursor:pointer;transition:transform 0.15s ease;"
+                 onclick="selectNode('${matchEventToNode(ev)}')">
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);margin-bottom:4px;">
+                <span>Step #${idx + 1} · ${time}</span>
+                <span class="badge ${isFailed ? 'badge-red' : 'badge-green'}" style="font-size:9.5px;">${escapeHtml(ev.status)}</span>
+              </div>
+              <div style="font-weight:700;font-size:13px;color:var(--text);display:flex;align-items:center;gap:6px;">
+                <span>${icon}</span>
+                <span>${escapeHtml(name)}</span>
+              </div>
+              <div style="font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.35;">
+                ${escapeHtml(ev.output_summary || ev.input_summary || 'Completed step successfully.')}
+              </div>
+              <div style="margin-top:6px;font-size:10px;color:var(--muted);display:flex;justify-content:space-between;">
+                <span>⏱ ${dur}</span>
+                <span style="font-family:monospace;">${escapeHtml(ev.node_id)}</span>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  function switchInspectorTab(tab) {
+    document.querySelectorAll('.inspector-tab').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById(`tab-btn-${tab}`);
+    if (btn) btn.classList.add('active');
+
+    const nodeContent = document.getElementById('inspector-content-node');
+    const timelineContent = document.getElementById('inspector-content-timeline');
+
+    if (tab === 'node') {
+      if (nodeContent) nodeContent.style.display = 'block';
+      if (timelineContent) timelineContent.style.display = 'none';
+    } else {
+      if (nodeContent) nodeContent.style.display = 'none';
+      if (timelineContent) timelineContent.style.display = 'block';
+    }
+  }
+
+  function initWorkflowSSE() {
+    if (workflowEventSource) return;
+
+    try {
+      workflowEventSource = new EventSource('/api/admin/workflow/stream');
+      const badge = document.getElementById('workflow-sse-badge');
+      const text = document.getElementById('workflow-sse-text');
+
+      workflowEventSource.onopen = () => {
+        if (badge) { badge.className = 'badge badge-green'; }
+        if (text) { text.textContent = 'Live Stream Connected'; }
+      };
+
+      workflowEventSource.addEventListener('execution_started', (e) => {
+        try {
+          const payload = JSON.parse(e.data);
+          loadWorkflowExecutions();
+        } catch (err) {}
+      });
+
+      workflowEventSource.addEventListener('node_event', (e) => {
+        try {
+          const payload = JSON.parse(e.data);
+          if (payload.execution_id === selectedExecutionId) {
+            // Update current events list
+            const existingIdx = workflowEvents.findIndex(ev => ev.event_id === payload.event_id);
+            if (existingIdx >= 0) {
+              workflowEvents[existingIdx] = payload;
+            } else {
+              workflowEvents.push(payload);
+            }
+            const activeCard = workflowExecutions.find(x => x.execution_id === selectedExecutionId);
+            renderWorkflowCanvas(activeCard || { execution_id: selectedExecutionId }, workflowEvents);
+            renderTimeline(workflowEvents);
+            if (selectedNodeId === matchEventToNode(payload)) {
+              selectNode(selectedNodeId);
+            }
+          }
+        } catch (err) {}
+      });
+
+      workflowEventSource.addEventListener('execution_completed', (e) => {
+        try {
+          const payload = JSON.parse(e.data);
+          if (payload.execution_id === selectedExecutionId) {
+            selectExecution(payload.execution_id);
+          }
+          loadWorkflowExecutions();
+        } catch (err) {}
+      });
+
+      workflowEventSource.addEventListener('execution_failed', (e) => {
+        try {
+          const payload = JSON.parse(e.data);
+          if (payload.execution_id === selectedExecutionId) {
+            selectExecution(payload.execution_id);
+          }
+          loadWorkflowExecutions();
+        } catch (err) {}
+      });
+
+      workflowEventSource.onerror = () => {
+        if (badge) { badge.className = 'badge badge-amber'; }
+        if (text) { text.textContent = 'Reconnecting…'; }
+      };
+    } catch (e) {
+      console.warn('SSE not supported or connection error:', e);
+    }
   }
 
   /* ── Init ── */

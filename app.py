@@ -720,8 +720,13 @@ def get_agents():
 
 @app.route("/api/leads", methods=["GET"])
 def get_leads():
-    """Admin endpoint to inspect captured commercial sales leads."""
-    limit = int(request.args.get("limit", 50))
+    """Admin endpoint to inspect captured commercial sales leads. Requires authenticated sales agent."""
+    from routes.admin_routes import _current_agent
+    agent = _current_agent()
+    if not agent:
+        return jsonify({"success": False, "error": "Authentication required to access commercial leads."}), 401
+
+    limit = min(int(request.args.get("limit", 50)), 200)
     leads = lead_repository.get_leads(limit=limit)
     return jsonify({
         "success": True,
@@ -734,16 +739,18 @@ def get_leads():
 def api_compare():
     """Direct API endpoint for comparing approved catalogue products."""
     data = request.get_json(silent=True) or {}
-    product_ids = data.get("product_ids") or []
-    if not product_ids or not isinstance(product_ids, list):
-        return jsonify({"error": "product_ids list required"}), 400
+    product_ids = data.get("product_ids")
+    if not isinstance(product_ids, list) or len(product_ids) < 2 or len(product_ids) > 10:
+        return jsonify({"error": "product_ids must be a list of 2 to 10 product IDs."}), 400
 
-    from catalog.catalogue_resolver import resolve_product_model
+    from catalog.catalogue_loader import catalogue_loader
     from catalog.comparison_engine import build_comparison
     resolved_prods = []
     for pid in product_ids:
-        p = resolve_product_model(str(pid))
-        if p:
+        if not isinstance(pid, str) or len(pid) > 50:
+            continue
+        p = catalogue_loader.get_by_id(str(pid).strip())
+        if p and p not in resolved_prods:
             resolved_prods.append(p)
 
     if len(resolved_prods) < 2:
@@ -759,7 +766,11 @@ def api_compare():
 # ── Customer Authentication & Chat History Endpoints ──────────────────────
 @app.route("/api/customer/auth/login", methods=["POST"])
 def customer_login():
-    """Customer logs in with Name (username) and Phone/Email (password)."""
+    """
+    Customer logs in with Name (username) and Phone/Email (password).
+    SECURITY REQUIREMENT: Authenticates existing accounts ONLY.
+    Never falls through to creating or updating accounts.
+    """
     if not CUSTOMER_LOGIN_ENABLED:
         return jsonify({"error": "Customer login is disabled"}), 404
 
@@ -785,27 +796,18 @@ def customer_login():
 
     customer = customer_repository.authenticate(username, password)
     if not customer:
-        phone_match = re.search(r"(\+?\d[\d\s-]{7,15}\d)", password)
-        email_match = re.search(r"[\w.+-]+@[\w-]+\.[\w.-]+", password)
-        if (phone_match or email_match) and len(username.strip()) >= 2:
-            phone_val = phone_match.group(1).strip() if phone_match else None
-            email_val = email_match.group(0).strip().lower() if email_match else None
-            customer = customer_repository.create_or_update_customer(
-                name=username.strip(),
-                contact=password.strip(),
-                phone=phone_val,
-                email=email_val
-            )
-        else:
-            customer_repository.record_login_attempt(username, client_ip, success=False)
-            return jsonify({
-                "success": False,
-                "error": "Invalid login credentials. Please provide your Name and a valid Phone Number or Email."
-            }), 401
+        customer_repository.record_login_attempt(username, client_ip, success=False)
+        # Generic error message to prevent account enumeration
+        return jsonify({
+            "success": False,
+            "error": "Invalid login credentials. Please check your Name and Phone Number or Email."
+        }), 401
 
     customer_repository.record_login_attempt(username, client_ip, success=True)
     customer_repository.reset_login_throttle(username, client_ip)
 
+    # Prevent session fixation by clearing any existing session data
+    session.clear()
     session.permanent = True
     session["customer_id"] = customer.customer_id
     session["customer_name"] = customer.display_name
@@ -833,6 +835,72 @@ def customer_login():
         },
         "sessions": past_sessions
     })
+
+
+@app.route("/api/customer/auth/register", methods=["POST"])
+def customer_register():
+    """
+    Explicit customer registration endpoint.
+    Creates a new customer profile without overwriting existing accounts.
+    """
+    if not CUSTOMER_LOGIN_ENABLED:
+        return jsonify({"error": "Customer login is disabled"}), 404
+
+    data = request.get_json(silent=True) or {}
+    username = data.get("username", "").strip()
+    password = data.get("password", "").strip()
+    active_session_id = data.get("session_id")
+
+    if not username or not password:
+        return jsonify({"success": False, "error": "Please provide your Name and a valid Phone Number or Email."}), 400
+
+    phone_match = re.search(r"(\+?\d[\d\s-]{7,15}\d)", password)
+    email_match = re.search(r"[\w.+-]+@[\w-]+\.[\w.-]+", password)
+    if not (phone_match or email_match):
+        return jsonify({
+            "success": False,
+            "error": "A valid Phone Number (e.g. +971 50 123 4567) or Email is required as your credential."
+        }), 400
+
+    phone_val = phone_match.group(1).strip() if phone_match else None
+    email_val = email_match.group(0).strip().lower() if email_match else None
+
+    customer, err_msg = customer_repository.register_customer(
+        name=username,
+        contact=password,
+        phone=phone_val,
+        email=email_val
+    )
+    if not customer:
+        return jsonify({"success": False, "error": err_msg or "Registration failed."}), 409
+
+    # Session fixation prevention
+    session.clear()
+    session.permanent = True
+    session["customer_id"] = customer.customer_id
+    session["customer_name"] = customer.display_name
+
+    if active_session_id:
+        customer_repository.link_session(active_session_id, customer.customer_id, customer.display_name)
+        active_state = state_manager.get_or_create(active_session_id)
+        active_state.customer_id = customer.customer_id
+        active_state.customer_name = customer.display_name
+        history = state_manager.get_history(active_session_id)
+        state_manager.save(active_state, history)
+
+    return jsonify({
+        "success": True,
+        "message": f"Welcome, {customer.display_name}! Your account has been created.",
+        "customer": {
+            "id": customer.customer_id,
+            "name": customer.display_name,
+            "username": customer.username,
+            "phone": customer.phone,
+            "email": customer.email,
+        },
+        "sessions": []
+    }), 201
+
 
 
 @app.route("/api/customer/auth/me", methods=["GET"])

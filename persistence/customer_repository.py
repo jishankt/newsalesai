@@ -79,6 +79,82 @@ class CustomerRepository:
         norm = cls.normalize_credential(credential)
         return hashlib.sha256(norm.encode("utf-8")).hexdigest()
 
+    def register_customer(
+        self,
+        name: str,
+        contact: str,
+        phone: Optional[str] = None,
+        email: Optional[str] = None
+    ) -> Tuple[Optional[CustomerRecord], Optional[str]]:
+        """
+        Explicit registration operation for new customer profiles.
+        Returns (CustomerRecord, None) on success or (None, error_message) on conflict/invalid input.
+        Never overwrites existing accounts.
+        """
+        norm_user = self.normalize_username(name)
+        if not norm_user or len(norm_user) < 2:
+            return None, "A valid name with at least 2 characters is required."
+
+        norm_cred = self.normalize_credential(contact)
+        if not norm_cred or len(norm_cred) < 5:
+            return None, "A valid phone number or email address is required."
+
+        phone_val = phone or (contact if "@" not in contact else None)
+        email_val = email or (contact if "@" in contact else None)
+        cred_hash = self.hash_credential(contact)
+        now = time.time()
+
+        with self._get_connection() as conn:
+            # 1. Check if username already exists
+            existing_user = conn.execute(
+                "SELECT customer_id FROM customer_profiles WHERE username = ?",
+                (norm_user,)
+            ).fetchone()
+            if existing_user:
+                return None, "An account with this name already exists. Please log in instead."
+
+            # 2. Check if phone or email already registered to prevent duplicate accounts
+            if phone_val:
+                clean_p = re.sub(r"[^\d+]", "", phone_val)
+                if len(clean_p) >= 9:
+                    match_p = conn.execute(
+                        "SELECT customer_id, phone FROM customer_profiles WHERE phone IS NOT NULL"
+                    ).fetchall()
+                    for r in match_p:
+                        stored_p = re.sub(r"[^\d+]", "", r["phone"] or "")
+                        if stored_p and stored_p[-9:] == clean_p[-9:]:
+                            return None, "An account with this phone number is already registered. Please log in."
+
+            if email_val:
+                clean_e = email_val.strip().lower()
+                existing_email = conn.execute(
+                    "SELECT customer_id FROM customer_profiles WHERE LOWER(email) = ?",
+                    (clean_e,)
+                ).fetchone()
+                if existing_email:
+                    return None, "An account with this email address is already registered. Please log in."
+
+            # 3. Create fresh customer record
+            cid = f"cust_{uuid.uuid4().hex[:12]}"
+            conn.execute(
+                """
+                INSERT INTO customer_profiles (customer_id, username, display_name, credential_hash, phone, email, created_at, last_login)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (cid, norm_user, name.strip(), cred_hash, phone_val, email_val, now, now)
+            )
+            conn.commit()
+            return CustomerRecord(
+                customer_id=cid,
+                username=norm_user,
+                display_name=name.strip(),
+                credential_hash=cred_hash,
+                phone=phone_val,
+                email=email_val,
+                created_at=now,
+                last_login=now
+            ), None
+
     def create_or_update_customer(
         self,
         name: str,
@@ -86,10 +162,17 @@ class CustomerRepository:
         phone: Optional[str] = None,
         email: Optional[str] = None
     ) -> CustomerRecord:
-        """Creates or updates a customer profile."""
+        """
+        Creates a new customer profile or safely updates an existing profile.
+        SECURITY FIX: If a customer already exists with this username, this function
+        WILL NEVER overwrite the credential_hash unless the provided contact matches the
+        existing verified credentials.
+        """
         norm_user = self.normalize_username(name)
         display_name = name.strip()
         cred_hash = self.hash_credential(contact)
+        legacy_hash = self.hash_credential_legacy(contact)
+        norm_cred = self.normalize_credential(contact)
         phone_val = phone or (contact if "@" not in contact else None)
         email_val = email or (contact if "@" in contact else None)
         now = time.time()
@@ -104,25 +187,57 @@ class CustomerRepository:
 
             if row:
                 cid = row["customer_id"]
-                conn.execute(
-                    """
-                    UPDATE customer_profiles
-                    SET display_name = ?, credential_hash = ?, phone = COALESCE(?, phone), email = COALESCE(?, email), last_login = ?
-                    WHERE customer_id = ?
-                    """,
-                    (display_name, cred_hash, phone_val, email_val, now, cid)
+                stored_hash = row["credential_hash"]
+                stored_phone = row["phone"] or ""
+                stored_digits = re.sub(r"\D", "", stored_phone)
+                cred_digits = re.sub(r"\D", "", norm_cred)
+                stored_email = (row["email"] or "").strip().lower()
+
+                # Verify ownership: credential must match existing stored credential
+                cred_matches = (
+                    hmac.compare_digest(stored_hash, cred_hash)
+                    or hmac.compare_digest(stored_hash, legacy_hash)
+                    or ("@" in norm_cred and stored_email and hmac.compare_digest(stored_email, norm_cred))
+                    or (len(cred_digits) >= 9 and len(stored_digits) >= 9 and cred_digits[-9:] == stored_digits[-9:])
                 )
-                conn.commit()
-                return CustomerRecord(
-                    customer_id=cid,
-                    username=norm_user,
-                    display_name=display_name,
-                    credential_hash=cred_hash,
-                    phone=phone_val or row["phone"],
-                    email=email_val or row["email"],
-                    created_at=row["created_at"],
-                    last_login=now
-                )
+
+                if cred_matches:
+                    # Verified owner: safe update of display_name, upgraded hash, last_login
+                    conn.execute(
+                        """
+                        UPDATE customer_profiles
+                        SET display_name = ?, credential_hash = ?, phone = COALESCE(?, phone), email = COALESCE(?, email), last_login = ?
+                        WHERE customer_id = ?
+                        """,
+                        (display_name, cred_hash, phone_val, email_val, now, cid)
+                    )
+                    conn.commit()
+                    return CustomerRecord(
+                        customer_id=cid,
+                        username=norm_user,
+                        display_name=display_name,
+                        credential_hash=cred_hash,
+                        phone=phone_val or row["phone"],
+                        email=email_val or row["email"],
+                        created_at=row["created_at"],
+                        last_login=now
+                    )
+                else:
+                    # UNVERIFIED / WRONG CREDENTIAL: Do NOT overwrite credentials!
+                    logger.warning(
+                        f"Security: attempt to update credentials for existing user '{norm_user}' with mismatched contact. Blocked."
+                    )
+                    # Return existing customer record without altering credentials
+                    return CustomerRecord(
+                        customer_id=cid,
+                        username=norm_user,
+                        display_name=row["display_name"],
+                        credential_hash=stored_hash,
+                        phone=row["phone"],
+                        email=row["email"],
+                        created_at=row["created_at"],
+                        last_login=row["last_login"]
+                    )
 
             # Insert new customer
             cid = f"cust_{uuid.uuid4().hex[:12]}"

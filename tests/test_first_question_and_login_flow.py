@@ -64,6 +64,8 @@ class TestFirstQuestionAndLoginFlow(unittest.TestCase):
 
     def test_customer_login_api_flow(self):
         """Customer can authenticate or sign in with Name and Phone/Email."""
+        from persistence.customer_repository import customer_repository
+        customer_repository.create_or_update_customer("Tariq", "+971 50 123 4567")
         resp = self.client.post("/api/customer/auth/login", json={
             "username": "Tariq",
             "password": "+971 50 123 4567"
@@ -73,3 +75,4 @@ class TestFirstQuestionAndLoginFlow(unittest.TestCase):
         self.assertTrue(data["success"])
         self.assertEqual(data["customer"]["name"], "Tariq")
         self.assertIn("sessions", data)
+
