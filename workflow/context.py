@@ -83,7 +83,7 @@ class WorkflowContext:
             "suggested_chips": self.suggested_chips,
             "grounding": self.grounding,
             "nlp": self.nlp_result,
-            "state": self.state,
+            "state": self.state.to_dict() if hasattr(self.state, "to_dict") else self.state,
             "retrieved_items": [c.get("id") or c.get("sku") for c in self.product_cards if isinstance(c, dict)],
             "active_agent": self.active_agent,
             "latency_ms": latency_ms,

@@ -57,7 +57,7 @@ def handle(understanding: LLMUnderstanding, state: ConversationState) -> RouteRe
 
         return RouteResult(
             reply=reply,
-            suggested_chips=["Office & Business Printers", "Technical CAD Plotters", "Photo & Fine Art", "Dye-Sublimation (T-Shirts & Mugs)"],
+            suggested_chips=["Office & Business Printers", "Technical CAD Plotters", "Photo & Fine Art", "Sublimation (T-Shirts & Mugs)"],
             product_cards=[],
             consumable_cards=[],
             source="route:social",

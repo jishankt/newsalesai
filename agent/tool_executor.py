@@ -127,19 +127,21 @@ class CatalogToolExecutor:
 
     def execute_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """Dispatches and executes the designated tool dynamically."""
-        if tool_name == "search_catalog":
+        if tool_name in ("search_catalog", "catalog_search"):
             return self._search_catalog(
                 query=arguments.get("query", ""),
                 category=arguments.get("category"),
                 limit=arguments.get("limit", 4)
             )
-        elif tool_name == "get_product_specs":
+        elif tool_name in ("get_product_specs", "spec_lookup", "product_lookup"):
+            ident = arguments.get("product_identifier") or arguments.get("product_id") or arguments.get("identifier") or ""
             return self._get_product_specs(
-                identifier=arguments.get("product_identifier", "")
+                identifier=ident
             )
-        elif tool_name == "get_compatible_consumables":
+        elif tool_name in ("get_compatible_consumables", "media_lookup"):
+            ident = arguments.get("printer_identifier") or arguments.get("product_id") or arguments.get("identifier") or ""
             return self._get_compatible_consumables(
-                printer_identifier=arguments.get("printer_identifier", ""),
+                printer_identifier=ident,
                 limit=arguments.get("limit", 25)
             )
         elif tool_name == "compare_products":

@@ -49,6 +49,9 @@ class ResponseNode(BaseNode):
                 ctx.response_text = f"{prefix}I am ready to assist you with our official range of printers, plotters, and document scanners. Which specifications or products would you like to explore?"
                 ctx.source = "route:default_greeting"
 
+            if ctx.response_text:
+                ctx.response_text = ctx.response_text.replace("UltraChrome Pro10", "UltraChrome PRO10").replace("UltraChrome Pro 10", "UltraChrome PRO10")
+
             step.complete(
                 summary=f"Composed {len(ctx.response_text)} chars (Source: {ctx.source})",
                 details={"source": ctx.source, "length": len(ctx.response_text)}

@@ -11,6 +11,7 @@ Provides deterministic, unified normalization for:
 
 import re
 from typing import Dict, Any, List, Optional, Tuple
+from domain.canonical_turn import CIStr
 
 
 class CanonicalEntityNormalizer:
@@ -188,11 +189,11 @@ class CanonicalEntityNormalizer:
         # A0 / 36-inch
         if re.search(r"\b(?:a0|36[\s-]*(?:inch|in|\")|36inch)\b", text_l) or (not is_explicit_vol and bool(re.search(r"\b36\b", text_l))):
             res["print_width"] = 36
-            res["paper_size"] = "a0"
+            res["paper_size"] = CIStr("A0")
         # A1 / 24-inch
         elif not is_large_range and (re.search(r"\b(?:a1|24[\s-]*(?:inch|in|\")|24inch)\b", text_l) or (not is_explicit_vol and bool(re.search(r"\b24\b", text_l)))):
             res["print_width"] = 24
-            res["paper_size"] = "24-inch" if category == "dye_sublimation" else "a1"
+            res["paper_size"] = CIStr("24-inch") if category == "dye_sublimation" else CIStr("A1")
         # 44-inch / B0
         elif re.search(r"\b(?:44[\s-]*(?:inch|in|\")|44inch)\b", text_l) or (not is_explicit_vol and bool(re.search(r"\b44\b", text_l))):
             res["print_width"] = 44

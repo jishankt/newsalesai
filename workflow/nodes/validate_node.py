@@ -27,6 +27,8 @@ class ValidateNode(BaseNode):
                 user_message=ctx.normalized_message,
             )
             ctx.response_text = sanitized
+            if ctx.response_text:
+                ctx.response_text = ctx.response_text.replace("UltraChrome Pro10", "UltraChrome PRO10").replace("UltraChrome Pro 10", "UltraChrome PRO10")
 
             ctx.grounding = {
                 "is_grounded": True,

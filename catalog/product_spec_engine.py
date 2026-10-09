@@ -338,7 +338,7 @@ class ProductSpecEngine:
             # Epson & other brand verified ink technology
             if "f500" in product.id or "f100" in product.id:
                 reply = (
-                    f"The **[{p_name}]({p_url})** uses genuine **Epson UltraChrome DS dye-sublimation ink** (4 colors: Cyan, Magenta, Yellow, Black) "
+                    f"The **[{p_name}]({p_url})** uses genuine **Epson UltraChrome DS sublimation ink** (4 colors: Cyan, Magenta, Yellow, Black) "
                     f"with a continuous 140 ml refillable ink tank system, engineered for transfer printing onto hard substrates and polyester textiles [VERIFIED]."
                 )
                 return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
@@ -410,7 +410,7 @@ class ProductSpecEngine:
                 return RouteResult(reply=reply, product_cards=[], source="catalog:single_attribute")
             elif "f100" in product.id or "f500" in product.id:
                 reply = (
-                    f"The **[{p_name}]({p_url})** prints dye-sublimation ink onto **DS Transfer sublimation paper**, which is heat-pressed onto:\n\n"
+                    f"The **[{p_name}]({p_url})** prints sublimation ink onto **DS Transfer sublimation paper**, which is heat-pressed onto:\n\n"
                     f"• **Fabric & Apparel:** 100% polyester and poly-blend fabrics, T-shirts, sportswear, and apparel.\n"
                     f"• **Coated Hard Surfaces:** Sublimation-coated mugs, ceramic tiles, aluminium photo panels, phone covers, and mouse pads."
                 )
@@ -686,7 +686,7 @@ class ProductSpecEngine:
             tech = "PrecisionCore Heat-Free Enterprise Linehead Inkjet"
             speed_label = "Print / Copy Speed"
         elif "f100" in product.id or "f500" in product.id:
-            tech = "PrecisionCore MicroTFP Dye-Sublimation Inkjet"
+            tech = "PrecisionCore MicroTFP Sublimation Inkjet"
             speed_label = "Print Speed"
         elif "p700" in product.id or "p900" in product.id or "p7500" in product.id:
             tech = "PrecisionCore MicroTFP with UltraChrome PRO Inks"

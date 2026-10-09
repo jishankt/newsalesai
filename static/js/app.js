@@ -294,8 +294,9 @@ document.addEventListener('DOMContentLoaded', () => {
     appendMessage('bot', welcomeMsg, '', [], null, null, [], [], [], DEFAULT_AGENT);
 
     setTimeout(() => {
-      const followUp = "How can I help you with your printing solutions or consumable needs today?";
-      appendMessage('bot', followUp, '', [], null, null, [], [], [], DEFAULT_AGENT);
+      const followUp = "Do you want a scanner, printer, or consumables?";
+      const initialChips = ["Printer", "Scanner", "Consumables"];
+      appendMessage('bot', followUp, 'qualification:category_prompt', initialChips, null, null, [], [], [], DEFAULT_AGENT);
     }, 250);
   }
 
@@ -886,7 +887,7 @@ document.addEventListener('DOMContentLoaded', () => {
         chipBtn.style.cssText = 'background: #ffffff; border: 1px solid #cbd5e1; border-radius: 14px; padding: 5px 12px; font-size: 0.74rem; cursor: pointer; color: #1e293b; font-weight: 500; transition: all 0.15s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.05);';
         chipBtn.textContent = chipText;
         chipBtn.addEventListener('click', () => {
-          if (chipText === '🔑 Open Login' || chipText === 'Open Login') {
+          if (chipText === '🔑 Open Login' || chipText === 'Open Login' || chipText === 'Login') {
             openCustomerModal();
             return;
           }
@@ -1063,11 +1064,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (customerAuthBtn) {
     customerAuthBtn.addEventListener('click', () => {
-      if (currentCustomer) {
-        openCustomerModal();
-      } else {
-        enqueueUserMessage("login");
-      }
+      openCustomerModal();
     });
   }
 
@@ -1088,7 +1085,19 @@ document.addEventListener('DOMContentLoaded', () => {
   function openCustomerModal() {
     if (customerLoginError) customerLoginError.style.display = 'none';
     if (currentCustomer) {
+      if (customerLoginFormView) customerLoginFormView.style.display = 'none';
+      if (customerProfileView) customerProfileView.style.display = 'block';
+      if (customerModalTitle) customerModalTitle.textContent = 'Customer Account';
+      if (customerModalSubtitle) customerModalSubtitle.textContent = 'Manage your profile and past chat sessions';
       loadCustomerPastChats();
+    } else {
+      if (customerLoginFormView) customerLoginFormView.style.display = 'block';
+      if (customerProfileView) customerProfileView.style.display = 'none';
+      if (customerModalTitle) customerModalTitle.textContent = 'Customer Login';
+      if (customerModalSubtitle) customerModalSubtitle.textContent = 'Sign in with your details to access past conversations & quotes';
+      setTimeout(() => {
+        if (custUsernameInput) custUsernameInput.focus();
+      }, 100);
     }
     if (customerModalBackdrop) {
       customerModalBackdrop.classList.add('open');
@@ -1131,6 +1140,7 @@ document.addEventListener('DOMContentLoaded', () => {
           custPasswordInput.value = '';
           renderCustomerPastChats(data.sessions || []);
           appendMessage('bot', `Welcome back, **${data.customer.name}**! You are logged in. Your previous conversations and quotes are loaded. You can continue our chat or switch to a past conversation anytime using the profile button at the top.`, 'Customer Account', [], null, null, [], [], [], DEFAULT_AGENT);
+          closeCustomerModal();
         } else {
           if (customerLoginError) {
             customerLoginError.textContent = data.error || 'Invalid name or phone/email. Please try again.';

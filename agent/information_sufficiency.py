@@ -70,6 +70,16 @@ class InformationSufficiency:
             # A4/A3 format or CAD blueprint inquiries are NOT_APPLICABLE.
             if field_name in ("format", "a4_or_a3", "cad_width", "adf", "scanner", "ink_technology"):
                 return SufficiencyStatus.NOT_APPLICABLE
+            # If print dimensions or roll constraints are already present, application is already sufficient
+            req_str = str(reqs).lower()
+            if field_name == "application" and (
+                reqs.get("ribbon_rewind")
+                or reqs.get("print_sizes")
+                or reqs.get("sizes")
+                or reqs.get("paper_size")
+                or any(k in req_str for k in ["6x8", "6x4", "8x12", "single_roll", "single paper roll", "2x6", "6x2", "ribbon_rewind"])
+            ):
+                return SufficiencyStatus.SUFFICIENT
 
         if cat == "technical_large_format":
             # Technical CAD plotters (T-Series) are roll/sheet CAD. Photo booth size is NOT_APPLICABLE.
@@ -115,8 +125,10 @@ class InformationSufficiency:
         if state.question_ledger and state.question_ledger.get_unanswered_customer_questions():
             return None
 
-        cat = state.category or state.requirements.get("category")
+        cat = state.category or state.requirements.get("category") or (state.active_product.get("category") if isinstance(state.active_product, dict) else None)
         if not cat:
+            if state.get_canonical_focus_id() or state.active_product or getattr(state, "compared_product_ids", []) or getattr(state, "comparison_product_ids", []) or getattr(state, "displayed_product_ids", []):
+                return None
             # Need high-level category if exploring without any context
             if state.question_ledger and not state.question_ledger.can_ask_agent_question("category"):
                 return None
@@ -141,7 +153,7 @@ class InformationSufficiency:
         if category == "technical_large_format":
             return ["print_width"]
         if category == "office_printer":
-            return ["print_volume"]
+            return ["paper_size", "daily_volume"]
         if category == "citizen_photo":
             return ["application"]
         return []
@@ -149,10 +161,12 @@ class InformationSufficiency:
     @classmethod
     def _get_question_for_field(cls, field_name: str, category: Optional[str]) -> Optional[str]:
         """Provides natural, non-pushy phrasing for a missing mandatory field."""
+        if field_name in ("paper_size", "print_size"):
+            return "Do you require an A4 or A3 office multifunction printer?"
         if field_name == "print_width":
             return "What maximum print width do you require for your technical plans (e.g., 24-inch A1 or 36-inch A0)?"
-        if field_name == "print_volume":
-            return "What is your estimated monthly print volume (pages per month)?"
+        if field_name in ("daily_volume", "print_volume"):
+            return "What is your estimated daily or monthly printing volume?"
         if field_name == "application":
             return "Is this for portable event / photo booth printing or on-site studio portraits?"
         return None

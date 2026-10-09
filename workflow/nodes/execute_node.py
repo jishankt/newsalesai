@@ -38,6 +38,8 @@ class ExecuteNode(BaseNode):
                 raw_cards = []
                 if res.get("cards"):
                     raw_cards.extend(res["cards"])
+                elif res.get("product_cards"):
+                    raw_cards.extend(res["product_cards"])
                 elif res.get("product"):
                     raw_cards.append(catalog_tool_executor.format_card(res["product"], "hardware"))
 

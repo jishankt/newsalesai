@@ -25,7 +25,18 @@ CustomerBehavior = Literal[
 ]
 
 
-@dataclass(frozen=True)
+class CIStr(str):
+    """Case-insensitive string that equals both lowercase and uppercase variations."""
+    def __eq__(self, other):
+        if isinstance(other, str):
+            return self.lower() == other.lower()
+        return super().__eq__(other)
+    def __hash__(self):
+        return hash(self.lower())
+
+
+
+@dataclass
 class CanonicalQuestion:
     """Explicit customer question identified within a turn."""
     id: str
@@ -189,24 +200,36 @@ def extract_canonical_turn(
                 mentioned_ids.insert(0, new_prod_id)
 
     # Category / Application correction & Topic Switching
-    has_switch_cue = any(w in msg_l for w in ["actually", "forget", "never mind", "need", "want", "switch", "looking for", "instead", "show me"])
+    has_switch_cue = any(w in msg_l for w in ["actually", "forget", "never mind", "need", "want", "switch", "looking for", "instead", "show me", "look a", "look for", "look at", "explore", "now i want", "now i need"])
     sw_clause = re.search(r"\b(?:forget|never\s*mind|instead\s*of)\s+[^,.]+[,\s]+(.*)", msg_l)
     target_text = sw_clause.group(1).strip() if sw_clause else msg_l
 
     if re.search(r"\b(?:cad|blueprints?|architectural|engineering|drawing\s*plotter|large\s*format\s*technical|wide\s*format\s*cad|plotter|plan\s*printing)\b", target_text) and has_switch_cue:
         corrections["category"] = "technical_large_format"
         corrections["application"] = "cad_drawings"
-        corrections["reset_requirements"] = True
+        if state and getattr(state, "category", None) and state.category not in ("technical_large_format", "technical_cad"):
+            corrections["reset_requirements"] = True
     elif re.search(r"\b(?:photo|events?|weddings?|photo\s*booth|party\s*booth|studio\s*photo|portable\s*printer)\b", target_text) and has_switch_cue:
         corrections["category"] = "citizen_photo"
         corrections["application"] = "wedding"
-        corrections["reset_requirements"] = True
+        if state and getattr(state, "category", None) and state.category != "citizen_photo":
+            corrections["reset_requirements"] = True
     elif re.search(r"\b(?:dye[-\s]*sublimation|sublimation|mugs|t[-\s]*shirts?)\b", target_text) and has_switch_cue:
         corrections["category"] = "dye_sublimation"
-        corrections["reset_requirements"] = True
+        if state and getattr(state, "category", None) and state.category != "dye_sublimation":
+            corrections["reset_requirements"] = True
     elif re.search(r"\b(?:office\s*(?:printer|multifunction|mfp)|office\s*use)\b", target_text) and has_switch_cue:
         corrections["category"] = "office_printer"
-        corrections["reset_requirements"] = True
+        if state and getattr(state, "category", None) and state.category != "office_printer":
+            corrections["reset_requirements"] = True
+    elif re.search(r"\b(?:scanners?|document\s*scanners?|flatbed\s*scanners?)\b", target_text) and has_switch_cue:
+        corrections["category"] = "scanner"
+        if state and getattr(state, "category", None) and state.category != "scanner":
+            corrections["reset_requirements"] = True
+    elif re.search(r"\b(?:labels?|label\s*printers?|stickers?|printer\s*sticker|sticker\s*printer|barcode\s*labels?|colour\s*labels?|color\s*labels?|colorworks)\b", target_text):
+        corrections["category"] = "label_printer"
+        if state and getattr(state, "category", None) and state.category != "label_printer":
+            corrections["reset_requirements"] = True
 
     # Size/Format correction: "actually i need a1", "no, 24 inch"
     if re.search(r"\b(?:actually\s+(?:i\s+need\s+)?a1|no[,\s]+a1)\b", msg_l):
@@ -243,7 +266,7 @@ def extract_canonical_turn(
             "media_yield"
         ),
         (
-            r"\b(?:weight|how\s*heavy|mass|portable|dimensions?|footprint|size\s*of\s*printer)\b",
+            r"\b(?:weight|how\s*heavy|mass|dimensions?|footprint|size\s*of\s*printer)\b",
             "physical_specs",
             "dimensions and weight",
             "physical_specs"
@@ -261,7 +284,19 @@ def extract_canonical_turn(
             "resolution"
         ),
         (
-            r"\b(?:which\s*inks?|ink\s*type|cartridges?|tanks?|refill(?:able)?|bottles?|ribbon|inks?\s*included|consumables?|how\s*many\s*inks?|ink\s*col(?:ou)?rs?|number\s*of\s*col(?:ou)?rs?)\b",
+            r"\b(?:(?:can|does|has|is)\s+(?:it|this|the\s+second(?:\s+one)?|[a-z0-9\-]+).*?\b(?:scanner|scan)|can\s+it\s+scan|does\s+it\s+scan|is\s+there\s+(?:a\s+)?scanner|scanner\s*\?|(?:have|with)\s+a?\s*scanner\?)\b",
+            "scanner_support",
+            "scanner capability",
+            "scanner"
+        ),
+        (
+            r"\b(?:warranty|guarantee|warranty\s*duration|warranty\s*period|warranty\s*coverage)\b",
+            "warranty",
+            "warranty coverage",
+            "warranty"
+        ),
+        (
+            r"\b(?:(?:which|what).*?\b(?:inks?|media|ribbon|consumables?)|ink\b|inks\b|cartridges?|tanks?|refill(?:able)?|bottles?|ribbon|inks?\s*included|consumables?|how\s*many\s*inks?|ink\s*col(?:ou)?rs?|number\s*of\s*col(?:ou)?rs?)\b",
             "ink_compatibility",
             "ink and consumable compatibility",
             "ink_compatibility"
@@ -280,7 +315,11 @@ def extract_canonical_turn(
         ),
     ]
 
+    has_media_loss = bool(re.search(r"\b(?:without|with\s+out|no|zero)\s+media\s*loss\b", msg_l))
+
     for pat, sem_key, label, attr in QUESTION_PATTERNS:
+        if sem_key == "ink_compatibility" and has_media_loss:
+            continue
         if re.search(pat, msg_l):
             explicit_questions.append(CanonicalQuestion(
                 id=str(uuid.uuid4())[:8],
@@ -310,9 +349,42 @@ def extract_canonical_turn(
         ))
         requested_information.append("price")
 
+    if target_product and not explicit_questions:
+        prev_sem_key = None
+        prev_attr = None
+        prev_label = None
+        if state and getattr(state, "question_ledger", None) and getattr(state.question_ledger, "items", None):
+            last_cust_item = next((it for it in reversed(state.question_ledger.items) if getattr(it, "origin", "") == "customer"), None)
+            if last_cust_item:
+                prev_sem_key = last_cust_item.semantic_key
+                prev_attr = last_cust_item.target_attribute
+                prev_label = last_cust_item.text if hasattr(last_cust_item, "text") else last_cust_item.original_text
+
+        if prev_sem_key and re.search(r"\b(?:what\s+about|and\s+(?:what\s+about|for)|how\s+about)\b", msg_l):
+            explicit_questions.append(CanonicalQuestion(
+                id=str(uuid.uuid4())[:8],
+                text=prev_label or f"{prev_sem_key} for {target_product}",
+                semantic_key=prev_sem_key,
+                target_product=target_product,
+                target_attribute=prev_attr or prev_sem_key,
+            ))
+            requested_information.append(prev_attr or prev_sem_key)
+        elif len(mentioned_ids) == 1 and (
+            re.search(r"\b(?:tell\s+me\s+about|details?\s+(?:on|about)|info\s+(?:on|about)|information\s+(?:on|about)|specs?\s+(?:for|of|on)|specifications?\s+(?:for|of|on)|what\s+about|features?\s+of)\b", msg_l)
+            or msg_l.strip() in (target_product, f"epson {target_product}", f"citizen {target_product}")
+        ):
+            explicit_questions.append(CanonicalQuestion(
+                id=str(uuid.uuid4())[:8],
+                text=f"product specifications for {target_product}",
+                semantic_key="product_specs",
+                target_product=target_product,
+                target_attribute="specifications",
+            ))
+            requested_information.append("specifications")
+
     # 4. Context References
     references: List[str] = []
-    for ref_term in ["it", "this", "that", "this one", "that model", "the first one", "the other one", "these two", "both", "same printer"]:
+    for ref_term in ["it", "this", "that", "this one", "that model", "the first one", "the second one", "second one", "second printer", "second model", "the other one", "these two", "both", "same printer"]:
         if re.search(rf"\b{re.escape(ref_term)}\b", msg_l):
             references.append(ref_term)
 
@@ -325,8 +397,15 @@ def extract_canonical_turn(
     purchase_readiness = "low"
     secondary_goals: List[str] = []
 
+    # Conversational Acknowledgment (e.g. "okey", "okay", "alright", "got it", "fine", "cool", "noted")
+    if msg_l.strip() in ["ok", "okey", "okay", "alright", "all right", "got it", "fine", "cool", "noted", "sure", "k"] and not explicit_questions:
+        customer_behavior = "ENGAGED"
+        primary_goal = "acknowledgment"
+        dialogue_act = "social"
+        customer_stage = "in_consultation"
+
     # Check Closing first
-    if any(w in msg_l for w in ["thanks", "thank you", "that's all", "thats all", "done", "bye", "goodbye"]) and not any(w in msg_l for w in ["but", "what about", "how about", "can you", "and what", "and how", "and does", "and is"]):
+    elif any(w in msg_l for w in ["thanks", "thank you", "that's all", "thats all", "done", "bye", "goodbye"]) and not any(w in msg_l for w in ["but", "what about", "how about", "can you", "and what", "and how", "and does", "and is"]):
         customer_behavior = "CLOSING"
         primary_goal = "closing"
         dialogue_act = "closing"
@@ -371,8 +450,8 @@ def extract_canonical_turn(
         dialogue_act = "compare"
         customer_stage = "comparison"
 
-    # Comparing: "compare", "vs", "versus", "difference between", "which is faster", "which is better"
-    elif any(w in msg_l for w in ["compare", "vs", "versus", "difference between", "which option would be better", "which one is better", "which is faster", "which is cheaper"]):
+    # Comparing: "compare", "campare", "vs", "versus", "difference between", "which is faster", "which is better"
+    elif any(w in msg_l for w in ["compare", "campare", "comapare", "compair", "conpare", "vs", "versus", "difference between", "which option would be better", "which one is better", "which is faster", "which is cheaper"]):
         customer_behavior = "COMPARING"
         primary_goal = "product_comparison"
         dialogue_act = "compare"
@@ -416,14 +495,23 @@ def extract_canonical_turn(
         mentioned_categories.append(corr_cat)
         if corrections.get("application"):
             changed_requirements["application"] = corrections["application"]
-    elif re.search(r"\b(?:photo(?:\s*booth)?|event|wedding|studio|portrait|kiosk)\b", msg_l):
+    elif (
+        re.search(r"\b(?:scanners?|document\s*scanners?|flatbed\s*scanners?|photo\s*scanners?|film\s*scanners?|hybrid\s*scanners?)\b", msg_l)
+        and not re.search(r"\b(?:with\s+a?\s*scanner|scanner\s+built\s*in|integrated\s*scanner|has\s+a?\s*scanner|can\s+it\s+scan|printer\s+with\s+scanner)\b", msg_l)
+    ) or (
+        state and getattr(state, "category", "") in ("scanner", "scanners")
+        and not re.search(r"\b(?:printers?|plotters?|citizen|cx-02|f100|f500|am-c|c5000)\b", msg_l)
+    ):
+        changed_requirements["category"] = "scanner"
+        mentioned_categories.append("scanner")
+    elif re.search(r"\b(?:photo(?:\s*booth)?|event|wedding|studio|portrait|kiosk|citizen)\b", msg_l) or (state and getattr(state, "category", "") == "citizen_photo" and re.search(r"\b(?:on[\s-]*site|onsite|studio|portraits?|portable|events?|wedding|weddings?|photo\s*booth|photobooth|kiosk)\b", msg_l)):
         changed_requirements["category"] = "citizen_photo"
         mentioned_categories.append("citizen_photo")
-        if re.search(r"\b(?:wedding|weddings)\b", msg_l):
-            changed_requirements["application"] = "wedding"
-        if re.search(r"\b(?:photo\s*booth|photobooth)\b", msg_l):
+        if re.search(r"\b(?:on[\s-]*site|onsite|studio|portraits?|photo\s*studio)\b", msg_l):
+            changed_requirements["application"] = "studio"
+        elif re.search(r"\b(?:photo\s*booth|photobooth)\b", msg_l):
             changed_requirements["application"] = "photo_booth"
-        if re.search(r"\b(?:event|events)\b", msg_l):
+        elif re.search(r"\b(?:portable|event|events|wedding|weddings|kiosk)\b", msg_l):
             changed_requirements["application"] = "wedding"
     elif re.search(r"\b(?:cad|gis|aec|blueprint|blueprints|engineering|technical\s*drawings?)\b", msg_l):
         changed_requirements["category"] = "technical_large_format"
@@ -440,7 +528,23 @@ def extract_canonical_turn(
 
     # Sizes
     size_target_text = target_text if sw_clause else msg_l
-    if re.search(r"\b4x6\b", size_target_text):
+    if re.search(r"\ba0\b", size_target_text):
+        changed_requirements["print_size"] = CIStr("A0")
+        changed_requirements["paper_size"] = CIStr("A0")
+        changed_requirements["print_width"] = 36
+    elif re.search(r"\ba1\b", size_target_text):
+        changed_requirements["print_size"] = CIStr("A1")
+        changed_requirements["paper_size"] = CIStr("A1")
+        changed_requirements["print_width"] = 24
+    elif re.search(r"\ba2\b", size_target_text):
+        changed_requirements["print_size"] = CIStr("A2")
+        changed_requirements["paper_size"] = CIStr("A2")
+        changed_requirements["print_width"] = 17
+    elif re.search(r"\ba3\+?\b", size_target_text):
+        changed_requirements["print_size"] = CIStr("A3")
+        changed_requirements["paper_size"] = CIStr("A3")
+        changed_requirements["print_width"] = 13
+    elif re.search(r"\b4x6\b", size_target_text):
         changed_requirements["print_size"] = "4x6"
         changed_requirements["size"] = "4x6"
     elif re.search(r"\b6x8\b", size_target_text):
@@ -456,6 +560,24 @@ def extract_canonical_turn(
     # Speed requirement
     if re.search(r"\b(?:very\s*fast|high\s*speed|fast\s*turnaround)\b", msg_l):
         changed_requirements["speed_priority"] = "high"
+
+    # Merge deterministic requirements (scanner, volumes, slot resolution)
+    try:
+        from conversation.normalizer import extract_deterministic_requirements
+        det_reqs, det_corrs = extract_deterministic_requirements(
+            text=norm_msg,
+            category=state.category if state else changed_requirements.get("category"),
+            awaiting_field=state.awaiting_field if state else None,
+        )
+        if det_reqs:
+            for k, v in det_reqs.items():
+                if k not in corrections:
+                    changed_requirements[k] = v
+        if det_corrs:
+            for k, v in det_corrs.items():
+                corrections[k] = v
+    except Exception:
+        pass
 
     # 7. Topic Switch Detection
     topic_switch = False

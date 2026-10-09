@@ -108,13 +108,13 @@
     "aliases": ["p9500", "sc-p9500"]
   },
   "epson-sc-f100": {
-    "name": "Epson SureColor SC-F100 Desktop Dye-Sublimation Printer",
+    "name": "Epson SureColor SC-F100 Desktop Sublimation Printer",
     "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-f100-printer/",
     "pdf": "https://www.keplertechllc.com/wp-content/uploads/2023/07/Epson-SureColor-SC-F100-Printer-Datasheet.pdf",
     "aliases": ["f100", "sc-f100"]
   },
   "epson-sc-f500": {
-    "name": "Epson SureColor SC-F500 24\" Dye-Sublimation Printer",
+    "name": "Epson SureColor SC-F500 24\" Sublimation Printer",
     "url": "https://www.keplertechllc.com/product/epson-surecolor-sc-f500-dye-sublimation-printer/",
     "pdf": "https://www.keplertechllc.com/wp-content/uploads/2026/04/surecolor-sc-f500-datasheet-kepler.pdf",
     "aliases": ["f500", "sc-f500"]

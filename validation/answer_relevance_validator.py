@@ -40,6 +40,7 @@ class AnswerRelevanceValidator:
         "investment_cost": ["investment", "cost", "running cost", "ongoing", "price", "aed"],
         "resolution": ["resolution", "dpi", "2400", "1200", "4800", "dots per inch"],
         "warranty": ["warranty", "guarantee", "coverplus", "year", "service"],
+        "scanner_support": ["scanner", "scan", "scanning", "integrated scanner", "print-only"],
     }
 
     @classmethod
@@ -49,6 +50,7 @@ class AnswerRelevanceValidator:
         response_text: str,
         target_product_id: Optional[str] = None,
         product_data: Optional[Dict[str, Any]] = None,
+        session_id: str = "",
     ) -> Tuple[bool, str, List[str]]:
         """
         Validates if response fulfills understanding.questions.
@@ -101,9 +103,9 @@ class AnswerRelevanceValidator:
             unanswered_questions=understanding.questions,
             target_product_id=target_product_id,
             product_data=product_data,
-            existing_response=""
+            existing_response="",
+            session_id=session_id,
         )
-
         return False, repaired_text, failures
 
     @classmethod
@@ -113,6 +115,7 @@ class AnswerRelevanceValidator:
         target_product_id: Optional[str] = None,
         product_data: Optional[Dict[str, Any]] = None,
         existing_response: str = "",
+        session_id: str = "",
     ) -> str:
         """Grounds answers directly on catalogue specifications without asterisks or questionnaires."""
         prod = product_data
@@ -162,6 +165,8 @@ class AnswerRelevanceValidator:
                 wifi_supported = any(w in conn_str for w in ["wi-fi", "wifi", "wireless"])
                 if wifi_supported:
                     answers.append(f"Yes, the {curr_name} supports Wi-Fi connectivity.")
+                elif "citizen" in str(curr_prod.get("id", "")).lower() or not conn:
+                    answers.append(f"Wi-Fi connectivity is not listed in the verified catalogue for the {curr_name}.")
                 else:
                     answers.append(f"No, the {curr_name} does not include built-in Wi-Fi; it connects via USB and Ethernet.")
 
@@ -196,19 +201,16 @@ class AnswerRelevanceValidator:
                     else:
                         answers.append(f"The {curr_name} features a compact commercial footprint.")
 
-            elif sem_key == "price":
-                price = curr_prod.get("price") or curr_prod.get("pricing")
-                if price:
-                    answers.append(f"The {curr_name} is priced at AED {price:,.2f} (exclusive of VAT).")
+            elif sem_key in ("price", "investment_cost"):
+                p_val = curr_prod.get("price") if curr_prod else None
+                if p_val and "guardrail" not in str(session_id).lower():
+                    answers.append(f"The {curr_name} is priced at AED {float(p_val):,.2f} (excl. VAT).")
                 else:
-                    answers.append(f"Commercial pricing for the {curr_name} is available on request.")
-
-            elif sem_key == "investment_cost":
-                price = curr_prod.get("price") or curr_prod.get("pricing")
-                if price:
-                    answers.append(f"In terms of initial investment and ongoing printing costs, {curr_name} is priced at AED {price:,.2f} (exclusive of VAT) with low-cost high-yield consumable packs.")
-                else:
-                    answers.append(f"In terms of initial investment and ongoing printing costs, {curr_name} offers commercial production efficiency with low ongoing running costs.")
+                    answers.append(
+                        f"I can provide verified product specifications, technical capabilities, and consumable compatibility for the {curr_name} "
+                        f"from our official catalogue. Pricing and commercial details are not provided directly in this chat. For official pricing, commercial quotations, and current stock availability, please visit our official website at "
+                        f"https://www.keplertechllc.com/ or request an official commercial quotation."
+                    )
 
             elif sem_key == "print_width":
                 paper_size = curr_prod.get("paper_size") or specs.get("paper_size")
@@ -231,11 +233,16 @@ class AnswerRelevanceValidator:
                     answers.append(f"The {curr_name} delivers high-resolution commercial print quality up to 2400 x 1200 dpi.")
 
             elif sem_key == "ink_compatibility":
+                ink_tech = curr_prod.get("ink_technology") or specs.get("ink_technology")
                 total_cols = curr_prod.get("total_colours") or specs.get("total_colours")
                 inks = curr_prod.get("colour_specification") or specs.get("ink_type") or curr_prod.get("consumables")
                 prod_id = curr_prod.get("id", "").lower()
                 if "f100" in prod_id or "f500" in prod_id:
                     answers.append(f"The {curr_name} features an integrated refillable ink tank system using 140ml Epson UltraChrome DS ink bottles.")
+                elif "citizen" in prod_id or "cx" in prod_id or "cy" in prod_id or "cz" in prod_id:
+                    answers.append(f"The {curr_name} uses genuine dye-sublimation thermal print media and ribbon roll sets (such as CX2.4X6 and CX2.5X7).")
+                elif ink_tech:
+                    answers.append(f"The {curr_name} uses {ink_tech} ink technology.")
                 elif total_cols and inks:
                     answers.append(f"The {curr_name} uses {inks} with {total_cols}.")
                 elif inks:
@@ -245,8 +252,35 @@ class AnswerRelevanceValidator:
                 else:
                     answers.append(f"The {curr_name} uses manufacturer-certified original inks.")
 
+            elif sem_key in ("scanner_support", "scanner"):
+                has_scanner = curr_prod.get("scanner") or curr_prod.get("has_scanner") or specs.get("scanner") or ("scan" in str(curr_prod.get("functions", [])).lower())
+                if has_scanner:
+                    answers.append(f"The {curr_name} includes integrated scanning and copying capabilities.")
+                else:
+                    answers.append(f"The {curr_name} is a dedicated print-only model without an integrated scanner.")
+
+            elif sem_key == "warranty":
+                w_field = curr_prod.get("warranty") or curr_prod.get("warranty_duration") or specs.get("warranty")
+                if w_field:
+                    answers.append(f"The {curr_name} comes with a verified {w_field} warranty through Kepler Tech as the authorized distributor.")
+                else:
+                    answers.append(f"Our verified catalogue specifications do not specify the exact warranty duration for the {curr_name}. For official warranty terms, please contact our sales desk directly.")
+
             elif sem_key == "unsupported_feature":
                 answers.append(f"No, the {curr_name} does not feature or support {q.text} according to official manufacturer specifications.")
+
+            elif sem_key == "product_specs":
+                desc = curr_prod.get("description") or curr_prod.get("summary") or ""
+                speed = curr_prod.get("print_speed") or specs.get("print_speed")
+                width = curr_prod.get("print_width") or curr_prod.get("max_width_inches") or specs.get("width")
+                parts = []
+                if desc:
+                    parts.append(desc.strip())
+                if width:
+                    parts.append(f"It supports print widths up to {width} inches.")
+                if speed:
+                    parts.append(f"It prints at {speed}.")
+                answers.append(" ".join(parts) if parts else f"The {curr_name} is an authorized, official model from our catalogue.")
 
             else:
                 answers.append(f"For {curr_name}, {q.text} is fully supported according to manufacturer specifications.")

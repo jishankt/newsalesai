@@ -102,7 +102,9 @@ class ProductRanker:
                 if p.category == "technical_cad":
                     # Standard single-roll plotters are the default CAD recommendation
                     # Production dual-roll plotters rank lower unless volume/speed is prioritized
-                    if p.id in ("epson-t5700d",) and not is_volume_priority and not is_speed_priority:
+                    vol_val = requirements.get("event_volume") or requirements.get("daily_volume")
+                    has_cad_volume = vol_val in ("medium", "moderate", "mid", "high", "large", "production") or is_volume_priority or is_speed_priority
+                    if p.id in ("epson-t5700d",) and not has_cad_volume:
                         use_case_pts = 80.0  # Production plotter without production need
                     else:
                         use_case_pts = 100.0

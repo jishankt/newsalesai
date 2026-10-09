@@ -21,8 +21,8 @@ DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:32b")
 APP_ENV = os.getenv("APP_ENV") or os.getenv("FLASK_ENV") or os.getenv("ENVIRONMENT") or "development"
 IS_PRODUCTION = APP_ENV.lower() in ("production", "prod")
 
-# Customer Authentication & Chat History Feature Flag (default False)
-CUSTOMER_LOGIN_ENABLED = os.getenv("CUSTOMER_LOGIN_ENABLED", "False").lower() in ("true", "1", "yes")
+# Customer Authentication & Chat History Feature Flag (enabled by default)
+CUSTOMER_LOGIN_ENABLED = os.getenv("CUSTOMER_LOGIN_ENABLED", "True").lower() in ("true", "1", "yes")
 CUSTOMER_OPT_IN_PROMPT_ENABLED = os.getenv("CUSTOMER_OPT_IN_PROMPT_ENABLED", "False").lower() in ("true", "1", "yes")
 
 # Security Configuration
@@ -181,4 +181,17 @@ def is_within_business_hours(dt=None) -> bool:
     open_time = time(*sched["open"])
     close_time = time(*sched["close"])
     return open_time <= current_time <= close_time
+
+
+# Official Kepler Tech Shipping, Delivery & Returns Policy
+SHIPPING_AND_DELIVERY_POLICY = {
+    "coverage": "Only the UAE, Oman, and other GCC countries (Saudi Arabia, Qatar, Bahrain, Kuwait). A third-party courier handles shipping. We do not trade with OFAC-sanctioned countries.",
+    "timing": "Orders are processed in 1 to 2 business days after the confirmation email, excluding weekends and holidays. A second notification is sent when the order ships.",
+    "fees": "UAE delivery is a flat AED 10. Outside the UAE, the fee depends on country and location and is shown at checkout. Free local pickup at our store is also available (ready in 1 to 2 business days).",
+    "payment": "Payment is required in full before dispatch (Visa or MasterCard in AED, or PayPal).",
+    "customs": "For international orders, the customer pays import customs duty and VAT in the destination country.",
+    "cancellation": "Orders can be cancelled only within 24 hours of placing them.",
+    "returns": "Defective or wrong items must be reported within 2 days of receipt, in the original unopened packaging. Refunds go back to the original payment method and can take up to 45 days.",
+}
+
 

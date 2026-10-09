@@ -549,7 +549,8 @@ class EvidencePlanner:
             if wants_ink:
                 fact, cards = cls._evaluate_ink(prod)
                 lines.append(f"- Ink: {fact.display_claim}" if fact.status == "supported" else "- Ink: Compatibility is not documented in the verified catalogue.")
-                ink_cards.extend(cards)
+                ink_only = [c for c in cards if c.get("category") == "Ink Cartridge"]
+                ink_cards.extend(ink_only if ink_only else cards)
             if wants_wifi:
                 lines.append(f"- Connectivity: {cls._evaluate_wifi(prod).display_claim}")
             if wants_scanner:

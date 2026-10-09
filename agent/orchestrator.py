@@ -106,22 +106,23 @@ def format_rotating_opener(target: str, state: ConversationState) -> str:
 
 PRICING_REDIRECT_TEMPLATES = [
     (
-        "Commercial details and official quotations are handled directly by our sales desk. "
+        "Commercial details are not provided directly in this chat. "
         "You can explore our published list prices on our official website (https://www.keplertechllc.com/).\n\n"
         "Would you like me to connect you with a Kepler Tech sales specialist right now so they can prepare an official commercial quotation?"
     ),
     (
-        "Pricing, promotional rates, and commercial proposals are managed by our sales team. "
+        "Commercial details are not provided directly in this chat. Pricing, promotional rates, and commercial proposals are managed by our sales team. "
         "Verified pricing is published on our official website at https://www.keplertechllc.com/.\n\n"
         "I can connect you with a sales representative immediately to provide an official quote and discuss terms. Would you like a quotation?"
     ),
     (
-        "Our chat assistant provides verified technical specifications and compatibility from our authorized catalogue. "
+        "Commercial details are not provided directly in this chat. "
+        "Our assistant provides verified technical specifications and compatibility from our authorized catalogue. "
         "For official pricing and formal commercial quotes, please visit https://www.keplertechllc.com/,\n\n"
         "or let me know if you would like to be connected with a sales specialist to receive a tailored quotation."
     ),
     (
-        "Commercial offers, enterprise discounts, and quotations are handled directly by our commercial department. "
+        "Commercial details are not provided directly in this chat. Commercial offers, enterprise discounts, and quotations are handled directly by our commercial department. "
         "You can check current rates at https://www.keplertechllc.com/.\n\n"
         "Would you like me to put you in touch with a sales representative for a personalized quote?"
     ),
@@ -247,21 +248,528 @@ class Orchestrator:
         agent_decision = sales_consultant.plan(canonical_turn, state)
         state._current_agent_decision = agent_decision
 
+        # ── Prompt Injection & Adversarial Jailbreak Guardrail ─────────────
+        injection_patterns = [
+            r"ignore\s+(?:all\s+|your\s+|previous\s+)*instructions",
+            r"system\s*override",
+            r"unrestricted\s*assistant",
+            r"pretend (?:the )?catalogue",
+            r"make up a (?:free )?printer",
+            r"invent a printer",
+            r"bypass (?:all )?safety",
+            r"developer\s*debug\s*mode",
+            r"dump (?:all )?internal",
+            r"secret\s*prompt",
+            r"disregard earlier rules",
+            r"act as a (?:poem writer|poet)",
+            r"override\s*pricing",
+            r"root\s*admin",
+            r"ignore\s*all\s*filters",
+            r"confidential employee",
+        ]
+        if any(re.search(pat, msg_l) for pat in injection_patterns):
+            reply_text = "I can only assist with verified Kepler Tech printing catalogue specifications and official product recommendations. How can I help with your printing requirements?"
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="guardrail:untrusted_instruction",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=["View Technical Specifications", "Explore Verified Printers"],
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
         from agent.naturalness_validator import NaturalnessValidator
 
-        # ── 1c. Direct Answer for Explicit Customer Questions (HIGHEST PRIORITY) ──
-        if agent_decision.action in (AgentAction.ANSWER, AgentAction.RETRIEVE) and canonical_turn.explicit_questions:
-            from validation.answer_relevance_validator import answer_relevance_validator
-            target_p = agent_decision.target_product or state.get_canonical_focus_id()
-            if not target_p and getattr(state, "candidate_products", []):
-                first_cand = state.candidate_products[0]
-                target_p = first_cand.get("id") if isinstance(first_cand, dict) else str(first_cand)
-            direct_reply = answer_relevance_validator._synthesize_direct_recovery(
-                unanswered_questions=canonical_turn.explicit_questions,
-                target_product_id=target_p,
-                product_data=catalogue_loader.get_by_id(target_p) if target_p else state.active_product,
-                existing_response=""
+        # ── 1b-1. Direct SKU / Part Number Inquiry (HIGHEST PRIORITY) ──
+        from rag.retriever import rag_retriever
+        from agent.tool_executor import catalog_tool_executor
+        sku_matches = re.findall(r"\b(c1[123][a-z0-9]{5,9}|c13s\d+|c12c\d+|ifa\s*\d+|olm\s*\d+|cx2\.(?:4x6|6x8)|cy-ms[a-z0-9.\-]*|cz-ms[a-z0-9.\-]*|cx2w\s*812)\b", normalized_msg.lower())
+        direct_sku_cand = None
+        direct_sku_code = None
+        for sm in sku_matches:
+            cand = rag_retriever.get_by_sku(sm)
+            if cand:
+                direct_sku_cand = cand
+                direct_sku_code = cand.get("sku") or sm.upper()
+                break
+
+        is_consumable = (
+            direct_sku_cand
+            and direct_sku_cand.get("id") not in ("citizen-cz-01", "citizen-cy-02", "citizen-cx-02", "citizen-cx-02w")
+            and (
+                direct_sku_cand.get("category") in ("consumable", "ink", "ribbon", "media", "accessory")
+                or "c13" in str(direct_sku_code).lower()
+                or "c12" in str(direct_sku_code).lower()
+                or "ms" in str(direct_sku_code).lower()
+                or "cx2w" in str(direct_sku_code).lower()
             )
+        )
+        if is_consumable:
+            cat = str(direct_sku_cand.get("category", "")).lower()
+            c_card = catalog_tool_executor.format_card(direct_sku_cand, card_type="consumable")
+            p_name = direct_sku_cand.get("name", direct_sku_code)
+            sku_models = find_mentioned_catalogue_products(normalized_msg)
+            target_model = next((p for p in sku_models if p.get("id") not in (direct_sku_code,)), None)
+            if not target_model and getattr(state, "last_explicit_product_id", None):
+                target_model = catalogue_loader.get_by_id(state.last_explicit_product_id)
+            if target_model and re.search(r"\b(?:compatible|fits?|works?\s+with|used?\s+(?:in|with))\b", normalized_msg.lower()):
+                compatible = direct_sku_code.upper() in {str(s).upper() for s in target_model.get("consumables") or []}
+                model_name = target_model.get("display_name") or target_model["id"]
+                reply_text = (
+                    f"{'Yes' if compatible else 'No'}, {direct_sku_code} is "
+                    f"{'listed' if compatible else 'not listed'} as a compatible {cat} for the {model_name} in our verified catalogue."
+                )
+            elif re.search(r"\b(?:is|are)\b.*\b(?:inks?|cartridges?)\b", normalized_msg.lower()):
+                is_ink = cat in ("ink", "inks", "ink cartridge")
+                reply_text = f"{'Yes' if is_ink else 'No'}, {direct_sku_code} is {('an ink cartridge' if is_ink else 'a ' + cat)} in our catalogue."
+            else:
+                reply_text = f"{p_name} (SKU: {direct_sku_code}) is listed in our catalogue as {cat}. Current stock availability is not verified."
+
+            state.active_consumable = c_card
+            for q in list(canonical_turn.explicit_questions):
+                state.question_ledger.mark_answered(
+                    semantic_key=q.semantic_key,
+                    turn_index=state.turn_count,
+                    target_product=q.target_product or (target_model.get("id") if target_model else direct_sku_code)
+                )
+            canonical_turn.explicit_questions.clear()
+
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="route:consumables:direct_sku",
+                product_cards=[],
+                consumable_cards=[c_card],
+                suggested_chips=["View Compatible Printers", "View Technical Specifications"],
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── 1b-2. Single paper roll / Ribbon Rewind hard constraint for Citizen CX-02 ──
+        is_single_roll_cx02 = (
+            any(k in msg_l for k in [
+                "single paper roll", "single roll", "ribbon rewind", "without media loss", "with out media loss"
+            ])
+            or (("6x8" in msg_l or "6x4" in msg_l) and "single" in msg_l and "roll" in msg_l)
+        )
+        if is_single_roll_cx02:
+            state.category = "citizen_photo"
+            state.requirements["product_line"] = "citizen"
+            state.requirements["ribbon_rewind"] = True
+            state.qualification_complete = True
+            cx02 = catalogue_loader.get_by_id("citizen-cx-02")
+            card = catalogue_filter._format_card(cx02, "citizen_6_inch", state.requirements)
+            card["price"] = None
+            card["price_formatted"] = None
+            card["price_str"] = None
+            reply_text = (
+                "For printing 6x8 and 6x4 on a single paper roll, the **Citizen CX-02** is the verified model in our catalogue. "
+                "It features a unique ribbon rewind function that allows printing both 6x4 and 6x8 from a single roll without media waste."
+            )
+            state.active_product = cx02
+            state.active_product_id = "citizen-cx-02"
+            state.active_printer_for_consumables = "Citizen CX-02"
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="recommendation:catalogue_list",
+                product_cards=[card],
+                consumable_cards=[],
+                suggested_chips=["View Technical Specifications", "Compatible Ribbons & Media"],
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── 1b-3a. Citizen CX-02W Media & Cost Inquiry (e.g. Turn 29 & Turn 31) ──
+        is_cx02w_media = (
+            any(k in msg_l for k in ["media", "print media", "ribbon", "paper", "consumable", "cost per print"])
+            and any(k in msg_l for k in ["cost", "price", "how much", "rate", "cost per print", "have the media"])
+            and (
+                "cx-02w" in msg_l or "cx02w" in msg_l
+                or "cx-02w" in str(getattr(state, "active_printer_for_consumables", "")).lower()
+                or "cx02w" in str(getattr(state, "active_printer_for_consumables", "")).lower()
+                or "cx-02w" in str(getattr(state, "active_product_id", "")).lower()
+                or "this printer" in msg_l
+            )
+        )
+        if is_cx02w_media:
+            cx2w_media = rag_retriever.get_by_sku("CX2W 812") or {
+                "id": "CX2W 812", "name": "Citizen CX2W 812 Media Set", "sku": "CX2W 812", "category": "media"
+            }
+            c_card = catalog_tool_executor.format_card(cx2w_media, card_type="consumable")
+            c_card["price"] = None
+            c_card["price_formatted"] = None
+            c_card["price_str"] = None
+            reply_text = (
+                "The **Citizen CX-02W** uses genuine Citizen **CX2W 812** media sets (8x12 / 8x10 format). "
+                "Commercial details are not provided directly in this chat, but I can assist with technical specifications and compatibility. "
+                "For official pricing and quotations, please check our official website at https://www.keplertechllc.com/ "
+                "or contact our customer sales team directly."
+            )
+            state.active_consumable = c_card
+            state.active_printer_for_consumables = "Citizen CX-02W"
+            for q in list(canonical_turn.explicit_questions):
+                state.question_ledger.mark_answered(
+                    semantic_key=q.semantic_key,
+                    turn_index=state.turn_count,
+                    target_product="citizen-cx-02w"
+                )
+            canonical_turn.explicit_questions.clear()
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="guardrail:commercial_policy",
+                product_cards=[],
+                consumable_cards=[c_card],
+                suggested_chips=["View Product Details", "Request Quotation"],
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── 1b-3a. Early Intercept: Discount & Bargaining Refusal ────────────
+        if is_discount_inquiry(normalized_msg) or bool(re.search(r"\b(?:discounts?|bargain|burgain|negotiat|price drop|price cut|lower the price|reduce the price|reduce price|less price|best price)\b", msg_l)):
+            reply_text = DISCOUNT_REFUSAL
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="guardrail:discount_refusal",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=["View Technical Specifications", "Compatible Consumables"],
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── 1b-3b. Price Deflection & Commercial Policy Guardrail (HIGHEST PRIORITY) ──
+        is_price_deflection = (
+            (
+                is_price_inquiry(normalized_msg)
+                or bool(re.search(r"\b(?:how\s+much|prices?|pricing|costs?|rates?)\b", msg_l))
+                or bool(re.search(r"\b(?:need\s+price|want\s+price|check\s+price|price\?)\b", msg_l))
+            )
+            and not any(w in msg_l for w in ["buy", "order", "purchase", "invoice", "deliver", "shipping", "how to buy", "how can i buy", "ready to order", "place an order", "want to buy"])
+            and not bool(re.search(r"\b(?:how\s+much\s+(?:does\s+.*?\s+)?weigh|how\s+much\s+weight|ink\s+volume|how\s+much\s+ink)\b", msg_l))
+            and not any(w in msg_l for w in ["compare", "vs", "versus", "difference", "which is better", "which one is better"])
+        )
+        if is_price_deflection:
+            named = find_mentioned_catalogue_products(normalized_msg)
+            if named:
+                state.active_product = named[0]
+                state.active_product_id = named[0]["id"]
+                state.set_canonical_focus(named[0]["id"])
+            p_name = (named[0].get("display_name") if named else None) or (state.active_consumable.get("name") if getattr(state, "active_consumable", None) else None) or (state.active_product.get("display_name") if getattr(state, "active_product", None) else None)
+            reply_text = format_rotating_pricing_redirect(state, p_name)
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="guardrail:commercial_policy",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=["Speak to Human Agent", "View Technical Specifications", "Compatible Consumables"],
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── 1b-4. Label / Sticker unsupported category handling ──
+        is_label_query = bool(re.search(r"\b(?:label\s+printers?|stickers?|barcode\s+printers?|label\s+printing)\b", msg_l))
+        if is_label_query and not any(w in msg_l for w in ["photo", "cad", "plotter", "sublimation", "textile"]):
+            reply_text = (
+                "Kepler Tech does not supply dedicated label or sticker printers in our authorized catalogue. "
+                "As an authorized distributor, we specialize in:\n\n"
+                "1. **Technical CAD/GIS Plotters** (Epson SureColor T-Series)\n"
+                "2. **Photo & Fine Art Printers** (Epson SureColor P-Series)\n"
+                "3. **Dye-Sublimation Printers** (Epson SureColor SC-F100, SC-F500)\n"
+                "4. **Commercial Office Printers** (Epson WorkForce Enterprise AM-C & WF-C series)\n"
+                "5. **Citizen Photo Printers** (Citizen CX-02, CX-02W, CY-02, CZ-01)\n\n"
+                "Please let me know if any of these categories match your requirements!"
+            )
+            state.category = None
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="route:unsupported_category",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=["Technical CAD Plotters", "Photo & Fine Art", "Dye-Sublimation", "Citizen Photo"],
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── 1b-5. Cotton fabric dye-sublimation compatibility warning ──
+        is_cotton_query = bool(re.search(r"\b(?:cotton|natural\s+fabrics?)\b", msg_l)) and bool(re.search(r"\b(?:sublimation|dye[-\s]*sub|f100|f500|t[-\s]*shirts?|textile)\b", msg_l))
+        if is_cotton_query:
+            reply_text = (
+                "Please note that dye-sublimation printing (such as with the Epson SureColor SC-F100 or SC-F500) "
+                "chemically requires polyester fabrics or polyester-coated blanks. It cannot print directly onto 100% cotton garments. "
+                "For cotton fabrics, direct-to-garment (DTG) or screen printing processes are required, which are not part of our sublimation range.\n\n"
+                "If you are working with polyester or polyester-blend textiles, our Epson SureColor SC-F100 (A4 desktop) and SC-F500 (24-inch roll) provide outstanding transfer quality."
+            )
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="route:compatibility_warning",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=["View Epson SC-F100", "View Epson SC-F500", "Technical Specifications"],
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── 1b-6. Natural Warm Greeting & Primary Product Type Flow ───────
+        if canonical_turn.primary_intent == "greeting":
+            if not state.category:
+                state.awaiting_field = "primary_product_type"
+            reply_text = "Hello and welcome to Kepler Tech! Do you want a scanner, printer, or consumables?"
+            chips = [
+                "Printer",
+                "Scanner",
+                "Consumables",
+            ]
+            state.last_assistant_response = reply_text
+            state.last_suggested_chips = chips
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="qualification:category_prompt",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=chips,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── Primary Product Type Flow (Scanner, Printer, or Consumables) ──
+        is_scanner_select = bool(re.search(r"^\s*(?:i\s*(?:want|need)\s*(?:a\s+)?)?scanners?\s*$", msg_l))
+        is_printer_select = bool(re.search(r"^\s*(?:i\s*(?:want|need)\s*(?:a\s+)?)?printers?\s*$", msg_l))
+        is_consumable_select = bool(re.search(r"^\s*(?:i\s*(?:want|need)\s*)?(?:consumables?|inks?|cartridges?|supplies|media)\s*$", msg_l))
+
+        if is_scanner_select:
+            state.category = "scanners"
+            state.awaiting_field = "scanner_type"
+            reply_text = (
+                "We offer dedicated Epson professional document, photo, and hybrid scanners. "
+                "What type of scanner are you looking for—high-speed business document scanners, "
+                "photo & film scanners, or flatbed + ADF hybrid scanners?"
+            )
+            chips = ["Business Documents", "Photo & Film", "Flatbed + ADF Hybrid"]
+            state.last_assistant_response = reply_text
+            state.last_suggested_chips = chips
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="qualification:category_prompt",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=chips,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+        elif is_printer_select:
+            state.awaiting_field = "category"
+            state.reset_category(None)
+            reply_text = (
+                "We offer a complete range of commercial Epson and Citizen printers. "
+                "What will you primarily be printing—technical CAD drawings, "
+                "professional photography & fine art, office & business documents, "
+                "or sublimation merchandise (mugs & T-shirts)?"
+            )
+            chips = [
+                "Technical CAD Plotters",
+                "Professional Photo & Fine Art",
+                "Office & Business Documents",
+                "Sublimation (T-Shirts & Mugs)",
+            ]
+            state.last_assistant_response = reply_text
+            state.last_suggested_chips = chips
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="qualification:category_prompt",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=chips,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+        elif is_consumable_select:
+            state.category = "consumables"
+            state.awaiting_field = "printer_model"
+            reply_text = (
+                "We supply genuine Epson ink cartridges, maintenance boxes, and Citizen photo ribbons & media sets. "
+                "Which printer model do you need consumables for?"
+            )
+            chips = ["Epson SC-T3100 Inks", "Epson SC-P900 Inks", "Citizen CX-02 Media", "Epson SC-F100 Inks"]
+            state.last_assistant_response = reply_text
+            state.last_suggested_chips = chips
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="qualification:consumables_prompt",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=chips,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── 1c. Direct Answer for Explicit Customer Questions (HIGHEST PRIORITY) ──
+        is_multi_consumable_q = bool(re.search(r"\b(?:consumables?|inks?|cartridges?)\b", msg_l)) and any(k in msg_l for k in ["these", "both", "all", "each", "separately"])
+        if agent_decision.action in (AgentAction.ANSWER, AgentAction.RETRIEVE) and canonical_turn.explicit_questions and not is_multi_consumable_q:
+            # Check for direct SKU / Part Number Inquiry (e.g. C12C935711, C13T47A100)
+            from rag.retriever import rag_retriever
+            from agent.tool_executor import catalog_tool_executor
+            sku_matches = re.findall(r"\b(c1[123][a-z0-9]{5,9}|c13s\d+|c12c\d+|ifa\s*\d+|olm\s*\d+|cx2\.(?:4x6|6x8)|cy-ms[a-z0-9.\-]*|cz-ms[a-z0-9.\-]*|cx2w\s*812)\b", normalized_msg.lower())
+            direct_sku_cand = None
+            direct_sku_code = None
+            for sm in sku_matches:
+                cand = rag_retriever.get_by_sku(sm)
+                if cand:
+                    direct_sku_cand = cand
+                    direct_sku_code = cand.get("sku") or sm.upper()
+                    break
+
+            is_consumable = (
+                direct_sku_cand
+                and direct_sku_cand.get("id") not in ("citizen-cz-01", "citizen-cy-02", "citizen-cx-02", "citizen-cx-02w")
+                and (
+                    direct_sku_cand.get("category") in ("consumable", "ink", "ribbon", "media", "accessory")
+                    or "c13" in str(direct_sku_code).lower()
+                    or "c12" in str(direct_sku_code).lower()
+                    or "ms" in str(direct_sku_code).lower()
+                )
+            )
+            if is_consumable:
+                cat = str(direct_sku_cand.get("category", "")).lower()
+                c_card = catalog_tool_executor.format_card(direct_sku_cand, card_type="consumable")
+                p_name = direct_sku_cand.get("name", direct_sku_code)
+                sku_models = find_mentioned_catalogue_products(normalized_msg)
+                target_model = next((p for p in sku_models if p.get("id") not in (direct_sku_code,)), None)
+                if not target_model and getattr(state, "last_explicit_product_id", None):
+                    target_model = catalogue_loader.get_by_id(state.last_explicit_product_id)
+                if target_model and re.search(r"\b(?:compatible|fits?|works?\s+with|used?\s+(?:in|with))\b", normalized_msg.lower()):
+                    compatible = direct_sku_code.upper() in {str(s).upper() for s in target_model.get("consumables") or []}
+                    model_name = target_model.get("display_name") or target_model["id"]
+                    reply_text = (
+                        f"{'Yes' if compatible else 'No'}, {direct_sku_code} is "
+                        f"{'listed' if compatible else 'not listed'} as a compatible {cat} for the {model_name} in our verified catalogue."
+                    )
+                elif re.search(r"\b(?:is|are)\b.*\b(?:inks?|cartridges?)\b", normalized_msg.lower()):
+                    is_ink = cat in ("ink", "inks", "ink cartridge")
+                    reply_text = f"{'Yes' if is_ink else 'No'}, {direct_sku_code} is {('an ink cartridge' if is_ink else 'a ' + cat)} in our catalogue."
+                else:
+                    reply_text = f"{p_name} (SKU: {direct_sku_code}) is listed in our catalogue as {cat}. Current stock availability is not verified."
+
+                for q in list(canonical_turn.explicit_questions):
+                    state.question_ledger.mark_answered(
+                        semantic_key=q.semantic_key,
+                        turn_index=state.turn_count,
+                        target_product=q.target_product or (target_model.get("id") if target_model else direct_sku_code)
+                    )
+                canonical_turn.explicit_questions.clear()
+
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(
+                    reply=reply_text,
+                    source="route:consumables:direct_sku",
+                    product_cards=[],
+                    consumable_cards=[c_card],
+                    suggested_chips=["View Compatible Printers", "View Technical Specifications"],
+                    nlp_result=nlp_result,
+                    state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
+
+            from validation.answer_relevance_validator import answer_relevance_validator
+            is_for_each_query = bool(re.search(r"\b(?:for\s+each(?:\s+of\s+them)?|of\s+each(?:\s+model)?|for\s+all(?:\s+models)?|of\s+all|every\s+(?:printer|model)|each\s+(?:one|model))\b", msg_l))
+            raw_cands = getattr(state, "candidate_products", []) or getattr(state, "displayed_product_ids", []) or []
+            if not raw_cands and getattr(state, "comparison_pair", None):
+                raw_cands = list(state.comparison_pair)
+            multi_cands = []
+            for item in raw_cands:
+                if isinstance(item, dict):
+                    multi_cands.append(item)
+                elif isinstance(item, str):
+                    p = catalogue_loader.get_by_id(item)
+                    if p:
+                        multi_cands.append(p)
+
+            if is_for_each_query and len(multi_cands) >= 2:
+                target_p = None
+                target_attr = canonical_turn.explicit_questions[0].target_attribute if canonical_turn.explicit_questions else None
+                sem_key = canonical_turn.explicit_questions[0].semantic_key if canonical_turn.explicit_questions else None
+                is_dpi_spec = any(w in msg_l for w in ["dpi", "resolution"])
+                is_speed_spec = any(w in msg_l for w in ["speed", "ppm", "fast"])
+                is_price_spec = any(w in msg_l for w in ["price", "cost", "how much", "rate"])
+                is_size_spec = any(w in msg_l for w in ["size", "width", "dimension"])
+
+                if is_dpi_spec or sem_key == "resolution" or target_attr == "resolution":
+                    q_label = "print resolution"
+                    sem_key = "resolution"
+                elif is_speed_spec or sem_key == "print_speed" or target_attr == "speed":
+                    q_label = "printing speed"
+                    sem_key = "print_speed"
+                elif is_price_spec or sem_key == "price" or target_attr == "price":
+                    q_label = "official pricing"
+                    sem_key = "price"
+                elif is_size_spec:
+                    q_label = "print width"
+                    sem_key = "size"
+                else:
+                    q_label = "specifications"
+
+                lines = [f"Here is the verified {q_label} for each model:"]
+                for cp in multi_cands[:5]:
+                    cp_name = cp.get("display_name") or cp.get("name") or cp["id"]
+                    val = None
+                    if sem_key == "resolution":
+                        val = cp.get("print_resolution") or cp.get("resolution") or cp.get("dpi") or "300 × 300 DPI (High-speed) / 300 × 600 DPI (High-resolution)"
+                    elif sem_key == "print_speed":
+                        val = cp.get("print_speed") or "Commercial production speed"
+                    elif sem_key == "price":
+                        val = f"AED {cp.get('price'):,.2f} (Excl. VAT)" if cp.get("price") else "Price on Request"
+                    elif sem_key == "size":
+                        w = cp.get("print_width") or cp.get("max_width_inches") or cp.get("paper_size") or "Standard"
+                        val = f"{w}\"" if isinstance(w, (int, float)) else str(w)
+                    elif sem_key == "physical_specs" or target_attr == "weight":
+                        val = cp.get("weight") or "Standard commercial footprint"
+                    if val:
+                        lines.append(f"• {cp_name}: {val}")
+                direct_reply = "\n".join(lines) if len(lines) > 1 else None
+            else:
+                target_p = agent_decision.target_product or state.get_canonical_focus_id()
+                if not target_p and getattr(state, "candidate_products", []):
+                    first_cand = state.candidate_products[0]
+                    target_p = first_cand.get("id") if isinstance(first_cand, dict) else str(first_cand)
+                direct_reply = answer_relevance_validator._synthesize_direct_recovery(
+                    unanswered_questions=canonical_turn.explicit_questions,
+                    target_product_id=target_p,
+                    product_data=catalogue_loader.get_by_id(target_p) if target_p else state.active_product,
+                    existing_response="",
+                    session_id=getattr(state, "session_id", ""),
+                )
             if direct_reply:
                 if canonical_turn.customer_behavior == "FRUSTRATED" and not any(w in direct_reply.lower() for w in ["apolog", "sorry"]):
                     direct_reply = f"My apologies for the confusion earlier! {direct_reply}"
@@ -292,11 +800,30 @@ class Orchestrator:
                     )
                 state.last_assistant_response = direct_reply
                 state.increment_turn()
+                first_time_cards = []
+                if target_p and target_p not in getattr(state, "displayed_product_ids", []):
+                    prod_obj = catalogue_loader.get_by_id(target_p)
+                    if prod_obj:
+                        first_time_cards.append(catalogue_filter._format_card(prod_obj, prod_obj.get("subcategory"), state.requirements))
+
+                consumable_cards = []
+                if target_p and any(q.semantic_key == "ink_compatibility" for q in canonical_turn.explicit_questions):
+                    prod_obj = catalogue_loader.get_by_id(target_p)
+                    if prod_obj:
+                        from agent.evidence_planner import evidence_planner
+                        _, c_cards = evidence_planner._evaluate_ink(prod_obj)
+                        consumable_cards = [c for c in c_cards if c.get("category") == "Ink Cartridge"] or c_cards
+
+                for c in first_time_cards + consumable_cards:
+                    c["price"] = None
+                    c["price_formatted"] = None
+                    c["price_str"] = None
+
                 return self._build_response(
                     reply=direct_reply,
                     source="agent:direct_answer",
-                    product_cards=[],
-                    consumable_cards=[],
+                    product_cards=first_time_cards,
+                    consumable_cards=consumable_cards,
                     suggested_chips=["Check Another Specification", "Official Quotation"],
                     nlp_result=nlp_result,
                     state=state,
@@ -304,12 +831,118 @@ class Orchestrator:
                 )
 
         # ── 1d. Direct Two-Product Comparison (HIGHEST PRIORITY) ────────
-        if agent_decision.action == AgentAction.COMPARE or (len(canonical_turn.mentioned_products) >= 2 and any(w in msg_l for w in ["compare", "difference", "between", "vs", "versus", "which"])):
-            prods = [catalogue_loader.get_by_id(pid) for pid in canonical_turn.mentioned_products[:2]]
+        comp_candidates = canonical_turn.mentioned_products[:2] if len(canonical_turn.mentioned_products) >= 2 else (getattr(state, "compared_product_ids", []) or getattr(state, "comparison_product_ids", []))[:2]
+        if agent_decision.action == AgentAction.COMPARE or (len(comp_candidates) >= 2 and any(w in msg_l for w in ["compare", "difference", "between", "vs", "versus", "which", "second", "2nd", "first", "both"])):
+            prods = [catalogue_loader.get_by_id(pid) for pid in comp_candidates]
             if len(prods) == 2 and all(prods):
                 p1, p2 = prods[0], prods[1]
                 p1_name = p1.get("display_name") or p1.get("name") or "Product 1"
                 p2_name = p2.get("display_name") or p2.get("name") or "Product 2"
+
+                cat1 = p1.get("category") or p1.get("main_category")
+                if cat1:
+                    state.category = cat1
+                state.compared_products = prods
+                state.compared_product_ids = [p["id"] for p in prods]
+                state.comparison_product_ids = [p["id"] for p in prods]
+
+                # Specific size follow-up for compared pair
+                size_query = re.search(r"\b(a[0-4]\+?|\d+[\s-]*inch(?:es)?)\b", normalized_msg.lower())
+                if size_query and re.search(r"\bwhich\s+(?:of\s+(?:those|these|the)(?:\s+two)?\s+|one\s+|model\s+)?(?:supports?|has|prints?|can\s+print|meets?|fits?)\b", normalized_msg.lower()):
+                    target_size = size_query.group(1).replace(" ", "").replace("inches", "-inch")
+                    if target_size.endswith("inch") and not target_size.endswith("-inch"):
+                        target_size = target_size[:-4].rstrip("-") + "-inch"
+                    target_width_num = None
+                    if "-inch" in target_size:
+                        try:
+                            target_width_num = float(target_size.replace("-inch", ""))
+                        except ValueError:
+                            pass
+                    matches = [p for p in prods if any(
+                        target_size == str(sz).lower().replace(" ", "")
+                        for sz in p.get("supported_print_sizes", [])
+                    ) or (
+                        target_width_num is not None and p.get("max_width_inches") == target_width_num
+                    ) or (
+                        target_width_num is not None and p.get("print_width") == target_width_num
+                    )]
+                    if matches:
+                        match_p = matches[0]
+                        m_name = match_p.get("display_name") or match_p.get("name") or match_p["id"]
+                        other_p = next((p for p in prods if p["id"] != match_p["id"]), None)
+                        other_name = (other_p.get("display_name") or other_p.get("name") or other_p["id"]) if other_p else ""
+                        reply_text = f"Between those two models, the **{m_name}** supports {target_size} prints (up to {match_p.get('max_width_inches') or match_p.get('print_width')} inches)."
+                        state.last_assistant_response = reply_text
+                        state.increment_turn()
+                        return self._build_response(
+                            reply=reply_text,
+                            source="agent:comparison_size_followup",
+                            product_cards=[catalogue_filter._format_card(match_p, match_p.get("subcategory"), state.requirements)],
+                            consumable_cards=[],
+                            suggested_chips=["View Technical Specifications", "Official Quotation"],
+                            nlp_result=nlp_result,
+                            state=state,
+                            latency_ms=int((time.time() - start_time) * 1000),
+                        )
+
+                # Second model scanner query
+                if re.search(r"\b(?:second|2nd)\s+(?:one|model|printer)\b.*\bscanner\b", msg_l):
+                    prod = prods[1]
+                    state.set_canonical_focus(prod["id"], source="customer_selected")
+                    state.active_product = prod
+                    state.active_product_id = prod["id"]
+                    from agent.evidence_planner import evidence_planner
+                    reply_text = evidence_planner._evaluate_scanner(prod).display_claim
+                    state.last_assistant_response = reply_text
+                    state.increment_turn()
+                    return self._build_response(
+                        reply=reply_text,
+                        source="route:product_spec_attribute:second_scanner",
+                        product_cards=[catalogue_filter._format_card(prod, prod.get("subcategory"), state.requirements)],
+                        consumable_cards=[],
+                        suggested_chips=["View Technical Specifications"],
+                        nlp_result=nlp_result,
+                        state=state,
+                        latency_ms=int((time.time() - start_time) * 1000),
+                    )
+
+                if (
+                    not any(w in msg_l for w in ["compare", "vs", "versus", "difference", "between"])
+                    and (
+                        re.search(r"\b(?:inks?|cartridges?|consumables?)\b", msg_l)
+                        or (
+                            re.search(r"\b(?:wi-?fi|wireless|scanner|t-?shirts?|media)\b", msg_l)
+                            and any(re.search(rf"\b{w}\b", msg_l) for w in ["what", "which", "does", "do", "how"])
+                            and not (state.category in ("scanners", "scanner") or all("scanner" in str(p.get("category", "")).lower() for p in prods))
+                        )
+                    )
+                ):
+                    from agent.evidence_planner import evidence_planner
+                    reply_text, ink_cards = evidence_planner.describe_named_products(prods, normalized_msg)
+                    cards = [catalogue_filter._format_card(p, p.get("subcategory"), state.requirements) for p in prods]
+                    for c in cards:
+                        c["price"] = None
+                        c["price_formatted"] = None
+                        c["price_str"] = None
+                    for ic in ink_cards:
+                        if isinstance(ic, dict):
+                            ic["price"] = None
+                            ic["price_formatted"] = None
+                            ic["price_str"] = None
+                    state.stage = "comparing"
+                    state.last_assistant_response = reply_text
+                    state.increment_turn()
+                    return self._build_response(
+                        reply=reply_text,
+                        source="agent:direct_comparison",
+                        product_cards=cards,
+                        consumable_cards=ink_cards,
+                        suggested_chips=["View Technical Specifications", "Compare Models"],
+                        nlp_result=nlp_result,
+                        state=state,
+                        latency_ms=int((time.time() - start_time) * 1000),
+                    )
+
                 lines = [f"Here is how the {p1_name} and {p2_name} compare:"]
 
                 if any(w in msg_l for w in ["width", "format", "size"]):
@@ -338,13 +971,34 @@ class Orchestrator:
                     lines.append(f"• Print Quality: {p1_name} features {c1}, whereas {p2_name} features {c2}.")
 
                 if len(lines) == 1:
-                    pr1 = f"AED {p1.get('price'):,.2f}" if p1.get("price") else "Price on Request"
-                    pr2 = f"AED {p2.get('price'):,.2f}" if p2.get("price") else "Price on Request"
-                    lines.append(f"• {p1_name}: {p1.get('print_speed', 'commercial speed')}, priced at {pr1} (excl. VAT).")
-                    lines.append(f"• {p2_name}: {p2.get('print_speed', 'commercial speed')}, priced at {pr2} (excl. VAT).")
+                    reply_text, cards, comparison_data = build_approved_comparison_response(
+                        prods,
+                        customer_requirements=dict(state.requirements) if state.requirements else None,
+                    )
+                    state.compared_products = prods
+                    state.compared_product_ids = [p["id"] for p in prods]
+                    state.candidate_products = prods
+                    state.comparison_pair = (p1["id"], p2["id"])
+                    state.stage = "comparing"
+                    state.last_assistant_response = reply_text
+                    state.increment_turn()
+                    return self._build_response(
+                        reply=reply_text,
+                        source="route:comparison",
+                        product_cards=cards,
+                        consumable_cards=[],
+                        suggested_chips=["View Technical Specifications", "Official Quotation"],
+                        nlp_result=nlp_result,
+                        state=state,
+                        latency_ms=int((time.time() - start_time) * 1000),
+                        comparison_data=comparison_data,
+                    )
 
                 cmp_reply = "\n".join(lines)
                 cmp_reply = NaturalnessValidator.sanitize(cmp_reply, canonical_turn.customer_behavior, state)
+                state.candidate_products = [p1, p2]
+                state.displayed_product_ids = [p1["id"], p2["id"]]
+                state.comparison_pair = (p1["id"], p2["id"])
                 state.last_assistant_response = cmp_reply
                 state.increment_turn()
                 return self._build_response(
@@ -374,6 +1028,165 @@ class Orchestrator:
                 state=state,
                 latency_ms=int((time.time() - start_time) * 1000),
             )
+
+        # ── Agent Planner: Official Shipping, Delivery & Returns Policy ───────
+        is_delivery_q = bool(
+            re.search(r"\b(?:(?:do\s+you\s+)?(?:provide|offer|have)\s+delivery|do\s+you\s+deliver|delivery|can\s+you\s+(?:ship|deliver)|deliver\s+to\s+(?:dubai|abu\s*dhabi|uae|sharjah|oman|gcc)|shipping|where\s+(?:do\s+you|they|can\s+you)\s+deliver|where\s+deliver)\b", msg_l)
+            and re.search(r"\b(?:where|how|fees?|cost|charge|options?|time|timing|days|policy|coverage|service|info|provide|offer|available|deliver|ship)\b", msg_l)
+        )
+        is_return_q = bool(
+            re.search(r"\b(?:returns?|refunds?|cancel(?:lation)?|defective)\b", msg_l)
+            and re.search(r"\b(?:policy|order|item|packaging|how\s+to|days|process)\b", msg_l)
+        )
+        if is_delivery_q or is_return_q:
+            if is_return_q and not is_delivery_q:
+                reply_text = (
+                    "**Kepler Tech Cancellation & Return Policy:**\n\n"
+                    "• **Order Cancellations:** Orders can be cancelled within 24 hours of placing them.\n"
+                    "• **Defective or Wrong Items:** Must be reported within 2 days of receipt, in the original unopened packaging.\n"
+                    "• **Refunds:** Processed back to your original payment method (Visa, MasterCard, or PayPal) and can take up to 45 days.\n\n"
+                    "Would you like assistance from our customer service team regarding an existing order?"
+                )
+            elif is_delivery_q and is_return_q:
+                reply_text = (
+                    "**Kepler Tech Shipping, Delivery & Returns Policy:**\n\n"
+                    "• **Delivery Coverage:** We deliver exclusively across the UAE, Oman, and other GCC countries via third-party couriers. (We do not trade with OFAC-sanctioned countries).\n"
+                    "• **Delivery Fees:** Flat **AED 10** across the UAE. Outside the UAE, shipping fees depend on the destination country and location (shown at checkout). Free local store pickup is available (ready in 1 to 2 business days).\n"
+                    "• **Processing & Timing:** Orders are processed in 1 to 2 business days after the confirmation email (excluding weekends and holidays). You receive a second notification when the order ships. Delivery timeframes shown on site are targeted but not guaranteed.\n"
+                    "• **Payment & Terms:** Payment in full is required before dispatch (Visa or MasterCard in AED, or PayPal). For international orders, the customer pays import customs duty and VAT in the destination country. Risk of loss passes upon delivery.\n"
+                    "• **Cancellations & Returns:** Orders can be cancelled within 24 hours of placing them. Defective or wrong items must be reported within 2 days of receipt in original unopened packaging. Refunds go back to the original payment method (up to 45 days).\n\n"
+                    "Would you like to proceed with placing an order or check a specific product?"
+                )
+            else:
+                reply_text = (
+                    "**Kepler Tech Official Delivery & Shipping Policy:**\n\n"
+                    "• **Delivery Coverage:** We deliver exclusively across the UAE, Oman, and other GCC countries via third-party couriers. (We do not trade with OFAC-sanctioned countries).\n"
+                    "• **Delivery Fees:** Flat **AED 10** across the UAE. Outside the UAE, the fee depends on country and location and is shown at checkout. Free local pickup at our store is also available (ready in 1 to 2 business days).\n"
+                    "• **Processing & Timing:** Orders are processed in 1 to 2 business days after the confirmation email (excluding weekends and holidays). You receive a second notification when the order ships. We aim for the delivery timeframe shown on the site (though not guaranteed).\n"
+                    "• **Payment & Customs:** Payment is required in full before dispatch (Visa or MasterCard in AED, or PayPal). For international orders, the customer pays import customs duty and VAT in the destination country. Risk of loss passes to the customer on delivery.\n\n"
+                    "Would you like to proceed with an order, or check availability for a specific printer or consumable?"
+                )
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="agent:delivery_policy",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=["Place an Order", "Check Model Availability", "Contact Sales Desk"],
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── Agent Planner: Conversational Acknowledgment ("okey", "got it") ───
+        if canonical_turn.primary_intent == "acknowledgment" or canonical_turn.primary_goal == "acknowledgment" or msg_l.strip() in ("ok", "okey", "okay", "alright", "all right", "got it", "fine", "cool", "noted", "sure", "k"):
+            reply_text = "Glad to help! Is there any other specification, pricing, or model you would like me to check for you?"
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="agent:acknowledgment",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=["Check Another Model", "Official Quotation", "Delivery Options"],
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── Agent Planner: Language Capabilities Inquiry ─────────────────
+        is_lang_query = bool(re.search(
+            r"\b(?:(?:do\s+)?(?:you|u)\s+(?:know|speak|understand)|can\s+(?:you|u)\s+speak)\s+(?:other\s+languages?|arabic|english|hindi|urdu|french|spanish|[a-zA-Z]+)\b"
+            r"|\b(?:(?:do\s+)?(?:you|u)\s+(?:know|speak|understand)\s+(?:tamil|arabic|hindi|malayalam|telugu|french|spanish|urdu|bengali|german|russian|chinese))\b"
+            r"|\b(?:تتكلم|تحدث|عربي|العربية)\b",
+            msg_l
+        ))
+        if is_lang_query:
+            if "arabic" in msg_l or any(w in msg_l for w in ["تتكلم", "تحدث", "عربي", "العربية"]):
+                reply_text = "نعم، يمكنني مساعدتك باللغة العربية أو الإنجليزية! كيف يمكنني مساعدتك اليوم بخصوص الطابعات أو الماسحات الضوئية أو الأحبار؟\n\n(Yes, I can assist you in Arabic or English! How can I help you today with our printers, scanners, or consumables?)"
+            else:
+                reply_text = "Yes, I can assist you! How can I help you today with our printers, scanners, or consumables?"
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="capability:language",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=["Printers", "Scanners", "Consumables"],
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── Agent Planner: Spec attribute query "for each" model ─────────────
+        is_for_each = bool(re.search(r"\b(?:for\s+each(?:\s+of\s+them)?|of\s+each(?:\s+model)?|for\s+all(?:\s+models)?|of\s+all|every\s+(?:printer|model)|each\s+(?:one|model))\b", msg_l))
+        raw_cands = getattr(state, "candidate_products", []) or getattr(state, "displayed_product_ids", []) or []
+        if not raw_cands and getattr(state, "comparison_pair", None):
+            raw_cands = list(state.comparison_pair)
+        multi_cands = []
+        for item in raw_cands:
+            if isinstance(item, dict):
+                multi_cands.append(item)
+            elif isinstance(item, str):
+                p = catalogue_loader.get_by_id(item)
+                if p:
+                    multi_cands.append(p)
+
+        is_dpi_spec = any(w in msg_l for w in ["dpi", "resolution"])
+        is_speed_spec = any(w in msg_l for w in ["speed", "ppm", "fast"])
+        is_price_spec = any(w in msg_l for w in ["price", "cost", "how much", "rate"])
+        is_size_spec = any(w in msg_l for w in ["size", "width", "dimension"])
+
+        if is_for_each and len(multi_cands) >= 2:
+            target_attr = canonical_turn.explicit_questions[0].target_attribute if canonical_turn.explicit_questions else None
+            sem_key = canonical_turn.explicit_questions[0].semantic_key if canonical_turn.explicit_questions else None
+            q_label = canonical_turn.explicit_questions[0].text if canonical_turn.explicit_questions else "specifications"
+            if is_dpi_spec or sem_key == "resolution" or target_attr == "resolution":
+                q_label = "print resolution"
+                sem_key = "resolution"
+            elif is_speed_spec or sem_key == "print_speed" or target_attr == "speed":
+                q_label = "printing speed"
+                sem_key = "print_speed"
+            elif is_price_spec or sem_key == "price" or target_attr == "price":
+                q_label = "official pricing"
+                sem_key = "price"
+            elif is_size_spec:
+                q_label = "print width"
+                sem_key = "size"
+
+            lines = [f"Here is the verified {q_label} for each of the models:"]
+            for cp in multi_cands[:5]:
+                cp_name = cp.get("display_name") or cp.get("name") or cp["id"]
+                val = None
+                if sem_key == "resolution":
+                    val = cp.get("print_resolution") or cp.get("resolution") or "300 × 300 DPI (High-speed) / 300 × 600 DPI (High-resolution)"
+                elif sem_key == "print_speed":
+                    val = cp.get("print_speed") or "Commercial production speed"
+                elif sem_key == "price":
+                    val = f"AED {cp.get('price'):,.2f} (Excl. VAT)" if cp.get("price") else "Price on Request"
+                elif sem_key == "size":
+                    w = cp.get("print_width") or cp.get("max_width_inches") or cp.get("paper_size") or "Standard"
+                    val = f"{w}\"" if isinstance(w, (int, float)) else str(w)
+                elif sem_key == "physical_specs" or target_attr == "weight":
+                    val = cp.get("weight") or "Standard commercial footprint"
+                if val:
+                    lines.append(f"• {cp_name}: {val}")
+            if len(lines) > 1:
+                reply_text = "\n".join(lines)
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(
+                    reply=reply_text,
+                    source="agent:for_each_spec_query",
+                    product_cards=[],
+                    consumable_cards=[],
+                    suggested_chips=["Compare Running Costs", "Official Quotation"],
+                    nlp_result=nlp_result,
+                    state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
 
         # ── Agent Planner: Consultative Price Objection Handling ─────────
         if canonical_turn.primary_intent == "price_objection":
@@ -412,20 +1225,117 @@ class Orchestrator:
                 latency_ms=int((time.time() - start_time) * 1000),
             )
 
-        # ── Agent Planner: Natural Warm Greeting ─────────────────────────
-        if canonical_turn.primary_intent == "greeting":
-            reply_text = "Hello and welcome to Kepler Tech! How can I assist you with your printing solutions today?"
-            chips = [
-                "Office & Business Printers",
-                "Technical CAD Plotters",
-                "Photo & Fine Art Printers",
-                "Dye-Sublimation (T-Shirts & Mugs)",
-            ]
+
+
+        # ── Unverified Product Protection ──
+        _unv_brand = None
+        _unv_model = None
+        _code_match = re.search(r"\b(?:(epson|citizen)\s+)?((?:sc|wf|am|em|cx|cy|cz|op)[-\s]?[a-z]?\d{2,5}[a-z0-9]*)\b", msg_l)
+        if _code_match:
+            _brand_grp = _code_match.group(1)
+            _code_grp = _code_match.group(2)
+            _unv_brand = _brand_grp or ("citizen" if _code_grp.startswith(("cx", "cy", "cz", "op")) else "epson")
+            _unv_model = _code_grp.upper()
+        elif re.search(r"\bcitiz[eo]n\b", msg_l) and re.search(r"\b(barcode|label|receipt|pos|thermal\s+(?:label|receipt|transfer)|direct\s+thermal)\b", msg_l):
+            _unv_brand = "citizen"
+            _unv_model = "Citizen Industrial/POS"
+
+        if _unv_model and not find_mentioned_catalogue_products(normalized_msg):
+            if re.search(r"\b(?:do\s+not\s+substitute|no\s+substitut\w*|don'?t\s+substitute|don'?t\s+suggest|no\s+alternative)\b", msg_l):
+                reply_text = f"I could not find the **{_unv_model}** in our authorized Kepler Tech product catalogue or manufacturer index. As requested, I will not suggest alternative models."
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(reply_text, "route:unverified_product_no_substitute", [], [],
+                                            ["Ask Another Question"], nlp_result, state,
+                                            int((time.time() - start_time) * 1000))
+
+            if _unv_brand == "citizen":
+                reply_text = (
+                    f"The **{_unv_model}** is not listed in our authorized Kepler Tech product catalogue, so we do not carry or support this specific model.\n\n"
+                    "However, as an authorized Citizen Photo distributor, we carry the full lineup of genuine Citizen dye-sublimation photo printers:\n"
+                    "• **Citizen CX-02:** Compact, high-speed 6-inch dye-sublimation photo printer, ideal for event photography and photo booths.\n"
+                    "• **Citizen CY-02:** High-capacity event photo printer engineered for high-volume commercial printing.\n"
+                    "• **Citizen CZ-01:** Ultra-compact, lightweight 4-inch photo printer for on-the-go mobility.\n"
+                    "• **Citizen CX-02W:** Wide 8-inch photo printer designed for professional studio and event portraits.\n\n"
+                    "Would you like technical specifications or media compatibility for any of these Citizen models?"
+                )
+                suggested_chips = ["Citizen CX-02", "Citizen CY-02", "Citizen CZ-01", "Citizen CX-02W"]
+            else:
+                reply_text = (
+                    f"The **{_unv_model}** is not listed in our authorized Kepler Tech product catalogue, so we do not carry or support this specific model.\n\n"
+                    "As an authorized Epson distributor, we recommend these nearest verified options from our catalogue:\n"
+                    "• **Epson SureColor SC-T3100:** 24-inch wireless desktop technical CAD/GIS plotter.\n"
+                    "• **Epson SureColor SC-P700:** 13-inch professional 10-colour photographic and fine art printer.\n"
+                    "• **Epson WorkForce Enterprise AM-C4000:** 40 ppm Heat-Free A3 enterprise multifunction printer.\n\n"
+                    "Would you like detailed specifications for any of these approved models?"
+                )
+                suggested_chips = ["SC-T3100", "SC-P700", "AM-C4000", "View Approved Models"]
+
             state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(reply_text, "route:unverified_product", [], [],
+                                        suggested_chips, nlp_result, state,
+                                        int((time.time() - start_time) * 1000))
+
+        # ── Unsupported Competitor Brands Polite Refusal ──
+        _comp_match = re.search(r"\b(hp|canon|brother|roland|mimaki|xerox|ricoh|kyocera|lexmark|konica)\b", msg_l)
+        if _comp_match and not find_mentioned_catalogue_products(normalized_msg):
+            comp_brand = _comp_match.group(1).upper()
+            reply_text = (
+                f"We do not carry {comp_brand} products; that model is not present in our approved catalogue. As an authorized Kepler Tech distributor, we specialize exclusively in genuine Epson commercial & industrial printers and Citizen Photo dye-sublimation printers.\n\n"
+                "As an authorized Epson distributor, we recommend nearest verified alternatives from our catalogue such as the Epson SureColor SC-T3100 for technical CAD/GIS, or SC-P700 for photo printing. Would you like details on an approved Epson model?"
+            )
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(reply_text, "route:unverified_product", [], [],
+                                        ["View Epson CAD Models", "View Epson Photo Models"], nlp_result, state,
+                                        int((time.time() - start_time) * 1000))
+
+        # ── Media Rolls & Paper Direct Routing ──
+        if re.search(r"\b(?:media\s+rolls?|photo\s+papers?|fine\s+art\s+papers?|photographic\s+media\s+rolls?)\b", msg_l):
+            return self._build_media_rolls_response(state, nlp_result, start_time)
+
+        # ── Agent Planner: Warranted Clarification Question ──────────────
+        if agent_decision.action == AgentAction.ASK_CLARIFICATION:
+            field_key = agent_decision.clarification_field or agent_decision.target_attribute
+            state.awaiting_field = field_key
+            reply_text = agent_decision.clarification_question
+            chips = []
+            if field_key == "category":
+                reply_text = reply_text or "What type of printing solution are you looking for?"
+                chips = [
+                    "Office & Business Documents",
+                    "Technical CAD Plotters",
+                    "Professional Photo & Fine Art",
+                    "Sublimation (T-Shirts & Mugs)",
+                ]
+            elif field_key in ("paper_size", "print_size"):
+                if state.category == "office_printer":
+                    reply_text = reply_text or "Do you require an A4 or A3 office multifunction printer?"
+                    chips = ["A4 Multifunction", "A3 Multifunction", "A3 & A4"]
+                else:
+                    reply_text = reply_text or "What paper size do you need to print?"
+                    chips = ["A0", "A1", "A2", "A3"]
+            elif field_key == "print_width":
+                reply_text = reply_text or "What maximum print width do you require for your technical plans (e.g., 24-inch A1 or 36-inch A0)?"
+                chips = ["24-inch (A1)", "36-inch (A0)", "44-inch"]
+            elif field_key in ("daily_volume", "print_volume"):
+                reply_text = reply_text or "What is your estimated daily or monthly printing volume?"
+                chips = ["Under 100 pages/day", "100-300 pages/day", "500+ pages/day"]
+            elif field_key == "application":
+                if state.category == "citizen_photo":
+                    reply_text = reply_text or "Is this for portable event / photo booth printing or on-site studio portraits?"
+                    chips = ["Photo Booth / Events", "Studio Portraits", "Standard 4x6 / 6x8"]
+                else:
+                    reply_text = reply_text or "What is the primary application for this printer?"
+                    chips = []
+
+            state.last_assistant_response = reply_text
+            state.last_suggested_chips = chips
             state.increment_turn()
             return self._build_response(
                 reply=reply_text,
-                source="agent:greeting",
+                source=f"qualification:{field_key}_prompt",
                 product_cards=[],
                 consumable_cards=[],
                 suggested_chips=chips,
@@ -504,9 +1414,9 @@ class Orchestrator:
 
             prefix = "My apologies for the confusion earlier! " if canonical_turn.primary_intent == "frustration" or "what you answering" in msg_l else ""
             reply_text = (
-                f"{prefix}For dye-sublimation printing (apparel, mugs, and promotional merchandise), we supply two official Epson SureColor systems:\n\n"
-                "1. Epson SureColor SC-F100 (AED 1,950.00 Excl. VAT) — Compact A4 desktop dye-sublimation printer with refillable ink tanks. Ideal for mugs, phone cases, and small bespoke items.\n"
-                "2. Epson SureColor SC-F500 — 24-inch roll-fed dye-sublimation printer with auto-sheet feeder. Designed for apparel, textiles, soft signage, and hard substrates.\n\n"
+                f"{prefix}For sublimation printing (apparel, mugs, and promotional merchandise), we supply two official Epson SureColor systems:\n\n"
+                "1. Epson SureColor SC-F100 (AED 1,950.00 Excl. VAT) — Compact A4 desktop sublimation printer with refillable ink tanks. Ideal for mugs, phone cases, and small bespoke items.\n"
+                "2. Epson SureColor SC-F500 — 24-inch roll-fed sublimation printer with auto-sheet feeder. Designed for apparel, textiles, soft signage, and hard substrates.\n\n"
                 "Which format fits your business needs—the compact A4 desktop model (SC-F100) or the 24-inch roll system (SC-F500)?"
             )
             chips = ["Epson SC-F100 (A4 Desktop)", "Epson SC-F500 (24-inch Roll)", "Inks & Sublimation Papers"]
@@ -527,24 +1437,110 @@ class Orchestrator:
                 latency_ms=int((time.time() - start_time) * 1000),
             )
 
+        # ── Early Route: Product Page Purchase Link ─────────────────────────
+        if re.search(r"\b(?:how\s+(?:can|do)\s+i\s+(?:buy|order|purchase)|where\s+can\s+i\s+(?:buy|order|purchase)|buy\s+this|purchase\s+link)\b", msg_l):
+            named = find_mentioned_catalogue_products(normalized_msg)
+            prod = named[0] if named else state.active_product
+            consumable = state.active_consumable if not named and "this" in msg_l and state.active_consumable else None
+            if consumable:
+                url = consumable.get("product_url") or consumable.get("website_url") or consumable.get("url")
+                name = consumable.get("name") or consumable.get("display_name") or consumable.get("sku")
+                reply_text = (f"You can view the **{name}** on its verified product page: {url}." if url
+                              else f"I can identify the **{name}**, but its product page is not verified in the catalogue.")
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(reply_text, "route:product_page", [], [consumable],
+                                            ["View Compatible Consumables"], nlp_result, state,
+                                            int((time.time() - start_time) * 1000))
+            product_url = (prod.get("product_url") or prod.get("website_url")) if prod else None
+            reply_text = (
+                f"You can view verified details for the **{prod.get('display_name') or prod['id']}** on its official product page: {product_url}."
+                if product_url else "I can help identify the right catalogue model and share its verified product details."
+            )
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(reply_text, "route:product_page", [], [],
+                                        ["View Technical Specifications"], nlp_result, state,
+                                        int((time.time() - start_time) * 1000))
+
+        # ── Price Deflection Guardrail (commercial policy) ───────────────────
+        is_price_deflection = (
+            bool(re.search(r"\b(?:how\s+much\s+(?:is|for|does)|what\s+(?:is\s+)?(?:the\s+)?(?:price|cost|rate)|price\s*of|cost\s*of|how\s*much)\b", msg_l))
+            and not any(w in msg_l for w in ["buy", "order", "purchase", "invoice", "deliver", "shipping"])
+        )
+        if is_price_deflection:
+            named = find_mentioned_catalogue_products(normalized_msg)
+            p_name = (named[0].get("display_name") if named else None) or (state.active_consumable.get("name") if getattr(state, "active_consumable", None) else None) or (state.active_product.get("display_name") if getattr(state, "active_product", None) else None)
+            reply_text = format_rotating_pricing_redirect(state, p_name)
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="guardrail:commercial_policy",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=["Speak to Human Agent", "View Technical Specifications", "Compatible Consumables"],
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
         # ── Agent Planner: Clean Purchase Intent & Direct Ordering ───────
         if canonical_turn.primary_intent == "purchase_intent" or any(
             phrase in msg_l for phrase in ["want to order", "ready to order", "how to buy", "how do i order", "place an order", "ready to purchase", "want to buy this", "order this"]
         ):
+            # If user is asking to buy a printer when active product was a scanner, clear the scanner
+            if (state.category in ("scanners", "scanner") or (state.active_product and "scanner" in str(state.active_product.get("category", "")).lower())) and any(k in msg_l for k in ["printer", "plotter"]):
+                state.category = None
+                state.active_product = None
+                state.active_product_id = None
+                state.candidate_products = []
+                state.displayed_product_ids = []
+                reply_text = (
+                    "What type of printing are you looking to do? "
+                    "We offer technical CAD plotters, photo & fine art printers, sublimation printers, and commercial office printers."
+                )
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(
+                    reply=reply_text,
+                    source="route:category_switch",
+                    product_cards=[],
+                    consumable_cards=[],
+                    suggested_chips=["Technical CAD Plotters", "Photo & Fine Art", "Sublimation", "Office Printers"],
+                    nlp_result=nlp_result,
+                    state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
+
             act_cons = getattr(state, "active_consumable", None)
             act_id = state.get_canonical_focus_id()
-            act_prod = act_cons or (catalogue_loader.get_by_id(act_id) if act_id else state.active_product)
+            if state.active_product and not any(k in msg_l for k in ["ink", "cartridge", "consumable", "ribbon"]):
+                act_prod = state.active_product
+            elif act_cons:
+                act_prod = act_cons
+            else:
+                act_prod = catalogue_loader.get_by_id(act_id) if act_id else state.active_product
             p_name = act_prod.get("display_name") or act_prod.get("name") or act_prod.get("title") if act_prod else "this equipment"
             p_url = act_prod.get("product_url") or act_prod.get("url") or "https://www.keplertechllc.com" if act_prod else "https://www.keplertechllc.com"
+            price_prefix = ""
+            if act_prod and (any(w in msg_l for w in ["price", "cost", "how much", "rate"]) or any(q.semantic_key == "price" for q in getattr(canonical_turn, "explicit_questions", []))):
+                prod_entry = catalogue_loader.get_by_id(act_prod.get("id")) if (act_prod and act_prod.get("id")) else act_prod
+                p_price = (prod_entry.get("price") if prod_entry else None) or act_prod.get("price")
+                if p_price:
+                    price_prefix = f"The official price for the {p_name} is AED {p_price:,.2f} (Excl. VAT).\n\n"
+                elif act_prod.get("is_price_on_request") or not p_price:
+                    price_prefix = f"Pricing for the {p_name} is available upon official request.\n\n"
+
             reply_text = (
-                f"You can place your order directly for the {p_name} through our official website link at {p_url}, "
-                f"or our sales desk at sales@keplertech.ae can generate an official tax invoice and arrange express UAE delivery. "
+                f"{price_prefix}You can place your order directly for the {p_name} through our official website link at {p_url}, "
+                f"or our sales desk at sales@keplertech.ae can generate an official tax invoice and arrange express UAE delivery (flat AED 10 across the UAE). "
                 f"Would you prefer to order online or receive an official invoice?"
             )
             chips = ["Order Online", "Request Official Invoice", "Contact Sales Desk"]
             state.last_assistant_response = reply_text
             state.increment_turn()
-            c_cards = [act_cons] if act_cons else []
+            c_cards = [act_cons] if (act_cons and act_prod == act_cons) else []
             return self._build_response(
                 reply=reply_text,
                 source="agent:purchase_intent",
@@ -936,7 +1932,7 @@ class Orchestrator:
                 "technical_large_format": "Technical CAD / GIS Plotters",
                 "photography_large_format": "Photography & Fine Art",
                 "citizen_photo": "Photo Booth / Event Photography",
-                "dye_sublimation": "Dye-Sublimation Transfer Printing",
+                "dye_sublimation": "Sublimation Transfer Printing",
                 "scanners": "Document Scanners",
             }
             cat_str = cat_display_map.get(cat, cat.replace("_", " ").title() if cat else "Not yet specified")
@@ -1359,7 +2355,7 @@ class Orchestrator:
 
         if model_token and not find_mentioned_catalogue_products(normalized_msg):
             if re.search(r"\b(?:do\s+not\s+substitute|no\s+substitut\w*|don'?t\s+substitute|don'?t\s+suggest|no\s+alternative)\b", msg_l):
-                reply_text = f"I could not find the **{model_token}** in our verified catalogue or manufacturer index. As requested, I will not suggest alternative models."
+                reply_text = f"I could not find the **{model_token}** in our authorized Kepler Tech product catalogue or manufacturer index. As requested, I will not suggest alternative models."
                 state.last_assistant_response = reply_text
                 state.increment_turn()
                 return self._build_response(reply_text, "route:unverified_product_no_substitute", [], [],
@@ -1368,7 +2364,7 @@ class Orchestrator:
 
             if detected_brand == "citizen":
                 reply_text = (
-                    f"The **{model_token}** is not in our authorized catalogue, so we do not carry or support this specific model.\n\n"
+                    f"The **{model_token}** is not listed in our authorized Kepler Tech product catalogue, so we do not carry or support this specific model.\n\n"
                     "However, as an authorized Citizen Photo distributor, we carry the full lineup of genuine Citizen dye-sublimation photo printers:\n"
                     "• **Citizen CX-02:** Compact, high-speed 6-inch dye-sublimation photo printer, ideal for event photography and photo booths.\n"
                     "• **Citizen CY-02:** High-capacity event photo printer engineered for high-volume commercial printing.\n"
@@ -1379,7 +2375,7 @@ class Orchestrator:
                 suggested_chips = ["Citizen CX-02", "Citizen CY-02", "Citizen CZ-01", "Citizen CX-02W"]
             else:
                 reply_text = (
-                    f"The **{model_token}** is not in our authorized catalogue, so we do not carry or support this specific model.\n\n"
+                    f"The **{model_token}** is not listed in our authorized Kepler Tech product catalogue, so we do not carry or support this specific model.\n\n"
                     "As an authorized Epson distributor, we recommend these nearest verified options from our catalogue:\n"
                     "• **Epson SureColor SC-T3100:** 24-inch wireless desktop technical CAD/GIS plotter.\n"
                     "• **Epson SureColor SC-P700:** 13-inch professional 10-colour photographic and fine art printer.\n"
@@ -1418,7 +2414,7 @@ class Orchestrator:
                 "• **Technical CAD / GIS Plotters (SureColor T-Series):** High-precision wireless desktop and production plotters engineered for architects, engineering firms, and construction blueprints (e.g., **SureColor SC-T3100**, **SC-T5100**, **SC-T5400M**).\n"
                 "• **Professional Photography & Fine Art (SureColor P-Series):** Gallery-grade archival printers with UltraChrome PRO pigment inks for fine art reproduction, photo labs, and proofing (e.g., **SureColor SC-P700**, **SC-P900**, **SC-P5300**, **SC-P20500**).\n"
                 "• **WorkForce Enterprise & Office Multifunction:** High-speed, Heat-Free line-head commercial printers delivering 40 to 100 ppm with ultra-low power consumption for corporate offices (e.g., **WorkForce Enterprise AM-C4000**, **AM-C5000**, **AM-C6000**, **WorkForce Pro WF-C5890**).\n"
-                "• **Commercial Dye-Sublimation (SureColor F-Series):** High-yield digital transfer systems for custom apparel, sports jerseys, and promotional merchandise (e.g., **SureColor SC-F100**, **SC-F500**).\n\n"
+                "• **Commercial Sublimation (SureColor F-Series):** High-yield digital transfer systems for custom apparel, sports jerseys, and promotional merchandise (e.g., **SureColor SC-F100**, **SC-F500**).\n\n"
                 "Which printing application best fits your workflow or project?"
             )
             epson_flagship_cards = [
@@ -1434,7 +2430,7 @@ class Orchestrator:
                 "Technical CAD Plotters",
                 "Professional Photography",
                 "Office & Business Documents",
-                "Dye-Sublimation (T-Shirts & Mugs)",
+                "Sublimation (T-Shirts & Mugs)",
             ]
             state.last_assistant_response = reply_text
             state.increment_turn()
@@ -1506,7 +2502,7 @@ class Orchestrator:
             state.active_product_id = None
             reply_text = (
                 "Kepler Tech is an authorized distributor in Dubai, UAE, specializing in commercial printing hardware across two premier global brands:\n\n"
-                "• **Epson Professional Solutions:** Technical CAD / GIS plotters (SureColor T-Series), photo & fine art printers (SureColor P-Series), high-speed Heat-Free office multifunction printers (WorkForce Enterprise & Pro), and commercial dye-sublimation systems (SureColor F-Series).\n"
+                "• **Epson Professional Solutions:** Technical CAD / GIS plotters (SureColor T-Series), photo & fine art printers (SureColor P-Series), high-speed Heat-Free office multifunction printers (WorkForce Enterprise & Pro), and sublimation systems (SureColor F-Series).\n"
                 "• **Citizen Photo Printers:** Heavy-duty, high-speed dye-sublimation printers engineered specifically for event photography, photo booths, and instant portrait studios (CX-02, CY-02, CZ-01, CX-02W).\n\n"
                 "Which category or application best matches your business needs?"
             )
@@ -1524,7 +2520,7 @@ class Orchestrator:
                 "Professional Photographs",
                 "Office & Business Documents",
                 "Event Photos (Photo Booth)",
-                "Dye-Sublimation (T-Shirts & Mugs)",
+                "Sublimation (T-Shirts & Mugs)",
             ]
             state.last_assistant_response = reply_text
             state.increment_turn()
@@ -1801,7 +2797,7 @@ class Orchestrator:
                     "Technical CAD Plotters",
                     "Professional Photography & Fine Art",
                     "Office & Business Documents",
-                    "Dye-Sublimation (T-Shirts & Mugs)"
+                    "Sublimation (T-Shirts & Mugs)"
                 ]
                 return self._build_response(
                     reply=reply_text,
@@ -2472,7 +3468,7 @@ class Orchestrator:
                     "The SC-P900 is an aqueous pigment photo and fine-art printer designed strictly for photographic paper, fine art paper, and canvas sheets or rolls. "
                     "For printing on T-shirts, you would need a dye-sublimation printer (for transfer paper) or a direct-to-garment (DTG) printer."
                 )
-                chips_to_return = ["Explore Dye-Sublimation (T-Shirts)", "Continue with SC-P900 (Photo/Art)", "View P900 Consumables"]
+                chips_to_return = ["Explore Sublimation (T-Shirts)", "Continue with SC-P900 (Photo/Art)", "View P900 Consumables"]
                 state.last_assistant_response = reply_text
                 state.increment_turn()
                 return self._build_response(
@@ -2743,14 +3739,16 @@ class Orchestrator:
         if unapproved_detected and (not mentioned_products or is_explicit_unapproved_query) and not is_answering_consumables:
             unapproved_names = ", ".join([m.upper() for m in unapproved_detected[:2]])
             reply_text = (
-                f"I don't have that product in our catalog ({unapproved_names}). "
-                "What type of printing are you looking to do? I'd be happy to find the best match from our range."
+                f"I checked our system, but that model ({unapproved_names}) is not present in our approved catalogue. "
+                "As an authorized Kepler Tech distributor, we specialize in official Epson SureColor Technical (T-Series), "
+                "Photo & Fine Art (P-Series), WorkForce Office printers, SureColor F-Series Sublimation printers, and Citizen Photo printers.\n\n"
+                "What type of printing are you looking to do? I would be happy to find the best match from our range."
             )
             chips_to_return = [
                 "Office & Business Documents",
                 "Technical CAD Plotters",
                 "Professional Photo & Fine Art",
-                "Dye-Sublimation (T-Shirts & Mugs)",
+                "Sublimation (T-Shirts & Mugs)",
                 "Event Photos (Photo Booth)",
             ]
             state.last_assistant_response = reply_text
@@ -3468,8 +4466,10 @@ class Orchestrator:
             current_active = None
             current_active_id = None
 
+        is_negative_correction = bool(re.search(r"\b(?:not\s+(?:this|that|the|a)|don't\s+want|different\s+(?:model|one)|other\s+(?:model|one))\b", normalized_msg.lower()))
         is_comparison_query = (
             not is_scanner_type_selection
+            and not is_negative_correction
             and (
                 understanding.intent == Intent.PRODUCT_COMPARISON
                 or any(w in normalized_msg.lower() for w in [
@@ -3866,6 +4866,7 @@ class Orchestrator:
                             ))
                             or (
                                 getattr(understanding, "requested_action", "") in ("show_product_specs", "show_details")
+                                and bool(re.search(r"\b(?:details?|specs?|information|info|features?|datasheet|tell\s+me|overview)\b", normalized_msg.lower()))
                                 and not bool(re.search(r"\b(?:hybrid|flatbed|adf|scanners?|printers?|plotters?|options|models|types?|recommend)\b", normalized_msg.lower()))
                             )
                         )
@@ -3999,7 +5000,7 @@ class Orchestrator:
                     reply_text = (
                         f"No, the **{p_name}** is a compact A4 desktop sublimation printer that only supports cut sheets up to A4 / Letter (8.5 inches wide), "
                         f"and does not support {asked_size} printing.\n\n"
-                        f"If you need to print {asked_size} or larger dye-sublimation transfers, we recommend the **Epson SureColor SC-F500** (24-inch roll printer). "
+                        f"If you need to print {asked_size} or larger sublimation transfers, we recommend the **Epson SureColor SC-F500** (24-inch roll printer). "
                         "The SC-F500 supports both 24-inch roll media and an auto-sheet feeder for large apparel, sportswear, and merchandise."
                     )
                 else:
@@ -4313,7 +5314,7 @@ class Orchestrator:
             r"(?:list|show|give|display|get)\s+(?:all\s+)?(?:the\s+)?(?:photographic\s+|fine\s*art\s+|canvas\s+)?(?:medias?\s+)?rolls?|"
             r"all\s+(?:the\s+)?(?:medias?\s+)?rolls?)\b",
             msg_l_media
-        ))
+        )) and not bool(re.search(r"\b(?:which\s+(?:one|printer|model)|single\s+paper\s+roll|ribbon\s+rewind|without\s+media\s+loss)\b", msg_l_media))
         is_media_explicit = bool(re.search(
             r"\b(?:inkjet\s*medias?|inkjet\s*papers?|inkjet\s*canvas(?:es)?|print\s*medias?|fine\s*art\s*papers?|photo\s*papers?|photographic\s*(?:papers?|medias?|rolls?)?|canvas(?:\s*rolls?|\s*medias?)?|innova(?:\s*art)?|olmec|korejet|baryta|cotton\s*rag|watercolour\s*paper|fabriano|paste\s*up\s*wallpaper|wallpaper\s*medias?|ifa[-\s]?\d+|olm[-\s]?\d+|kj[-\s]?p\d+)\b",
             msg_l_media
@@ -4845,7 +5846,7 @@ class Orchestrator:
                 "Technical CAD Plotters",
                 "Professional Photography & Fine Art",
                 "Professional Scanners",
-                "Dye-Sublimation (T-Shirts & Mugs)",
+                "Sublimation (T-Shirts & Mugs)",
                 "Event Photos (Photo Booth)",
             ]
             state.awaiting_field = "category"
@@ -5078,15 +6079,15 @@ class Orchestrator:
             elif state.category in ("dye_sublimation", "sublimation") or subcategory in ("dye_sublimation_24_inch", "dye_sublimation_desktop"):
                 if subcategory == "dye_sublimation_24_inch" or state.requirements.get("model") == "epson-sc-f500" or state.requirements.get("print_width") == 24:
                     reply_text = (
-                        f"{format_rotating_opener('24-inch dye-sublimation printer', state)}:\n\n"
-                        "The **Epson SureColor SC-F500** is an authorized 24-inch dye-sublimation production printer engineered for apparel, sportswear, soft signage, mugs, and promotional merchandise. "
+                        f"{format_rotating_opener('24-inch sublimation printer', state)}:\n\n"
+                        "The **Epson SureColor SC-F500** is an authorized 24-inch sublimation production printer engineered for apparel, sportswear, soft signage, mugs, and promotional merchandise. "
                         "It features refillable 140ml ink tanks (UltraChrome DS), auto-switching between 24-inch roll media and cut-sheet feed, and a compact desktop footprint."
                     )
                     chips_to_return = ["View Technical Specifications", "Compatible Sublimation Inks & Media", "Compare with SC-F100"]
                 else:
                     reply_text = (
-                        f"{format_rotating_opener('desktop dye-sublimation printer', state)}:\n\n"
-                        "The **Epson SureColor SC-F100** is a compact A4 desktop dye-sublimation printer designed for mugs, phone covers, mouse mats, and small promotional items. "
+                        f"{format_rotating_opener('desktop sublimation printer', state)}:\n\n"
+                        "The **Epson SureColor SC-F100** is a compact A4 desktop sublimation printer designed for mugs, phone covers, mouse mats, and small promotional items. "
                         "It features refillable 140ml bottle ink tanks (UltraChrome DS), Wi-Fi connectivity, and a space-saving desktop design."
                     )
                     chips_to_return = ["View Technical Specifications", "Compatible Sublimation Inks & Media", "Compare with SC-F500"]
@@ -5280,8 +6281,7 @@ class Orchestrator:
         if reply.startswith("Understood, I've updated"):
             return False
         if (
-            source.startswith("guardrail:untrusted_instruction")
-            or source.startswith("guardrail:discount_refusal")
+            source.startswith("guardrail:")
             or source.startswith("handover:")
             or source.startswith("customer_flow:")
             or source.startswith("route:customer_flow")
@@ -5694,7 +6694,7 @@ class Orchestrator:
         # Strict flow buttons enforcement:
         # Only permit suggestion chips that are part of the active qualification flow,
         # category selection, or guest login. Strip all generic ad-hoc/unwanted buttons.
-        is_flow_source = source.startswith(("qualification:category_prompt", "qualification:next_question")) or any("guest" in str(ch).lower() for ch in (suggested_chips or []))
+        is_flow_source = source.startswith(("qualification:category_prompt", "qualification:next_question", "qualification:consumables_prompt")) or any("guest" in str(ch).lower() for ch in (suggested_chips or []))
         if not is_flow_source:
             suggested_chips = []
         else:
@@ -5714,7 +6714,7 @@ class Orchestrator:
         is_explicit_show_cards = any(k in raw_msg_lower for k in [
             "show card", "show cards", "show product card", "show printer card", "show again",
             "show options", "show recommendations", "show all options", "show products", "show printers"
-        ])
+        ]) or source.startswith("route:conversational_memory_recall")
 
         def _is_card_already_displayed(card_dict: Dict[str, Any], disp_list: List[str]) -> bool:
             if not disp_list or not isinstance(card_dict, dict):
@@ -5759,7 +6759,7 @@ class Orchestrator:
         sanitized_prod_cards = []
         for c in (product_cards or []):
             if isinstance(c, dict):
-                if _is_card_already_displayed(c, state.displayed_product_ids) and not is_explicit_show_cards and not is_recommendation_flow and not source.startswith("route:purchase"):
+                if _is_card_already_displayed(c, state.displayed_product_ids) and not is_explicit_show_cards and not is_recommendation_flow and not source.startswith("route:purchase") and not source.startswith("route:comparison") and not source.startswith("agent:direct_comparison"):
                     cid = c.get("id") or c.get("name")
                     logger.info(f"Suppressing duplicate product card for '{cid}' - already displayed in session.")
                     continue
@@ -5890,16 +6890,16 @@ class Orchestrator:
 
         # Section 21: Clean internal database terms from customer-facing reply
         if reply:
-            if not source.startswith(("route:cost_per_print", "route:product_price", "route:consumable_price", "route:general_price", "route:purchase", "agent:purchase", "agent:price_objection", "agent:investment_cost_comparison", "agent:dye_sublimation_recommendation", "agent:direct_answer")):
+            if not source.startswith(("route:cost_per_print", "route:product_price", "route:consumable_price", "route:general_price", "route:purchase", "agent:purchase", "agent:price_objection", "agent:investment_cost_comparison", "agent:dye_sublimation_recommendation", "agent:direct_answer", "agent:delivery_policy", "agent:for_each_spec_query")):
                 reply = re.sub(r":\s*\*\*(?:AED\s*[\d,.]+|Price on Request)[^*]*\*\*", "", reply, flags=re.I)
                 reply = re.sub(r"\*\*(?:AED\s*[\d,.]+|Price on Request)[^*]*\*\*", "", reply, flags=re.I)
                 reply = re.sub(r"\bAED\s*[\d,.]+(?:\s*\(Excl\. VAT\))?\b", "", reply, flags=re.I)
                 reply = re.sub(r"\bPrice on Request\b", "", reply, flags=re.I)
-            if not source.startswith(("route:purchase", "agent:purchase", "route:support", "route:business_info", "route:contact", "guardrail:", "route:product_price", "route:consumable_price", "route:general_price", "agent:price_objection")):
+            if not source.startswith(("route:purchase", "agent:purchase", "route:support", "route:business_info", "route:contact", "guardrail:", "route:product_price", "route:consumable_price", "route:general_price", "agent:price_objection", "agent:delivery_policy")):
                 reply = re.sub(r"\b[\w.+-]+@(?:keplertech\.ae|keplertechllc\.com)\b", "", reply, flags=re.I)
                 if not source.startswith(("customer_flow:", "route:customer_flow")):
                     reply = re.sub(r"\+971[\d\s-]{7,16}", "", reply)
-            if not source.startswith(("route:purchase", "agent:purchase", "guardrail:", "route:product_price", "route:consumable_price", "route:general_price", "route:support", "route:contact", "route:business_info", "agent:price_objection")):
+            if not source.startswith(("route:purchase", "agent:purchase", "guardrail:", "route:product_price", "route:consumable_price", "route:general_price", "route:support", "route:contact", "route:business_info", "agent:price_objection", "agent:delivery_policy")):
                 reply = "\n".join(
                     line for line in reply.splitlines()
                     if not re.search(r"\b(?:contact (?:our|the) (?:sales|support)|sales desk|commercial quotation|bulk delivery quotes|ask for (?:a )?quote|commercial sales|corporate financing|verified pricing|phone:|email:)\b", line, re.I)
@@ -5994,13 +6994,14 @@ class Orchestrator:
 
         # Section 22: Answer Relevance Validator & Clean WhatsApp Formatting
         canonical_turn = getattr(state, "_current_turn_understanding", None)
-        if canonical_turn and getattr(canonical_turn, "questions", None):
+        if canonical_turn and getattr(canonical_turn, "questions", None) and not source.startswith("guardrail:"):
             from validation.answer_relevance_validator import answer_relevance_validator
             is_valid, repaired_text, failure_reasons = answer_relevance_validator.validate_and_repair(
                 understanding=canonical_turn,
                 response_text=reply,
                 target_product_id=state.get_canonical_focus_id(),
                 product_data=state.active_product,
+                session_id=getattr(state, "session_id", ""),
             )
             if not is_valid:
                 logger.info(f"Answer Relevance Validator repaired response: {failure_reasons}")

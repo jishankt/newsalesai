@@ -286,7 +286,7 @@
   },
   {
     "id": "epson-sc-f100",
-    "name": "Epson SureColor SC-F100 Dye-Sublimation Desktop Printer",
+    "name": "Epson SureColor SC-F100 Sublimation Desktop Printer",
     "brand": "Epson",
     "series": "SureColor F-Series",
     "category": "photo_booth_dyesub",
@@ -302,7 +302,7 @@
   },
   {
     "id": "epson-sc-f500",
-    "name": "Epson SureColor SC-F500 24-Inch Dye-Sublimation Printer",
+    "name": "Epson SureColor SC-F500 24-Inch Sublimation Printer",
     "brand": "Epson",
     "series": "SureColor F-Series",
     "category": "photo_booth_dyesub",

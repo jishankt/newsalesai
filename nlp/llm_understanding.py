@@ -336,7 +336,7 @@ class LLMUnderstandingEngine:
             "event photos (photo booth)", "photo booth",
             "compact (desktop / portable)", "large format (24″ to 64″)", "compact", "large format", "large-format",
             "epson desktop (fine art / a3+ / a2+)", "citizen (photo booth / events)", "epson desktop", "citizen photo",
-            "dye-sublimation (t-shirts & mugs)", "dye-sublimation", "t-shirt printing", "sublimation",
+            "dye-sublimation (t-shirts & mugs)", "sublimation (t-shirts & mugs)", "dye-sublimation", "t-shirt printing", "sublimation",
             "24-inch (a1)", "36-inch (a0)", "44-inch wide", "24-inch", "36-inch", "44-inch",
             "a4 standard", "a3 large format", "a4 desktop (sc-f100)", "24-inch roll (sc-f500)",
             "t-shirts & apparel", "mugs & personalized gifts", "sportswear & soft signage",

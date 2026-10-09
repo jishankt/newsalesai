@@ -185,6 +185,8 @@ class ResponseComposer:
         cleaned = re.sub(r"(?<!\*|\n)\*([^*\n]+)\*(?!\*)", r"\1", cleaned)
         # Replace bullet stars * item -> • item
         cleaned = re.sub(r"^\s*\*\s+", r"• ", cleaned, flags=re.MULTILINE)
+        # Remove any remaining stray asterisks
+        cleaned = cleaned.replace("**", "")
         return cleaned.strip()
 
     def _extract_customer_questions(self, message: str) -> List[str]:

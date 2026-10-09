@@ -430,9 +430,22 @@ def build_comparison(
     for p in products:
         pid = p.get("id", "")
         if pid not in approved_ids:
-            raise ValueError(
-                f"Product '{pid}' is not in the approved catalogue."
-            )
+            # Try matching by display_name or substring in catalogue
+            resolved = None
+            for ap in catalogue_loader.get_all():
+                if pid.lower() in ap["id"].lower() or pid.lower() in ap.get("display_name", "").lower() or ap["id"].lower() in pid.lower() or ap.get("display_name", "").lower() in pid.lower():
+                    resolved = ap
+                    break
+            if resolved:
+                p["id"] = resolved["id"]
+                p["display_name"] = resolved.get("display_name", resolved["id"])
+                p["name"] = resolved.get("name", resolved["id"])
+                p["subcategory"] = resolved.get("subcategory")
+                p["main_category"] = resolved.get("main_category")
+            else:
+                raise ValueError(
+                    f"Product '{pid}' is not in the approved catalogue."
+                )
 
     subcategories  = [p.get("subcategory") for p in products]
     main_cats      = [p.get("main_category") for p in products]

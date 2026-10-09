@@ -785,11 +785,23 @@ def customer_login():
 
     customer = customer_repository.authenticate(username, password)
     if not customer:
-        customer_repository.record_login_attempt(username, client_ip, success=False)
-        return jsonify({
-            "success": False,
-            "error": "Invalid login credentials."
-        }), 401
+        phone_match = re.search(r"(\+?\d[\d\s-]{7,15}\d)", password)
+        email_match = re.search(r"[\w.+-]+@[\w-]+\.[\w.-]+", password)
+        if (phone_match or email_match) and len(username.strip()) >= 2:
+            phone_val = phone_match.group(1).strip() if phone_match else None
+            email_val = email_match.group(0).strip().lower() if email_match else None
+            customer = customer_repository.create_or_update_customer(
+                name=username.strip(),
+                contact=password.strip(),
+                phone=phone_val,
+                email=email_val
+            )
+        else:
+            customer_repository.record_login_attempt(username, client_ip, success=False)
+            return jsonify({
+                "success": False,
+                "error": "Invalid login credentials. Please provide your Name and a valid Phone Number or Email."
+            }), 401
 
     customer_repository.record_login_attempt(username, client_ip, success=True)
     customer_repository.reset_login_throttle(username, client_ip)

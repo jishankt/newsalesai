@@ -178,8 +178,13 @@ def find_mentioned_catalogue_products(text: str) -> List[Dict[str, Any]]:
             if scored_candidates:
                 scored_candidates.sort(key=lambda x: x[0])
                 best_d = scored_candidates[0][0]
+                best_prods = {}
                 for d, prod in scored_candidates:
-                    if d == best_d and prod["id"] not in seen_ids:
+                    if d == best_d:
+                        best_prods[prod["id"]] = prod
+                if len(best_prods) == 1:
+                    prod = next(iter(best_prods.values()))
+                    if prod["id"] not in seen_ids:
                         seen_ids.add(prod["id"])
                         matched.append(prod)
 

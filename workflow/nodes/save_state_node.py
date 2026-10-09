@@ -24,10 +24,12 @@ class SaveStateNode(BaseNode):
             state.increment_turn()
 
             if ctx.product_cards:
-                new_ids = [c["id"] for c in ctx.product_cards if isinstance(c, dict) and c.get("id")]
-                for nid in new_ids:
-                    if nid not in state.displayed_product_ids:
-                        state.displayed_product_ids.append(nid)
+                for c in ctx.product_cards:
+                    if isinstance(c, dict):
+                        for k in ("id", "sku", "canonical_id", "model"):
+                            v = c.get(k)
+                            if v and str(v) not in state.displayed_product_ids:
+                                state.displayed_product_ids.append(str(v))
 
             # 2. Append history if enabled
             if hasattr(state, "append_turn"):

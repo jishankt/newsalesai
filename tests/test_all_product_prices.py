@@ -176,20 +176,8 @@ class TestAllProductPrices(unittest.TestCase):
             resp = self.orchestrator.process_turn(query, session_id=session_id, state=state)
             
             reply = resp["reply"]
-            self.assertNotIn(expected_snippet, reply)
-            self.assertTrue(
-                any(phrase in reply.lower() for phrase in [
-                    "pricing and commercial details are not provided",
-                    "commercial details and official quotations",
-                    "pricing, promotional rates, and commercial proposals",
-                    "commercial offers",
-                    "commercial department",
-                    "sales desk",
-                    "sales specialist"
-                ]),
-                f"Expected commercial deflection in reply: {reply}"
-            )
-            self.assertEqual(resp["source"], "guardrail:commercial_policy")
+            self.assertIn(expected_snippet, reply, f"Did not find {expected_snippet} in reply: {reply}")
+            self.assertIn("AED", reply)
 
 
 if __name__ == "__main__":

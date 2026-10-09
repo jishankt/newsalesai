@@ -395,7 +395,7 @@ def _process_contact_submission(
             "To pick up where we left off regarding finding the right printer for you: "
             "what will you primarily print—office & business documents, technical CAD drawings, professional photographs, or sublimation merchandise?"
         )
-        chips = ["Office & Business Documents", "Technical CAD Plotters", "Professional Photographs", "Dye-Sublimation (T-Shirts & Mugs)"]
+        chips = ["Office & Business Documents", "Technical CAD Plotters", "Professional Photographs", "Sublimation (T-Shirts & Mugs)"]
 
     reply = (
         f"🎉 Welcome, **{customer.display_name}**! You are now logged in and your chat history is saved.\n\n"

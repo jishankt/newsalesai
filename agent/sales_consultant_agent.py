@@ -21,6 +21,7 @@ from enum import Enum
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any, Literal
 import logging
+import re
 
 from domain.canonical_turn import CanonicalTurnUnderstanding, CanonicalQuestion
 from domain.conversation_state import ConversationState
@@ -160,15 +161,45 @@ class SalesConsultantAgent:
             )
 
         # ── 6. Product Comparison (Two or More Models) ───────────────────────
-        is_comparing = behavior == "COMPARING" or understanding.primary_goal in ("product_comparison", "investment_cost_comparison") or len(understanding.mentioned_products) >= 2
-        if is_comparing and len(understanding.mentioned_products) >= 2:
-            prods = understanding.mentioned_products or getattr(state, "comparison_product_ids", [])
+        has_compared_pair = len(getattr(state, "compared_product_ids", [])) >= 2 or len(getattr(state, "comparison_product_ids", [])) >= 2
+        is_pair_followup = has_compared_pair and (
+            any(w in understanding.normalized_message.lower() for w in ["which of", "those two", "these two", "which one", "second one", "2nd one", "first one", "second printer", "second model", "both"])
+            or bool(re.search(r"\bwhich\s+(?:of\s+(?:those|these|the)(?:\s+two)?\s+|one\s+|model\s+)?", understanding.normalized_message.lower()))
+        )
+        is_comparing = behavior == "COMPARING" or understanding.primary_goal in ("product_comparison", "investment_cost_comparison") or len(understanding.mentioned_products) >= 2 or is_pair_followup
+        if is_comparing and (len(understanding.mentioned_products) >= 2 or has_compared_pair):
+            prods = understanding.mentioned_products or getattr(state, "compared_product_ids", []) or getattr(state, "comparison_product_ids", [])
             return AgentDecision(
                 action=AgentAction.COMPARE,
                 reason="Customer requested comparison between options.",
                 target_product=prods[0] if prods else active_prod,
                 required_tools=["comparison_tool", "spec_lookup"],
                 response_mode="comparison",
+                stop_after_response=False,
+            )
+
+        # ── 6.5. Direct SKU / Consumable Lookup & Unique Capability Match ───
+        norm_l = understanding.normalized_message.lower()
+        has_sku = bool(re.search(r"\b(c1[123][a-z0-9]{5,9}|c13s\d+|c12c\d+|ifa\s*\d+|olm\s*\d+|cx2\.(?:4x6|6x8)|cy-ms[a-z0-9.\-]*|cz-ms[a-z0-9.\-]*|cx2w\s*812)\b", norm_l))
+        if has_sku or understanding.primary_goal == "consumables_lookup":
+            return AgentDecision(
+                action=AgentAction.ANSWER,
+                reason="Direct SKU / consumable lookup requested.",
+                target_product=active_prod,
+                required_tools=["product_lookup"],
+                response_mode="direct_answer",
+                stop_after_response=True,
+            )
+
+        reqs = state.requirements or {}
+        if reqs.get("ribbon_rewind") or any(k in norm_l for k in ["single paper roll", "single roll", "with out media loss", "without media loss", "8x12", "8×12"]):
+            target_cx = "citizen-cx-02w" if ("8x12" in norm_l or "8×12" in norm_l) else "citizen-cx-02"
+            return AgentDecision(
+                action=AgentAction.RECOMMEND,
+                reason="Explicit unique capability or format specified.",
+                target_product=target_cx,
+                required_tools=["catalog_search"],
+                response_mode="recommendation",
                 stop_after_response=False,
             )
 

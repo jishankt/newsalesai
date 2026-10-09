@@ -3029,7 +3029,7 @@
   },
   {
     "id": "epson-sc-f100",
-    "display_name": "Epson SureColor SC-F100",
+    "display_name": "Epson SureColor SC-F100 Sublimation Printer",
     "model_family": "SC-F100",
     "configuration": null,
     "brand": "Epson",
@@ -3094,7 +3094,7 @@
   },
   {
     "id": "epson-sc-f500",
-    "display_name": "Epson SureColor SC-F500",
+    "display_name": "Epson SureColor SC-F500 Sublimation Printer",
     "model_family": "SC-F500",
     "configuration": null,
     "brand": "Epson",

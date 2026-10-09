@@ -15,15 +15,16 @@ OFFICIAL_WEBSITE_URL = "https://www.keplertechllc.com/"
 DISCOUNT_REFUSAL = (
     "Our prices are fixed and strictly follow Kepler Tech LLC's official catalogue rates. "
     "We do not accept price bargaining, negotiations, or ad-hoc discounts.\n\n"
-    f"All listed pricing is verified, transparent, and backed by genuine manufacturer warranty and authorized technical support. "
-    f"Official pricing can be verified directly on our website at {OFFICIAL_WEBSITE_URL}.\n\n"
-    f"For corporate volume orders, project tenders, or formal tax quotations, our commercial sales desk can prepare an official commercial quotation (Email: {OFFICIAL_SUPPORT_EMAIL} | Phone: {OFFICIAL_SUPPORT_PHONE})."
+    "Commercial details are not provided directly in this chat, but I am here to help you with verified technical specifications, "
+    "model recommendations, and consumable compatibility from our authorized catalogue. "
+    f"Official pricing can be verified directly on our official website at {OFFICIAL_WEBSITE_URL}."
 )
 PRICE_REFUSAL = DISCOUNT_REFUSAL
 
 GENERAL_PRICE_DIRECT = (
+    "Commercial details are not provided directly in this chat. "
     f"Verified pricing for available models and genuine consumables is published on our official website at {OFFICIAL_WEBSITE_URL}.\n\n"
-    f"For enterprise and production systems not listed for direct online checkout, our sales team would be glad to prepare an official commercial quotation at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}."
+    "I am here to assist with technical specifications, compatibility, and catalogue recommendations."
 )
 
 PRICE_USER_PATTERNS = [

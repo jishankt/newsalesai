@@ -50,6 +50,13 @@ class StateReconciler:
         # ── 3. Merge Changed Requirements ────────────────────────────────────
         for k, v in understanding.changed_requirements.items():
             state.requirements[k] = v
+        for k, v in understanding.corrections.items():
+            if k in ("application", "category", "format", "paper_size"):
+                state.requirements[k] = v
+        if "category" in understanding.changed_requirements and understanding.changed_requirements["category"]:
+            state.category = understanding.changed_requirements["category"]
+        if "category" in understanding.corrections and understanding.corrections["category"]:
+            state.category = understanding.corrections["category"]
 
         # ── 4. Update Product Focus ──────────────────────────────────────────
         # If the customer explicitly mentioned products in the latest turn (and not a correction already handled)
@@ -69,8 +76,11 @@ class StateReconciler:
             cls._resolve_references(understanding.references, state)
 
         # ── 6. Update Question Ledger with Turn's Explicit Questions ─────────
+        resolved_focus = state.get_canonical_focus_id() if hasattr(state, "get_canonical_focus_id") else None
         for q in understanding.explicit_questions:
-            target_prod = q.target_product or state.get_canonical_focus_id()
+            if not understanding.mentioned_products and resolved_focus:
+                q.target_product = resolved_focus
+            target_prod = q.target_product or resolved_focus
             state.question_ledger.register_customer_question(
                 text=q.text,
                 turn_index=state.turn_count,
@@ -166,22 +176,27 @@ class StateReconciler:
         # If application was category-specific (e.g. cad vs wedding), pop unless newly set
         if state.requirements.get("application") in ("cad", "cad_drawings", "office_documents"):
             state.requirements.pop("application", None)
+        state.active_product = None
+        state.active_product_id = None
+        state.canonical_focus = None
+        if hasattr(state, "candidate_products") and isinstance(state.candidate_products, list):
+            state.candidate_products.clear()
         state.missing_fields.clear()
         state.qualification_complete = False
 
     @classmethod
     def _resolve_references(cls, references: List[str], state: ConversationState) -> None:
         """Resolves references like 'the second one', 'the other one', 'that model'."""
-        comp_prods = getattr(state, "comparison_product_ids", []) or getattr(state, "displayed_product_ids", [])
+        comp_prods = getattr(state, "compared_product_ids", []) or getattr(state, "comparison_product_ids", []) or getattr(state, "displayed_product_ids", [])
         active_focus = state.get_canonical_focus_id() if hasattr(state, "get_canonical_focus_id") else None
 
         for ref in references:
             ref_l = ref.lower()
-            if ref_l in ["the second one", "second printer", "second model"]:
+            if ref_l in ["the second one", "second one", "second printer", "second model"]:
                 if len(comp_prods) >= 2:
                     state.set_canonical_focus(comp_prods[1], source="customer_selected")
                     return
-            elif ref_l in ["the first one", "first printer", "first model"]:
+            elif ref_l in ["the first one", "first one", "first printer", "first model"]:
                 if len(comp_prods) >= 1:
                     state.set_canonical_focus(comp_prods[0], source="customer_selected")
                     return

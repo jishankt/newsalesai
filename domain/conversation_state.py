@@ -129,6 +129,13 @@ class ConversationState:
         )
         self.canonical_focus = focus
         self.active_product_id = product_id
+        try:
+            from catalog.catalogue_resolver import catalogue_loader
+            p_obj = catalogue_loader.get_by_id(product_id)
+            if p_obj:
+                self.active_product = p_obj
+        except Exception:
+            pass
         return focus
 
     def get_canonical_focus_id(self) -> Optional[str]:
