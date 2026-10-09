@@ -510,7 +510,9 @@ class Orchestrator:
 
         # ── 1b-3b. Price Deflection & Commercial Policy Guardrail (HIGHEST PRIORITY) ──
         is_price_deflection = (
-            (
+            canonical_turn.primary_intent != "price_objection"
+            and not bool(re.search(r"\b(?:expensive|overpriced|too\s+(?:high|much|costly)|costly)\b", msg_l))
+            and (
                 is_price_inquiry(normalized_msg)
                 or bool(re.search(r"\b(?:how\s+much|prices?|pricing|costs?|rates?)\b", msg_l))
                 or bool(re.search(r"\b(?:need\s+price|want\s+price|check\s+price|price\?)\b", msg_l))
@@ -1267,20 +1269,17 @@ class Orchestrator:
             act_id = state.get_canonical_focus_id()
             act_prod = catalogue_loader.get_by_id(act_id) if act_id else state.active_product
             p_name = act_prod.get("display_name") or act_prod.get("name") if act_prod else "this model"
-            p_price = act_prod.get("price") if act_prod else None
-            price_str = f"AED {p_price:,.2f}" if p_price else "the listed price"
-
             if act_prod and ("cx-02" in str(act_id).lower() or "cx02" in str(act_id).lower()):
                 reply_text = (
-                    f"I understand that {price_str} is an investment upfront. "
-                    f"The {p_name} is built for continuous commercial wedding and event production with a low running cost (around AED 0.45 per 4×6″ print) and durable Japanese engineering. "
-                    f"If keeping initial investment as low as possible is your priority, the Citizen CZ-01 is a more compact option at AED 3,200. "
+                    f"I understand that upfront equipment cost is an important investment consideration. "
+                    f"The {p_name} is built for continuous commercial wedding and event production with low ongoing running costs and durable Japanese engineering. "
+                    f"If keeping initial equipment investment as low as possible is your priority, the Citizen CZ-01 is a more compact, lower-investment alternative. "
                     f"Would you like to compare their running costs and portability?"
                 )
                 chips = ["Compare with Citizen CZ-01", "Check Running Costs", "Official Quotation"]
             else:
                 reply_text = (
-                    f"I understand {price_str} is a significant investment. "
+                    f"I understand that upfront equipment cost is a significant investment consideration. "
                     f"Our equipment is commercial-grade with high reliability, official manufacturer warranty, and low per-print consumable costs. "
                     f"Would you prefer to explore an alternative model with a lower initial equipment cost, or look at the expected running cost per print?"
                 )
@@ -1368,6 +1367,149 @@ class Orchestrator:
         # ── Media Rolls & Paper Direct Routing ──
         if re.search(r"\b(?:media\s+rolls?|photo\s+papers?|fine\s+art\s+papers?|photographic\s+media\s+rolls?)\b", msg_l):
             return self._build_media_rolls_response(state, nlp_result, start_time)
+
+        # ── Universal Brand Discovery: Broad Citizen Inquiry ──
+        is_broad_citizen = (
+            bool(re.search(r"\bcitiz[eo]n\b", msg_l))
+            and not find_mentioned_catalogue_products(normalized_msg)
+            and not re.search(r"\b(barcode|label|receipt|pos|4\s*inch|4-inch|4\"|6\s*inch|6-inch|6\"|8\s*inch|8-inch|8\"|single\s*roll|ribbon\s*rewind|portable|protable)\b", msg_l)
+            and (
+                bool(re.search(r"\b(?:what\s+are|what\s+do|which|do\s+you\s+have|show|tell|list|available|options|lineup|models|printers?|catalog|catalogue|buy|need|looking|want)\b", msg_l))
+                or msg_l.strip() in ("citizen", "citizon", "citizen printer", "citizen printers")
+            )
+        )
+        if is_broad_citizen:
+            state.reset_category("citizen_photo")
+            state.requirements.clear()
+            state.active_product = None
+            state.active_product_id = None
+            state.active_printer_for_consumables = None
+            reply_text = (
+                "As an authorized Citizen Photo distributor in the UAE, Kepler Tech carries the complete lineup of genuine Citizen dye-sublimation photo printers engineered for event photography and commercial photo booths:\n\n"
+                "• **Citizen CX-02:** Compact, high-speed 6-inch dye-sublimation photo printer, ideal for event photography and photo booths.\n"
+                "• **Citizen CY-02:** High-capacity event photo printer engineered for high-volume commercial printing (up to 700 prints per roll).\n"
+                "• **Citizen CZ-01:** Ultra-compact, lightweight 4-inch photo printer designed for on-the-go mobility (just 5.8 kg).\n"
+                "• **Citizen CX-02W:** Wide 8-inch photo printer designed for professional portrait studios and 8×12″ school/event prints.\n\n"
+                "Which Citizen model or print size would you like to explore?"
+            )
+            citizen_cards = [
+                catalogue_filter._format_card(p, "citizen_photo", state.requirements)
+                for p in [
+                    catalogue_loader.get_by_id("citizen-cx-02"),
+                    catalogue_loader.get_by_id("citizen-cy-02"),
+                    catalogue_loader.get_by_id("citizen-cz-01"),
+                    catalogue_loader.get_by_id("citizen-cx-02w"),
+                ] if p
+            ]
+            suggested_chips = ["Citizen CX-02", "Citizen CY-02", "Citizen CZ-01", "Citizen CX-02W", "Compare Citizen Models"]
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="recommendation:citizen_brand_discovery",
+                product_cards=citizen_cards,
+                consumable_cards=[],
+                suggested_chips=suggested_chips,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── Citizen 4-inch / Portable / Photo Booth Direct Match ──
+        is_citizen_4_inch = (
+            (bool(re.search(r"\b(?:4\s*inch|4-inch|4\"|4x6|10x15|portable|protable)\b", msg_l)) and any(k in msg_l for k in ["photo", "printer", "citizen", "citizon", "booth", "event"]))
+            or (state.category == "citizen_photo" and bool(re.search(r"\b(?:4\s*inch|4-inch|4\"|4x6|10x15|portable|protable|small|compact|lightweight)\b", msg_l)))
+        ) and not any(k in msg_l for k in ["a4", "a3", "cad", "plotter", "scanner"])
+        if is_citizen_4_inch:
+            cz01 = catalogue_loader.get_by_id("citizen-cz-01")
+            card = catalogue_filter._format_card(cz01, "citizen_4_inch", state.requirements)
+            card["price"] = None
+            card["price_formatted"] = None
+            card["price_str"] = None
+            reply_text = (
+                "For 4-inch photo printing, the **Citizen CZ-01** is the dedicated dye-sublimation photo printer in our catalogue. "
+                "It is an ultra-compact, lightweight unit (just 5.8 kg) engineered for portable event photography and photo booths, producing high-quality 4×6″ (10×15 cm) and 4×4″ prints."
+            )
+            state.category = "citizen_photo"
+            state.active_product = cz01
+            state.active_product_id = "citizen-cz-01"
+            state.active_printer_for_consumables = "Citizen CZ-01"
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="recommendation:citizen_cz01_direct",
+                product_cards=[card] if card else [],
+                consumable_cards=[],
+                suggested_chips=["Citizen CZ-01 Consumables", "View Full Specifications", "Official Quotation"],
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── Citizen 8-inch / Wide Format Direct Match ──
+        is_citizen_8_inch = (
+            bool(re.search(r"\b(?:8\s*inch|8-inch|8\"|8x12|8x10|wide\s*photo)\b", msg_l))
+            and any(k in msg_l for k in ["photo", "printer", "citizen", "citizon", "portrait", "studio"])
+        )
+        if is_citizen_8_inch:
+            cx02w = catalogue_loader.get_by_id("citizen-cx-02w")
+            card = catalogue_filter._format_card(cx02w, "citizen_8_inch", state.requirements)
+            card["price"] = None
+            card["price_formatted"] = None
+            card["price_str"] = None
+            reply_text = (
+                "For wide 8-inch photo printing, the **Citizen CX-02W** is our verified wide-format dye-sublimation printer. "
+                "It produces 8×10″ and 8×12″ prints, making it the ideal solution for professional portrait studios, event group photos, and school photography."
+            )
+            state.category = "citizen_photo"
+            state.active_product = cx02w
+            state.active_product_id = "citizen-cx-02w"
+            state.active_printer_for_consumables = "Citizen CX-02W"
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="recommendation:citizen_cx02w_direct",
+                product_cards=[card] if card else [],
+                consumable_cards=[],
+                suggested_chips=["Citizen CX-02W Consumables", "View Full Specifications", "Official Quotation"],
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── Citizen 6-inch / Ribbon Rewind Direct Match ──
+        is_citizen_6_inch = (
+            bool(re.search(r"\b(?:6\s*inch|6-inch|6\"|6x8|6x4|single\s*roll|single\s*paper\s*roll|ribbon\s*rewind)\b", msg_l))
+            and (state.category == "citizen_photo" or any(k in msg_l for k in ["photo", "printer", "citizen", "citizon"]))
+        )
+        if is_citizen_6_inch:
+            cx02 = catalogue_loader.get_by_id("citizen-cx-02")
+            card = catalogue_filter._format_card(cx02, "citizen_6_inch", state.requirements)
+            card["price"] = None
+            card["price_formatted"] = None
+            card["price_str"] = None
+            reply_text = (
+                "For 6-inch photo printing and single-roll multi-format jobs (6×4″ and 6×8″ without media waste), the **Citizen CX-02** is the premier dye-sublimation photo printer. "
+                "It features unique ribbon rewind technology and compact high-speed operation for event and studio printing."
+            )
+            state.category = "citizen_photo"
+            state.active_product = cx02
+            state.active_product_id = "citizen-cx-02"
+            state.active_printer_for_consumables = "Citizen CX-02"
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="recommendation:citizen_cx02_direct",
+                product_cards=[card] if card else [],
+                consumable_cards=[],
+                suggested_chips=["Citizen CX-02 Consumables", "View Full Specifications", "Official Quotation"],
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
 
         # ── Agent Planner: Warranted Clarification Question ──────────────
         if agent_decision.action == AgentAction.ASK_CLARIFICATION:
@@ -1477,27 +1619,54 @@ class Orchestrator:
 
         # ── Agent Planner: Dye Sublimation Request / Frustration Switch ──
         is_negated_sub = bool(re.search(r"\b(?:forget|never\s*mind|not|instead\s*of)\s+(?:dye[-\s]*)?sublimation\b", msg_l))
-        if not is_negated_sub and canonical_turn.requirements.get("category") == "dye_sublimation" and any(w in msg_l for w in ["dy sublimation", "dye sublimation", "sublimation", "f100", "f500", "t-shirt", "mug"]):
+        if not is_negated_sub and (canonical_turn.requirements.get("category") == "dye_sublimation" or any(w in msg_l for w in ["dy sublimation", "dye sublimation", "sublimation", "f100", "f500", "t-shirt", "mug"])):
             f100 = catalogue_loader.get_by_id("epson-sc-f100")
             f500 = catalogue_loader.get_by_id("epson-sc-f500")
-            prod_cards = []
-            if f100:
-                prod_cards.append(catalogue_filter._format_card(f100, "dye_sublimation", state.requirements))
-            if f500:
-                prod_cards.append(catalogue_filter._format_card(f500, "dye_sublimation", state.requirements))
 
+            is_24_inch = bool(re.search(r"\b(?:24\s*inch|24-inch|24\"|roll|textiles?|apparel|soft\s+signage)\b", msg_l))
+            is_a4 = bool(re.search(r"\b(?:a4|desktop|small|mugs?|phone\s*cases?)\b", msg_l)) and not is_24_inch
             prefix = "My apologies for the confusion earlier! " if canonical_turn.primary_intent == "frustration" or "what you answering" in msg_l else ""
-            reply_text = (
-                f"{prefix}For sublimation printing (apparel, mugs, and promotional merchandise), we supply two official Epson SureColor systems:\n\n"
-                "1. Epson SureColor SC-F100 (AED 1,950.00 Excl. VAT) — Compact A4 desktop sublimation printer with refillable ink tanks. Ideal for mugs, phone cases, and small bespoke items.\n"
-                "2. Epson SureColor SC-F500 — 24-inch roll-fed sublimation printer with auto-sheet feeder. Designed for apparel, textiles, soft signage, and hard substrates.\n\n"
-                "Which format fits your business needs—the compact A4 desktop model (SC-F100) or the 24-inch roll system (SC-F500)?"
-            )
-            chips = ["Epson SC-F100 (A4 Desktop)", "Epson SC-F500 (24-inch Roll)", "Inks & Sublimation Papers"]
-            state.category = "dye_sublimation"
-            state.active_product = f100
-            state.active_product_id = "epson-sc-f100"
-            state.candidate_products = ["epson-sc-f100", "epson-sc-f500"]
+
+            if is_24_inch:
+                prod_cards = [catalogue_filter._format_card(f500, "dye_sublimation", state.requirements)] if f500 else []
+                reply_text = (
+                    f"{prefix}For 24-inch dye-sublimation printing, the **Epson SureColor SC-F500** is our dedicated roll-fed solution. "
+                    "It features a 24-inch roll feed, auto-sheet feeder, and an integrated refillable ink tank system using genuine UltraChrome DS inks (OEKO-TEX Eco Passport certified) designed for apparel, sportswear, soft signage, and hard merchandise."
+                )
+                chips = ["View SC-F500 Specifications", "Compatible Consumables", "Official Quotation"]
+                state.category = "dye_sublimation"
+                state.active_product = f500
+                state.active_product_id = "epson-sc-f500"
+                state.candidate_products = ["epson-sc-f500"]
+            elif is_a4:
+                prod_cards = [catalogue_filter._format_card(f100, "dye_sublimation", state.requirements)] if f100 else []
+                reply_text = (
+                    f"{prefix}For compact desktop dye-sublimation printing, the **Epson SureColor SC-F100** is our dedicated A4 solution. "
+                    "It features refillable ink tanks and genuine UltraChrome DS inks, designed for bespoke promotional merchandise such as mugs, phone cases, and small bespoke items."
+                )
+                chips = ["View SC-F100 Specifications", "Compatible Consumables", "Official Quotation"]
+                state.category = "dye_sublimation"
+                state.active_product = f100
+                state.active_product_id = "epson-sc-f100"
+                state.candidate_products = ["epson-sc-f100"]
+            else:
+                prod_cards = []
+                if f100:
+                    prod_cards.append(catalogue_filter._format_card(f100, "dye_sublimation", state.requirements))
+                if f500:
+                    prod_cards.append(catalogue_filter._format_card(f500, "dye_sublimation", state.requirements))
+                reply_text = (
+                    f"{prefix}For sublimation printing (apparel, mugs, and promotional merchandise), we supply two official Epson SureColor systems:\n\n"
+                    "• **Epson SureColor SC-F100:** Compact A4 desktop sublimation printer with refillable ink tanks. Ideal for mugs, phone cases, and small bespoke items.\n"
+                    "• **Epson SureColor SC-F500:** 24-inch roll-fed sublimation printer with auto-sheet feeder. Designed for apparel, textiles, soft signage, and hard substrates.\n\n"
+                    "Which format fits your business needs—the compact A4 desktop model (SC-F100) or the 24-inch roll system (SC-F500)?"
+                )
+                chips = ["Epson SC-F100 (A4 Desktop)", "Epson SC-F500 (24-inch Roll)", "Inks & Sublimation Papers"]
+                state.category = "dye_sublimation"
+                state.active_product = f100
+                state.active_product_id = "epson-sc-f100"
+                state.candidate_products = ["epson-sc-f100", "epson-sc-f500"]
+
             state.last_assistant_response = reply_text
             state.increment_turn()
             return self._build_response(

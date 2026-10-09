@@ -92,12 +92,14 @@ def test_critical_regression_4_multi_question_turn_answers_both():
 
 
 def test_critical_regression_5_price_objection_does_not_loop_recommendation():
-    """Test 5: Price objection: 'that's too expensive' -> consultative response, no repeated product card loop."""
+    """Test 5: Price objection: 'that's too expensive' -> consultative response, no repeated product card loop, no discount, no numeric price."""
     state = ConversationState(session_id="crit_reg_5")
     state.set_canonical_focus("citizen-cx-02")
     res = orchestrator.process_turn("That is too expensive for our budget.", state=state)
     reply = res.get("reply", "").lower()
     assert any(w in reply for w in ["investment", "cz-01", "running cost", "budget", "cost per print"])
+    assert len(res.get("product_cards", [])) == 0
+    assert not re.search(r"\b\d{1,3}(?:,\d{3})+\b", res.get("reply", ""))
     assert "**" not in res.get("reply", "")
 
 
@@ -112,13 +114,21 @@ def test_critical_regression_6_polite_closing_clean_handshake():
 
 
 def test_critical_regression_7_cx02_price_no_irrelevant_qualification_question():
-    """Test 7: Direct question: 'I only want to know the price of the CX-02' -> answers price, asks NO questions."""
+    """Test 7: Direct question: 'I only want to know the price of the CX-02' -> asserts pricing policy, asks NO qualification questions."""
     state = ConversationState(session_id="crit_reg_7")
     res = orchestrator.process_turn("I only want to know the price of the CX-02.", state=state)
     reply = res.get("reply", "")
-    assert "4,385" in reply or "aed" in reply.lower()
-    assert "what print size" not in reply.lower()
-    assert "do you need a scanner" not in reply.lower()
+    reply_l = reply.lower()
+    # 1. No numeric price
+    assert "4,385" not in reply and "4385" not in reply
+    assert "aed" not in reply_l
+    # 2. Pointer to official website
+    assert "keplertechllc.com" in reply_l
+    # 3. Offer to connect sales specialist
+    assert any(w in reply_l for w in ["specialist", "representative", "sales"])
+    # 4. No irrelevant qualification questions
+    assert "what print size" not in reply_l
+    assert "do you need a scanner" not in reply_l
 
 
 def test_critical_regression_8_portable_4x6_no_a4_a3_irrelevant_question():
@@ -164,7 +174,7 @@ CATEGORY_A_SCENARIOS = [
     ("citizen-cx-02", "What is the resolution of CX-02?", ["300", "dpi", "resolution"]),
     ("citizen-cx-02", "What print sizes does CX-02 support?", ["4x6", "5x7", "6x8", "sizes"]),
     ("citizen-cx-02", "What are the dimensions of CX-02?", ["275", "366", "170", "dimensions", "mm", "cm"]),
-    ("citizen-cx-02", "What is the price of CX-02?", ["4,385", "aed"]),
+    ("citizen-cx-02", "What is the price of CX-02?", ["keplertechllc.com", "commercial details", "specialist"]),
     ("citizen-cx-02", "What ink technology does CX-02 use?", ["dye-sublimation", "thermal", "ribbon"]),
     ("citizen-cx-02", "Does CX-02 have dual roll support?", ["single", "no", "does not", "dual roll"]),
 
@@ -173,19 +183,19 @@ CATEGORY_A_SCENARIOS = [
     ("citizen-cz-01", "How heavy is Citizen CZ-01?", ["kg", "weight", "portable", "5.8"]),
     ("citizen-cz-01", "Does CZ-01 have WiFi?", ["no", "does not", "usb", "wi-fi"]),
     ("citizen-cz-01", "What is the roll capacity of CZ-01?", ["150", "prints", "roll"]),
-    ("citizen-cz-01", "What is the price of Citizen CZ-01?", ["3,200", "aed"]),
+    ("citizen-cz-01", "What is the price of Citizen CZ-01?", ["keplertechllc.com", "commercial details", "specialist"]),
 
     # Citizen CY-02
     ("citizen-cy-02", "What is the speed of CY-02?", ["second", "sec", "speed"]),
     ("citizen-cy-02", "What is the yield per roll of CY-02?", ["700", "roll", "capacity"]),
-    ("citizen-cy-02", "How much is the CY-02?", ["3,400", "aed"]),
+    ("citizen-cy-02", "How much is the CY-02?", ["keplertechllc.com", "commercial details", "specialist"]),
     ("citizen-cy-02", "Does CY-02 have WiFi?", ["no", "does not", "usb", "wi-fi"]),
     ("citizen-cy-02", "What is the weight of CY-02?", ["kg", "weight"]),
 
     # Citizen CX-02W
     ("citizen-cx-02w", "What is the maximum print width of CX-02W?", ["8", "inch", "width"]),
     ("citizen-cx-02w", "What is the weight of CX-02W?", ["14", "kg", "weight"]),
-    ("citizen-cx-02w", "What is the price of CX-02W?", ["6,820", "aed"]),
+    ("citizen-cx-02w", "What is the price of CX-02W?", ["keplertechllc.com", "commercial details", "specialist"]),
     ("citizen-cx-02w", "How many sheets per roll does CX-02W produce?", ["110", "roll", "yield"]),
     ("citizen-cx-02w", "Does CX-02W have WiFi?", ["no", "does not", "usb", "wi-fi"]),
 
@@ -198,14 +208,14 @@ CATEGORY_A_SCENARIOS = [
     ("epson-sc-t5100", "How much does SC-T5100 weigh?", ["weight", "kg"]),
     ("epson-sc-t5100", "Does SC-T5100 include a stand?", ["stand", "desktop", "included", "supports"]),
     ("epson-sc-t5100", "What ink type does SC-T5100 use?", ["ultrachrome", "xd2", "pigment", "ink"]),
-    ("epson-sc-t5100", "What is the price of SC-T5100?", ["5,000", "4,800", "9,700", "aed", "price", "request"]),
+    ("epson-sc-t5100", "What is the price of SC-T5100?", ["keplertechllc.com", "commercial details", "specialist"]),
     ("epson-sc-t5100", "Does SC-T5100 have an automatic sheet feeder?", ["sheet", "feeder", "a4", "a3", "asf"]),
 
     # Epson SC-T3100
     ("epson-sc-t3100", "What print width does SC-T3100 support?", ["24", "inch", "a1", "width"]),
     ("epson-sc-t3100", "What is the speed of SC-T3100 for an A1 print?", ["34", "second", "sec", "speed"]),
     ("epson-sc-t3100", "Does SC-T3100 have WiFi connectivity?", ["yes", "wifi", "wi-fi", "wireless"]),
-    ("epson-sc-t3100", "What is the price of SC-T3100?", ["3,650", "aed", "price"]),
+    ("epson-sc-t3100", "What is the price of SC-T3100?", ["keplertechllc.com", "commercial details", "specialist"]),
     ("epson-sc-t3100", "Does SC-T3100 support roll paper?", ["roll", "yes", "sheet"]),
 
     # Epson SC-T5100M (MFP)
@@ -223,13 +233,13 @@ CATEGORY_A_SCENARIOS = [
     # Epson SC-P700
     ("epson-sc-p700", "What is the maximum paper size for SC-P700?", ["13", "inch", "a3+", "size"]),
     ("epson-sc-p700", "Does SC-P700 have WiFi support?", ["yes", "wifi", "wi-fi"]),
-    ("epson-sc-p700", "What is the price of SC-P700?", ["aed", "price", "4,400"]),
+    ("epson-sc-p700", "What is the price of SC-P700?", ["keplertechllc.com", "commercial details", "specialist"]),
     ("epson-sc-p700", "How many inks does SC-P700 use?", ["10", "pro10", "ultrachrome", "colours", "colors", "cartridges"]),
     ("epson-sc-p700", "Does SC-P700 support thick fine art paper?", ["fine art", "yes", "straight", "media"]),
 
     # Epson SC-F100 (Dye Sublimation)
     ("epson-sc-f100", "What print format is SC-F100?", ["a4", "format", "desktop"]),
-    ("epson-sc-f100", "What is the price of SC-F100?", ["1,950", "aed"]),
+    ("epson-sc-f100", "What is the price of SC-F100?", ["keplertechllc.com", "commercial details", "specialist"]),
     ("epson-sc-f100", "Does SC-F100 have refillable ink tanks?", ["tank", "refillable", "bottles", "yes"]),
     ("epson-sc-f100", "Does SC-F100 have WiFi?", ["yes", "wifi", "wi-fi"]),
     ("epson-sc-f100", "What application is SC-F100 designed for?", ["sublimation", "mugs", "textiles", "apparel"]),
@@ -242,29 +252,34 @@ def test_category_a_direct_questions(prod_id, question, expected_keywords):
     res = orchestrator.process_turn(question, state=state)
     reply = res.get("reply", "").lower()
     assert any(kw in reply for kw in expected_keywords), f"Failed for {prod_id}: {question} -> {reply}"
+    if any(w in question.lower() for w in ["price", "how much", "cost"]):
+        assert not re.search(r"\b\d{1,3}(?:,\d{3})+\b", res.get("reply", "")), f"Numeric price found in reply: {reply}"
+        assert "keplertechllc.com" in reply
+        assert any(w in reply for w in ["specialist", "representative", "sales"])
+        assert not any(q in reply for q in ["what print size", "do you need a scanner"])
     assert "**" not in res.get("reply", "")
 
 
 # ── Category B: Multi-Question Messages (20 scenarios) ────────────────────────
 CATEGORY_B_SCENARIOS = [
     ("citizen-cx-02", "What is the speed of CX-02 and does it have WiFi?", ["second", "speed", "8.4"], ["wifi", "wi-fi", "usb"]),
-    ("citizen-cx-02", "How much is CX-02 and how many prints per roll?", ["4,385", "aed"], ["400", "800", "roll", "yield"]),
+    ("citizen-cx-02", "How much is CX-02 and how many prints per roll?", ["commercial details", "keplertechllc.com", "specialist"], ["400", "800", "roll", "yield"]),
     ("citizen-cx-02", "What is the weight and dimensions of CX-02?", ["12", "kg", "weight"], ["dimensions", "275", "mm"]),
-    ("citizen-cz-01", "What is the speed and price of CZ-01?", ["second", "sec", "speed", "16.3", "18.8", "s"], ["3,200", "aed"]),
+    ("citizen-cz-01", "What is the speed and price of CZ-01?", ["second", "sec", "speed", "16.3", "18.8", "s"], ["commercial details", "keplertechllc.com", "specialist"]),
     ("citizen-cz-01", "Does CZ-01 have WiFi and what is its weight?", ["wifi", "wi-fi", "usb"], ["5.8", "kg", "weight"]),
-    ("citizen-cy-02", "What is the price and roll yield of CY-02?", ["3,400", "aed"], ["700", "prints", "roll"]),
+    ("citizen-cy-02", "What is the price and roll yield of CY-02?", ["commercial details", "keplertechllc.com", "specialist"], ["700", "prints", "roll"]),
     ("citizen-cy-02", "What is the speed and weight of CY-02?", ["speed", "second", "sec"], ["13.8", "kg", "weight"]),
     ("citizen-cx-02w", "What is the weight and maximum print width of CX-02W?", ["14", "kg", "weight"], ["8", "inch", "width"]),
     ("epson-sc-t5100", "What is the print width and speed of SC-T5100?", ["36", "inch", "width"], ["31", "second", "speed"]),
     ("epson-sc-t5100", "Does SC-T5100 have WiFi and what is its resolution?", ["wifi", "wi-fi", "wireless"], ["2400", "dpi"]),
-    ("epson-sc-t3100", "What is the price and print width of SC-T3100?", ["3,650", "aed"], ["24", "inch", "a1", "width"]),
+    ("epson-sc-t3100", "What is the price and print width of SC-T3100?", ["commercial details", "keplertechllc.com", "specialist"], ["24", "inch", "a1", "width"]),
     ("epson-sc-t3100", "Does SC-T3100 have WiFi and what is its speed?", ["wifi", "wi-fi"], ["34", "second", "speed"]),
     ("epson-sc-t5100m", "What print width is SC-T5100M and does it have WiFi?", ["36", "inch", "width"], ["wifi", "wi-fi"]),
     ("epson-sc-p900", "Does SC-P900 support roll paper and does it have WiFi?", ["roll", "unit"], ["wifi", "wi-fi"]),
     ("epson-sc-p900", "What is the print width and resolution of SC-P900?", ["17", "inch", "width"], ["5760", "dpi"]),
-    ("epson-sc-p700", "What is the price and resolution of SC-P700?", ["4,400", "aed"], ["5760", "dpi"]),
+    ("epson-sc-p700", "What is the price and resolution of SC-P700?", ["commercial details", "keplertechllc.com", "specialist"], ["5760", "dpi"]),
     ("epson-sc-p700", "How many inks does SC-P700 use and does it have WiFi?", ["10", "colours", "cartridges"], ["wifi", "wi-fi"]),
-    ("epson-sc-f100", "What is the price of SC-F100 and what format does it print?", ["1,950", "aed"], ["a4", "desktop", "standard"]),
+    ("epson-sc-f100", "What is the price of SC-F100 and what format does it print?", ["commercial details", "keplertechllc.com", "specialist"], ["a4", "desktop", "standard"]),
     ("epson-sc-f100", "Does SC-F100 have WiFi and refillable ink tanks?", ["wifi", "wi-fi"], ["tank", "refill", "bottles", "ultrachrome", "ink"]),
     ("epson-sc-f500", "What print width does SC-F500 support and does it have WiFi?", ["24", "inch", "width"], ["wifi", "wi-fi"]),
 ]
@@ -354,20 +369,20 @@ CATEGORY_E_SCENARIOS = [
     ("citizen-cz-01", "Does it have WiFi?", ["no", "does not", "usb", "wi-fi"]),
     ("citizen-cz-01", "What is its weight?", ["5.8", "kg", "weight"]),
     ("citizen-cy-02", "What is the roll yield for that model?", ["700", "prints", "roll"]),
-    ("citizen-cy-02", "How much does it cost?", ["3,400", "aed"]),
+    ("citizen-cy-02", "How much does it cost?", ["commercial details", "keplertechllc.com", "specialist"]),
     ("citizen-cx-02w", "What is the maximum width of that one?", ["8", "inch", "width"]),
     ("citizen-cx-02w", "How heavy is it?", ["14", "kg", "weight"]),
     ("epson-sc-t5100", "What is its print width?", ["36", "inch", "width"]),
     ("epson-sc-t5100", "Does it support wireless printing?", ["yes", "wifi", "wi-fi", "wireless"]),
     ("epson-sc-t5100", "How fast does it print?", ["31", "second", "speed"]),
     ("epson-sc-t3100", "What size does that model print?", ["24", "inch", "a1", "width"]),
-    ("epson-sc-t3100", "What is the price of this printer?", ["3,650", "aed"]),
+    ("epson-sc-t3100", "What is the price of this printer?", ["commercial details", "keplertechllc.com", "specialist"]),
     ("epson-sc-p900", "How many inks does it have?", ["10", "colours", "colors", "cartridges"]),
     ("epson-sc-p900", "What is its print resolution?", ["5760", "dpi"]),
-    ("epson-sc-p700", "What is the price for this model?", ["4,400", "aed"]),
+    ("epson-sc-p700", "What is the price for this model?", ["commercial details", "keplertechllc.com", "specialist"]),
     ("epson-sc-p700", "Does it have WiFi connectivity?", ["yes", "wifi", "wi-fi"]),
     ("epson-sc-f100", "What format does it handle?", ["a4", "desktop", "format"]),
-    ("epson-sc-f100", "How much does it cost?", ["1,950", "aed"]),
+    ("epson-sc-f100", "How much does it cost?", ["commercial details", "keplertechllc.com", "specialist"]),
     ("epson-sc-f500", "What is its print width?", ["24", "inch", "width"]),
 ]
 
@@ -467,7 +482,7 @@ def test_category_h_high_intent_buying(prod_id, buy_msg, expected_keywords):
 # ── Category I: Frustration (10 scenarios) ────────────────────────────────────
 CATEGORY_I_SCENARIOS = [
     ("citizen-cx-02", "You didn't answer what I asked! Tell me the speed!", ["apolog", "sorry", "speed", "second", "8.4"]),
-    ("citizen-cx-02", "Stop repeating yourself and tell me the price!", ["apolog", "sorry", "4,385", "aed", "price"]),
+    ("citizen-cx-02", "Stop repeating yourself and tell me the price!", ["apolog", "sorry", "commercial details", "keplertechllc.com", "specialist"]),
     ("citizen-cz-01", "Answer my question! How heavy is it?", ["apolog", "sorry", "5.8", "kg", "weight"]),
     ("epson-sc-t5100", "You ignored my question about WiFi!", ["apolog", "sorry", "wifi", "wi-fi", "wireless"]),
     ("epson-sc-t3100", "What I asked was what print size does it support?", ["apolog", "sorry", "24", "inch", "width", "a1"]),
@@ -475,7 +490,7 @@ CATEGORY_I_SCENARIOS = [
     ("epson-sc-f100", "You're not answering! Is it A4 or what?", ["apolog", "sorry", "a4", "format"]),
     ("citizen-cy-02", "Answer me! What is the roll yield?", ["apolog", "sorry", "700", "roll", "yield"]),
     ("citizen-cx-02w", "Wrong answer! What is the maximum width of CX-02W?", ["apolog", "sorry", "8", "inch", "width"]),
-    ("epson-sc-p700", "Answer what I asked! What is the price?", ["apolog", "sorry", "4,400", "aed", "price"]),
+    ("epson-sc-p700", "Answer what I asked! What is the price?", ["apolog", "sorry", "commercial details", "keplertechllc.com", "specialist"]),
 ]
 
 @pytest.mark.parametrize("prod_id,frust_msg,expected_keywords", CATEGORY_I_SCENARIOS)

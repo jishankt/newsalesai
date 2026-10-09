@@ -23,6 +23,7 @@ Q. No-Match Requirement Alternatives
 Plus the Verbatim 8-Turn End-to-End Acceptance Conversation.
 """
 
+import re
 import pytest
 from domain.conversation_state import ConversationState
 from agent.orchestrator import orchestrator
@@ -82,13 +83,16 @@ def test_verbatim_8_turn_acceptance_conversation():
     # Turn 6
     res6 = orchestrator.process_turn("How much?", state=state)
     reply6 = res6.get("reply", "")
-    assert "4,385" in reply6 or "aed" in reply6.lower(), "Turn 6 must provide verified pricing."
+    reply6_l = reply6.lower()
+    assert not bool(re.search(r"\b4,?385\b", reply6)), "Turn 6 must not provide numeric pricing."
+    assert "keplertechllc.com" in reply6_l, "Turn 6 must provide website link."
+    assert any(term in reply6_l for term in ["specialist", "representative", "sales"]), "Turn 6 must offer sales specialist."
     assert "**" not in reply6
 
     # Turn 7
     res7 = orchestrator.process_turn("That's expensive.", state=state)
     reply7 = res7.get("reply", "")
-    assert any(term in reply7.lower() for term in ["investment", "running cost", "cz-01", "3,200", "durab"]), "Turn 7 must handle price objection consultatively."
+    assert any(term in reply7.lower() for term in ["investment", "running cost", "cz-01", "durab"]), "Turn 7 must handle price objection consultatively."
     assert "**" not in reply7
 
     # Turn 8

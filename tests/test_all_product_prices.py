@@ -160,24 +160,36 @@ class TestAllProductPrices(unittest.TestCase):
             self.assertFalse(info.get("is_request"), f"{item_key} should have a verified price")
 
     def test_orchestrator_price_inquiry_answers(self):
-        """Conversational orchestrator must accurately answer price questions for corrected models."""
+        """Conversational orchestrator must assert commercial policy: no numeric price, pointer to website, sales specialist offer, no qualification question."""
+        import re
         queries = [
-            ("what is the price of citizen cx-02w?", "6,820.00", 6820.0),
-            ("how much is the epson sc-p900?", "4,880.00", 4880.0),
-            ("what is the cost of epson t5100?", "9,700.00", 9700.0),
-            ("price of epson t3100", "3,880.00", 3880.0),
-            ("what is the price of citizen cx-02?", "4,385.00", 4385.0),
-            ("what is the price of epson sc-f100?", "1,950.00", 1950.0),
+            ("what is the price of citizen cx-02w?", "6,820.00"),
+            ("how much is the epson sc-p900?", "4,880.00"),
+            ("what is the cost of epson t5100?", "9,700.00"),
+            ("price of epson t3100", "3,880.00"),
+            ("what is the price of citizen cx-02?", "4,385.00"),
+            ("what is the price of epson sc-f100?", "1,950.00"),
         ]
 
-        for query, expected_snippet, expected_price in queries:
+        for query, prohibited_price in queries:
             session_id = f"test_query_{abs(hash(query))}"
             state = ConversationState(session_id=session_id)
             resp = self.orchestrator.process_turn(query, session_id=session_id, state=state)
             
             reply = resp["reply"]
-            self.assertIn(expected_snippet, reply, f"Did not find {expected_snippet} in reply: {reply}")
-            self.assertIn("AED", reply)
+            reply_l = reply.lower()
+            # 1. No numeric price in reply
+            self.assertNotIn(prohibited_price, reply)
+            self.assertFalse(bool(re.search(r"\b\d{1,3}(?:,\d{3})+\b", reply)), f"Found numeric price in reply: {reply}")
+            self.assertNotIn("aed", reply_l)
+            # 2. Pointer to official website
+            self.assertIn("https://www.keplertechllc.com/", reply)
+            # 3. Offer to connect sales specialist
+            self.assertTrue(any(w in reply_l for w in ["specialist", "representative", "sales"]))
+            # 4. No irrelevant qualification questions
+            self.assertNotIn("what will you primarily print", reply_l)
+            self.assertNotIn("do you need a scanner", reply_l)
+            self.assertNotIn("what print size", reply_l)
 
 
 if __name__ == "__main__":
