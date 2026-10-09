@@ -763,6 +763,17 @@
       overflow: hidden;
       position: relative;
     }
+    .workflow-canvas-container.is-fullscreen {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 99999 !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      background: #0b0d13 !important;
+    }
     .workflow-canvas-header {
       padding: 10px 18px;
       border-bottom: 1px solid var(--border);
@@ -1320,6 +1331,9 @@
           <button class="btn btn-ghost" onclick="workflowZoomIn()" title="Zoom In" style="padding:6px 10px;">＋</button>
           <button class="btn btn-ghost" onclick="workflowZoomOut()" title="Zoom Out" style="padding:6px 10px;">－</button>
           <button class="btn btn-ghost" onclick="workflowResetZoom()" title="Fit to Screen" style="padding:6px 10px;">⛶ Fit</button>
+          <button class="btn btn-primary" onclick="toggleWorkflowFullscreen()" title="Full Screen Canvas" style="padding:6px 12px;display:inline-flex;align-items:center;gap:6px;">
+            <span>⛶</span> Full Screen
+          </button>
           <button class="btn btn-ghost" onclick="loadWorkflowExecutions()" title="Refresh" style="padding:6px 12px;">↻ Refresh</button>
         </div>
       </div>
@@ -1341,13 +1355,23 @@
         <div class="workflow-canvas-container" id="workflow-canvas-container">
           <!-- Active Execution Banner -->
           <div class="workflow-canvas-header" id="workflow-canvas-header">
-            <div id="workflow-active-meta" style="font-weight:600;color:var(--text);">Select an execution from the feed to inspect runtime flow</div>
-            <div id="workflow-legend" style="display:flex;align-items:center;gap:12px;font-size:11px;color:var(--muted);">
-              <span><span style="color:#10b981;">●</span> Completed</span>
-              <span><span style="color:#3b82f6;">●</span> Running</span>
-              <span><span style="color:#ef4444;">●</span> Failed</span>
-              <span><span style="color:#f59e0b;">●</span> Handover</span>
-              <span><span style="color:#64748b;">○</span> Skipped</span>
+            <div id="workflow-active-meta" style="font-weight:600;color:var(--text);flex:1;min-width:0;">Select an execution from the feed to inspect runtime flow</div>
+            <div style="display:flex;align-items:center;gap:14px;">
+              <div id="workflow-legend" style="display:flex;align-items:center;gap:12px;font-size:11px;color:var(--muted);">
+                <span><span style="color:#10b981;">●</span> Completed</span>
+                <span><span style="color:#3b82f6;">●</span> Running</span>
+                <span><span style="color:#ef4444;">●</span> Failed</span>
+                <span><span style="color:#f59e0b;">●</span> Handover</span>
+                <span><span style="color:#64748b;">○</span> Skipped</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <button class="btn btn-ghost" onclick="workflowZoomIn()" title="Zoom In" style="padding:4px 8px;font-size:12px;">＋</button>
+                <button class="btn btn-ghost" onclick="workflowZoomOut()" title="Zoom Out" style="padding:4px 8px;font-size:12px;">－</button>
+                <button class="btn btn-ghost" onclick="workflowResetZoom()" title="Fit to Screen" style="padding:4px 8px;font-size:11px;">⛶ Fit</button>
+                <button id="btn-toggle-fullscreen" class="btn btn-primary" onclick="toggleWorkflowFullscreen()" title="Toggle Full Screen" style="padding:4px 10px;font-size:11px;display:inline-flex;align-items:center;gap:5px;">
+                  <span id="fullscreen-btn-icon">⛶</span> <span id="fullscreen-btn-text">Full Screen</span>
+                </button>
+              </div>
             </div>
           </div>
           <!-- Zoomable Canvas Viewport -->
@@ -2975,6 +2999,67 @@
     workflowPan = { x: 40, y: 40 };
     applyWorkflowTransform();
   }
+
+  function toggleWorkflowFullscreen() {
+    const container = document.getElementById('workflow-canvas-container');
+    if (!container) return;
+
+    const isFull = container.classList.toggle('is-fullscreen');
+    const textEl = document.getElementById('fullscreen-btn-text');
+    const iconEl = document.getElementById('fullscreen-btn-icon');
+
+    if (isFull) {
+      if (textEl) textEl.textContent = 'Exit Full Screen';
+      if (iconEl) iconEl.textContent = '✕';
+      if (container.requestFullscreen && !document.fullscreenElement) {
+        container.requestFullscreen().catch(() => {});
+      }
+      setTimeout(() => {
+        workflowFitCanvas();
+      }, 100);
+    } else {
+      if (textEl) textEl.textContent = 'Full Screen';
+      if (iconEl) iconEl.textContent = '⛶';
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+      setTimeout(() => {
+        workflowResetZoom();
+      }, 100);
+    }
+  }
+
+  function workflowFitCanvas() {
+    const viewport = document.getElementById('workflow-canvas-viewport');
+    if (!viewport) return;
+    const rect = viewport.getBoundingClientRect();
+    const fitScale = Math.min(1.2, Math.max(0.4, (rect.width - 80) / 2600));
+    workflowZoom = fitScale;
+    workflowPan = { x: 30, y: Math.max(20, (rect.height - (500 * fitScale)) / 2) };
+    applyWorkflowTransform();
+  }
+
+  document.addEventListener('fullscreenchange', () => {
+    const container = document.getElementById('workflow-canvas-container');
+    if (!container) return;
+    if (!document.fullscreenElement && container.classList.contains('is-fullscreen')) {
+      container.classList.remove('is-fullscreen');
+      const text = document.getElementById('fullscreen-btn-text');
+      const icon = document.getElementById('fullscreen-btn-icon');
+      if (text) text.textContent = 'Full Screen';
+      if (icon) icon.textContent = '⛶';
+      setTimeout(() => { workflowResetZoom(); }, 100);
+    }
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const container = document.getElementById('workflow-canvas-container');
+      if (container && container.classList.contains('is-fullscreen')) {
+        toggleWorkflowFullscreen();
+      }
+    }
+  });
 
   function debounceWorkflowSearch() {
     clearTimeout(workflowSearchTimer);
