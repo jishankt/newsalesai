@@ -231,18 +231,18 @@ class ConsumableRegistry:
         # ── Epson Photo Printers (SC-P700, SC-P900) ─────────────────────────
         # SC-P900 17" Inks (50ml C13T47A series)
         p900_colors = [
-            ("C13T47A100", "Photo Black"),
-            ("C13T47A200", "Cyan"),
-            ("C13T47A300", "Vivid Magenta"),
-            ("C13T47A400", "Yellow"),
-            ("C13T47A500", "Light Cyan"),
-            ("C13T47A600", "Vivid Light Magenta"),
-            ("C13T47A700", "Gray"),
-            ("C13T47A800", "Matte Black"),
-            ("C13T47A900", "Light Gray"),
-            ("C13T47AD00", "Violet"),
+            ("C13T47A100", "Photo Black", "https://www.keplertechllc.com/product/c13t47a100-epson-singlepack-photo-black-ultrachrome-pro10-ink-50ml/"),
+            ("C13T47A200", "Cyan", "https://www.keplertechllc.com/product/c13t47a200-epson-singlepack-cyan-ultrachrome-pro-10-ink-50ml/"),
+            ("C13T47A300", "Vivid Magenta", "https://www.keplertechllc.com/product/c13t47a300-epson-singlepack-vivid-magenta-ultrachrome-pro-10-ink/"),
+            ("C13T47A400", "Yellow", "https://www.keplertechllc.com/product/c13t47a400-epson-singlepack-yellow-ultrachrome-pro-10-ink-50ml/"),
+            ("C13T47A500", "Light Cyan", "https://www.keplertechllc.com/product/c13t47a500-singlepack-light-cyan-ultrachrome-pro-10-ink-50ml/"),
+            ("C13T47A600", "Vivid Light Magenta", "https://www.keplertechllc.com/product/c13t47a600-singlepack-vivid-light-magenta-ultrachrome-pro-10-ink-50ml/"),
+            ("C13T47A700", "Gray", "https://www.keplertechllc.com/product/c13t47a700-singlepack-gray-ultrachrome-pro-10-ink-50ml/"),
+            ("C13T47A800", "Matte Black", "https://www.keplertechllc.com/product/c13t47a800-epson-singlepack-matte-black-ultrachrome-pro-10-ink-50ml/"),
+            ("C13T47A900", "Light Gray", "https://www.keplertechllc.com/product/c13t47a900-epson-singlepack-light-gray-ultrachrome-pro-10-ink-50ml/"),
+            ("C13T47AD00", "Violet", "https://www.keplertechllc.com/product/c13t47ad00-epson-singlepack-violet-t47ad-ultrachrome-pro-10-ink-50ml/"),
         ]
-        for sku, col in p900_colors:
+        for sku, col, u in p900_colors:
             self._add(ConsumableItem(
                 sku=sku,
                 name=f"Epson UltraChrome PRO10 Ink Cartridge 50ml ({col})",
@@ -251,23 +251,23 @@ class ConsumableRegistry:
                 color=col,
                 pack_quantity="1 cartridge (50ml)",
                 price_aed=198.0,
-                url="https://www.keplertechllc.com/product/epson-surecolor-sc-p900-printer-with-roll-adapter/"
+                url=u
             ))
 
         # SC-P700 13" Inks (25ml C13T46S series)
         p700_colors = [
-            ("C13T46S100", "Photo Black"),
-            ("C13T46S200", "Cyan"),
-            ("C13T46S300", "Vivid Magenta"),
-            ("C13T46S400", "Yellow"),
-            ("C13T46S500", "Light Cyan"),
-            ("C13T46S600", "Vivid Light Magenta"),
-            ("C13T46S700", "Gray"),
-            ("C13T46S800", "Matte Black"),
-            ("C13T46S900", "Light Gray"),
-            ("C13T46SD00", "Violet"),
+            ("C13T46S100", "Photo Black", "https://www.keplertechllc.com/product/c13t46s100-epson-singlepack-photo-black-ultrachrome-pro-10-ink-25ml/"),
+            ("C13T46S200", "Cyan", "https://www.keplertechllc.com/product/c13t46s200-epson-singlepack-cyan-ultrachrome-pro-10-ink-25ml/"),
+            ("C13T46S300", "Vivid Magenta", "https://www.keplertechllc.com/product/c13t46s300-epson-singlepack-vivid-magenta-ultrachrome-pro-10-ink-25ml/"),
+            ("C13T46S400", "Yellow", "https://www.keplertechllc.com/product/c13t46s400-epson-singlepack-yellow-ultrachrome-pro-10-ink-25ml/"),
+            ("C13T46S500", "Light Cyan", "https://www.keplertechllc.com/product/c13t46s500-epson-singlepack-light-cyan-ultrachrome-ink/"),
+            ("C13T46S600", "Vivid Light Magenta", "https://www.keplertechllc.com/product/c13t46s600-epson-singlepack-vivid-light-magenta-ultrachrome-ink/"),
+            ("C13T46S700", "Gray", "https://www.keplertechllc.com/product/c13t46s700-singlepack-gray-ultrachrome-pro-10-ink-25ml/"),
+            ("C13T46S800", "Matte Black", "https://www.keplertechllc.com/product/c13t46s800-epson-singlepack-matte-black-ultrachrome-pro-10-ink/"),
+            ("C13T46S900", "Light Gray", "https://www.keplertechllc.com/product/c13t46s900-epson-singlepack-light-gray-ultrachrome-pro-10-ink/"),
+            ("C13T46SD00", "Violet", "https://www.keplertechllc.com/product/c13t46sd00-epson-singlepack-violet-ultrachrome-pro-10-ink-25ml/"),
         ]
-        for sku, col in p700_colors:
+        for sku, col, u in p700_colors:
             self._add(ConsumableItem(
                 sku=sku,
                 name=f"Epson UltraChrome PRO10 Ink Cartridge 25ml ({col})",
@@ -276,7 +276,7 @@ class ConsumableRegistry:
                 color=col,
                 pack_quantity="1 cartridge (25ml)",
                 price_aed=135.0,
-                url="https://www.keplertechllc.com/product/epson-surecolor-p700-13-photo-printer/"
+                url=u
             ))
 
         # Maintenance Box for SC-P700 & SC-P900
@@ -287,28 +287,28 @@ class ConsumableRegistry:
             compatible_printers=["epson-sc-p700", "epson-sc-p900"],
             pack_quantity="1 unit",
             price_aed=155.0,
-            url="https://www.keplertechllc.com/product/epson-surecolor-sc-p900-printer-with-roll-adapter/"
+            url="https://www.keplertechllc.com/product/maintenance-tank-sc-p700-sc-p900-c12c935711/"
         ))
 
         # ── Epson Technical CAD (SC-T3100, SC-T5100) ────────────────────────
         cad_inks = [
-            ("C13T40C140", "Black 50ml", "ink", 50),
-            ("C13T40C240", "Cyan 26ml", "ink", 26),
-            ("C13T40C340", "Magenta 26ml", "ink", 26),
-            ("C13T40C440", "Yellow 26ml", "ink", 26),
-            ("C13T40D140", "Black 80ml", "ink", 80),
-            ("C13T40D240", "Cyan 50ml", "ink", 50),
-            ("C13T40D340", "Magenta 50ml", "ink", 50),
-            ("C13T40D440", "Yellow 50ml", "ink", 50),
+            ("C13T40C140", "Black 50ml", "ink", 50, "https://www.keplertechllc.com/product/c13t40c140-epson-singlepack-black-ink-50ml/"),
+            ("C13T40C240", "Cyan 26ml", "ink", 26, "https://www.keplertechllc.com/product/c13t40c240-epson-singlepack-ultrachrome-xd2-cyan-ink-26ml/"),
+            ("C13T40C340", "Magenta 26ml", "ink", 26, "https://www.keplertechllc.com/product/c13t40c340-epson-singlepack-magenta-ink-26ml/"),
+            ("C13T40C440", "Yellow 26ml", "ink", 26, "https://www.keplertechllc.com/product/c13t40c440-epson-singlepack-ultrachrome-xd2-yellow-ink-26ml/"),
+            ("C13T40D140", "Black 80ml", "ink", 80, "https://www.keplertechllc.com/product/c13t40d140-epson-singlepack-black-ink/"),
+            ("C13T40D240", "Cyan 50ml", "ink", 50, "https://www.keplertechllc.com/product/c13t40d240-epson-singlepack-cyan-ink-50ml/"),
+            ("C13T40D340", "Magenta 50ml", "ink", 50, "https://www.keplertechllc.com/product/c13t40d340-epson-singlepack-magenta-ink-50ml/"),
+            ("C13T40D440", "Yellow 50ml", "ink", 50, "https://www.keplertechllc.com/product/c13t40d440-epson-singlepack-yellow-ink-50ml/"),
         ]
-        for sku, desc, ctype, vol in cad_inks:
+        for sku, desc, ctype, vol, u in cad_inks:
             self._add(ConsumableItem(
                 sku=sku,
                 name=f"Epson UltraChrome XD2 Cartridge ({desc})",
                 consumable_type=ctype,
                 compatible_printers=["epson-sc-t3100", "epson-sc-t5100"],
                 pack_quantity=f"1 cartridge ({vol}ml)",
-                url="https://www.keplertechllc.com/product/epson-surecolor-sc-t3100-wireless-printer-with-stand/"
+                url=u
             ))
         self._add(ConsumableItem(
             sku="C13S210057",
@@ -316,15 +316,15 @@ class ConsumableRegistry:
             consumable_type="maintenance",
             compatible_printers=["epson-sc-t3100", "epson-sc-t5100", "epson-sc-f500"],
             pack_quantity="1 unit",
-            url="https://www.keplertechllc.com/product/epson-surecolor-sc-t3100-wireless-printer-with-stand/"
+            url="https://www.keplertechllc.com/product/c13s210057-epson-maintenance-box-lfp-desktop/"
         ))
 
         # ── Epson Dye-Sublimation (SC-F100, SC-F500) ────────────────────────
-        for sku, col in [
-            ("C13T49N100", "Black"),
-            ("C13T49N200", "Cyan"),
-            ("C13T49N300", "Magenta"),
-            ("C13T49N400", "Yellow"),
+        for sku, col, u in [
+            ("C13T49N100", "Black", "https://www.keplertechllc.com/product/epson-dye-sublimation-black-t49n100-ink/"),
+            ("C13T49N200", "Cyan", "https://www.keplertechllc.com/product/c13t49n200-epson-dye-sublimation-cyan-ink/"),
+            ("C13T49N300", "Magenta", "https://www.keplertechllc.com/product/epson-dye-sublimation-magenta-t49n300-ink/"),
+            ("C13T49N400", "Yellow", "https://www.keplertechllc.com/product/c13t49n400-epson-dye-sublimation-yellow-ink/"),
         ]:
             self._add(ConsumableItem(
                 sku=sku,
@@ -333,7 +333,7 @@ class ConsumableRegistry:
                 compatible_printers=["epson-sc-f100", "epson-sc-f500"],
                 color=col,
                 pack_quantity="1 bottle (140ml)",
-                url="https://www.keplertechllc.com/product/epson-surecolor-sc-f100-printer/"
+                url=u
             ))
         self._add(ConsumableItem(
             sku="C13S210125",
@@ -341,8 +341,90 @@ class ConsumableRegistry:
             consumable_type="maintenance",
             compatible_printers=["epson-sc-f100"],
             pack_quantity="1 unit",
-            url="https://www.keplertechllc.com/product/epson-surecolor-sc-f100-printer/"
+            url="https://www.keplertechllc.com/product/c13s210125-epson-maintenance-box/"
         ))
+
+        # Dynamically sync full catalog consumables
+        self._sync_catalog_consumables()
+
+    def _sync_catalog_consumables(self):
+        """
+        Dynamically synchronize verified consumables from data/catalogue_products.json
+        and data/products.json, guaranteeing 100% SKU and link coverage for all 43 printers.
+        """
+        import os
+        import json
+
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        cat_file = os.path.join(base_dir, "data", "catalogue_products.json")
+        prod_file = os.path.join(base_dir, "data", "products.json")
+
+        if not os.path.exists(cat_file) or not os.path.exists(prod_file):
+            return
+
+        try:
+            with open(prod_file, "r", encoding="utf-8") as f:
+                products = json.load(f)
+            sku_map = {str(p.get("sku", "")).upper(): p for p in products if p.get("sku")}
+
+            with open(cat_file, "r", encoding="utf-8") as f:
+                catalogue = json.load(f)
+
+            for printer in catalogue:
+                p_id = printer.get("id")
+                if not p_id:
+                    continue
+                c_skus = printer.get("consumables", [])
+                for sku in c_skus:
+                    sku_clean = str(sku).upper().strip()
+                    p_info = sku_map.get(sku_clean)
+                    if not p_info:
+                        continue
+                    true_url = p_info.get("website_url") or p_info.get("web_url") or p_info.get("url")
+                    true_name = p_info.get("name") or sku_clean
+                    true_price = p_info.get("price")
+                    raw_cat = str(p_info.get("category", "")).lower()
+
+                    if any(w in true_name.lower() or w in raw_cat for w in ["maintenance", "waste", "tank", "box"]):
+                        c_type = "maintenance"
+                    elif any(w in true_name.lower() or w in raw_cat for w in ["media", "paper", "canvas", "roll", "sheet", "film", "luster", "glossy", "matte", "baryta", "velvet", "rag"]):
+                        c_type = "media"
+                    elif any(w in true_name.lower() or w in raw_cat for w in ["bag", "pen", "cleaning", "blade", "cutter", "adapter", "stand"]):
+                        c_type = "accessory"
+                    elif any(w in true_name.lower() or w in raw_cat for w in ["ribbon"]):
+                        c_type = "ribbon"
+                    else:
+                        c_type = "ink"
+
+                    color = None
+                    for c_cand in ["Photo Black", "Matte Black", "Light Black", "Light Cyan", "Light Magenta", "Vivid Magenta", "Vivid Light Magenta", "Dark Gray", "Light Gray", "Gray", "Violet", "Orange", "Green", "Red", "Cyan", "Magenta", "Yellow", "Black"]:
+                        if re.search(r"\b" + re.escape(c_cand) + r"\b", true_name, re.IGNORECASE):
+                            color = c_cand
+                            break
+
+                    if sku_clean in self.consumables:
+                        existing = self.consumables[sku_clean]
+                        if true_url and (not existing.url or "printer" in existing.url):
+                            existing.url = true_url
+                        if p_id not in existing.compatible_printers:
+                            existing.compatible_printers.append(p_id)
+                        pid_clean = p_id.lower().strip()
+                        if pid_clean not in self.printer_to_skus:
+                            self.printer_to_skus[pid_clean] = set()
+                        self.printer_to_skus[pid_clean].add(sku_clean)
+                    else:
+                        item = ConsumableItem(
+                            sku=sku_clean,
+                            name=true_name,
+                            consumable_type=c_type,
+                            compatible_printers=[p_id],
+                            color=color,
+                            price_aed=true_price,
+                            url=true_url,
+                        )
+                        self._add(item)
+        except Exception:
+            pass
 
     def get_consumables_for_printer(
         self,

@@ -511,6 +511,7 @@ class Orchestrator:
         # ── 1b-3b. Price Deflection & Commercial Policy Guardrail (HIGHEST PRIORITY) ──
         is_price_deflection = (
             canonical_turn.primary_intent != "price_objection"
+            and not bool(re.search(r"\b(?:cost\s*per\s*(?:print|page)|per\s*print\s*cost|running\s*cost|cpp)\b", msg_l))
             and not bool(re.search(r"\b(?:expensive|overpriced|too\s+(?:high|much|costly)|costly)\b", msg_l))
             and (
                 is_price_inquiry(normalized_msg)
@@ -691,6 +692,75 @@ class Orchestrator:
                 state=state,
                 latency_ms=int((time.time() - start_time) * 1000),
             )
+
+        # ── 1b-5. Consumables Selection Follow-up: User specifies printer model ──
+        is_in_consumables_context = (
+            state.category == "consumables"
+            or state.awaiting_field == "printer_model"
+            or (state.history_turns and any("consumables for" in t.get("content", "").lower() for t in state.history_turns[-2:]))
+            or bool(re.search(r"\b(?:inks?|cartridges?|ribbons?|media\s*rolls?|toner)\b", msg_l))
+        )
+        has_hw_purchase_words = any(w in msg_l for w in ["buy printer", "printer specs", "compare", "vs", "versus", "tell me about printer", "specifications of printer"])
+
+        if is_in_consumables_context and not has_hw_purchase_words:
+            cand_p = find_mentioned_catalogue_products(normalized_msg)
+            p_obj = cand_p[0] if cand_p else None
+            if not p_obj:
+                m_match = re.search(r"\b(?:sc[-\s]?)?(?:[tpf]\d{3,5}(?:[a-z]{1,4})?|cx[-\s]?02w?|cy[-\s]?02|cz[-\s]?01|am[-\s]?c\d{3,4}|wf[-\s]?c\d{3,5}(?:[a-z]{1,4})?|em[-\s]?c\d{3,4}|f100|f500)\b", normalized_msg.lower())
+                if m_match:
+                    for cand in catalogue_loader.get_all():
+                        if m_match.group(0).lower() in cand.get("id", "").lower() or m_match.group(0).lower() in cand.get("display_name", "").lower():
+                            p_obj = cand
+                            break
+
+            if p_obj:
+                state.awaiting_field = None
+                state.active_product = p_obj
+                state.active_product_id = p_obj["id"]
+                p_name = p_obj.get("display_name") or p_obj.get("name")
+                state.active_printer_for_consumables = p_name
+                c_cards = consumables_engine.get_printer_consumables(p_name, limit=25)
+                if not c_cards:
+                    c_cards = consumables_engine.get_printer_consumables(p_obj["id"], limit=25)
+
+                msg_clean = normalized_msg.lower()
+                exclude_paper = bool(re.search(r"\b(?:no|not|without|exclude|excluding|except)\s+(?:paper|media|ribbon)\b", msg_clean))
+                exclude_maint = bool(re.search(r"\b(?:no|not|without|exclude|excluding|except)\s+(?:maintenance|box|tank)\b", msg_clean))
+                exclude_ink = bool(re.search(r"\b(?:no|not|without|exclude|excluding|except)\s+(?:inks?|cartridges?)\b", msg_clean))
+                explicit_ink_only = bool(re.search(r"\b(?:only\s+ink|ink\s+only|just\s+ink|only\s+cartridges?|cartridges?\s+only|ink\s+cartridges?\s+only)\b", msg_clean))
+                has_ink_word = bool(re.search(r"\b(?:inks?|cartridges?)\b", msg_clean))
+                has_media_word = bool(re.search(r"\b(?:paper|media|ribbon)\b", msg_clean))
+                has_maint_word = bool(re.search(r"\b(?:maintenance|box|tank)\b", msg_clean))
+                ink_only = explicit_ink_only or (has_ink_word and not exclude_ink and (exclude_paper or exclude_maint or not (has_media_word or has_maint_word)))
+
+                if ink_only:
+                    c_cards = [
+                        card for card in c_cards
+                        if str(card.get("category", "")).lower() in ("ink cartridge", "ink", "inks")
+                        and not any(k in (card.get("name", "") + " " + card.get("title", "")).lower() for k in ["maintenance", "paper", "roll", "media"])
+                    ]
+                if exclude_paper:
+                    c_cards = [card for card in c_cards if str(card.get("category", "")).lower() not in ("media & paper", "media", "ribbon")]
+                if exclude_maint:
+                    c_cards = [card for card in c_cards if "maintenance" not in (card.get("name", "") + " " + card.get("title", "") + " " + str(card.get("category", ""))).lower()]
+
+                reply_text = (
+                    f"Here are the genuine verified consumables, inks, and media for the **{p_name}**:\n\n"
+                    f"All genuine inks and media rolls are available with direct ordering and fast UAE delivery."
+                )
+                chips = ["Request Quotation", "View Technical Specifications"]
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(
+                    reply=reply_text,
+                    source="route:consumables",
+                    product_cards=[],
+                    consumable_cards=c_cards,
+                    suggested_chips=chips,
+                    nlp_result=nlp_result,
+                    state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
 
         # ── 1c. Direct Answer for Explicit Customer Questions (HIGHEST PRIORITY) ──
         is_multi_consumable_q = bool(re.search(r"\b(?:consumables?|inks?|cartridges?)\b", msg_l)) and any(k in msg_l for k in ["these", "both", "all", "each", "separately"])

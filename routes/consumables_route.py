@@ -350,7 +350,28 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
         {"printer_identifier": target, "limit": 16}
     )
     all_consumables = res.get("consumable_cards", [])
+    
+    # Negative / isolation filtering
+    no_paper = bool(re.search(r"\b(?:no|without|excluding|not)\s+(?:paper|media|rolls?)\b", raw_lower))
+    no_maint = bool(re.search(r"\b(?:no|without|excluding|not)\s+(?:maintenance|waste)\b", raw_lower))
+    only_ink = bool(re.search(r"\b(?:only\s+ink|just\s+ink|inks?\s+only|cartridges?\s+only|only\s+cartridges?)\b", raw_lower))
+
     media_intent = any(k in raw_lower for k in ["paper", "media", "roll", "canvas", "luster", "glossy", "matte", "velvet", "sheet", "baryta"])
+    if only_ink or no_paper:
+        media_intent = False
+        all_consumables = [
+            c for c in all_consumables
+            if str(c.get("category", "")).lower() != "media & paper"
+            and not any(kw in (c.get("name", "") + " " + c.get("badge", "")).lower() for kw in ["paper", "roll", "canvas", "luster", "glossy", "matte", "sheet", "baryta", "velvet"])
+        ]
+    if only_ink or no_maint:
+        all_consumables = [
+            c for c in all_consumables
+            if "maintenance" not in str(c.get("category", "")).lower()
+            and "maintenance" not in str(c.get("badge", "")).lower()
+            and "maintenance" not in str(c.get("name", "")).lower()
+        ]
+
     all_consumables = sort_consumables_inks_first(all_consumables, prefer_media=media_intent)
     product_cards = res.get("product_cards", [])
     printer_name = res.get("printer_name") or target
@@ -454,6 +475,7 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
 
     is_citizen_dyesub = any(b in printer_name.lower() for b in ["citizen", "cx-02", "cx02", "cy-02", "cz-01", "cx-02w"]) or any(b in str(target).lower() for b in ["citizen", "cx-02", "cx02", "cy-02", "cz-01", "cx-02w"])
     is_epson_dyesub = any(b in printer_name.lower() for b in ["sc-f100", "sc-f500", "f100", "f500"]) or any(b in str(target).lower() for b in ["sc-f100", "sc-f500", "f100", "f500"])
+    is_dyesub = is_citizen_dyesub or is_epson_dyesub
     user_wanted_printer_card = any(k in raw_lower for k in ["show me the", "printer and its inks", "printer and inks", "and the printer", "show the printer"])
     hw_cards_to_show = product_cards if user_wanted_printer_card else []
 
@@ -508,7 +530,7 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
 
     # For inkjet printers when asked if it uses ink cartridges
     if is_ink_cartridge_question and not is_dyesub:
-        items_list = "\n".join([format_consumable_bullet(c) for c in all_consumables[:6]])
+        items_list = "\n".join([format_consumable_bullet(c) for c in all_consumables[:12]])
         colors_display = ", ".join(available_ink_colors) if available_ink_colors else "genuine ink cartridges"
         reply = (
             f"Yes, the **{printer_name}** uses genuine ink cartridges ({colors_display}).\n\n"
@@ -517,7 +539,7 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
         return RouteResult(
             reply=reply,
             product_cards=hw_cards_to_show,
-            consumable_cards=all_consumables[:6],
+            consumable_cards=all_consumables[:12],
             source="tool:get_compatible_consumables",
             product_id=target_prod.id if target_prod else None,
             evidence=[target_prod] if target_prod else [],
@@ -532,7 +554,7 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
             reply=f"Which ink color do you need for the **{printer_name}**? ({colors_display})",
             suggested_chips=available_ink_colors[:6] + ["All Colors"],
             product_cards=hw_cards_to_show,
-            consumable_cards=all_consumables[:6],
+            consumable_cards=all_consumables[:12],
             source="route:consumables:ask_color",
             needs_composition=False,
             product_id=target_prod.id if target_prod else None,
@@ -540,7 +562,8 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
         )
 
     # Default: Return verified compatible consumables / media with clean bullet points
-    items_list = "\n".join([format_consumable_bullet(c) for c in all_consumables[:6]])
+    card_limit = 16 if (only_ink or len(all_consumables) <= 16) else 6
+    items_list = "\n".join([format_consumable_bullet(c) for c in all_consumables[:card_limit]])
     if media_intent:
         reply = f"Here are verified genuine media rolls and papers compatible with **{printer_name}**:\n\n{items_list}"
     else:
@@ -549,7 +572,7 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
     return RouteResult(
         reply=reply,
         product_cards=hw_cards_to_show,
-        consumable_cards=all_consumables[:6],
+        consumable_cards=all_consumables[:card_limit],
         source="tool:get_compatible_consumables",
         product_id=target_prod.id if target_prod else None,
         evidence=[target_prod] if target_prod else [],

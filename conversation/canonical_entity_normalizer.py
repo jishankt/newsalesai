@@ -185,35 +185,31 @@ class CanonicalEntityNormalizer:
         ))
         is_large_range = bool(re.search(r"\b24\b.*?\b64\b", text_l))
 
-        # 3. Imperial roll widths & Standard DIN sizes
+        # 3. Imperial roll widths & Standard DIN sizes (checked in descending order: 64 > 44/B0 > 36/A0 > 24/A1 > 17/A2 > 13/A3)
+        # 64-inch (and 65-inch approximations)
+        if not is_large_range and (re.search(r"\b(?:6[45][\s-]*(?:inch|in|\"|'')|6[45]inch)\b", text_l) or (not is_explicit_vol and bool(re.search(r"\b6[45]\b", text_l)))):
+            res["print_width"] = 64
+            res["paper_size"] = "64-inch"
+        # 44-inch / B0
+        elif re.search(r"\b(?:44[\s-]*(?:inch|in|\")|44inch|b0)\b", text_l) or (not is_explicit_vol and bool(re.search(r"\b44\b", text_l))):
+            res["print_width"] = 44
+            res["paper_size"] = "44-inch"
         # A0 / 36-inch
-        if re.search(r"\b(?:a0|36[\s-]*(?:inch|in|\")|36inch)\b", text_l) or (not is_explicit_vol and bool(re.search(r"\b36\b", text_l))):
+        elif re.search(r"\b(?:a0|36[\s-]*(?:inch|in|\")|36inch)\b", text_l) or (not is_explicit_vol and bool(re.search(r"\b36\b", text_l))):
             res["print_width"] = 36
             res["paper_size"] = CIStr("A0")
         # A1 / 24-inch
         elif not is_large_range and (re.search(r"\b(?:a1|24[\s-]*(?:inch|in|\")|24inch)\b", text_l) or (not is_explicit_vol and bool(re.search(r"\b24\b", text_l)))):
             res["print_width"] = 24
             res["paper_size"] = CIStr("24-inch") if category == "dye_sublimation" else CIStr("A1")
-        # 44-inch / B0
-        elif re.search(r"\b(?:44[\s-]*(?:inch|in|\")|44inch)\b", text_l) or (not is_explicit_vol and bool(re.search(r"\b44\b", text_l))):
-            res["print_width"] = 44
-            res["paper_size"] = "44-inch"
-        # 64-inch (and 65-inch approximations)
-        elif not is_large_range and (re.search(r"\b(?:6[45][\s-]*(?:inch|in|\"|'')|6[45]inch)\b", text_l) or (not is_explicit_vol and bool(re.search(r"\b6[45]\b", text_l)))):
-            res["print_width"] = 64
-            res["paper_size"] = "64-inch"
-        # 13-inch (A3+)
-        elif re.search(r"\b(?:13[\s-]*(?:inch|in|\")|13inch)\b", text_l) or (not is_explicit_vol and bool(re.search(r"\b13\b", text_l))) or (
-            bool(re.search(r"\ba3\+(?!\w)", text_l)) and not bool(re.search(r"\ba2\+(?!\w)", text_l))
-        ):
-            res["print_width"] = 13
-            res["paper_size"] = "a3+"
         # 17-inch (A2+)
-        elif re.search(r"\b(?:17[\s-]*(?:inch|in|\")|17inch)\b", text_l) or (not is_explicit_vol and bool(re.search(r"\b17\b", text_l))) or (
-            bool(re.search(r"\ba2\+(?!\w)", text_l)) and not bool(re.search(r"\ba3\+(?!\w)", text_l))
-        ):
+        elif re.search(r"\b(?:17[\s-]*(?:inch|in|\")|17inch|a2\+?)\b", text_l) or (not is_explicit_vol and bool(re.search(r"\b17\b", text_l))):
             res["print_width"] = 17
             res["paper_size"] = "a2+"
+        # 13-inch (A3+)
+        elif re.search(r"\b(?:13[\s-]*(?:inch|in|\")|13inch|a3\+)\b", text_l) or (not is_explicit_vol and bool(re.search(r"\b13\b", text_l))):
+            res["print_width"] = 13
+            res["paper_size"] = "a3+"
         # A3 (office or standalone)
         elif re.search(r"\b(?:a3|tabloid|ledger)\b", text_l):
             res["paper_size"] = "a3"

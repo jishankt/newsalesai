@@ -144,10 +144,15 @@ class AnswerRelevanceValidator:
 
             specs = curr_prod.get("specifications", {}) or {}
 
+            is_multi = len(unanswered_questions) > 1
+
             if sem_key == "print_speed":
                 speed = curr_prod.get("print_speed") or specs.get("print_speed") or specs.get("speed")
                 if speed:
-                    answers.append(f"The {curr_name} prints at a speed of {speed}.")
+                    if is_multi:
+                        answers.append(f"• **Print Speed:** {speed}")
+                    else:
+                        answers.append(f"The {curr_name} prints at a speed of {speed}.")
                 else:
                     answers.append(f"The {curr_name} offers high-speed commercial production printing.")
 
@@ -191,15 +196,24 @@ class AnswerRelevanceValidator:
                 else:
                     weight = curr_prod.get("weight") or specs.get("weight")
                     dims = curr_prod.get("dimensions") or specs.get("dimensions")
-                    parts = []
-                    if weight:
-                        parts.append(f"weighs {weight}")
-                    if dims:
-                        parts.append(f"measures {dims}")
-                    if parts:
-                        answers.append(f"The {curr_name} {' and '.join(parts)}.")
+                    if is_multi:
+                        parts = []
+                        if weight:
+                            parts.append(f"{weight}")
+                        if dims:
+                            parts.append(f"measures {dims}")
+                        val_str = " and ".join(parts) if parts else "Standard commercial footprint"
+                        answers.append(f"• **Weight:** {val_str}")
                     else:
-                        answers.append(f"The {curr_name} features a compact commercial footprint.")
+                        parts = []
+                        if weight:
+                            parts.append(f"weighs {weight}")
+                        if dims:
+                            parts.append(f"measures {dims}")
+                        if parts:
+                            answers.append(f"The {curr_name} {' and '.join(parts)}.")
+                        else:
+                            answers.append(f"The {curr_name} features a compact commercial footprint.")
 
             elif sem_key in ("price", "investment_cost"):
                 p_val = curr_prod.get("price") if curr_prod else None
@@ -212,11 +226,19 @@ class AnswerRelevanceValidator:
                         f"https://www.keplertechllc.com/ or request an official commercial quotation."
                     )
 
-            elif sem_key == "print_width":
+            elif sem_key in ("print_width", "supported_print_sizes", "paper_size"):
                 paper_size = curr_prod.get("paper_size") or specs.get("paper_size")
                 width = curr_prod.get("print_width") or curr_prod.get("max_width_inches") or specs.get("max_width") or specs.get("width")
-                if paper_size:
-                    sizes = curr_prod.get("supported_print_sizes")
+                sizes = curr_prod.get("supported_print_sizes")
+                if is_multi:
+                    if sizes:
+                        sizes_formatted = ", ".join([s.replace("x", "×") for s in sizes])
+                        answers.append(f"• **Supported Print Sizes:** {sizes_formatted}")
+                    elif paper_size:
+                        answers.append(f"• **Supported Print Sizes:** {str(paper_size).upper()}")
+                    elif width:
+                        answers.append(f"• **Print Width:** {width} inches")
+                elif paper_size:
                     size_desc = f"{str(paper_size).upper()} ({', '.join(sizes)})" if sizes else str(paper_size).upper()
                     answers.append(f"The {curr_name} prints up to {size_desc} format.")
                 elif width:
@@ -285,13 +307,13 @@ class AnswerRelevanceValidator:
             else:
                 answers.append(f"For {curr_name}, {q.text} is fully supported according to manufacturer specifications.")
 
+        join_char = "\n" if len(unanswered_questions) > 1 else " "
         if existing_response and not any(a in existing_response for a in answers):
             # Combine cleanly
-            combined = f"{' '.join(answers)} {existing_response}".strip()
-            # Strip asterisk bolding
-            return combined.replace("**", "")
+            combined = f"{join_char.join(answers)} {existing_response}".strip()
+            return combined
 
-        return " ".join(answers).replace("**", "")
+        return join_char.join(answers)
 
 
 answer_relevance_validator = AnswerRelevanceValidator()

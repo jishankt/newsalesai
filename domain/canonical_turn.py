@@ -272,7 +272,7 @@ def extract_canonical_turn(
             "physical_specs"
         ),
         (
-            r"\b(?:(?:max|maximum|print|what)\s*width|(?:paper|print|roll|format)\s*size|what\s*size|what\s*width|(?:what|which)\s*format|24[\",\s]*36|a4\s*or\s*a3|roll\s*size|format\s*size)\b",
+            r"\b(?:(?:max|maximum|print|what)\s*widths?|(?:paper|print|roll|format|supported\s+print)\s*sizes?|what\s*sizes?|what\s*widths?|(?:what|which)\s*formats?|24[\",\s]*36|a4\s*or\s*a3|roll\s*sizes?|format\s*sizes?)\b",
             "print_width",
             "print width and format size",
             "print_width"
@@ -526,36 +526,34 @@ def extract_canonical_turn(
         mentioned_categories.append("dye_sublimation")
         changed_requirements["application"] = "apparel"
 
-    # Sizes
+    # Sizes (checked in descending order: 44/B0 > 36/A0 > 24/A1 > 17/A2 > 13/A3)
     size_target_text = target_text if sw_clause else msg_l
-    if re.search(r"\ba0\b", size_target_text):
+    if re.search(r"\b(?:44[\s-]*(?:inch|in|\")|44|b0)\b", size_target_text):
+        changed_requirements["print_size"] = CIStr("B0")
+        changed_requirements["paper_size"] = CIStr("B0")
+        changed_requirements["print_width"] = 44
+    elif re.search(r"\b(?:36[\s-]*(?:inch|in|\")|36|a0)\b", size_target_text):
         changed_requirements["print_size"] = CIStr("A0")
         changed_requirements["paper_size"] = CIStr("A0")
         changed_requirements["print_width"] = 36
-    elif re.search(r"\ba1\b", size_target_text):
+    elif re.search(r"\b(?:24[\s-]*(?:inch|in|\")|24|a1)\b", size_target_text):
         changed_requirements["print_size"] = CIStr("A1")
         changed_requirements["paper_size"] = CIStr("A1")
         changed_requirements["print_width"] = 24
-    elif re.search(r"\ba2\b", size_target_text):
+    elif re.search(r"\b(?:17[\s-]*(?:inch|in|\")|17|a2)\b", size_target_text):
         changed_requirements["print_size"] = CIStr("A2")
         changed_requirements["paper_size"] = CIStr("A2")
         changed_requirements["print_width"] = 17
-    elif re.search(r"\ba3\+?\b", size_target_text):
+    elif re.search(r"\b(?:13[\s-]*(?:inch|in|\")|13|a3\+?)\b", size_target_text):
         changed_requirements["print_size"] = CIStr("A3")
         changed_requirements["paper_size"] = CIStr("A3")
         changed_requirements["print_width"] = 13
-    elif re.search(r"\b4x6\b", size_target_text):
-        changed_requirements["print_size"] = "4x6"
-        changed_requirements["size"] = "4x6"
     elif re.search(r"\b6x8\b", size_target_text):
         changed_requirements["print_size"] = "6x8"
         changed_requirements["size"] = "6x8"
-    elif re.search(r"\b(?:24[\s-]*(?:inch|in|\")|24)\b", size_target_text):
-        changed_requirements["print_width"] = 24
-    elif re.search(r"\b(?:36[\s-]*(?:inch|in|\")|36)\b", size_target_text):
-        changed_requirements["print_width"] = 36
-    elif re.search(r"\b(?:44[\s-]*(?:inch|in|\")|44)\b", size_target_text):
-        changed_requirements["print_width"] = 44
+    elif re.search(r"\b4x6\b", size_target_text):
+        changed_requirements["print_size"] = "4x6"
+        changed_requirements["size"] = "4x6"
 
     # Speed requirement
     if re.search(r"\b(?:very\s*fast|high\s*speed|fast\s*turnaround)\b", msg_l):

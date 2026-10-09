@@ -117,11 +117,10 @@ class ContextualSlotResolver:
         # 2. Print Width (Technical CAD or Large Format)
         if awaiting_field in ("print_width", "photography_print_width"):
             # Direct bare numbers
-            num_match = re.search(r"\b(13|17|24|36|44|64|65)\b", text_l)
-            if num_match:
-                width_val = int(num_match.group(1))
-                if width_val == 65:
-                    width_val = 64
+            # Check numbers in descending order (largest size drives the filter)
+            nums = [int(n) for n in re.findall(r"\b(13|17|24|36|44|64|65)\b", text_l)]
+            if nums:
+                width_val = max(64 if n == 65 else n for n in nums)
                 reqs["print_width"] = width_val
                 if width_val == 24:
                     reqs["paper_size"] = "a1"
@@ -131,39 +130,45 @@ class ContextualSlotResolver:
                     reqs["paper_size"] = "64-inch"
                 return reqs, corrections
 
-            # Explicit size labels
-            if any(k in text_l for k in ["a1", "24-inch", '24"', "a1 size"]):
-                reqs["print_width"] = 24
-                reqs["paper_size"] = "a1"
+            # Explicit size labels checked in descending order: 44/B0 > 36/A0 > 24/A1 > 17/A2 > 13/A3
+            if any(k in text_l for k in ["64-inch", '64"', "64 inch"]):
+                reqs["print_width"] = 64
+                reqs["paper_size"] = "64-inch"
                 return reqs, corrections
-            if any(k in text_l for k in ["a0", "36-inch", '36"', "a0 size"]):
+            if any(k in text_l for k in ["44-inch", '44"', "44 inch", "b0", "wide", "widest", "extra wide"]):
+                reqs["print_width"] = 44
+                return reqs, corrections
+            if any(k in text_l for k in ["a0", "36-inch", '36"', "36 inch", "a0 size"]):
                 reqs["print_width"] = 36
                 reqs["paper_size"] = "a0"
                 return reqs, corrections
-            if any(k in text_l for k in ["44-inch", '44"', "wide", "widest", "extra wide"]):
-                reqs["print_width"] = 44
+            if any(k in text_l for k in ["a1", "24-inch", '24"', "24 inch", "a1 size"]):
+                reqs["print_width"] = 24
+                reqs["paper_size"] = "a1"
                 return reqs, corrections
-            if any(k in text_l for k in ["13-inch", "a3+"]):
-                reqs["print_width"] = 13
-                return reqs, corrections
-            if any(k in text_l for k in ["17-inch", "a2+"]):
+            if any(k in text_l for k in ["17-inch", '17"', "17 inch", "a2+", "a2"]):
                 reqs["print_width"] = 17
+                reqs["paper_size"] = "a2"
+                return reqs, corrections
+            if any(k in text_l for k in ["13-inch", '13"', "13 inch", "a3+", "a3"]):
+                reqs["print_width"] = 13
+                reqs["paper_size"] = "a3"
                 return reqs, corrections
 
             # Relative size vocabulary — mirrors how users think about chip options
-            # "small" / "narrow" → 24-inch (A1, smallest standard CAD width)
-            if any(k in text_l for k in ["small", "smallest", "narrow", "narrowest", "compact"]):
-                reqs["print_width"] = 24
-                reqs["paper_size"] = "a1"
+            # "large" / "biggest" → 44-inch (widest standard CAD width)
+            if any(k in text_l for k in ["large", "largest", "big", "biggest", "wider", "44 inch"]):
+                reqs["print_width"] = 44
                 return reqs, corrections
             # "medium" / "mid" → 36-inch (A0, the mid-range option)
             if any(k in text_l for k in ["medium", "mid", "middle", "moderate", "average"]):
                 reqs["print_width"] = 36
                 reqs["paper_size"] = "a0"
                 return reqs, corrections
-            # "large" / "biggest" → 44-inch (widest standard CAD width)
-            if any(k in text_l for k in ["large", "largest", "big", "biggest", "wider", "44 inch"]):
-                reqs["print_width"] = 44
+            # "small" / "narrow" → 24-inch (A1, smallest standard CAD width)
+            if any(k in text_l for k in ["small", "smallest", "narrow", "narrowest", "compact"]):
+                reqs["print_width"] = 24
+                reqs["paper_size"] = "a1"
                 return reqs, corrections
 
         # 3. Photo Form Factor (Compact vs Large Format)

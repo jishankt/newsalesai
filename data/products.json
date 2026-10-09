@@ -2835,7 +2835,6 @@
     "consumables": [
       "CZ-MS46",
       "CZ-MS458",
-      "CZ01-MEDIA-4X6",
       "CZ01 Carry Bag",
       "Citizen Pen"
     ],
@@ -19269,10 +19268,10 @@
       "Dye-Sub",
       "Photo"
     ],
-    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Citizen-CX2-46-6x4-1.webp",
-    "website_url": "https://www.keplertechllc.com/product/citizen-cx-02-4x6-printer-media/",
+    "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/06/RZ-MS-46-C-1000x-1000.webp",
+    "website_url": "https://www.keplertechllc.com/product/citizen-cz-ms46-4x-6/",
     "category": "Media & Paper",
-    "web_url": "https://www.keplertechllc.com/product/citizen-cz-01-photo-printer/",
+    "web_url": "https://www.keplertechllc.com/product/citizen-cz-ms46-4x-6/",
     "image": "https://www.keplertechllc.com/wp-content/uploads/2023/05/Citizen-CX2-46-6x4-1.webp",
     "yield_capacity": "150 prints per roll (4×6″); 300 prints per 2-roll box of CZ-MS46",
     "pattern_and_finishing": "Glossy, Matte, and Partial Matte finishes managed via thermal printhead overcoat in the printer driver without changing media (Partial Matte enables selective texture patterns); ultra-compact drop-in roll loading; automated test pattern diagnostics.",
@@ -19637,7 +19636,6 @@
     "consumables": [
       "CZ-MS46",
       "CZ-MS458",
-      "CZ01-MEDIA-4X6",
       "CZ01 Carry Bag",
       "Citizen Pen"
     ],
