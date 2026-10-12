@@ -375,6 +375,8 @@ class Orchestrator:
                         state.active_product_id = resolved_turn.resolved_target_product.id
                     if resolved_turn.resolved_active_item:
                         state.active_consumable = resolved_turn.resolved_active_item.metadata
+                    if unified_state.category:
+                        state.category = unified_state.category
 
                     unified_state.record_shown_artifacts(
                         products=plan.product_cards,

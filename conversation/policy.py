@@ -42,6 +42,7 @@ class PolicyDecision(BaseModel):
     clarification_question: Optional[str] = None
     options_or_chips: List[str] = Field(default_factory=list)
     evidence_records: List[EvidenceRecord] = Field(default_factory=list)
+    supporting_product_ids: List[str] = Field(default_factory=list)
     is_handoff: bool = False
     next_step: str = ""
 
@@ -88,7 +89,28 @@ class PolicyEngine:
                 next_step="Kepler Tech specializes in Epson and Citizen large-format inkjet and dye-sublimation systems. Which category fits your requirements?",
             )
 
-        # 3. Repair / Correction Handling
+        # 3. Chitchat / Friendly Greeting
+        if act == DialogueAct.CHITCHAT:
+            chips = ["Office Printers", "Technical CAD Plotters", "Photo & Fine Art", "Dye-Sublimation"]
+            if state.pending_question and state.pending_question.options:
+                chips = [str(o.get("label") or o.get("id")) for o in state.pending_question.options]
+
+            if state.turn_count == 0 and not state.pending_question:
+                greeting_text = (
+                    "Hello and welcome to Kepler Tech! Are you looking for technical CAD plotters, "
+                    "photo & fine art printers, dye-sublimation systems, or high-speed office printers?"
+                )
+            else:
+                greeting_text = "Hello! How can I assist you further with your equipment requirements today?"
+
+            return PolicyDecision(
+                action=PolicyAction.ANSWER,
+                reason="Conversational greeting.",
+                options_or_chips=chips,
+                next_step=greeting_text,
+            )
+
+        # 4. Repair / Correction Handling
         if act == DialogueAct.CORRECTION or any(w in und.raw_text.lower() for w in ["i meant", "no, i said", "not that", "changed my mind"]):
             # Record in corrections history
             state.corrections_history.append({"turn": state.turn_count, "raw": und.raw_text})
@@ -226,7 +248,126 @@ class PolicyEngine:
                     next_step="Would you like a direct comparison between these verified models?",
                 )
 
-        # 9. Product Info / Specs Intent
+        # 9. Recommendation / Category Discovery Intent
+        if intent == Intent.RECOMMEND:
+            cat_slot = und.slots.get("target_category")
+            cat_val = cat_slot.value if cat_slot else getattr(state, "category", None)
+
+            if cat_val in ("office_workforce", "office_printer", "office"):
+                state.category = "office_printer"
+                rec = EvidenceRecord(
+                    claim=(
+                        "For office and business document printing, Kepler Tech supplies the Epson WorkForce "
+                        "and WorkForce Enterprise series with Heat-Free inkjet technology:\n\n"
+                        "• **Epson WorkForce Pro WF-C5890**: Fast A4 desktop color MFP for workgroups.\n"
+                        "• **Epson WorkForce Pro WF-C878R**: Departmental A3 MFP with high-yield Replaceable Ink Packs (up to 86,000 pages).\n"
+                        "• **Epson WorkForce Enterprise AM-C4000**: Ultra-fast 40 ppm departmental color MFP.\n\n"
+                        "What is your typical monthly print volume or preferred paper format (A4 or A3)?"
+                    ),
+                    verified=True,
+                    status=CompatibilityStatus.VERIFIED_YES,
+                    source_file="catalogue_products.json",
+                    field="category",
+                    entity_ids=["epson-wf-c5890-dwf", "epson-wf-c878r-dwf", "epson-am-c4000"],
+                )
+                return PolicyDecision(
+                    action=PolicyAction.ANSWER,
+                    reason="Recommended verified office printers.",
+                    target_entity_id="epson-wf-c5890-dwf",
+                    supporting_product_ids=["epson-wf-c878r-dwf", "epson-am-c4000"],
+                    options_or_chips=["A4 Desktop (WF-C5890)", "A3 Workgroup (WF-C878R)", "Enterprise MFP (AM-C4000)", "Request Official Quote"],
+                    evidence_records=[rec],
+                    next_step="What is your typical monthly print volume or preferred paper format (A4 or A3)?",
+                )
+
+            elif cat_val == "dye_sublimation":
+                state.category = "dye_sublimation"
+                rec = EvidenceRecord(
+                    claim=(
+                        "Kepler Tech is an official distributor for Epson SureColor dye-sublimation systems:\n\n"
+                        "• **Epson SureColor SC-F100**: Compact A4 desktop printer for custom mugs and small merchandise.\n"
+                        "• **Epson SureColor SC-F500**: 24-inch desktop sublimation printer with refillable 140 ml ink bottles.\n\n"
+                        "Are you printing smaller gift items (A4) or larger apparel & textile transfers (24-inch)?"
+                    ),
+                    verified=True,
+                    status=CompatibilityStatus.VERIFIED_YES,
+                    source_file="catalogue_products.json",
+                    field="category",
+                    entity_ids=["epson-sc-f100", "epson-sc-f500"],
+                )
+                return PolicyDecision(
+                    action=PolicyAction.ANSWER,
+                    reason="Recommended verified dye-sublimation printers.",
+                    target_entity_id="epson-sc-f500",
+                    supporting_product_ids=["epson-sc-f100"],
+                    options_or_chips=["A4 Desktop (SC-F100)", "24-inch Desktop (SC-F500)", "Sublimation Inks", "Official Quote"],
+                    evidence_records=[rec],
+                    next_step="Are you printing smaller gift items (A4) or larger apparel & textile transfers (24-inch)?",
+                )
+
+            elif cat_val in ("technical_cad", "technical_large_format"):
+                state.category = "technical_large_format"
+                rec = EvidenceRecord(
+                    claim=(
+                        "For architectural drawings, engineering blueprints, and line maps, Kepler Tech offers the Epson SureColor T-Series:\n\n"
+                        "• **Epson SureColor SC-T3100**: Compact 24-inch wireless desktop technical plotter.\n"
+                        "• **Epson SureColor SC-T5400**: High-speed 36-inch production plotter for commercial CAD & GIS.\n\n"
+                        "Do you need a 24-inch (A1) or 36-inch (A0) plotter format?"
+                    ),
+                    verified=True,
+                    status=CompatibilityStatus.VERIFIED_YES,
+                    source_file="catalogue_products.json",
+                    field="category",
+                    entity_ids=["epson-sc-t3100", "epson-sc-t5400"],
+                )
+                return PolicyDecision(
+                    action=PolicyAction.ANSWER,
+                    reason="Recommended verified CAD & technical plotters.",
+                    target_entity_id="epson-sc-t3100",
+                    supporting_product_ids=["epson-sc-t5400"],
+                    options_or_chips=["24-inch (SC-T3100)", "36-inch (SC-T5400)", "UltraChrome XD2 Inks", "Official Quote"],
+                    evidence_records=[rec],
+                    next_step="Do you need a 24-inch (A1) or 36-inch (A0) plotter format?",
+                )
+
+            elif cat_val in ("photo_fine_art", "photography_large_format"):
+                state.category = "photography_large_format"
+                rec = EvidenceRecord(
+                    claim=(
+                        "For professional photography, fine art galleries, and proofing, we offer the Epson SureColor P-Series:\n\n"
+                        "• **Epson SureColor SC-P700**: 13-inch (A3+) professional photo printer with 10-color UltraChrome PRO10 ink.\n"
+                        "• **Epson SureColor SC-P900**: 17-inch (A2+) professional photo printer with dedicated matte and photo black channels.\n\n"
+                        "What is your target print format (13-inch A3+ or 17-inch A2+)?"
+                    ),
+                    verified=True,
+                    status=CompatibilityStatus.VERIFIED_YES,
+                    source_file="catalogue_products.json",
+                    field="category",
+                    entity_ids=["epson-sc-p700", "epson-sc-p900"],
+                )
+                return PolicyDecision(
+                    action=PolicyAction.ANSWER,
+                    reason="Recommended verified photo & fine art printers.",
+                    target_entity_id="epson-sc-p700",
+                    supporting_product_ids=["epson-sc-p900"],
+                    options_or_chips=["13-inch A3+ (SC-P700)", "17-inch A2+ (SC-P900)", "UltraChrome PRO10 Inks", "Official Quote"],
+                    evidence_records=[rec],
+                    next_step="What is your target print format (13-inch A3+ or 17-inch A2+)?",
+                )
+
+            else:
+                # Broad inquiry without category specified ("I want to buy a printer")
+                state.clarifications_asked[current_topic] = topic_clarifications + 1
+                return PolicyDecision(
+                    action=PolicyAction.CLARIFY,
+                    reason="Customer stated general purchase inquiry without category.",
+                    clarification_topic=current_topic,
+                    clarification_question="Kepler Tech supplies specialized commercial printers for different applications. What type of printing do you need?",
+                    options_or_chips=["Office & Business Documents", "Technical CAD Drawings", "Photography & Fine Art", "Dye-Sublimation Merchandise"],
+                    next_step="Please select your application.",
+                )
+
+        # 10. Product Info / Specs Intent
         if intent == Intent.PRODUCT_INFO:
             if resolved.resolved_active_item and not resolved.resolved_target_product:
                 item = resolved.resolved_active_item

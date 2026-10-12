@@ -149,19 +149,29 @@ class ResponsePlanBuilder:
             direct_answer = rec.claim if rec else (decision.next_step or "Here is the information from our verified catalogue.")
 
         # Ensure hardware cards are attached whenever target_entity_id is present
-        if decision.target_entity_id and not cards:
-            t_node = knowledge_graph.nodes.get(decision.target_entity_id.lower())
-            if t_node and t_node.node_type == "printer":
-                cards.append({
-                    "card_type": "hardware",
-                    "id": t_node.id,
-                    "model_family": t_node.attributes.get("model_family") or t_node.name,
-                    "display_name": t_node.name,
-                    "primary_category": t_node.attributes.get("category"),
-                    "product_url": t_node.attributes.get("url") or f"https://www.keplertechllc.com/product/{t_node.id}",
-                    "image_url": t_node.attributes.get("image_url") or "/static/img/products/default.png",
-                    "badges": ["Verified Official Model"],
-                })
+        # Ensure hardware cards are attached whenever target_entity_id or supporting_product_ids are present
+        all_target_ids: List[str] = []
+        if decision.target_entity_id:
+            all_target_ids.append(decision.target_entity_id)
+        if getattr(decision, "supporting_product_ids", None):
+            for spid in decision.supporting_product_ids:
+                if spid not in all_target_ids:
+                    all_target_ids.append(spid)
+
+        for pid in all_target_ids:
+            if not any(c.get("id") == pid for c in cards):
+                t_node = knowledge_graph.nodes.get(pid.lower())
+                if t_node and t_node.node_type == "printer":
+                    cards.append({
+                        "card_type": "hardware",
+                        "id": t_node.id,
+                        "model_family": t_node.attributes.get("model_family") or t_node.name,
+                        "display_name": t_node.name,
+                        "primary_category": t_node.attributes.get("category"),
+                        "product_url": t_node.attributes.get("url") or f"https://www.keplertechllc.com/product/{t_node.id}",
+                        "image_url": t_node.attributes.get("image_url") or "/static/img/products/default.png",
+                        "badges": ["Verified Official Model"],
+                    })
 
         # Ensure consumable cards are attached whenever active_item_id is present
         if decision.active_item_id and not c_cards:
@@ -182,7 +192,7 @@ class ResponsePlanBuilder:
         if assumption:
             parts.append(f"*{assumption}*\n")
         parts.append(direct_answer)
-        if decision.next_step and decision.next_step != direct_answer:
+        if decision.next_step and decision.next_step not in direct_answer:
             parts.append(f"\n\n{decision.next_step}")
 
         formatted_text = "".join(parts).strip()

@@ -294,7 +294,12 @@ class TurnUnderstandingExtractor:
     ]
 
     SHOWROOM_PATTERNS = [
-        re.compile(r"\b(?:showroom|store|office|location|address|where\s+are\s+you|visit\s+you|downtown|khalid\s+bin\s+waleed)\b", re.I),
+        re.compile(
+            r"\b(?:showroom|store\s*location|physical\s*store|office\s*location|office\s*address|"
+            r"where\s+(?:is\s+your|are\s+you|can\s+i\s+visit)|visit\s+(?:your\s+)?(?:showroom|store|office)|"
+            r"head\s*office|khalid\s+bin\s+waleed|directions\s+to\s+your)\b",
+            re.I
+        ),
     ]
 
     @classmethod
@@ -399,11 +404,24 @@ class TurnUnderstandingExtractor:
 
         # 4. Category Mentions
         categories = {
-            "dye_sublimation": ["dye sublimation", "sublimation", "sublimation printer", "apparel printing"],
-            "technical_cad": ["cad", "technical", "engineering", "blueprints", "line drawings"],
-            "photo_fine_art": ["fine art", "photo printer", "gallery", "photography"],
-            "office_workforce": ["office printer", "workforce", "business printer"],
-            "photo_booth": ["photo booth", "event photography", "instant prints"],
+            "dye_sublimation": [
+                "dye sublimation", "sublimation", "sublimation printer", "apparel printing",
+                "t-shirt printing", "textile printing", "mug printing"
+            ],
+            "technical_cad": [
+                "cad", "technical", "engineering", "blueprints", "line drawings", "architectural", "gis", "cad plotter"
+            ],
+            "photo_fine_art": [
+                "fine art", "photo printer", "gallery", "photography", "photo printing", "photo studio"
+            ],
+            "office_workforce": [
+                "office printer", "workforce", "business printer", "printer for my office",
+                "printer for office", "for my office", "for our office", "office use",
+                "office printing", "office copier", "enterprise mfp", "am-c", "wf-c"
+            ],
+            "photo_booth": [
+                "photo booth", "event photography", "instant prints", "passport photos"
+            ],
         }
         for cat_id, cat_keywords in categories.items():
             for kw in cat_keywords:
@@ -423,6 +441,16 @@ class TurnUnderstandingExtractor:
     def extract_slots(cls, text: str, entities: List[EntityMention]) -> Dict[str, SlotValue]:
         slots: Dict[str, SlotValue] = {}
         text_l = text.lower()
+
+        # Category slot
+        cats = [e.normalised_id.replace("category:", "") for e in entities if e.entity_type == "category"]
+        if cats:
+            slots["target_category"] = SlotValue(
+                slot_name="target_category",
+                value=cats[0],
+                confidence=0.95,
+                source="said_now"
+            )
 
         # Target model slot
         models = [e.normalised_id for e in entities if e.entity_type == "model"]
@@ -501,8 +529,11 @@ class TurnUnderstandingExtractor:
             act = DialogueAct.REFERENCE_FOLLOW_UP if refs else DialogueAct.QUESTION
             return act, Intent.CONSUMABLES_LOOKUP, 0.95, ambiguities
 
-        # 8. Compare
+        # 8. Models and SKUs
         models = [e for e in entities if e.entity_type == "model"]
+        skus = [e for e in entities if e.entity_type == "sku"]
+
+        # Compare
         if len(models) >= 2 or any(p.search(text_l) for p in cls.COMPARE_PATTERNS):
             return DialogueAct.QUESTION, Intent.COMPARE, 0.92, ambiguities
 
@@ -515,18 +546,27 @@ class TurnUnderstandingExtractor:
         if any(p.search(text_l) for p in cls.PRICE_POLICY_PATTERNS):
             return DialogueAct.QUESTION, Intent.AVAILABILITY_OR_PRICE_POLICY, 0.90, ambiguities
 
-        # 11. Contact showroom
-        if any(p.search(text_l) for p in cls.SHOWROOM_PATTERNS):
+        # 11. Contact showroom (only if not an equipment or category inquiry)
+        is_equipment_query = any(k in text_l for k in [
+            "printer", "scanner", "plotter", "copier", "equipment", "machine", "device",
+            "ink", "cartridge", "consumable", "media", "paper", "roll", "toner"
+        ])
+        if not is_equipment_query and any(p.search(text_l) for p in cls.SHOWROOM_PATTERNS):
             return DialogueAct.QUESTION, Intent.CONTACT_SHOWROOM, 0.95, ambiguities
 
-        # 12. Ellipsis or Reference Follow-up
+        # 12. Category Mentions without specific model -> RECOMMEND intent
+        category_entities = [e for e in entities if e.entity_type == "category"]
+        if category_entities and not models and not skus:
+            return DialogueAct.QUESTION, Intent.RECOMMEND, 0.92, ambiguities
+
+        # 13. Ellipsis or Reference Follow-up
         if any(r.reference_type == "ellipsis" for r in refs):
             return DialogueAct.REFERENCE_FOLLOW_UP, Intent.PRODUCT_INFO, 0.88, ambiguities
 
         if refs and not entities:
             return DialogueAct.REFERENCE_FOLLOW_UP, Intent.PRODUCT_INFO, 0.85, ambiguities
 
-        # 13. Product Info if SKU or model is mentioned
+        # 14. Product Info if SKU or model is mentioned
         skus = [e for e in entities if e.entity_type == "sku"]
         if skus:
             return DialogueAct.QUESTION, Intent.PRODUCT_INFO, 0.95, ambiguities
@@ -534,13 +574,14 @@ class TurnUnderstandingExtractor:
         if models:
             return DialogueAct.QUESTION, Intent.PRODUCT_INFO, 0.90, ambiguities
 
-        # 14. Recommendation query
+        # 15. Recommendation query
         if any(w in text_l for w in ["need", "want", "looking for", "recommend", "best", "which"]):
             return DialogueAct.QUESTION, Intent.RECOMMEND, 0.80, ambiguities
 
-        # Fallback chitchat / other
-        if len(text_l.split()) <= 2 and text_l in ["hello", "hi", "hey", "good morning", "good evening"]:
-            return DialogueAct.CHITCHAT, Intent.OTHER, 0.95, ambiguities
+        # Fallback chitchat / greetings
+        if re.search(r"\b(?:hello|hi|hey|good\s*morning|good\s*afternoon|good\s*evening)\b", text_l):
+            if len(text_l.split()) <= 3:
+                return DialogueAct.CHITCHAT, Intent.OTHER, 0.95, ambiguities
 
         return DialogueAct.QUESTION, Intent.OTHER, 0.60, ["Ambiguous intent, deterministic confidence below 0.70"]
 
