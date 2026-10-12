@@ -82,6 +82,7 @@ class TurnUnderstanding(BaseModel):
     raw_text: str
     dialogue_act: DialogueAct
     intent: Intent
+    secondary_intents: List[Intent] = Field(default_factory=list)
     entities: List[EntityMention] = Field(default_factory=list)
     reference_expressions: List[ReferenceExpression] = Field(default_factory=list)
     slots: Dict[str, SlotValue] = Field(default_factory=dict)
@@ -280,6 +281,7 @@ class TurnUnderstandingExtractor:
 
     CONSUMABLES_PATTERNS = [
         re.compile(r"\b(?:what\s+inks?|which\s+inks?|consumables?|cartridges?|ribbons?|maintenance\s*box(?:es)?|supplies(?:\s+for)?|sublimation\s+inks?|print\s+supplies)\b", re.I),
+        re.compile(r"\b(?:(?:what|which|need|want|buy|order|get|looking\s+for)\s+(?:an?\s+)?(?:ink|inks|cartridge|cartridges|ribbon|ribbons|toner|supplies)|(?:ink|inks|cartridge|cartridges|supplies)\s+for)\b", re.I),
     ]
 
     COMPARE_PATTERNS = [
@@ -385,7 +387,8 @@ class TurnUnderstandingExtractor:
                     ))
                     seen_keys.add(norm_pid)
 
-        # 3. Fuzzy model matching for typos / shorthand ("f500", "sc f500", "citizen cx02", "t3700")
+        # 3. Model Matching: Exact alias matches only!
+        # Near/fuzzy matches never answer as that model; flag as unlisted_model
         if not any(e.entity_type == "model" for e in entities):
             words = [w for w in re.findall(r"[a-z0-9\-]+", text_l) if len(w) >= 3]
             for word in words:
@@ -399,17 +402,46 @@ class TurnUnderstandingExtractor:
                             best_alias = alias
 
                 if best_alias and best_score >= FUZZY_MATCH_THRESHOLD:
+                    # Near matches NEVER answer as that model! Mark as unlisted_model
                     norm_pid = alias_map[best_alias]
-                    if norm_pid not in seen_keys:
+                    if word.lower() not in seen_keys:
                         entities.append(EntityMention(
                             surface_text=word,
+                            normalised_id=word.lower(),
+                            entity_type="unlisted_model",
+                            match_type="near_match",
+                            confidence=round(best_score, 3),
+                            metadata={"matched_alias": best_alias, "candidate_id": norm_pid, "similarity": best_score},
+                        ))
+                        seen_keys.add(word.lower())
+
+        # 3b. Detect any unlisted model-code patterns (e.g. wf-c20600, t5200) not in approved catalogue
+        if not any(e.entity_type in ("model", "unlisted_model") for e in entities):
+            for mc in re.finditer(r"\b([a-z]{1,4}[-_\s]?[a-z]?\d{2,5}[a-z0-9\-_]*)\b", text_l):
+                raw_code = mc.group(1).strip()
+                clean_code = raw_code.lower()
+                if clean_code not in seen_keys and len(clean_code) >= 3 and clean_code not in ["page", "pages", "day", "days"]:
+                    if clean_code in alias_map:
+                        norm_pid = alias_map[clean_code]
+                        entities.append(EntityMention(
+                            surface_text=raw_code,
                             normalised_id=norm_pid,
                             entity_type="model",
-                            match_type="fuzzy",
-                            confidence=round(best_score, 3),
-                            metadata={"matched_alias": best_alias, "similarity": best_score},
+                            match_type="alias",
+                            confidence=1.0,
+                            metadata={"canonical_id": norm_pid},
                         ))
                         seen_keys.add(norm_pid)
+                    else:
+                        entities.append(EntityMention(
+                            surface_text=raw_code,
+                            normalised_id=clean_code,
+                            entity_type="unlisted_model",
+                            match_type="unlisted",
+                            confidence=0.9,
+                            metadata={"raw_query": raw_code},
+                        ))
+                        seen_keys.add(clean_code)
 
         # 4. Category Mentions (Matching Page 1 Flowchart Overview)
         categories = {
@@ -506,6 +538,41 @@ class TurnUnderstandingExtractor:
                 slot_name="media_size",
                 value=size_match.group(1).replace(" ", ""),
                 confidence=0.90,
+                source="said_now"
+            )
+
+        # Target attribute slot (for specific spec inquiries)
+        target_attr = None
+        if any(k in text_l for k in ["stand", "legs", "floor stand", "with a stand"]):
+            target_attr = "stand"
+        elif any(k in text_l for k in ["speed", "ppm", "fast", "how long to print"]):
+            target_attr = "print_speed"
+        elif any(k in text_l for k in ["dpi", "resolution", "clarity"]):
+            target_attr = "dpi"
+        elif any(k in text_l for k in ["width", "max width", "print width", "paper size"]):
+            target_attr = "print_width"
+        elif any(k in text_l for k in ["connectivity", "wifi", "wi-fi", "ethernet", "usb", "network"]):
+            target_attr = "connectivity"
+        elif any(k in text_l for k in ["dimension", "dimensions", "size", "height"]):
+            target_attr = "dimensions"
+        elif any(k in text_l for k in ["weight", "heavy", "kg"]):
+            target_attr = "weight"
+        elif any(k in text_l for k in ["scanner", "scan", "copy", "mfp"]):
+            target_attr = "scanner_integrated"
+        elif any(k in text_l for k in ["dual roll", "dual-roll"]):
+            target_attr = "dual_roll"
+        elif any(k in text_l for k in ["warranty", "guarantee"]):
+            target_attr = "warranty"
+        elif any(k in text_l for k in ["memory", "ram", "storage", "ssd"]):
+            target_attr = "memory"
+        elif any(k in text_l for k in ["ink", "inks", "colours", "colors", "cartridge"]):
+            target_attr = "total_colours"
+
+        if target_attr:
+            slots["target_attribute"] = SlotValue(
+                slot_name="target_attribute",
+                value=target_attr,
+                confidence=0.95,
                 source="said_now"
             )
 
@@ -622,6 +689,56 @@ class TurnUnderstandingExtractor:
         return DialogueAct.QUESTION, Intent.OTHER, 0.60, ["Ambiguous intent, deterministic confidence below 0.70"]
 
     @classmethod
+    def extract_compound_intents(cls, text: str, primary_intent: Intent) -> List[Intent]:
+        """Detects compound ordered intents in complex multi-intent inquiries."""
+        text_l = text.lower().strip()
+        matched: List[Tuple[int, Intent]] = []
+
+        # Check Price Policy
+        for p in cls.PRICE_POLICY_PATTERNS:
+            m = p.search(text_l)
+            if m:
+                matched.append((m.start(), Intent.AVAILABILITY_OR_PRICE_POLICY))
+                break
+
+        # Check Delivery
+        for p in cls.DELIVERY_PATTERNS:
+            m = p.search(text_l)
+            if m:
+                matched.append((m.start(), Intent.SHIPPING_OR_DELIVERY))
+                break
+
+        # Check Specs / Speed
+        m_spec = re.search(r"\b(?:how fast|speed|ppm|resolution|dpi|print width|specs?|features?|stand)\b", text_l)
+        if m_spec:
+            matched.append((m_spec.start(), Intent.PRODUCT_INFO))
+
+        # Check Compatibility
+        for p in cls.COMPATIBILITY_PATTERNS:
+            m = p.search(text_l)
+            if m:
+                matched.append((m.start(), Intent.COMPATIBILITY_CHECK))
+                break
+
+        # Check Consumables
+        for p in cls.CONSUMABLES_PATTERNS:
+            m = p.search(text_l)
+            if m:
+                matched.append((m.start(), Intent.CONSUMABLES_LOOKUP))
+                break
+
+        if len(matched) > 1:
+            # Sort by order of appearance in customer text
+            matched.sort(key=lambda x: x[0])
+            ordered_intents: List[Intent] = []
+            for _, i in matched:
+                if i not in ordered_intents:
+                    ordered_intents.append(i)
+            return ordered_intents
+
+        return []
+
+    @classmethod
     def parse(cls, text: str) -> TurnUnderstanding:
         """Runs the deterministic extractor pipeline."""
         t_start = time.time()
@@ -629,12 +746,14 @@ class TurnUnderstandingExtractor:
         refs = cls.extract_reference_expressions(text)
         slots = cls.extract_slots(text, entities)
         dialogue_act, intent, confidence, ambiguities = cls.classify_dialogue_act_and_intent(text, entities, refs)
+        compound_intents = cls.extract_compound_intents(text, intent)
         duration_ms = int((time.time() - t_start) * 1000)
 
         return TurnUnderstanding(
             raw_text=text,
             dialogue_act=dialogue_act,
             intent=intent,
+            secondary_intents=compound_intents,
             entities=entities,
             reference_expressions=refs,
             slots=slots,

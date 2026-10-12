@@ -8,8 +8,8 @@ unauthorized discount promises, price bargaining, or budget interrogation.
 import re
 from typing import Optional, Dict, Any, List, Tuple
 
-OFFICIAL_SUPPORT_EMAIL = "sales@keplertech.ae"
-OFFICIAL_SUPPORT_PHONE = "+971 4 323 1008"
+from config import OFFICIAL_SUPPORT_EMAIL, OFFICIAL_SUPPORT_PHONE
+
 OFFICIAL_WEBSITE_URL = "https://www.keplertechllc.com/"
 
 DISCOUNT_REFUSAL = (

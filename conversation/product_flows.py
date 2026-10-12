@@ -15,7 +15,7 @@ Intermediate qualification turns MUST NOT return product cards (target_product_i
 Only after completing each flow's mandatory requirements is the verified product leaf delivered.
 """
 
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass, field
 import re
 
@@ -39,6 +39,14 @@ CATEGORY_OVERVIEW_CHIPS = [
     "Apparel / T-Shirt / Mug (Dye-Sub)",
     "Professional Scanners",
 ]
+
+
+def resolve_plotter_width_from_text(text: str) -> Tuple[Optional[int], Optional[str]]:
+    """Resolves plotter width (inches) deterministically where largest size wins."""
+    reqs = extract_flowchart_requirements(text)
+    w = reqs.get("plotter_width")
+    cat = "technical_large_format" if w else None
+    return w, cat
 
 
 def extract_flowchart_requirements(text: str, current_reqs: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -93,13 +101,22 @@ def extract_flowchart_requirements(text: str, current_reqs: Optional[Dict[str, A
     elif any(k in text_l for k in ["3,000+", "3000+", "100 ppm", "ultra high", "wf-c21000", "c21000"]):
         reqs["office_duty_class"] = "ultra_100"
 
-    # 3. CAD Plotter Width
-    if re.search(r"\b24[\s-]*(?:inch|in|\")\b", text_l) or "a1" in text_l:
-        reqs["plotter_width"] = 24
-    elif re.search(r"\b36[\s-]*(?:inch|in|\")\b", text_l) or "a0" in text_l:
-        reqs["plotter_width"] = 36
-    elif re.search(r"\b44[\s-]*(?:inch|in|\")\b", text_l) or "production 44" in text_l:
-        reqs["plotter_width"] = 44
+    # 3. CAD Plotter Width (Largest size wins: e.g. A1 and A0 -> A0/36-inch)
+    cad_widths = []
+    if re.search(r"\b(?:6[45][\s-]*(?:inch|in|\"|'')|6[45]inch)\b", text_l):
+        cad_widths.append(64)
+    if re.search(r"\b(?:44[\s-]*(?:inch|in|\")|44inch|b0|production\s*44)\b", text_l):
+        cad_widths.append(44)
+    if re.search(r"\b(?:36[\s-]*(?:inch|in|\")|36inch|a0)\b", text_l):
+        cad_widths.append(36)
+    if re.search(r"\b(?:24[\s-]*(?:inch|in|\")|24inch|a1)\b", text_l):
+        cad_widths.append(24)
+    if re.search(r"\b(?:17[\s-]*(?:inch|in|\")|17inch|a2\+?)\b", text_l):
+        cad_widths.append(17)
+    if re.search(r"\b(?:13[\s-]*(?:inch|in|\")|13inch|a3\+?)\b", text_l):
+        cad_widths.append(13)
+    if cad_widths:
+        reqs["plotter_width"] = max(cad_widths)
 
     # CAD Configuration & Scanner
     if any(k in text_l for k in ["entry desktop", "desktop stand", "t3100", "sc-t3100"]):

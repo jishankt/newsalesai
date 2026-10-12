@@ -15,8 +15,48 @@ from pydantic import BaseModel, Field
 from conversation.understanding import DialogueAct, Intent, TurnUnderstanding
 from conversation.dialogue_state import DialogueState, ResolvedTurn, SalientEntity
 from catalog.evidence import EvidenceEngine, EvidenceRecord, CompatibilityStatus, knowledge_graph
+from config import OFFICIAL_SUPPORT_EMAIL, OFFICIAL_SUPPORT_PHONE, OFFICIAL_INFO_EMAIL
 
 logger = logging.getLogger("conversation.policy")
+
+
+def find_unlisted_alternatives(query_code: str) -> List[Dict[str, Any]]:
+    """Finds verified catalogue alternatives for an unlisted or unsupported model code."""
+    try:
+        from catalog.catalogue_loader import catalogue_loader
+        products = catalogue_loader.products
+    except Exception:
+        return []
+
+    code_upper = query_code.upper().strip()
+    prefix = ""
+    for pfx in ["WF-C", "AM-C", "SC-T", "SC-P", "SC-F", "CX-", "CY-", "CZ-", "WF-", "DS-", "ES-"]:
+        if pfx in code_upper:
+            prefix = pfx
+            break
+
+    matches = []
+    if prefix:
+        for p in products:
+            p_id = str(p.get("id", "")).upper()
+            p_name = str(p.get("display_name", "")).upper()
+            p_fam = str(p.get("model_family", "")).upper()
+            if prefix in p_id or prefix in p_name or prefix in p_fam:
+                matches.append(p)
+
+    if not matches:
+        if "WF" in code_upper or "WORKFORCE" in code_upper:
+            matches = [p for p in products if p.get("main_category") == "office_printer"]
+        elif "CX" in code_upper or "CITIZEN" in code_upper:
+            matches = [p for p in products if p.get("main_category") == "citizen_photo"]
+        elif "SC-T" in code_upper or "PLOTTER" in code_upper:
+            matches = [p for p in products if p.get("main_category") == "technical_large_format"]
+        elif "SC-P" in code_upper or "PHOTO" in code_upper:
+            matches = [p for p in products if p.get("main_category") == "photography_large_format"]
+        elif "SC-F" in code_upper or "SUBLIMATION" in code_upper:
+            matches = [p for p in products if p.get("main_category") == "dye_sublimation"]
+
+    return matches[:3]
 
 
 # ── Policy Actions ────────────────────────────────────────────────────────────
@@ -70,14 +110,122 @@ class PolicyEngine:
         intent = und.intent
         conf = und.overall_confidence
 
+        # 0a. Unlisted / Near Match Model Check (Never silently substitute unlisted models)
+        unlisted_entities = [e for e in und.entities if e.entity_type == "unlisted_model"]
+        if unlisted_entities:
+            unlisted = unlisted_entities[0]
+            alts = find_unlisted_alternatives(unlisted.surface_text)
+            alt_names = [a.get("display_name") or a.get("id") for a in alts]
+            if alt_names:
+                alt_str = ", ".join(f"**{name}**" for name in alt_names)
+                claim = (
+                    f"The **{unlisted.surface_text}** is not in our approved equipment catalogue. "
+                    f"We offer verified official alternatives including {alt_str}."
+                )
+            else:
+                claim = (
+                    f"The **{unlisted.surface_text}** is not in our approved equipment catalogue. "
+                    "We specialize in authorized Epson and Citizen professional printing equipment."
+                )
+
+            rec = EvidenceRecord(
+                claim=claim,
+                verified=True,
+                status=CompatibilityStatus.VERIFIED_NO,
+                source_file="data/catalogue_products.json",
+                field="id",
+                entity_ids=[a.get("id") for a in alts],
+            )
+            chips = [f"View {name}" for name in alt_names[:2]] + ["Official Quotation", "Speak to Specialist"]
+            next_q = f"Would you like to explore verified specifications for the {alt_names[0]}?" if alt_names else "Which printing application fits your workflow?"
+
+            return PolicyDecision(
+                action=PolicyAction.ANSWER,
+                reason=f"Model '{unlisted.surface_text}' is unlisted; offering verified alternatives.",
+                target_entity_id=alts[0].get("id") if alts else None,
+                supporting_product_ids=[a.get("id") for a in alts[1:]] if len(alts) > 1 else [],
+                options_or_chips=chips,
+                evidence_records=[rec],
+                next_step=next_q,
+            )
+
+        # 0b. Multi-intent resolution (e.g. price + delivery + speed)
+        if und.secondary_intents and len(und.secondary_intents) > 0:
+            target = resolved.resolved_target_product
+            t_name = target.name if target else "our equipment"
+            all_intents = [intent] + und.secondary_intents
+            claims = []
+            ev_records = []
+
+            for it in all_intents:
+                if it == Intent.AVAILABILITY_OR_PRICE_POLICY:
+                    p_claim = f"Official pricing and volume quotations for the **{t_name}** are provided directly through our sales desk."
+                    claims.append(p_claim)
+                    ev_records.append(EvidenceRecord(
+                        claim=p_claim,
+                        verified=True,
+                        status=CompatibilityStatus.VERIFIED_YES,
+                        source_file="config.py",
+                        field="pricing_policy",
+                        entity_ids=[target.id] if target else [],
+                    ))
+                elif it == Intent.SHIPPING_OR_DELIVERY:
+                    dest_str = "Sharjah and across all UAE emirates" if "sharjah" in und.raw_text.lower() else "across all UAE emirates"
+                    d_claim = f"We provide insured direct delivery to {dest_str}, with on-site installation for production systems."
+                    claims.append(d_claim)
+                    ev_records.append(EvidenceRecord(
+                        claim=d_claim,
+                        verified=True,
+                        status=CompatibilityStatus.VERIFIED_YES,
+                        source_file="config.py",
+                        field="delivery_policy",
+                        entity_ids=[],
+                    ))
+                elif it == Intent.PRODUCT_INFO:
+                    if target:
+                        if "speed" in und.raw_text.lower() or "fast" in und.raw_text.lower():
+                            spd_val = target.metadata.get("print_speed") or "high-speed PrecisionCore output"
+                            s_claim = f"**Print speed:** {spd_val}."
+                        else:
+                            s_claim = f"The **{target.name}** features {target.metadata.get('print_speed', 'advanced printing technology')}."
+                        claims.append(s_claim)
+                        ev_records.append(EvidenceRecord(
+                            claim=s_claim,
+                            verified=True,
+                            status=CompatibilityStatus.VERIFIED_YES,
+                            source_file="data/catalogue_products.json",
+                            field="print_speed",
+                            entity_ids=[target.id],
+                        ))
+
+            if claims:
+                combined_claim = "\n\n".join(claims)
+                combined_rec = EvidenceRecord(
+                    claim=combined_claim,
+                    verified=True,
+                    status=CompatibilityStatus.VERIFIED_YES,
+                    source_file="multi_source",
+                    field="multi_intent",
+                    entity_ids=[target.id] if target else [],
+                )
+                chips = ["Request Official Quote", "Technical Specifications", "Speak to Specialist"]
+                return PolicyDecision(
+                    action=PolicyAction.ANSWER,
+                    reason=f"Multi-intent query answered across {all_intents}.",
+                    target_entity_id=target.id if target else None,
+                    options_or_chips=chips,
+                    evidence_records=[combined_rec],
+                    next_step=f"Our sales specialists are available at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE} to prepare your official proposal.",
+                )
+
         # 1. Handoff Request
         if act == DialogueAct.HANDOFF_REQUEST or any(w in und.raw_text.lower() for w in ["speak to human", "sales person", "agent", "call me"]):
             return PolicyDecision(
                 action=PolicyAction.NOT_VERIFIED_HANDOFF,
                 reason="Customer explicitly requested human sales specialist.",
-                options_or_chips=["Call +971 4 323 1008", "Email sales@keplertech.ae", "Visit Showroom"],
+                options_or_chips=[f"Call {OFFICIAL_SUPPORT_PHONE}", f"Email {OFFICIAL_SUPPORT_EMAIL}", "Visit Showroom"],
                 is_handoff=True,
-                next_step="Our sales specialists are available at sales@keplertech.ae or +971 4 323 1008.",
+                next_step=f"Our sales specialists are available at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}.",
             )
 
         # 2. Out of Scope Redirect
@@ -149,7 +297,7 @@ class PolicyEngine:
                 target_entity_id=resolved.resolved_target_product.id if resolved.resolved_target_product else None,
                 options_or_chips=["Connect with Sales Specialist", "Official Quotation", "View Product Page"],
                 is_handoff=True,
-                next_step="To get you exact specifications without delay, our senior sales consultant will assist you directly at sales@keplertech.ae.",
+                next_step=f"To get you exact specifications without delay, our senior sales consultant will assist you directly at {OFFICIAL_SUPPORT_EMAIL}.",
             )
 
         # 5. Compatibility Check Intent (The Target Flow!)
@@ -288,6 +436,34 @@ class PolicyEngine:
                 next_step="Would you like to arrange delivery for a specific printer or consumable order?",
             )
 
+        # 8c. Explicit Target Model Request (Case 9: e.g. "I want the Epson SC-P900")
+        if intent == Intent.RECOMMEND and resolved.resolved_target_product:
+            target = resolved.resolved_target_product
+            p_meta = target.metadata or {}
+            claim_parts = [f"**{target.name}** is an approved official equipment model in our catalogue."]
+            if p_meta.get("print_speed"):
+                claim_parts.append(f"• Print speed: {p_meta.get('print_speed')}")
+            if p_meta.get("dpi"):
+                claim_parts.append(f"• Resolution: {p_meta.get('dpi')}")
+            if p_meta.get("paper_size"):
+                claim_parts.append(f"• Supported format: {p_meta.get('paper_size')}")
+            rec = EvidenceRecord(
+                claim="\n".join(claim_parts),
+                verified=True,
+                status=CompatibilityStatus.VERIFIED_YES,
+                source_file="data/catalogue_products.json",
+                field="overview",
+                entity_ids=[target.id],
+            )
+            return PolicyDecision(
+                action=PolicyAction.ANSWER,
+                reason=f"Customer explicitly requested model {target.name}.",
+                target_entity_id=target.id,
+                options_or_chips=["Technical Specifications", "Compatible Consumables", "Official Quotation"],
+                evidence_records=[rec],
+                next_step=f"Would you like to review full technical specifications or request an official quotation for the {target.name}?",
+            )
+
         # 9. Recommendation / Category Discovery Intent (Product Qualification Flowcharts)
         cat_slot = und.slots.get("target_category")
         new_cat_raw = cat_slot.value if cat_slot else None
@@ -312,13 +488,11 @@ class PolicyEngine:
         flow_reqs = extract_flowchart_requirements(und.raw_text)
 
         is_flowchart_turn = False
-        if intent == Intent.RECOMMEND:
-            if not resolved.resolved_target_product and not resolved.resolved_active_item:
+        if intent in (Intent.RECOMMEND, Intent.OTHER) and not resolved.resolved_target_product and not resolved.resolved_active_item:
+            if canonical_new_cat is not None:
                 is_flowchart_turn = True
-        elif canonical_new_cat is not None:
-            is_flowchart_turn = True
-        elif getattr(state, "category", None) and (bool(flow_reqs) or any(c.lower() in und.raw_text.lower() for c in state.last_shown_chips)):
-            is_flowchart_turn = True
+            elif getattr(state, "category", None) and (bool(flow_reqs) or any(c.lower() in und.raw_text.lower() for c in state.last_shown_chips)):
+                is_flowchart_turn = True
 
         if is_flowchart_turn:
             if canonical_new_cat:
@@ -415,26 +589,103 @@ class PolicyEngine:
                         next_step="Would you like to order replacement supplies or review printer specifications?",
                     )
 
-                val, rec = EvidenceEngine.get_attribute(target.id, "display_name")
-                return PolicyDecision(
-                    action=PolicyAction.ANSWER,
-                    reason=f"Product info inquiry for {target.name}.",
-                    target_entity_id=target.id,
-                    options_or_chips=["Technical Specifications", "Compatible Consumables", "Official Quotation"],
-                    evidence_records=[rec] if rec else [],
-                    next_step=f"Would you like to see detailed specifications or compatible consumables for the {target.name}?",
-                )
+                # Check if customer asked for a specific attribute
+                attr = getattr(und, "target_attribute", None)
+                if not attr:
+                    raw_l = und.raw_text.lower()
+                    if "stand" in raw_l:
+                        attr = "stand"
+                    elif "speed" in raw_l or "fast" in raw_l or "ppm" in raw_l:
+                        attr = "print_speed"
+                    elif "dpi" in raw_l or "resolution" in raw_l:
+                        attr = "dpi"
+                    elif "width" in raw_l or "size" in raw_l:
+                        attr = "width"
+                    elif "connectivity" in raw_l or "wifi" in raw_l or "wi-fi" in raw_l or "network" in raw_l:
+                        attr = "connectivity"
+
+                if attr:
+                    val, rec = EvidenceEngine.get_attribute(target.id, attr)
+                    if val == "MISSING" or rec is None or not rec.verified:
+                        # Honest not-verified response: never loop, never substitute, never fabricate
+                        attr_label = attr.replace("_", " ")
+                        honest_claim = (
+                            f"I don't have verified catalogue details confirming the {attr_label} for the **{target.name}**. "
+                            f"Our technical specialists can verify the exact configuration and optional accessories for you."
+                        )
+                        honest_rec = EvidenceRecord(
+                            claim=honest_claim,
+                            verified=True,
+                            status=CompatibilityStatus.UNKNOWN,
+                            source_file="none",
+                            field=attr,
+                            entity_ids=[target.id],
+                        )
+                        return PolicyDecision(
+                            action=PolicyAction.ANSWER,
+                            reason=f"Honest refusal for missing verified attribute '{attr}' on {target.id}.",
+                            target_entity_id=target.id,
+                            options_or_chips=["Technical Specifications", "Official Quotation", "Speak to Specialist"],
+                            evidence_records=[honest_rec],
+                            next_step=f"Our sales specialists can verify the {attr_label} specifications for you at {OFFICIAL_SUPPORT_EMAIL}.",
+                        )
+                    else:
+                        return PolicyDecision(
+                            action=PolicyAction.ANSWER,
+                            reason=f"Verified attribute '{attr}' retrieved for {target.name}.",
+                            target_entity_id=target.id,
+                            options_or_chips=["Technical Specifications", "Compatible Consumables", "Official Quotation"],
+                            evidence_records=[rec],
+                            next_step=f"Would you like to see additional specifications or compatible supplies for the {target.name}?",
+                        )
+                else:
+                    # General product info overview from verified attributes
+                    p_meta = target.metadata or {}
+                    desc_parts = [f"**{target.name}** is an approved official equipment model in our catalogue."]
+                    if p_meta.get("print_speed"):
+                        desc_parts.append(f"• Print speed: {p_meta.get('print_speed')}")
+                    if p_meta.get("dpi"):
+                        desc_parts.append(f"• Resolution: {p_meta.get('dpi')}")
+                    if p_meta.get("paper_size"):
+                        desc_parts.append(f"• Supported format: {p_meta.get('paper_size')}")
+                    overview_claim = "\n".join(desc_parts)
+                    overview_rec = EvidenceRecord(
+                        claim=overview_claim,
+                        verified=True,
+                        status=CompatibilityStatus.VERIFIED_YES,
+                        source_file="data/catalogue_products.json",
+                        field="overview",
+                        entity_ids=[target.id],
+                    )
+                    return PolicyDecision(
+                        action=PolicyAction.ANSWER,
+                        reason=f"General product info overview for {target.name}.",
+                        target_entity_id=target.id,
+                        options_or_chips=["Technical Specifications", "Compatible Consumables", "Official Quotation"],
+                        evidence_records=[overview_rec],
+                        next_step=f"Would you like to see detailed specifications or compatible consumables for the {target.name}?",
+                    )
 
         # 10. Availability & Price Policy Intent (Strict No Chat Pricing Policy)
         if intent == Intent.AVAILABILITY_OR_PRICE_POLICY:
             target = resolved.resolved_target_product
             t_name = target.name if target else "our equipment"
+            p_claim = f"Commercial pricing, tax invoices, and volume discounts for the **{t_name}** are provided directly through our official sales desk."
+            rec = EvidenceRecord(
+                claim=p_claim,
+                verified=True,
+                status=CompatibilityStatus.VERIFIED_YES,
+                source_file="config.py",
+                field="pricing_policy",
+                entity_ids=[target.id] if target else [],
+            )
             return PolicyDecision(
                 action=PolicyAction.ANSWER,
-                reason="Commercial policy inquiry: adhere strictly to sales desk quotation policy.",
+                reason="Commercial policy inquiry: adhere strictly to sales desk quotation policy without disclosing digits.",
                 target_entity_id=target.id if target else None,
                 options_or_chips=["Request Official Quote", "Contact Sales Desk", "View Product Page"],
-                next_step="Official tax invoices and volume discounts are provided directly by our sales desk at sales@keplertech.ae or +971 4 323 1008.",
+                evidence_records=[rec],
+                next_step=f"Official tax invoices and volume discounts are provided directly by our sales desk at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}.",
             )
 
         # 11. Contact Showroom Intent

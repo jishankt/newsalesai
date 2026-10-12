@@ -187,6 +187,23 @@ class ResponsePlanBuilder:
                     "badges": ["Genuine Kepler Tech Consumable"],
                 })
 
+        # Also attach consumable cards from evidence records supporting data (e.g. list_consumables)
+        for rec_item in decision.evidence_records:
+            if rec_item.supporting_data and "consumables" in rec_item.supporting_data:
+                for c_item in rec_item.supporting_data["consumables"][:6]:
+                    c_sku = c_item.get("sku") or c_item.get("id")
+                    if c_sku and not any(cc.get("sku") == c_sku for cc in c_cards):
+                        c_cards.append({
+                            "card_type": "consumable",
+                            "sku": c_sku,
+                            "name": c_item.get("name") or f"Genuine Consumable {c_sku}",
+                            "category": c_item.get("category") or "consumable",
+                            "color": c_item.get("color"),
+                            "product_url": c_item.get("url") or f"https://www.keplertechllc.com/product/{c_sku.lower()}",
+                            "image_url": c_item.get("image_url") or "/static/img/products/default.png",
+                            "badges": ["Genuine Kepler Tech Consumable"],
+                        })
+
         # Assemble full formatted text
         parts = []
         if assumption:
@@ -270,16 +287,44 @@ class ResponsePlanValidator:
             if current_f.id != new_f.id and not is_explicitly_mentioned:
                 errors.append(f"Focus violation: switched focus from {current_f.id} to {new_f.id} without user mention.")
 
+        # 5. Template & Leaked Internal Structure Guard
+        LEAK_MARKERS = [" = ", "display_name", "None", "null", "{", "}"]
+        found_leaks = [m for m in LEAK_MARKERS if m in text]
+        if found_leaks:
+            errors.append(f"Template leak violation: markers found in response text: {found_leaks}")
+
         if errors:
             logger.warning(f"Response plan validation errors: {errors}. Falling back to deterministic template.")
             plan.is_valid = False
             plan.validation_errors = errors
-            # Fallback to deterministic template: use exact claim from evidence record
+            # Fallback to deterministic template: use clean claim from evidence record
+            clean_claim = None
             if plan.evidence_records:
-                plan.formatted_reply = plan.evidence_records[0].claim
-                if plan.next_step:
+                for rec in plan.evidence_records:
+                    if rec.claim and not any(m in rec.claim for m in LEAK_MARKERS):
+                        clean_claim = rec.claim
+                        break
+                if not clean_claim and plan.evidence_records:
+                    raw_c = plan.evidence_records[0].claim
+                    # Sanitize any residual raw claim
+                    raw_c = raw_c.replace("display_name = ", "").replace(" = ", ": ").replace("{", "").replace("}", "")
+                    clean_claim = raw_c
+
+            if clean_claim:
+                plan.formatted_reply = clean_claim
+                if plan.next_step and not any(m in plan.next_step for m in LEAK_MARKERS):
                     plan.formatted_reply += f"\n\n{plan.next_step}"
             else:
                 plan.formatted_reply = "I can only confirm specifications verified in our official catalogue. How can I assist you with your equipment requirements?"
+
+            # Final safety check: scrub any remaining leak markers
+            for lm in LEAK_MARKERS:
+                if lm in plan.formatted_reply:
+                    if lm == " = ":
+                        plan.formatted_reply = plan.formatted_reply.replace(" = ", ": ")
+                    elif lm == "display_name":
+                        plan.formatted_reply = plan.formatted_reply.replace("display_name", "model")
+                    else:
+                        plan.formatted_reply = plan.formatted_reply.replace(lm, "")
 
         return plan

@@ -215,6 +215,23 @@ class ReferentResolver:
                 if not any(c[0].id == ent.id for c in candidates):
                     candidates.append((ent, "recent_mentions"))
 
+        if not candidates and hint != "unknown":
+            # Fallback across types if specific hint yielded no candidates
+            for p in state.last_shown_products:
+                pid = p.get("id") or p.get("model_family")
+                pname = p.get("display_name") or p.get("name") or pid
+                if pid and not any(c[0].id == str(pid) for c in candidates):
+                    candidates.append((SalientEntity(
+                        id=str(pid),
+                        entity_type="printer",
+                        name=str(pname),
+                        metadata=p,
+                        turn_introduced=state.turn_count,
+                    ), "last_shown"))
+            for ent in reversed(state.focus_stack):
+                if not any(c[0].id == ent.id for c in candidates):
+                    candidates.append((ent, "focus_stack"))
+
         if not candidates:
             return ResolvedReferent(
                 reference_text=ref.text,
@@ -388,12 +405,21 @@ class ReferentResolver:
             )
         elif resolved_refs:
             for r in resolved_refs:
-                if r.resolved_entity and r.resolved_entity.entity_type == "consumable":
-                    active_item = r.resolved_entity
-                    break
+                if r.resolved_entity:
+                    if r.resolved_entity.entity_type == "consumable":
+                        active_item = r.resolved_entity
+                        break
+                    elif understanding.intent == Intent.COMPATIBILITY_CHECK and target_prod and r.resolved_entity.id != target_prod.id:
+                        active_item = r.resolved_entity
+                        break
 
         if not active_item and state.get_current_focus("consumable"):
             active_item = state.get_current_focus("consumable")
+        elif not active_item and understanding.intent == Intent.COMPATIBILITY_CHECK and target_prod:
+            for ent in reversed(state.focus_stack):
+                if ent.id != target_prod.id:
+                    active_item = ent
+                    break
 
         # 5. Ellipsis detection and inheritance
         is_ellipsis = any(r.reference_type == "ellipsis" for r in understanding.reference_expressions)

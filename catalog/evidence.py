@@ -187,6 +187,75 @@ class ProductKnowledgeGraph:
         except Exception as e:
             logger.error(f"Failed to load consumable_registry into knowledge graph: {e}")
 
+        # 2b. Load additional consumables, media & accessories from data/products.json
+        if os.path.exists(PRODUCTS_FILE):
+            try:
+                with open(PRODUCTS_FILE, "r", encoding="utf-8") as f:
+                    products_json_list = json.load(f)
+                for p in products_json_list:
+                    sku = p.get("sku") or p.get("_id")
+                    if not sku:
+                        continue
+                    sku_clean = str(sku).upper().strip()
+                    p_cat = p.get("category", "")
+                    node_type = "consumable" if p_cat in ("Ink Cartridge", "Maintenance Box") else ("media" if p_cat == "Media & Paper" else ("printer" if "Printer" in p_cat else "accessory"))
+                    if sku_clean not in self.nodes:
+                        self._add_node(KnowledgeNode(
+                            id=sku_clean,
+                            node_type=node_type,
+                            name=p.get("name") or sku_clean,
+                            attributes={
+                                "sku": sku_clean,
+                                "name": p.get("name") or sku_clean,
+                                "type": node_type,
+                                "category": p_cat,
+                                "price": p.get("price"),
+                                "price_formatted": p.get("price_formatted"),
+                                "url": p.get("website_url") or p.get("web_url") or p.get("product_url"),
+                                "image_url": p.get("image_url") or p.get("image"),
+                                "compatible_printers": [],
+                            },
+                            source_file="data/products.json"
+                        ))
+            except Exception as e:
+                logger.error(f"Failed to load products.json into knowledge graph: {e}")
+
+        # 2c. Ensure every printer consumable SKU has a node and bidirectional edges
+        for p in hardware_list:
+            pid = str(p.get("id", "")).lower()
+            if not pid:
+                continue
+            for c_sku in p.get("consumables", []):
+                sku_clean = str(c_sku).upper().strip()
+                if sku_clean not in self.nodes:
+                    self._add_node(KnowledgeNode(
+                        id=sku_clean,
+                        node_type="consumable",
+                        name=f"Genuine Consumable {sku_clean}",
+                        attributes={
+                            "sku": sku_clean,
+                            "name": f"Genuine Consumable {sku_clean}",
+                            "type": "consumable",
+                            "category": "Ink & Supplies",
+                            "compatible_printers": [pid],
+                        },
+                        source_file="data/catalogue_products.json"
+                    ))
+                if not any(e.source == pid and e.target == sku_clean for e in self.edges_out.get(pid, [])):
+                    self._add_edge(KnowledgeEdge(
+                        source=pid,
+                        target=sku_clean,
+                        relation="uses_consumable",
+                        evidence={"source_file": "data/catalogue_products.json", "field": "consumables"}
+                    ))
+                if not any(e.source == sku_clean and e.target == pid for e in self.edges_out.get(sku_clean, [])):
+                    self._add_edge(KnowledgeEdge(
+                        source=sku_clean,
+                        target=pid,
+                        relation="compatible_with",
+                        evidence={"source_file": "data/catalogue_products.json", "field": "consumables"}
+                    ))
+
         # 3. Size Class & Alternative edges across hardware printers
         for i, p1 in enumerate(hardware_list):
             pid1 = str(p1.get("id", "")).lower()
@@ -222,6 +291,58 @@ class ProductKnowledgeGraph:
                     ))
 
 
+def format_attribute_claim(entity_name: str, field: str, val: Any) -> str:
+    """Renders human-readable, customer-facing label templates for evidence attributes."""
+    if isinstance(val, list):
+        val_str = ", ".join(str(v) for v in val)
+    elif isinstance(val, bool):
+        val_str = "Yes" if val else "No"
+    else:
+        val_str = str(val).strip()
+
+    field_lower = field.lower().replace("-", "_")
+
+    LABEL_TEMPLATES = {
+        "print_speed": f"Print speed: {val_str}.",
+        "speed": f"Print speed: {val_str}.",
+        "dpi": f"Print resolution: {val_str}.",
+        "resolution": f"Print resolution: {val_str}.",
+        "print_width": f"Print width: {val_str}.",
+        "width": f"Print width: {val_str}.",
+        "max_width_inches": f"Maximum print width: {val_str} inches.",
+        "paper_size": f"Supported paper size: {val_str}.",
+        "connectivity": f"Connectivity: {val_str}.",
+        "interfaces": f"Interfaces: {val_str}.",
+        "total_colours": f"Ink system: {val_str}.",
+        "colours": f"Ink system: {val_str}.",
+        "colour_specification": f"Ink technology: {val_str}.",
+        "cartridge_sizes": f"Cartridge sizes: {val_str}.",
+        "consumable_volume": f"Yield capacity: {val_str}.",
+        "yield_capacity": f"Yield capacity: {val_str}.",
+        "dimensions": f"Dimensions: {val_str}.",
+        "weight": f"Weight: {val_str}.",
+        "memory": f"Memory: {val_str}.",
+        "functions": f"Functions: {val_str}.",
+        "applications": f"Target applications: {val_str}.",
+        "warranty": f"Warranty: {val_str}.",
+        "stand": f"Stand configuration: {val_str}.",
+        "has_stand": f"Stand included: {val_str}.",
+        "scanner_integrated": f"Integrated scanner: {val_str}.",
+        "dual_roll": f"Dual-roll support: {val_str}.",
+        "spectro": f"SpectroProofer support: {val_str}.",
+        "display_name": f"{entity_name} is an approved equipment model in our verified catalogue.",
+        "name": f"{entity_name} is an approved equipment model in our verified catalogue.",
+        "model": f"{entity_name} is an approved equipment model in our verified catalogue.",
+        "model_family": f"{entity_name} belongs to the {val_str} series in our verified catalogue.",
+    }
+
+    if field_lower in LABEL_TEMPLATES:
+        return LABEL_TEMPLATES[field_lower]
+
+    clean_field = field_lower.replace("_", " ").title()
+    return f"{clean_field}: {val_str}."
+
+
 # Global graph singleton
 knowledge_graph = ProductKnowledgeGraph()
 
@@ -251,9 +372,10 @@ class EvidenceEngine:
             specs = node.attributes.get("specs") or {}
             val = specs.get(field)
 
-        if val is not None:
+        if val is not None and str(val).strip().lower() not in ("none", "null", ""):
+            claim_text = format_attribute_claim(node.name, field, val)
             rec = EvidenceRecord(
-                claim=f"{node.name} has {field} = {val}",
+                claim=claim_text,
                 verified=True,
                 status=CompatibilityStatus.VERIFIED_YES,
                 source_file=node.source_file,
@@ -316,6 +438,10 @@ class EvidenceEngine:
             # Find what the item IS actually verified for
             verified_for_ids = [e.target for e in edges if e.relation == "compatible_with"]
             verified_for_names = [knowledge_graph.nodes[t].name for t in verified_for_ids if t in knowledge_graph.nodes]
+            if not verified_for_names:
+                fam = item_node.attributes.get("model_family") or item_node.attributes.get("model")
+                if fam:
+                    verified_for_names = [f"Epson SureColor {fam}" if "epson" in item_node.id.lower() else f"Citizen {fam}"]
 
             claim = f"No, {item_name} ({item_node.id}) is not compatible with the {target_name}."
             if verified_for_names:
@@ -374,7 +500,7 @@ class EvidenceEngine:
             source_file="data/catalogue_products.json & catalog/consumable_registry.py",
             field="consumables",
             entity_ids=[clean_id] + consumable_skus,
-            supporting_data={"count": len(items)},
+            supporting_data={"count": len(items), "consumables": items},
         )
         return items, rec
 
@@ -425,9 +551,10 @@ class EvidenceEngine:
     def compare(
         cls, entities: List[str], fields: List[str]
     ) -> Tuple[Dict[str, Dict[str, Any]], EvidenceRecord]:
-        """Builds a structured comparison matrix of verified fields across entities."""
+        """Builds a structured comparison matrix of verified fields across entities with real side-by-side table output."""
         matrix: Dict[str, Dict[str, Any]] = {}
         missing_entities = []
+        product_nodes = []
 
         for eid in entities:
             clean_id = eid.lower().strip()
@@ -436,6 +563,7 @@ class EvidenceEngine:
                 missing_entities.append(eid)
                 continue
 
+            product_nodes.append(node)
             matrix[node.id] = {}
             for f in fields:
                 val = node.attributes.get(f)
@@ -444,8 +572,29 @@ class EvidenceEngine:
                     val = specs.get(f)
                 matrix[node.id][f] = val if val is not None else "N/A"
 
+        claim_text = ""
+        try:
+            from catalog.comparison_engine import build_comparison, build_comparison_intro, format_comparison_markdown_table
+            product_objs = [n.attributes for n in product_nodes]
+            if len(product_objs) >= 2:
+                comp_data = build_comparison(product_objs)
+                intro = build_comparison_intro(product_objs, comp_data)
+                table = format_comparison_markdown_table(product_objs, comp_data)
+                claim_text = f"{intro}\n\n{table}"
+        except Exception as e:
+            logger.warning(f"Error rendering structured comparison table: {e}")
+
+        if not claim_text:
+            lines = ["### Direct Model Comparison"]
+            for n in product_nodes:
+                lines.append(f"\n**{n.name}**:")
+                for f in fields:
+                    val = matrix.get(n.id, {}).get(f, "N/A")
+                    lines.append(f"- {f.replace('_', ' ').capitalize()}: {val}")
+            claim_text = "\n".join(lines)
+
         rec = EvidenceRecord(
-            claim=f"Compared {len(matrix)} models across fields: {', '.join(fields)}.",
+            claim=claim_text,
             verified=len(missing_entities) == 0,
             status=CompatibilityStatus.VERIFIED_YES if not missing_entities else CompatibilityStatus.UNKNOWN,
             source_file="data/catalogue_products.json",

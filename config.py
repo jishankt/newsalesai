@@ -145,6 +145,11 @@ DEFAULT_COMPANY_CONTEXT = {
     )
 }
 
+# Support & Sales Contacts
+OFFICIAL_SUPPORT_EMAIL = os.getenv("OFFICIAL_SUPPORT_EMAIL", "sales@keplertech.ae")
+OFFICIAL_SUPPORT_PHONE = os.getenv("OFFICIAL_SUPPORT_PHONE", "+971 4 323 1008")
+OFFICIAL_INFO_EMAIL = os.getenv("OFFICIAL_INFO_EMAIL", "info@keplertech.ae")
+
 # Partner & Distributor Status Text
 PARTNER_STATUS_TEXT = os.getenv(
     "PARTNER_STATUS_TEXT",
