@@ -76,3 +76,40 @@ class TestFirstQuestionAndLoginFlow(unittest.TestCase):
         self.assertEqual(data["customer"]["name"], "Tariq")
         self.assertIn("sessions", data)
 
+    def test_login_modal_contains_both_login_and_new_customer_options(self):
+        """Web UI login modal must provide both login and new customer registration options."""
+        resp = self.client.get("/chat")
+        self.assertEqual(resp.status_code, 200)
+        html = resp.get_data(as_text=True)
+        self.assertIn('id="authTabLogin"', html)
+        self.assertIn('id="authTabRegister"', html)
+        self.assertIn('id="custLoginPanel"', html)
+        self.assertIn('id="custRegisterPanel"', html)
+        self.assertIn('id="custRegNameInput"', html)
+        self.assertIn('id="custRegContactInput"', html)
+        self.assertIn('id="customerRegisterForm"', html)
+
+    def test_customer_registration_and_login_flow(self):
+        """New customer registers with Name and Contact -> saves account -> can authenticate."""
+        import uuid
+        uid = uuid.uuid4().hex[:6]
+        c_name = f"Customer_{uid}"
+        c_phone = f"+97150{uuid.uuid4().int % 10000000:07d}"
+        resp_reg = self.client.post("/api/customer/auth/register", json={
+            "username": c_name,
+            "password": c_phone
+        })
+        self.assertIn(resp_reg.status_code, (200, 201))
+        reg_data = resp_reg.get_json()
+        self.assertTrue(reg_data["success"])
+        self.assertEqual(reg_data["customer"]["name"], c_name)
+
+        resp_login = self.client.post("/api/customer/auth/login", json={
+            "username": c_name,
+            "password": c_phone
+        })
+        self.assertEqual(resp_login.status_code, 200)
+        login_data = resp_login.get_json()
+        self.assertTrue(login_data["success"])
+        self.assertEqual(login_data["customer"]["name"], c_name)
+

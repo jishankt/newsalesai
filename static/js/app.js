@@ -53,6 +53,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const customerLogoutBtn = document.getElementById('customerLogoutBtn');
   const customerChatsCountBadge = document.getElementById('customerChatsCountBadge');
   const customerPastChatsList = document.getElementById('customerPastChatsList');
+
+  // Customer Auth Tabs & Registration Elements
+  const authTabLogin = document.getElementById('authTabLogin');
+  const authTabRegister = document.getElementById('authTabRegister');
+  const custLoginPanel = document.getElementById('custLoginPanel');
+  const custRegisterPanel = document.getElementById('custRegisterPanel');
+  const customerRegisterForm = document.getElementById('customerRegisterForm');
+  const custRegNameInput = document.getElementById('custRegNameInput');
+  const custRegContactInput = document.getElementById('custRegContactInput');
+  const customerSubmitRegBtn = document.getElementById('customerSubmitRegBtn');
+  const switchToRegisterLink = document.getElementById('switchToRegisterLink');
+  const switchToLoginLink = document.getElementById('switchToLoginLink');
   let currentCustomer = null;
 
   // Status elements
@@ -1082,6 +1094,44 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function switchAuthTab(mode) {
+    if (customerLoginError) customerLoginError.style.display = 'none';
+    if (mode === 'register') {
+      if (authTabLogin) {
+        authTabLogin.classList.remove('active');
+        authTabLogin.setAttribute('aria-selected', 'false');
+      }
+      if (authTabRegister) {
+        authTabRegister.classList.add('active');
+        authTabRegister.setAttribute('aria-selected', 'true');
+      }
+      if (custLoginPanel) custLoginPanel.style.display = 'none';
+      if (custRegisterPanel) custRegisterPanel.style.display = 'block';
+      if (customerModalTitle) customerModalTitle.textContent = 'Save Details & Sign In';
+      if (customerModalSubtitle) customerModalSubtitle.textContent = 'Enter your Customer Name and Contact to save your profile & log in';
+      setTimeout(() => { if (custRegNameInput) custRegNameInput.focus(); }, 60);
+    } else {
+      if (authTabRegister) {
+        authTabRegister.classList.remove('active');
+        authTabRegister.setAttribute('aria-selected', 'false');
+      }
+      if (authTabLogin) {
+        authTabLogin.classList.add('active');
+        authTabLogin.setAttribute('aria-selected', 'true');
+      }
+      if (custRegisterPanel) custRegisterPanel.style.display = 'none';
+      if (custLoginPanel) custLoginPanel.style.display = 'block';
+      if (customerModalTitle) customerModalTitle.textContent = 'Customer Login';
+      if (customerModalSubtitle) customerModalSubtitle.textContent = 'Sign in with your details to access past conversations & quotes';
+      setTimeout(() => { if (custUsernameInput) custUsernameInput.focus(); }, 60);
+    }
+  }
+
+  if (authTabLogin) authTabLogin.addEventListener('click', () => switchAuthTab('login'));
+  if (authTabRegister) authTabRegister.addEventListener('click', () => switchAuthTab('register'));
+  if (switchToRegisterLink) switchToRegisterLink.addEventListener('click', () => switchAuthTab('register'));
+  if (switchToLoginLink) switchToLoginLink.addEventListener('click', () => switchAuthTab('login'));
+
   function openCustomerModal() {
     if (customerLoginError) customerLoginError.style.display = 'none';
     if (currentCustomer) {
@@ -1093,11 +1143,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       if (customerLoginFormView) customerLoginFormView.style.display = 'block';
       if (customerProfileView) customerProfileView.style.display = 'none';
-      if (customerModalTitle) customerModalTitle.textContent = 'Customer Login';
-      if (customerModalSubtitle) customerModalSubtitle.textContent = 'Sign in with your details to access past conversations & quotes';
-      setTimeout(() => {
-        if (custUsernameInput) custUsernameInput.focus();
-      }, 100);
+      switchAuthTab('login');
     }
     if (customerModalBackdrop) {
       customerModalBackdrop.classList.add('open');
@@ -1156,6 +1202,58 @@ document.addEventListener('DOMContentLoaded', () => {
         if (customerSubmitLoginBtn) {
           customerSubmitLoginBtn.disabled = false;
           customerSubmitLoginBtn.textContent = 'Log In & Load Previous Chats';
+        }
+      }
+    });
+  }
+
+  if (customerRegisterForm) {
+    customerRegisterForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = custRegNameInput.value.trim();
+      const contact = custRegContactInput.value.trim();
+      if (!name || !contact) return;
+
+      if (customerSubmitRegBtn) {
+        customerSubmitRegBtn.disabled = true;
+        customerSubmitRegBtn.textContent = 'Saving details...';
+      }
+      if (customerLoginError) customerLoginError.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/customer/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: name,
+            password: contact,
+            session_id: sessionId
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setLoggedInCustomer(data.customer);
+          custRegNameInput.value = '';
+          custRegContactInput.value = '';
+          renderCustomerPastChats([]);
+          appendMessage('bot', `Welcome, **${data.customer.name}**! Your contact details have been saved and you are now logged in. Your chat session is linked to your account.`, 'Customer Account', [], null, null, [], [], [], DEFAULT_AGENT);
+          closeCustomerModal();
+        } else {
+          if (customerLoginError) {
+            customerLoginError.textContent = data.error || 'Failed to save customer details. Please check your contact information.';
+            customerLoginError.style.display = 'block';
+          }
+        }
+      } catch (err) {
+        if (customerLoginError) {
+          customerLoginError.textContent = 'Connection error. Please try again.';
+          customerLoginError.style.display = 'block';
+        }
+      } finally {
+        if (customerSubmitRegBtn) {
+          customerSubmitRegBtn.disabled = false;
+          customerSubmitRegBtn.textContent = 'Save Details & Log In';
         }
       }
     });

@@ -674,6 +674,7 @@ class Orchestrator:
         elif is_consumable_select:
             state.category = "consumables"
             state.awaiting_field = "printer_model"
+            state.pending_consumable_intent = True
             reply_text = (
                 "We supply genuine Epson ink cartridges, maintenance boxes, and Citizen photo ribbons & media sets. "
                 "Which printer model do you need consumables for?"
@@ -695,7 +696,8 @@ class Orchestrator:
 
         # ── 1b-5. Consumables Selection Follow-up: User specifies printer model ──
         is_in_consumables_context = (
-            state.category == "consumables"
+            getattr(state, "pending_consumable_intent", False)
+            or state.category == "consumables"
             or state.awaiting_field == "printer_model"
             or (state.history_turns and any("consumables for" in t.get("content", "").lower() for t in state.history_turns[-2:]))
             or bool(re.search(r"\b(?:inks?|cartridges?|ribbons?|media\s*rolls?|toner)\b", msg_l))
@@ -708,13 +710,17 @@ class Orchestrator:
             if not p_obj:
                 m_match = re.search(r"\b(?:sc[-\s]?)?(?:[tpf]\d{3,5}(?:[a-z]{1,4})?|cx[-\s]?02w?|cy[-\s]?02|cz[-\s]?01|am[-\s]?c\d{3,4}|wf[-\s]?c\d{3,5}(?:[a-z]{1,4})?|em[-\s]?c\d{3,4}|f100|f500)\b", normalized_msg.lower())
                 if m_match:
+                    matched_tok = m_match.group(0).lower().replace(" ", "").replace("-", "")
                     for cand in catalogue_loader.get_all():
-                        if m_match.group(0).lower() in cand.get("id", "").lower() or m_match.group(0).lower() in cand.get("display_name", "").lower():
+                        c_id = cand.get("id", "").lower().replace("-", "")
+                        c_disp = cand.get("display_name", "").lower().replace("-", "")
+                        if matched_tok in c_id or matched_tok in c_disp:
                             p_obj = cand
                             break
 
             if p_obj:
                 state.awaiting_field = None
+                state.pending_consumable_intent = True
                 state.active_product = p_obj
                 state.active_product_id = p_obj["id"]
                 p_name = p_obj.get("display_name") or p_obj.get("name")
@@ -744,8 +750,18 @@ class Orchestrator:
                 if exclude_maint:
                     c_cards = [card for card in c_cards if "maintenance" not in (card.get("name", "") + " " + card.get("title", "") + " " + str(card.get("category", ""))).lower()]
 
+                consumable_lines = []
+                for c in c_cards[:8]:
+                    c_title = c.get("title") or c.get("name") or "Consumable"
+                    c_sku = c.get("sku") or ""
+                    c_url = c.get("product_url") or c.get("url") or c.get("website_url") or "https://www.keplertechllc.com/"
+                    sku_part = f" (`{c_sku}`)" if c_sku else ""
+                    consumable_lines.append(f"• **[{c_title}]({c_url})**{sku_part}")
+
+                items_text = f"\n{chr(10).join(consumable_lines)}\n\n" if consumable_lines else "\n\n"
                 reply_text = (
-                    f"Here are the genuine verified consumables, inks, and media for the **{p_name}**:\n\n"
+                    f"Here are the genuine verified consumables, inks, and media for the **{p_name}**:\n"
+                    f"{items_text}"
                     f"All genuine inks and media rolls are available with direct ordering and fast UAE delivery."
                 )
                 chips = ["Request Quotation", "View Technical Specifications"]
@@ -764,7 +780,10 @@ class Orchestrator:
 
         # ── 1c. Direct Answer for Explicit Customer Questions (HIGHEST PRIORITY) ──
         is_multi_consumable_q = bool(re.search(r"\b(?:consumables?|inks?|cartridges?)\b", msg_l)) and any(k in msg_l for k in ["these", "both", "all", "each", "separately"])
-        if agent_decision.action in (AgentAction.ANSWER, AgentAction.RETRIEVE) and canonical_turn.explicit_questions and not is_multi_consumable_q:
+        is_cpp_msg = bool(re.search(r"\b(?:cost\s*per\s*(?:print|page|copy)|per\s*(?:print|page|copy)\s*cost|cpp|running\s*cost(?:s)?|printing\s*cost(?:s)?)\b", msg_l)) or any(
+            getattr(q, "semantic_key", "") == "cost_per_print" for q in getattr(canonical_turn, "explicit_questions", [])
+        )
+        if agent_decision.action in (AgentAction.ANSWER, AgentAction.RETRIEVE) and canonical_turn.explicit_questions and not is_multi_consumable_q and not is_cpp_msg:
             # Check for direct SKU / Part Number Inquiry (e.g. C12C935711, C13T47A100)
             from rag.retriever import rag_retriever
             from agent.tool_executor import catalog_tool_executor

@@ -257,6 +257,55 @@ class TestVerifiedPrintersAndConsumables(unittest.TestCase):
         self.assertIn("220", reply7)
         self.assertIn("CX2W 812", reply7)
 
+    def test_single_model_consumable_flow_screenshot_scenario(self):
+        """User asks 'ink' -> bot prompts for model -> user says 'f100' -> returns verified consumables with links."""
+        state = ConversationState(session_id="test-single-model-consumable-flow")
+        t1 = self.orchestrator.process_turn("ink", state=state)
+        self.assertIn("Which printer model do you need consumables for?", t1["reply"])
+
+        t2 = self.orchestrator.process_turn("f100", state=state)
+        reply2 = t2.get("reply", "")
+        self.assertEqual(len(t2.get("product_cards", [])), 0)
+        self.assertGreater(len(t2.get("consumable_cards", [])), 0)
+        self.assertIn("https://www.keplertechllc.com/product/", reply2)
+        self.assertTrue("C13T49N" in reply2 or "T49N" in reply2 or "Sublimation" in reply2)
+        self.assertIn("C13S210125", reply2)
+
+    def test_comprehensive_consumable_skus_and_links_audit(self):
+        """Validates all consumable SKUs across hardware printers have verified Kepler product URLs and no circular links."""
+        import json
+        from pathlib import Path
+        from catalog.catalogue_loader import catalogue_loader
+
+        with open(Path(__file__).parent.parent / "data" / "products.json", "r", encoding="utf-8") as f:
+            all_prods = json.load(f)
+
+        products_by_sku = {p.get("sku", "").upper(): p for p in all_prods if p.get("sku")}
+        approved_printers = catalogue_loader.get_all()
+
+        printer_urls = set()
+        for p in approved_printers:
+            for key in ("product_url", "website_url"):
+                val = p.get(key)
+                if val:
+                    printer_urls.add(val.rstrip("/").lower())
+
+        consumable_skus = set()
+        for p in approved_printers:
+            for c in p.get("consumables", []):
+                consumable_skus.add(c.upper())
+
+        self.assertGreaterEqual(len(consumable_skus), 200)
+
+        for sku in consumable_skus:
+            prod = products_by_sku.get(sku)
+            self.assertIsNotNone(prod, f"Consumable SKU {sku} must exist in products.json")
+            url = (prod.get("product_url") or prod.get("website_url") or "").rstrip("/")
+            self.assertTrue(url.startswith("https://www.keplertechllc.com/product/"), f"SKU {sku} URL must be a Kepler product URL, got {url}")
+            self.assertNotIn(url.lower(), printer_urls, f"SKU {sku} URL must not be circular to hardware printer")
+            cat = str(prod.get("category", "")).strip()
+            self.assertTrue(len(cat) > 0, f"SKU {sku} must have a category")
+
 
 if __name__ == "__main__":
     unittest.main()

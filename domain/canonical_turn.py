@@ -308,6 +308,12 @@ def extract_canonical_turn(
             "unsupported_feature"
         ),
         (
+            r"\b(?:cost\s*per\s*(?:print|page|copy)|per\s*(?:print|page|copy)\s*cost|cpp|running\s*cost(?:s)?|printing\s*cost(?:s)?)\b",
+            "cost_per_print",
+            "cost per print and running cost",
+            "cost_per_print"
+        ),
+        (
             r"\b(?:stand|floor\s*stand|legs?|included\s*stand)\b",
             "physical_specs",
             "stand and mounting configuration",
@@ -330,15 +336,17 @@ def extract_canonical_turn(
             ))
             requested_information.append(attr)
 
-    # Price inquiry (exclude price objections, comparisons, and weight queries)
+    # Price inquiry (exclude price objections, comparisons, weight queries, and cost-per-print/running costs)
     is_price_comp = bool(re.search(r"\bwhich\s+(?:one\s+)?(?:is\s+)?(?:better|cheaper|lower|best|option)\b", msg_l))
     is_weight_query = bool(re.search(r"\bhow\s*much\s*does\s*.*weigh\b", msg_l))
     is_objection = bool(re.search(r"\b(?:too\s*(?:expensive|costly|much|high)|for\s*our\s*budget|high\s*price|cheaper)\b", msg_l))
+    is_cpp = bool(re.search(r"\b(?:cost\s*per\s*(?:print|page|copy)|per\s*(?:print|page|copy)\s*cost|cpp|running\s*cost(?:s)?|printing\s*cost(?:s)?)\b", msg_l))
     if (
-        re.search(r"\b(?:price|cost|how\s*much|rate|rates|quote|quotation|investment|pricing|cpp|cost\s*per\s*print)\b", msg_l)
+        re.search(r"\b(?:price|cost|how\s*much|rate|rates|quote|quotation|investment|pricing)\b", msg_l)
         and not is_objection
         and not is_price_comp
         and not is_weight_query
+        and not is_cpp
     ):
         explicit_questions.append(CanonicalQuestion(
             id=str(uuid.uuid4())[:8],

@@ -231,54 +231,133 @@
         </button>
       </div>
 
-      <!-- State 1: Login Form (When Logged Out) -->
+      <!-- State 1: Authentication Tabs & Forms (When Logged Out) -->
       <div class="customer-modal-body" id="customerLoginFormView">
-        <div class="customer-login-notice">
-          <div class="notice-icon-wrap" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="16" x2="12" y2="12"></line>
-              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        <!-- Mode Tabs -->
+        <div class="customer-auth-tabs" role="tablist">
+          <button type="button" class="auth-tab-btn active" id="authTabLogin" role="tab" aria-selected="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+              <polyline points="10 17 15 12 10 7"></polyline>
+              <line x1="15" y1="12" x2="3" y2="12"></line>
             </svg>
+            Existing Customer Log In
+          </button>
+          <button type="button" class="auth-tab-btn" id="authTabRegister" role="tab" aria-selected="false">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="8.5" cy="7" r="4"></circle>
+              <line x1="20" y1="8" x2="20" y2="14"></line>
+              <line x1="23" y1="11" x2="17" y2="11"></line>
+            </svg>
+            New Customer (Save & Sign In)
+          </button>
+        </div>
+
+        <div id="customerLoginError" class="customer-error-msg" style="display: none;"></div>
+
+        <!-- Tab Panel 1: Existing Customer Log In -->
+        <div id="custLoginPanel">
+          <div class="customer-login-notice">
+            <div class="notice-icon-wrap" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+            </div>
+            <div class="notice-text">
+              Previously chatted? Use your <span class="notice-badge">Name</span> as username and <span class="notice-badge">Phone or Email</span> as password.
+            </div>
           </div>
-          <div class="notice-text">
-            Previously chatted? Use your <span class="notice-badge">Name</span> as username and <span class="notice-badge">Phone or Email</span> as password.
+
+          <form id="customerLoginForm" autocomplete="on">
+            <div class="form-group customer-input-group">
+              <label class="field-label" for="custUsernameInput">
+                <span>Customer Name (Username)</span>
+              </label>
+              <div class="input-with-icon">
+                <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <input type="text" id="custUsernameInput" class="input-field" placeholder="e.g. Tariq Al Mansoor" required autocomplete="name">
+              </div>
+            </div>
+
+            <div class="form-group customer-input-group">
+              <label class="field-label" for="custPasswordInput">
+                <span>Phone Number or Email (Password)</span>
+              </label>
+              <div class="input-with-icon">
+                <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <input type="text" id="custPasswordInput" class="input-field" placeholder="e.g. +971 50 123 4567 or email@domain.com" required autocomplete="current-password">
+              </div>
+            </div>
+
+            <button type="submit" class="btn-primary customer-login-btn" id="customerSubmitLoginBtn">
+              Log In & Load Previous Chats
+            </button>
+          </form>
+
+          <div class="customer-switch-mode">
+            First time chatting? <button type="button" class="customer-switch-link" id="switchToRegisterLink">Save your details & sign in here</button>
           </div>
         </div>
 
-        <form id="customerLoginForm" autocomplete="on">
-          <div class="form-group customer-input-group">
-            <label class="field-label" for="custUsernameInput">
-              <span>Customer Name (Username)</span>
-            </label>
-            <div class="input-with-icon">
-              <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
+        <!-- Tab Panel 2: New Customer (Ask Name & Contact, Save and Sign In) -->
+        <div id="custRegisterPanel" style="display: none;">
+          <div class="customer-login-notice" style="border-left-color: #3b82f6;">
+            <div class="notice-icon-wrap" style="color: #2563eb;" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="8.5" cy="7" r="4"></circle>
+                <polyline points="17 11 19 13 23 9"></polyline>
               </svg>
-              <input type="text" id="custUsernameInput" class="input-field" placeholder="e.g. Tariq Al Mansoor" required autocomplete="name">
+            </div>
+            <div class="notice-text">
+              First time here? Enter your <span class="notice-badge">Customer Name</span> and <span class="notice-badge">Phone or Email</span> to save your details and log in immediately.
             </div>
           </div>
 
-          <div class="form-group customer-input-group">
-            <label class="field-label" for="custPasswordInput">
-              <span>Phone Number or Email (Password)</span>
-            </label>
-            <div class="input-with-icon">
-              <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-              </svg>
-              <input type="text" id="custPasswordInput" class="input-field" placeholder="e.g. +971 50 123 4567 or email@domain.com" required autocomplete="current-password">
+          <form id="customerRegisterForm" autocomplete="on">
+            <div class="form-group customer-input-group">
+              <label class="field-label" for="custRegNameInput">
+                <span>Customer Full Name</span>
+              </label>
+              <div class="input-with-icon">
+                <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <input type="text" id="custRegNameInput" class="input-field" placeholder="e.g. Tariq Al Mansoor" required autocomplete="name">
+              </div>
             </div>
+
+            <div class="form-group customer-input-group">
+              <label class="field-label" for="custRegContactInput">
+                <span>Contact (Phone Number or Email)</span>
+              </label>
+              <div class="input-with-icon">
+                <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                </svg>
+                <input type="text" id="custRegContactInput" class="input-field" placeholder="e.g. +971 50 123 4567 or customer@company.ae" required autocomplete="tel email">
+              </div>
+            </div>
+
+            <button type="submit" class="btn-primary customer-login-btn" id="customerSubmitRegBtn" style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.28);">
+              Save Details & Log In
+            </button>
+          </form>
+
+          <div class="customer-switch-mode">
+            Already have an account? <button type="button" class="customer-switch-link" id="switchToLoginLink">Log in here</button>
           </div>
-
-          <div id="customerLoginError" class="customer-error-msg" style="display: none;"></div>
-
-          <button type="submit" class="btn-primary customer-login-btn" id="customerSubmitLoginBtn">
-            Log In & Load Previous Chats
-          </button>
-        </form>
+        </div>
       </div>
 
       <!-- State 2: Account & Previous Chats View (When Logged In) -->

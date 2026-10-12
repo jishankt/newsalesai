@@ -215,6 +215,22 @@ class AnswerRelevanceValidator:
                         else:
                             answers.append(f"The {curr_name} features a compact commercial footprint.")
 
+            elif sem_key in ("cost_per_print", "cpp", "running_cost"):
+                from catalog.cost_per_print_calculator import cost_per_print_calculator
+                fmt = None
+                q_text = getattr(q, "text", "") or ""
+                for f_cand in ["4x6", "4×6", "6x8", "6×8", "5x7", "5×7", "8x10", "8×10", "8x12", "8×12", "4.5x8", "4.5×8", "a4", "a3"]:
+                    if f_cand in q_text.lower():
+                        fmt = f_cand
+                        break
+                p_id = curr_prod.get("id") if curr_prod else target_product_id
+                res = cost_per_print_calculator.calculate_cost_per_print(
+                    p_id,
+                    print_format=fmt,
+                    printer_name=curr_name,
+                )
+                answers.append(res.explanation or "Print cost cannot be verified from the available data.")
+
             elif sem_key in ("price", "investment_cost"):
                 p_val = curr_prod.get("price") if curr_prod else None
                 if p_val and "guardrail" not in str(session_id).lower():

@@ -486,4 +486,27 @@ class ContextualSlotResolver:
                 reqs["subcategory"] = "business_scanners"
                 return reqs, corrections
 
+        # 13. Printer Model (Consumables Inquiry Follow-up)
+        if awaiting_field == "printer_model":
+            from catalog.catalogue_resolver import find_mentioned_catalogue_products
+            from catalog.catalogue_loader import catalogue_loader
+            cand_p = find_mentioned_catalogue_products(text)
+            p_obj = cand_p[0] if cand_p else None
+            if not p_obj:
+                m_match = re.search(r"\b(?:sc[-\s]?)?(?:[tpf]\d{3,5}(?:[a-z]{1,4})?|cx[-\s]?02w?|cy[-\s]?02|cz[-\s]?01|am[-\s]?c\d{3,4}|wf[-\s]?c\d{3,5}(?:[a-z]{1,4})?|em[-\s]?c\d{3,4}|f100|f500)\b", text_l)
+                if m_match:
+                    matched_tok = m_match.group(0).lower().replace(" ", "").replace("-", "")
+                    for cand in catalogue_loader.get_all():
+                        c_id = cand.get("id", "").lower().replace("-", "")
+                        c_disp = cand.get("display_name", "").lower().replace("-", "")
+                        if matched_tok in c_id or matched_tok in c_disp:
+                            p_obj = cand
+                            break
+            if p_obj:
+                reqs["printer_model"] = p_obj.get("display_name") or p_obj.get("name") or p_obj["id"]
+                reqs["target_product_id"] = p_obj["id"]
+                reqs["pending_consumable_intent"] = True
+                corrections["pending_consumable_intent"] = True
+                return reqs, corrections
+
         return {}, {}
