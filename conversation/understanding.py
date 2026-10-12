@@ -197,15 +197,15 @@ def _get_known_skus() -> Dict[str, Dict[str, Any]]:
 
     sku_map: Dict[str, Dict[str, Any]] = {}
     try:
-        from catalog.consumable_registry import CONSUMABLE_DATABASE
-        for sku, info in CONSUMABLE_DATABASE.items():
+        from catalog.consumable_registry import consumable_registry
+        for sku, item in consumable_registry.consumables.items():
             sku_clean = sku.upper().strip()
             sku_map[sku_clean] = {
                 "sku": sku_clean,
-                "name": info.get("name", sku_clean),
-                "category": info.get("category", "consumable"),
-                "color": info.get("color"),
-                "printers": info.get("printers", []),
+                "name": item.name,
+                "category": item.consumable_type,
+                "color": item.color,
+                "printers": item.compatible_printers,
             }
     except Exception as e:
         logger.warning(f"Error loading consumable SKUs: {e}")
