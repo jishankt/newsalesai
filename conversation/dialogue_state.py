@@ -396,7 +396,7 @@ class ReferentResolver:
 
         # 5. Ellipsis detection and inheritance
         is_ellipsis = any(r.reference_type == "ellipsis" for r in understanding.reference_expressions)
-        if is_ellipsis and state.last_intent:
+        if is_ellipsis and state.last_intent and understanding.intent in (Intent.OTHER, Intent.PRODUCT_INFO):
             understanding.intent = state.last_intent
 
         return ResolvedTurn(

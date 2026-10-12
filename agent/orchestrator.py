@@ -338,6 +338,68 @@ class Orchestrator:
                 latency_ms=int((time.time() - start_time) * 1000),
             )
 
+        # ── UNIFIED UNDERSTANDING & FALLBACK STRANGLER LAYER ───────────────
+        from config import USE_UNIFIED_UNDERSTANDING
+        if USE_UNIFIED_UNDERSTANDING:
+            try:
+                from conversation.understanding import understand_turn
+                from conversation.dialogue_state import DialogueState as UnifiedDialogueState, ReferentResolver
+                from conversation.policy import PolicyEngine
+                from conversation.response_plan import ResponsePlanBuilder
+
+                # Sync unified state from session state
+                unified_state = getattr(state, "_unified_dialogue_state", None)
+                if unified_state is None:
+                    unified_state = UnifiedDialogueState(session_id=getattr(state, "session_id", "default"))
+                    state._unified_dialogue_state = unified_state
+                unified_state.turn_count = state.turn_count
+
+                # Sync last shown items from state
+                if getattr(state, "active_consumable", None):
+                    unified_state.record_shown_artifacts(consumables=[state.active_consumable])
+                if getattr(state, "active_product", None):
+                    unified_state.record_shown_artifacts(products=[state.active_product])
+
+                # 1. Structured Understanding
+                turn_und = understand_turn(raw_message)
+                # 2. Referent Resolution
+                resolved_turn = ReferentResolver.resolve_turn(turn_und, unified_state)
+                # 3. Fallback Policy Decision
+                policy_dec = PolicyEngine.decide(resolved_turn, unified_state)
+                # 4. Response Plan & Validation
+                plan = ResponsePlanBuilder.build(policy_dec, resolved_turn, unified_state)
+
+                if plan and plan.formatted_reply and plan.is_valid:
+                    # Sync back active focus
+                    if resolved_turn.resolved_target_product:
+                        state.active_product_id = resolved_turn.resolved_target_product.id
+                    if resolved_turn.resolved_active_item:
+                        state.active_consumable = resolved_turn.resolved_active_item.metadata
+
+                    unified_state.record_shown_artifacts(
+                        products=plan.product_cards,
+                        consumables=plan.consumable_cards,
+                        chips=plan.chips,
+                    )
+                    unified_state.last_intent = turn_und.intent
+                    unified_state.last_dialogue_act = turn_und.dialogue_act
+
+                    state.last_assistant_response = plan.formatted_reply
+                    state.increment_turn()
+                    return self._build_response(
+                        reply=plan.formatted_reply,
+                        source=plan.source,
+                        product_cards=plan.product_cards,
+                        consumable_cards=plan.consumable_cards,
+                        suggested_chips=plan.chips,
+                        nlp_result=nlp_result,
+                        state=state,
+                        latency_ms=int((time.time() - start_time) * 1000),
+                    )
+            except Exception as e:
+                logger.error(f"Unified understanding strangler layer error: {e}", exc_info=True)
+                # Fall through to legacy routes
+
         from agent.naturalness_validator import NaturalnessValidator
 
         # ── 1b-1. Direct SKU / Part Number Inquiry (HIGHEST PRIORITY) ──
@@ -6628,6 +6690,7 @@ class Orchestrator:
             return False
         if (
             source.startswith("guardrail:")
+            or source.startswith("unified:")
             or source.startswith("handover:")
             or source.startswith("customer_flow:")
             or source.startswith("route:customer_flow")
@@ -7040,7 +7103,7 @@ class Orchestrator:
         # Strict flow buttons enforcement:
         # Only permit suggestion chips that are part of the active qualification flow,
         # category selection, or guest login. Strip all generic ad-hoc/unwanted buttons.
-        is_flow_source = source.startswith(("qualification:category_prompt", "qualification:next_question", "qualification:consumables_prompt")) or any("guest" in str(ch).lower() for ch in (suggested_chips or []))
+        is_flow_source = source.startswith(("qualification:category_prompt", "qualification:next_question", "qualification:consumables_prompt", "unified:")) or any("guest" in str(ch).lower() for ch in (suggested_chips or []))
         if not is_flow_source:
             suggested_chips = []
         else:

@@ -248,7 +248,7 @@ class TurnUnderstandingExtractor:
         (re.compile(r"\b(same\s+ink|same\s+cartridge|same\s+paper|same\s+media)\b", re.I), "attribute_ref"),
         (re.compile(r"\b(the\s+yellow\s+one|the\s+yellow\s+ink|the\s+black\s+one|the\s+cyan\s+one|the\s+magenta\s+one)\b", re.I), "color_ref"),
         # Ellipsis ("for the f100?", "and for f500?", "what about cx-02?")
-        (re.compile(r"\b(?:and\s+)?(?:for\s+(?:the\s+)?|what\s+about\s+(?:the\s+)?|how\s+about\s+(?:the\s+)?)([a-z0-9\-]+)(?:\s*\?)?\b", re.I), "ellipsis"),
+        (re.compile(r"(?:^|[,;]|\band\b)\s*(?:for\s+(?:the\s+)?|what\s+about\s+(?:the\s+)?|how\s+about\s+(?:the\s+)?)([a-z0-9\-]+)(?:\s*\?)?\s*$", re.I), "ellipsis"),
     ]
 
     CONFIRMATION_PATTERNS = [
@@ -526,9 +526,13 @@ class TurnUnderstandingExtractor:
         if refs and not entities:
             return DialogueAct.REFERENCE_FOLLOW_UP, Intent.PRODUCT_INFO, 0.85, ambiguities
 
-        # 13. Product Info if model is mentioned
+        # 13. Product Info if SKU or model is mentioned
+        skus = [e for e in entities if e.entity_type == "sku"]
+        if skus:
+            return DialogueAct.QUESTION, Intent.PRODUCT_INFO, 0.95, ambiguities
+
         if models:
-            return DialogueAct.QUESTION, Intent.PRODUCT_INFO, 0.85, ambiguities
+            return DialogueAct.QUESTION, Intent.PRODUCT_INFO, 0.90, ambiguities
 
         # 14. Recommendation query
         if any(w in text_l for w in ["need", "want", "looking for", "recommend", "best", "which"]):

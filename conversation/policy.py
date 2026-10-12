@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 
 from conversation.understanding import DialogueAct, Intent, TurnUnderstanding
 from conversation.dialogue_state import DialogueState, ResolvedTurn, SalientEntity
-from catalog.evidence import EvidenceEngine, EvidenceRecord, CompatibilityStatus
+from catalog.evidence import EvidenceEngine, EvidenceRecord, CompatibilityStatus, knowledge_graph
 
 logger = logging.getLogger("conversation.policy")
 
@@ -227,17 +227,46 @@ class PolicyEngine:
                 )
 
         # 9. Product Info / Specs Intent
-        if intent == Intent.PRODUCT_INFO and resolved.resolved_target_product:
-            target = resolved.resolved_target_product
-            val, rec = EvidenceEngine.get_attribute(target.id, "display_name")
-            return PolicyDecision(
-                action=PolicyAction.ANSWER,
-                reason=f"Product info inquiry for {target.name}.",
-                target_entity_id=target.id,
-                options_or_chips=["Technical Specifications", "Compatible Consumables", "Official Quotation"],
-                evidence_records=[rec] if rec else [],
-                next_step=f"Would you like to see detailed specifications or compatible consumables for the {target.name}?",
-            )
+        if intent == Intent.PRODUCT_INFO:
+            if resolved.resolved_active_item and not resolved.resolved_target_product:
+                item = resolved.resolved_active_item
+                c_node = knowledge_graph.nodes.get(item.id.upper())
+                c_data = c_node.attributes if c_node else {}
+                c_type = c_data.get("type", "consumable")
+                compat_printers = c_data.get("compatible_printers", [])
+                claim = f"**{item.name}** (SKU: {item.id}) is a verified {c_type} in our catalogue."
+                if compat_printers:
+                    p_names = [knowledge_graph.nodes[p].name for p in compat_printers if p in knowledge_graph.nodes]
+                    claim += f" It is compatible with: {', '.join(p_names)}."
+                rec = EvidenceRecord(
+                    claim=claim,
+                    verified=True,
+                    status=CompatibilityStatus.VERIFIED_YES,
+                    source_file=c_node.source_file if c_node else "catalog/consumable_registry.py",
+                    field="sku",
+                    entity_ids=[item.id],
+                    supporting_data=c_data,
+                )
+                return PolicyDecision(
+                    action=PolicyAction.ANSWER,
+                    reason=f"Product info inquiry for consumable SKU {item.id}.",
+                    active_item_id=item.id,
+                    options_or_chips=["View Compatible Printers", "Request Official Quotation"],
+                    evidence_records=[rec],
+                    next_step="Which printer model would you like to check compatibility for?",
+                )
+
+            elif resolved.resolved_target_product:
+                target = resolved.resolved_target_product
+                val, rec = EvidenceEngine.get_attribute(target.id, "display_name")
+                return PolicyDecision(
+                    action=PolicyAction.ANSWER,
+                    reason=f"Product info inquiry for {target.name}.",
+                    target_entity_id=target.id,
+                    options_or_chips=["Technical Specifications", "Compatible Consumables", "Official Quotation"],
+                    evidence_records=[rec] if rec else [],
+                    next_step=f"Would you like to see detailed specifications or compatible consumables for the {target.name}?",
+                )
 
         # 10. Availability & Price Policy Intent (Strict No Chat Pricing Policy)
         if intent == Intent.AVAILABILITY_OR_PRICE_POLICY:
