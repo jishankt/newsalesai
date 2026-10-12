@@ -594,14 +594,18 @@ class Orchestrator:
 
         # ── 1b-6. Natural Warm Greeting & Primary Product Type Flow ───────
         if canonical_turn.primary_intent == "greeting":
-            if not state.category:
-                state.awaiting_field = "primary_product_type"
-            reply_text = "Hello and welcome to Kepler Tech! Do you want a scanner, printer, or consumables?"
-            chips = [
-                "Printer",
-                "Scanner",
-                "Consumables",
-            ]
+            if state.turn_count > 0 or state.category or getattr(state, "active_product_id", None) or getattr(state, "active_consumable", None):
+                reply_text = "Hello! How can I assist you further with your equipment requirements today?"
+                chips = ["Technical CAD", "Photo & Fine Art", "Dye-Sublimation", "High-Speed Office"]
+            else:
+                if not state.category:
+                    state.awaiting_field = "primary_product_type"
+                reply_text = "Hello and welcome to Kepler Tech! Do you want a scanner, printer, or consumables?"
+                chips = [
+                    "Printer",
+                    "Scanner",
+                    "Consumables",
+                ]
             state.last_assistant_response = reply_text
             state.last_suggested_chips = chips
             state.increment_turn()
@@ -1853,19 +1857,45 @@ class Orchestrator:
                 act_prod = act_cons
             else:
                 act_prod = catalogue_loader.get_by_id(act_id) if act_id else state.active_product
-            p_name = act_prod.get("display_name") or act_prod.get("name") or act_prod.get("title") if act_prod else "this equipment"
-            p_url = act_prod.get("product_url") or act_prod.get("url") or "https://www.keplertechllc.com" if act_prod else "https://www.keplertechllc.com"
+
+            # If no product or consumable has been selected yet, guide customer to choose equipment
+            if not act_prod:
+                reply_text = (
+                    "I would be glad to assist you with your purchase! What type of equipment are you looking for?\n\n"
+                    "• **Technical CAD Plotters** (Epson SureColor T-Series)\n"
+                    "• **Photo & Fine Art Printers** (Epson SureColor P-Series)\n"
+                    "• **Dye-Sublimation Printers** (Epson SC-F100, SC-F500 & Citizen)\n"
+                    "• **Enterprise Office Printers** (Epson WorkForce Enterprise)\n"
+                    "• **Large Format Scanners or Consumables**"
+                )
+                chips = ["Technical CAD", "Photo & Fine Art", "Dye-Sublimation", "High-Speed Office"]
+                state.last_assistant_response = reply_text
+                state.increment_turn()
+                return self._build_response(
+                    reply=reply_text,
+                    source="qualification:category_prompt",
+                    product_cards=[],
+                    consumable_cards=[],
+                    suggested_chips=chips,
+                    nlp_result=nlp_result,
+                    state=state,
+                    latency_ms=int((time.time() - start_time) * 1000),
+                )
+
+            p_name = act_prod.get("display_name") or act_prod.get("name") or act_prod.get("title") or "this equipment"
+            p_url = act_prod.get("product_url") or act_prod.get("url") or "https://www.keplertechllc.com"
+            target_label = p_name if p_name.lower().startswith(("this", "the")) else f"the {p_name}"
             price_prefix = ""
-            if act_prod and (any(w in msg_l for w in ["price", "cost", "how much", "rate"]) or any(q.semantic_key == "price" for q in getattr(canonical_turn, "explicit_questions", []))):
+            if any(w in msg_l for w in ["price", "cost", "how much", "rate"]) or any(q.semantic_key == "price" for q in getattr(canonical_turn, "explicit_questions", [])):
                 prod_entry = catalogue_loader.get_by_id(act_prod.get("id")) if (act_prod and act_prod.get("id")) else act_prod
                 p_price = (prod_entry.get("price") if prod_entry else None) or act_prod.get("price")
                 if p_price:
-                    price_prefix = f"The official price for the {p_name} is AED {p_price:,.2f} (Excl. VAT).\n\n"
+                    price_prefix = f"The official price for {target_label} is AED {p_price:,.2f} (Excl. VAT).\n\n"
                 elif act_prod.get("is_price_on_request") or not p_price:
-                    price_prefix = f"Pricing for the {p_name} is available upon official request.\n\n"
+                    price_prefix = f"Pricing for {target_label} is available upon official request.\n\n"
 
             reply_text = (
-                f"{price_prefix}You can place your order directly for the {p_name} through our official website link at {p_url}, "
+                f"{price_prefix}You can place your order directly for {target_label} through our official website link at {p_url}, "
                 f"or our sales desk at sales@keplertech.ae can generate an official tax invoice and arrange express UAE delivery (flat AED 10 across the UAE). "
                 f"Would you prefer to order online or receive an official invoice?"
             )

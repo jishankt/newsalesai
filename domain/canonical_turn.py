@@ -443,13 +443,20 @@ def extract_canonical_turn(
         customer_stage = "objection"
 
     # High Intent / Ready to buy: "order this", "buy this", "how to buy", "i want to buy"
+    # Note: "want to buy a printer / scanner" without an active/mentioned product is product discovery, not checkout!
     elif re.search(r"\b(?:place\s*(?:an\s*)?order|order\s+(?:one|two|\d+|this|a|the)|want\s+to\s+order|like\s+to\s+order|buy\s+(?:this|two|\d+|a|the)|want\s+to\s+buy|how\s+to\s+buy|how\s+can\s+we\s+buy|ready\s+to\s+buy|ready\s+to\s+checkout|purchase|checkout|send\s+(?:the\s+)?invoice|send\s+invoice)\b", msg_l):
-        customer_behavior = "READY_TO_BUY"
-        primary_goal = "purchase_intent"
-        dialogue_act = "request"
-        customer_stage = "purchase_intent"
-        purchase_readiness = "high"
-        urgency = "MEDIUM"
+        if not mentioned_prods and re.search(r"\b(?:want\s+to\s+buy|buy|looking\s+to\s+buy|need\s+to\s+buy)\s+(?:a\s+)?(?:printer|scanner|plotter|consumable|media)s?\b", msg_l):
+            customer_behavior = "RESEARCHING"
+            primary_goal = "category_selection"
+            dialogue_act = "request"
+            customer_stage = "category_discovery"
+        else:
+            customer_behavior = "READY_TO_BUY"
+            primary_goal = "purchase_intent"
+            dialogue_act = "request"
+            customer_stage = "purchase_intent"
+            purchase_readiness = "high"
+            urgency = "MEDIUM"
 
     # Investment cost comparison
     elif re.search(r"\b(?:which\s+(?:one\s+)?(?:is\s+)?(?:better|cheaper|lower|best)\s+(?:for\s+)?(?:the\s+)?(?:investment|upfront|initial|running|budget|cost|price)|better\s+for\s+(?:the\s+)?investment\s+cost|which\s+option\s+would\s+be\s+better)\b", msg_l):

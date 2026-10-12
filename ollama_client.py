@@ -18,6 +18,7 @@ from config import (
     OLLAMA_KEEP_ALIVE, OLLAMA_NUM_CTX,
     OLLAMA_CLASSIFIER_TEMPERATURE, OLLAMA_RESPONSE_TEMPERATURE,
     OLLAMA_TOP_P,
+    THINKING_ENABLED, OLLAMA_CLASSIFIER_MODEL, OLLAMA_RESPONSE_MODEL, OLLAMA_NUM_PREDICT,
 )
 
 logger = logging.getLogger("ollama_client")
@@ -256,18 +257,22 @@ class OllamaClient:
 
         temp = temperature if temperature is not None else OLLAMA_CLASSIFIER_TEMPERATURE
         retries = max_retries if max_retries is not None else OLLAMA_MAX_RETRIES
+        opts = {
+            "temperature": temp,
+            "top_p": OLLAMA_TOP_P,
+            "num_ctx": OLLAMA_NUM_CTX,
+            "num_predict": 120,
+        }
+        if "qwen3" in target_model.lower() or not THINKING_ENABLED:
+            opts["think"] = False
+
         payload = {
             "model": target_model,
             "messages": messages,
             "stream": False,
             "format": schema,
             "keep_alive": OLLAMA_KEEP_ALIVE,
-            "options": {
-                "temperature": temp,
-                "top_p": OLLAMA_TOP_P,
-                "num_ctx": OLLAMA_NUM_CTX,
-                "num_predict": 120,
-            }
+            "options": opts,
         }
 
         endpoint = f"{self.base_url}/api/chat"
@@ -286,8 +291,10 @@ class OllamaClient:
                     self._offline_until = 0.0
                     data = resp.json()
                     content = data.get("message", {}).get("content", "")
+                    clean_content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
+                    clean_content = re.sub(r"^```(?:json)?\s*|\s*```$", "", clean_content, flags=re.IGNORECASE).strip()
                     try:
-                        parsed = json.loads(content)
+                        parsed = json.loads(clean_content)
                         return {
                             "success": True,
                             "result": parsed,
@@ -427,17 +434,21 @@ class OllamaClient:
         temp = temperature if temperature is not None else OLLAMA_RESPONSE_TEMPERATURE
         p_val = top_p if top_p is not None else OLLAMA_TOP_P
         retries = max_retries if max_retries is not None else OLLAMA_MAX_RETRIES
+        opts = {
+            "temperature": temp,
+            "top_p": p_val,
+            "num_ctx": OLLAMA_NUM_CTX,
+            "num_predict": 180,
+        }
+        if "qwen3" in target_model.lower() or not THINKING_ENABLED:
+            opts["think"] = False
+
         payload = {
             "model": target_model,
             "messages": messages,
             "stream": False,
             "keep_alive": OLLAMA_KEEP_ALIVE,
-            "options": {
-                "temperature": temp,
-                "top_p": p_val,
-                "num_ctx": OLLAMA_NUM_CTX,
-                "num_predict": 180,
-            }
+            "options": opts,
         }
 
         endpoint = f"{self.base_url}/api/chat"
@@ -494,6 +505,53 @@ class OllamaClient:
             "fallback_used": True,
             "error_kind": last_error_kind,
         }
+
+    def stream_chat(self, messages: list, model: str = None,
+                    temperature: float = None, top_p: float = None, options: dict = None):
+        """
+        Yields tokens for server-sent events (SSE) streaming from Ollama /api/chat.
+        Disables thinking for Qwen3 models.
+        """
+        target_model = model or getattr(self, "response_model", self.default_model)
+        temp = temperature if temperature is not None else OLLAMA_RESPONSE_TEMPERATURE
+        p_val = top_p if top_p is not None else OLLAMA_TOP_P
+        opts = {
+            "temperature": temp,
+            "top_p": p_val,
+            "num_ctx": OLLAMA_NUM_CTX,
+            "num_predict": OLLAMA_NUM_PREDICT,
+        }
+        if "qwen3" in target_model.lower() or not THINKING_ENABLED:
+            opts["think"] = False
+        if options:
+            opts.update(options)
+
+        payload = {
+            "model": target_model,
+            "messages": messages,
+            "stream": True,
+            "keep_alive": OLLAMA_KEEP_ALIVE,
+            "options": opts,
+        }
+        endpoint = f"{self.base_url}/api/chat"
+        try:
+            resp = self.session.post(
+                endpoint, json=payload, stream=True,
+                timeout=(OLLAMA_CONNECT_TIMEOUT, OLLAMA_READ_TIMEOUT)
+            )
+            if resp.status_code == 200:
+                for line in resp.iter_lines():
+                    if line:
+                        chunk = json.loads(line)
+                        content = chunk.get("message", {}).get("content", "")
+                        if content and not ("<think>" in content or "</think>" in content):
+                            yield content
+                        if chunk.get("done", False):
+                            break
+            else:
+                logger.warning(f"Ollama stream_chat HTTP {resp.status_code}")
+        except Exception as e:
+            logger.warning(f"Ollama stream_chat error: {e}")
 
     def health(self) -> dict:
         """Alias for check_health for API consistency."""
