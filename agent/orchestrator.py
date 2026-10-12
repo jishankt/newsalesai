@@ -7405,7 +7405,7 @@ class Orchestrator:
 
         # Section 22: Answer Relevance Validator & Clean WhatsApp Formatting
         canonical_turn = getattr(state, "_current_turn_understanding", None)
-        if canonical_turn and getattr(canonical_turn, "questions", None) and not source.startswith("guardrail:"):
+        if canonical_turn and getattr(canonical_turn, "questions", None) and not source.startswith("guardrail:") and not source.startswith("unified:"):
             from validation.answer_relevance_validator import answer_relevance_validator
             is_valid, repaired_text, failure_reasons = answer_relevance_validator.validate_and_repair(
                 understanding=canonical_turn,

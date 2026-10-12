@@ -402,25 +402,36 @@ class TurnUnderstandingExtractor:
                         ))
                         seen_keys.add(norm_pid)
 
-        # 4. Category Mentions
+        # 4. Category Mentions (Matching Page 1 Flowchart Overview)
         categories = {
-            "dye_sublimation": [
-                "dye sublimation", "sublimation", "sublimation printer", "apparel printing",
-                "t-shirt printing", "textile printing", "mug printing"
-            ],
-            "technical_cad": [
-                "cad", "technical", "engineering", "blueprints", "line drawings", "architectural", "gis", "cad plotter"
-            ],
-            "photo_fine_art": [
-                "fine art", "photo printer", "gallery", "photography", "photo printing", "photo studio"
-            ],
             "office_workforce": [
                 "office printer", "workforce", "business printer", "printer for my office",
                 "printer for office", "for my office", "for our office", "office use",
-                "office printing", "office copier", "enterprise mfp", "am-c", "wf-c"
+                "office printing", "office copier", "enterprise mfp", "am-c", "wf-c",
+                "office multifunction", "office enterprise", "enterprise", "enterprise printer",
+                "line-head", "line head", "line-head enterprise", "office mfp", "mfp", "mfps"
             ],
-            "photo_booth": [
-                "photo booth", "event photography", "instant prints", "passport photos"
+            "technical_cad": [
+                "cad", "technical", "engineering", "blueprints", "line drawings", "architectural",
+                "gis", "cad plotter", "blueprint", "plotter", "plotters", "large format plotter"
+            ],
+            "photo_fine_art": [
+                "fine art", "photo printer", "gallery", "photography", "photo printing", "photo studio",
+                "master studio", "spectro", "pro10", "pro12", "fine art gallery"
+            ],
+            "citizen_photo": [
+                "photo booth", "event photography", "instant prints", "passport photos", "citizen",
+                "instant photo", "photo booth printer", "dye-sub photo", "cz-01", "cx-02", "cy-02", "cx-02w"
+            ],
+            "dye_sublimation": [
+                "dye sublimation", "sublimation", "sublimation printer", "apparel printing",
+                "t-shirt printing", "textile printing", "mug printing", "sportswear printing",
+                "apparel", "t-shirt", "mug"
+            ],
+            "scanners": [
+                "scanner", "scanners", "document scanner", "sheetfed", "flatbed scanner",
+                "film scanner", "large format scanner", "book scanner", "scanning solutions",
+                "expression 12000xl", "workforce ds"
             ],
         }
         for cat_id, cat_keywords in categories.items():

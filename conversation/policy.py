@@ -248,122 +248,80 @@ class PolicyEngine:
                     next_step="Would you like a direct comparison between these verified models?",
                 )
 
-        # 9. Recommendation / Category Discovery Intent
+        # 9. Recommendation / Category Discovery Intent (Product Qualification Flowcharts)
         if intent == Intent.RECOMMEND:
+            from conversation.product_flows import resolve_flowchart_step
             cat_slot = und.slots.get("target_category")
             cat_val = cat_slot.value if cat_slot else getattr(state, "category", None)
 
-            if cat_val in ("office_workforce", "office_printer", "office"):
-                state.category = "office_printer"
+            # Map raw slot values to canonical flow categories
+            cat_map = {
+                "office_workforce": "office_printer",
+                "office_enterprise": "office_printer",
+                "office": "office_printer",
+                "technical_cad": "technical_large_format",
+                "cad": "technical_large_format",
+                "photo_fine_art": "photography_large_format",
+                "photo": "photography_large_format",
+                "photo_booth": "citizen_photo",
+                "citizen": "citizen_photo",
+                "dye_sublimation": "dye_sublimation",
+                "sublimation": "dye_sublimation",
+                "scanners": "scanners",
+                "scanner": "scanners",
+            }
+            canonical_cat = cat_map.get(cat_val, cat_val) if cat_val else None
+            if canonical_cat:
+                state.category = canonical_cat
+
+            step = resolve_flowchart_step(canonical_cat, state.confirmed_slots, und.raw_text)
+
+            # If a specific product or leaf was reached
+            if step.is_leaf and step.target_product_id:
                 rec = EvidenceRecord(
-                    claim=(
-                        "For office and business document printing, Kepler Tech supplies the Epson WorkForce "
-                        "and WorkForce Enterprise series with Heat-Free inkjet technology:\n\n"
-                        "• **Epson WorkForce Pro WF-C5890**: Fast A4 desktop color MFP for workgroups.\n"
-                        "• **Epson WorkForce Pro WF-C878R**: Departmental A3 MFP with high-yield Replaceable Ink Packs (up to 86,000 pages).\n"
-                        "• **Epson WorkForce Enterprise AM-C4000**: Ultra-fast 40 ppm departmental color MFP.\n\n"
-                        "What is your typical monthly print volume or preferred paper format (A4 or A3)?"
-                    ),
+                    claim=f"{step.explanation}\n\n{step.question}",
                     verified=True,
                     status=CompatibilityStatus.VERIFIED_YES,
                     source_file="catalogue_products.json",
                     field="category",
-                    entity_ids=["epson-wf-c5890-dwf", "epson-wf-c878r-dwf", "epson-am-c4000"],
+                    entity_ids=[step.target_product_id] + step.supporting_product_ids,
                 )
                 return PolicyDecision(
                     action=PolicyAction.ANSWER,
-                    reason="Recommended verified office printers.",
-                    target_entity_id="epson-wf-c5890-dwf",
-                    supporting_product_ids=["epson-wf-c878r-dwf", "epson-am-c4000"],
-                    options_or_chips=["A4 Desktop (WF-C5890)", "A3 Workgroup (WF-C878R)", "Enterprise MFP (AM-C4000)", "Request Official Quote"],
+                    reason=f"Reached leaf recommendation in {canonical_cat} flowchart.",
+                    target_entity_id=step.target_product_id,
+                    supporting_product_ids=step.supporting_product_ids,
+                    options_or_chips=step.chips,
                     evidence_records=[rec],
-                    next_step="What is your typical monthly print volume or preferred paper format (A4 or A3)?",
+                    next_step=step.question,
                 )
-
-            elif cat_val == "dye_sublimation":
-                state.category = "dye_sublimation"
+            elif canonical_cat and step.target_product_id:
+                # Mid-flow step with targeted candidates
                 rec = EvidenceRecord(
-                    claim=(
-                        "Kepler Tech is an official distributor for Epson SureColor dye-sublimation systems:\n\n"
-                        "• **Epson SureColor SC-F100**: Compact A4 desktop printer for custom mugs and small merchandise.\n"
-                        "• **Epson SureColor SC-F500**: 24-inch desktop sublimation printer with refillable 140 ml ink bottles.\n\n"
-                        "Are you printing smaller gift items (A4) or larger apparel & textile transfers (24-inch)?"
-                    ),
+                    claim=f"{step.explanation}\n\n{step.question}",
                     verified=True,
                     status=CompatibilityStatus.VERIFIED_YES,
                     source_file="catalogue_products.json",
                     field="category",
-                    entity_ids=["epson-sc-f100", "epson-sc-f500"],
+                    entity_ids=[step.target_product_id] + step.supporting_product_ids,
                 )
                 return PolicyDecision(
                     action=PolicyAction.ANSWER,
-                    reason="Recommended verified dye-sublimation printers.",
-                    target_entity_id="epson-sc-f500",
-                    supporting_product_ids=["epson-sc-f100"],
-                    options_or_chips=["A4 Desktop (SC-F100)", "24-inch Desktop (SC-F500)", "Sublimation Inks", "Official Quote"],
+                    reason=f"Guiding customer through {canonical_cat} flowchart.",
+                    target_entity_id=step.target_product_id,
+                    supporting_product_ids=step.supporting_product_ids,
+                    options_or_chips=step.chips,
                     evidence_records=[rec],
-                    next_step="Are you printing smaller gift items (A4) or larger apparel & textile transfers (24-inch)?",
+                    next_step=step.question,
                 )
-
-            elif cat_val in ("technical_cad", "technical_large_format"):
-                state.category = "technical_large_format"
-                rec = EvidenceRecord(
-                    claim=(
-                        "For architectural drawings, engineering blueprints, and line maps, Kepler Tech offers the Epson SureColor T-Series:\n\n"
-                        "• **Epson SureColor SC-T3100**: Compact 24-inch wireless desktop technical plotter.\n"
-                        "• **Epson SureColor SC-T5400**: High-speed 36-inch production plotter for commercial CAD & GIS.\n\n"
-                        "Do you need a 24-inch (A1) or 36-inch (A0) plotter format?"
-                    ),
-                    verified=True,
-                    status=CompatibilityStatus.VERIFIED_YES,
-                    source_file="catalogue_products.json",
-                    field="category",
-                    entity_ids=["epson-sc-t3100", "epson-sc-t5400"],
-                )
-                return PolicyDecision(
-                    action=PolicyAction.ANSWER,
-                    reason="Recommended verified CAD & technical plotters.",
-                    target_entity_id="epson-sc-t3100",
-                    supporting_product_ids=["epson-sc-t5400"],
-                    options_or_chips=["24-inch (SC-T3100)", "36-inch (SC-T5400)", "UltraChrome XD2 Inks", "Official Quote"],
-                    evidence_records=[rec],
-                    next_step="Do you need a 24-inch (A1) or 36-inch (A0) plotter format?",
-                )
-
-            elif cat_val in ("photo_fine_art", "photography_large_format"):
-                state.category = "photography_large_format"
-                rec = EvidenceRecord(
-                    claim=(
-                        "For professional photography, fine art galleries, and proofing, we offer the Epson SureColor P-Series:\n\n"
-                        "• **Epson SureColor SC-P700**: 13-inch (A3+) professional photo printer with 10-color UltraChrome PRO10 ink.\n"
-                        "• **Epson SureColor SC-P900**: 17-inch (A2+) professional photo printer with dedicated matte and photo black channels.\n\n"
-                        "What is your target print format (13-inch A3+ or 17-inch A2+)?"
-                    ),
-                    verified=True,
-                    status=CompatibilityStatus.VERIFIED_YES,
-                    source_file="catalogue_products.json",
-                    field="category",
-                    entity_ids=["epson-sc-p700", "epson-sc-p900"],
-                )
-                return PolicyDecision(
-                    action=PolicyAction.ANSWER,
-                    reason="Recommended verified photo & fine art printers.",
-                    target_entity_id="epson-sc-p700",
-                    supporting_product_ids=["epson-sc-p900"],
-                    options_or_chips=["13-inch A3+ (SC-P700)", "17-inch A2+ (SC-P900)", "UltraChrome PRO10 Inks", "Official Quote"],
-                    evidence_records=[rec],
-                    next_step="What is your target print format (13-inch A3+ or 17-inch A2+)?",
-                )
-
             else:
-                # Broad inquiry without category specified ("I want to buy a printer")
-                state.clarifications_asked[current_topic] = topic_clarifications + 1
+                # Initial category prompt or overview
                 return PolicyDecision(
                     action=PolicyAction.CLARIFY,
-                    reason="Customer stated general purchase inquiry without category.",
+                    reason="Customer stated general inquiry without category.",
                     clarification_topic=current_topic,
-                    clarification_question="Kepler Tech supplies specialized commercial printers for different applications. What type of printing do you need?",
-                    options_or_chips=["Office & Business Documents", "Technical CAD Drawings", "Photography & Fine Art", "Dye-Sublimation Merchandise"],
+                    clarification_question=step.question,
+                    options_or_chips=step.chips,
                     next_step="Please select your application.",
                 )
 
