@@ -118,6 +118,16 @@ OLLAMA_CLASSIFIER_MODEL = os.getenv("OLLAMA_CLASSIFIER_MODEL", "qwen2.5:latest")
 OLLAMA_RESPONSE_MODEL = os.getenv("OLLAMA_RESPONSE_MODEL", DEFAULT_MODEL)
 OLLAMA_NUM_PREDICT = int(os.getenv("OLLAMA_NUM_PREDICT", "180"))
 THINKING_ENABLED = os.getenv("THINKING_ENABLED", "false").lower() == "true"
+
+# Offline Multi-Agent Jobs Configuration
+JOB_MODEL = os.getenv("JOB_MODEL", "qwen2.5:14b")
+JOB_TIMEOUT_SECONDS = float(os.getenv("JOB_TIMEOUT_SECONDS", "45.0"))
+JOB_MAX_RETRIES = int(os.getenv("JOB_MAX_RETRIES", "1"))
+QA_NATURALNESS_RUBRIC = (
+    "Evaluate assistant responses for naturalness, empathy, tone, conciseness (under ~60 words unless technical comparison), "
+    "and absence of banned corporate boilerplate ('Certainly!', 'delighted to assist', 'Based on your requirements'). "
+    "Score 1.0 (robotic/canned) to 5.0 (natural expert human sales consultant)."
+)
 USE_UNIFIED_UNDERSTANDING = os.getenv("USE_UNIFIED_UNDERSTANDING", "true").lower() == "true"
 FUZZY_MATCH_THRESHOLD = float(os.getenv("FUZZY_MATCH_THRESHOLD", "0.75"))
 
