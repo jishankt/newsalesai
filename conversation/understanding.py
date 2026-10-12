@@ -409,7 +409,7 @@ class TurnUnderstandingExtractor:
                 "printer for office", "for my office", "for our office", "office use",
                 "office printing", "office copier", "enterprise mfp", "am-c", "wf-c",
                 "office multifunction", "office enterprise", "enterprise", "enterprise printer",
-                "line-head", "line head", "line-head enterprise", "office mfp", "mfp", "mfps"
+                "line-head", "line head", "line-head enterprise", "office mfp", "office mfps", "business mfp"
             ],
             "technical_cad": [
                 "cad", "technical", "engineering", "blueprints", "line drawings", "architectural",
@@ -544,8 +544,8 @@ class TurnUnderstandingExtractor:
         models = [e for e in entities if e.entity_type == "model"]
         skus = [e for e in entities if e.entity_type == "sku"]
 
-        # Compare
-        if len(models) >= 2 or any(p.search(text_l) for p in cls.COMPARE_PATTERNS):
+        # Compare (requires explicit comparison wording)
+        if any(p.search(text_l) for p in cls.COMPARE_PATTERNS):
             return DialogueAct.QUESTION, Intent.COMPARE, 0.92, ambiguities
 
         # 9. Alternatives
@@ -576,6 +576,14 @@ class TurnUnderstandingExtractor:
 
         if refs and not entities:
             return DialogueAct.REFERENCE_FOLLOW_UP, Intent.PRODUCT_INFO, 0.85, ambiguities
+
+        # 13b. Flowchart specification responses (e.g. 'A4 Output', 'Under 100 pages/day', '24-inch (A1)')
+        is_explicit_info_query = any(k in text_l for k in ["spec", "datasheet", "details", "feature", "tell me about", "what is", "overview of"])
+        if not is_explicit_info_query:
+            from conversation.product_flows import extract_flowchart_requirements
+            flow_reqs = extract_flowchart_requirements(text_l)
+            if flow_reqs:
+                return DialogueAct.QUESTION, Intent.RECOMMEND, 0.95, ambiguities
 
         # 14. Product Info if SKU or model is mentioned
         skus = [e for e in entities if e.entity_type == "sku"]

@@ -44,7 +44,7 @@ class PolicyDecision(BaseModel):
     evidence_records: List[EvidenceRecord] = Field(default_factory=list)
     supporting_product_ids: List[str] = Field(default_factory=list)
     is_handoff: bool = False
-    next_step: str = ""
+    next_step: Optional[str] = ""
 
 
 # ── Policy Decision Engine ────────────────────────────────────────────────────
@@ -249,10 +249,15 @@ class PolicyEngine:
                 )
 
         # 9. Recommendation / Category Discovery Intent (Product Qualification Flowcharts)
-        if intent == Intent.RECOMMEND:
-            from conversation.product_flows import resolve_flowchart_step
+        is_flowchart_turn = (intent == Intent.RECOMMEND)
+        if not is_flowchart_turn and getattr(state, "category", None) and intent in (Intent.OTHER, Intent.PRODUCT_INFO):
+            is_flowchart_turn = True
+
+        if is_flowchart_turn:
+            from conversation.product_flows import resolve_flowchart_step, extract_flowchart_requirements
+            # Preserve active category during qualification flow unless resetting
             cat_slot = und.slots.get("target_category")
-            cat_val = cat_slot.value if cat_slot else getattr(state, "category", None)
+            cat_val = getattr(state, "category", None) or (cat_slot.value if cat_slot else None)
 
             # Map raw slot values to canonical flow categories
             cat_map = {
@@ -273,6 +278,10 @@ class PolicyEngine:
             canonical_cat = cat_map.get(cat_val, cat_val) if cat_val else None
             if canonical_cat:
                 state.category = canonical_cat
+
+            # Accumulate extracted requirements into state.confirmed_slots
+            new_reqs = extract_flowchart_requirements(und.raw_text, state.confirmed_slots)
+            state.confirmed_slots.update(new_reqs)
 
             step = resolve_flowchart_step(canonical_cat, state.confirmed_slots, und.raw_text)
 
@@ -295,34 +304,18 @@ class PolicyEngine:
                     evidence_records=[rec],
                     next_step=step.question,
                 )
-            elif canonical_cat and step.target_product_id:
-                # Mid-flow step with targeted candidates
-                rec = EvidenceRecord(
-                    claim=f"{step.explanation}\n\n{step.question}",
-                    verified=True,
-                    status=CompatibilityStatus.VERIFIED_YES,
-                    source_file="catalogue_products.json",
-                    field="category",
-                    entity_ids=[step.target_product_id] + step.supporting_product_ids,
-                )
-                return PolicyDecision(
-                    action=PolicyAction.ANSWER,
-                    reason=f"Guiding customer through {canonical_cat} flowchart.",
-                    target_entity_id=step.target_product_id,
-                    supporting_product_ids=step.supporting_product_ids,
-                    options_or_chips=step.chips,
-                    evidence_records=[rec],
-                    next_step=step.question,
-                )
             else:
-                # Initial category prompt or overview
+                # Intermediate flowchart qualification step: STRICTLY zero product cards
+                clarification_prompt = f"{step.explanation}\n\n{step.question}" if step.explanation else step.question
                 return PolicyDecision(
                     action=PolicyAction.CLARIFY,
-                    reason="Customer stated general inquiry without category.",
+                    reason=f"Guiding customer through {canonical_cat or 'overview'} flowchart qualification.",
                     clarification_topic=current_topic,
-                    clarification_question=step.question,
+                    clarification_question=clarification_prompt,
                     options_or_chips=step.chips,
-                    next_step="Please select your application.",
+                    target_entity_id=None,
+                    supporting_product_ids=[],
+                    next_step="",
                 )
 
         # 10. Product Info / Specs Intent
