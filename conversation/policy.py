@@ -91,23 +91,37 @@ class PolicyEngine:
 
         # 3. Chitchat / Friendly Greeting
         if act == DialogueAct.CHITCHAT:
-            chips = ["Office Printers", "Technical CAD Plotters", "Photo & Fine Art", "Dye-Sublimation"]
+            chips = ["Printer", "Scanner", "Consumables"]
             if state.pending_question and state.pending_question.options:
                 chips = [str(o.get("label") or o.get("id")) for o in state.pending_question.options]
 
-            if state.turn_count == 0 and not state.pending_question:
-                greeting_text = (
-                    "Hello and welcome to Kepler Tech! Are you looking for technical CAD plotters, "
-                    "photo & fine art printers, dye-sublimation systems, or high-speed office printers?"
-                )
-            else:
+            greeting_text = "Hello and welcome to Kepler Tech! Do you want a scanner, printer, or consumables?"
+            if state.turn_count > 1 and state.category:
                 greeting_text = "Hello! How can I assist you further with your equipment requirements today?"
+                chips = ["Office Printers", "CAD Technical Plotters", "Photo & Fine Art", "Consumables"]
 
             return PolicyDecision(
                 action=PolicyAction.ANSWER,
                 reason="Conversational greeting.",
                 options_or_chips=chips,
                 next_step=greeting_text,
+            )
+
+        # 3b. Confusion / Context Review / Customer Frustration
+        if act == DialogueAct.COMPLAINT or any(w in und.raw_text.lower() for w in ["what you asking", "what do you mean", "previous chat", "priviace chat", "answer after checking"]):
+            # Clear stuck state so the customer is never locked in an unwanted flow
+            state.category = None
+            state.confirmed_slots.clear()
+            return PolicyDecision(
+                action=PolicyAction.CLARIFY,
+                reason="Customer expressed confusion or requested chat review.",
+                options_or_chips=["Office Printers", "CAD Technical Plotters", "Photo & Fine Art", "Document Scanners", "Speak to Specialist"],
+                clarification_question=(
+                    "My apologies for any confusion! Let's get right on track: "
+                    "Are you looking for office printers, CAD technical plotters, photo & fine art printers, "
+                    "dye-sublimation systems, or document scanners? You can also ask about specific models, delivery, or supplies."
+                ),
+                next_step="",
             )
 
         # 4. Repair / Correction Handling
@@ -195,10 +209,12 @@ class PolicyEngine:
                     next_step="Please specify the printer model.",
                 )
 
-        # 6. Consumables Lookup Intent
-        if intent == Intent.CONSUMABLES_LOOKUP:
+        # 6. Consumables Lookup Intent (or follow-up to consumables clarification)
+        if intent == Intent.CONSUMABLES_LOOKUP or (state.clarifications_asked.get("consumables_lookup", 0) > 0 and resolved.resolved_target_product):
+            state.category = "consumables"
             target = resolved.resolved_target_product
             if target:
+                state.clarifications_asked["consumables_lookup"] = 0
                 consumables, rec = EvidenceEngine.list_consumables(target.id)
                 chips = ["Technical Specifications", "Media Rolls", "Official Quotation"]
                 return PolicyDecision(
@@ -248,36 +264,72 @@ class PolicyEngine:
                     next_step="Would you like a direct comparison between these verified models?",
                 )
 
+        # 8b. Delivery & Shipping Policy Intent
+        if intent == Intent.SHIPPING_OR_DELIVERY:
+            delivery_text = (
+                "Kepler Tech provides insured delivery across Dubai, Abu Dhabi, and all UAE emirates "
+                "with fast express dispatch available.\n\n"
+                "For heavy large-format printers and production equipment, our technical team provides dedicated "
+                "site delivery, uncrating, and professional on-site installation."
+            )
+            rec = EvidenceRecord(
+                claim=delivery_text,
+                verified=True,
+                status=CompatibilityStatus.VERIFIED_YES,
+                source_file="config.py",
+                field="delivery_policy",
+                entity_ids=[],
+            )
+            return PolicyDecision(
+                action=PolicyAction.ANSWER,
+                reason="Customer asked about delivery and shipping services.",
+                options_or_chips=["Showroom Location", "Request Official Quote", "Contact Sales Desk"],
+                evidence_records=[rec],
+                next_step="Would you like to arrange delivery for a specific printer or consumable order?",
+            )
+
         # 9. Recommendation / Category Discovery Intent (Product Qualification Flowcharts)
-        is_flowchart_turn = (intent == Intent.RECOMMEND)
-        if not is_flowchart_turn and getattr(state, "category", None) and intent in (Intent.OTHER, Intent.PRODUCT_INFO):
+        cat_slot = und.slots.get("target_category")
+        new_cat_raw = cat_slot.value if cat_slot else None
+        cat_map = {
+            "office_workforce": "office_printer",
+            "office_enterprise": "office_printer",
+            "office": "office_printer",
+            "technical_cad": "technical_large_format",
+            "cad": "technical_large_format",
+            "photo_fine_art": "photography_large_format",
+            "photo": "photography_large_format",
+            "photo_booth": "citizen_photo",
+            "citizen": "citizen_photo",
+            "dye_sublimation": "dye_sublimation",
+            "sublimation": "dye_sublimation",
+            "scanners": "scanners",
+            "scanner": "scanners",
+        }
+        canonical_new_cat = cat_map.get(new_cat_raw, new_cat_raw) if new_cat_raw else None
+
+        from conversation.product_flows import resolve_flowchart_step, extract_flowchart_requirements
+        flow_reqs = extract_flowchart_requirements(und.raw_text)
+
+        is_flowchart_turn = False
+        if intent == Intent.RECOMMEND:
+            if not resolved.resolved_target_product and not resolved.resolved_active_item:
+                is_flowchart_turn = True
+        elif canonical_new_cat is not None:
+            is_flowchart_turn = True
+        elif getattr(state, "category", None) and (bool(flow_reqs) or any(c.lower() in und.raw_text.lower() for c in state.last_shown_chips)):
             is_flowchart_turn = True
 
         if is_flowchart_turn:
-            from conversation.product_flows import resolve_flowchart_step, extract_flowchart_requirements
-            # Preserve active category during qualification flow unless resetting
-            cat_slot = und.slots.get("target_category")
-            cat_val = getattr(state, "category", None) or (cat_slot.value if cat_slot else None)
-
-            # Map raw slot values to canonical flow categories
-            cat_map = {
-                "office_workforce": "office_printer",
-                "office_enterprise": "office_printer",
-                "office": "office_printer",
-                "technical_cad": "technical_large_format",
-                "cad": "technical_large_format",
-                "photo_fine_art": "photography_large_format",
-                "photo": "photography_large_format",
-                "photo_booth": "citizen_photo",
-                "citizen": "citizen_photo",
-                "dye_sublimation": "dye_sublimation",
-                "sublimation": "dye_sublimation",
-                "scanners": "scanners",
-                "scanner": "scanners",
-            }
-            canonical_cat = cat_map.get(cat_val, cat_val) if cat_val else None
-            if canonical_cat:
-                state.category = canonical_cat
+            if canonical_new_cat:
+                if state.category != canonical_new_cat:
+                    # User explicitly stated a new category: switch category and reset stale slots!
+                    state.category = canonical_new_cat
+                    state.confirmed_slots.clear()
+                    state.focus_stack.clear()
+                    state.last_shown_products.clear()
+                    state.last_shown_consumables.clear()
+            canonical_cat = state.category
 
             # Accumulate extracted requirements into state.confirmed_slots
             new_reqs = extract_flowchart_requirements(und.raw_text, state.confirmed_slots)
@@ -350,6 +402,19 @@ class PolicyEngine:
 
             elif resolved.resolved_target_product:
                 target = resolved.resolved_target_product
+                if state.clarifications_asked.get("consumables_lookup", 0) > 0:
+                    state.clarifications_asked["consumables_lookup"] = 0
+                    consumables, rec = EvidenceEngine.list_consumables(target.id)
+                    chips = ["Technical Specifications", "Media Rolls", "Official Quotation"]
+                    return PolicyDecision(
+                        action=PolicyAction.ANSWER,
+                        reason=f"Customer specified printer model {target.name} for consumables lookup.",
+                        target_entity_id=target.id,
+                        options_or_chips=chips,
+                        evidence_records=[rec],
+                        next_step="Would you like to order replacement supplies or review printer specifications?",
+                    )
+
                 val, rec = EvidenceEngine.get_attribute(target.id, "display_name")
                 return PolicyDecision(
                     action=PolicyAction.ANSWER,
@@ -383,11 +448,12 @@ class PolicyEngine:
 
         # 12. Fallback Clarify
         state.clarifications_asked[current_topic] = topic_clarifications + 1
+        q_text = "Which printing application fits your requirements?" if "print" in und.raw_text.lower() else "How can I best assist you with Kepler Tech printing equipment?"
         return PolicyDecision(
             action=PolicyAction.CLARIFY,
             reason="Ambiguous input; clarify customer needs with structured chips.",
             clarification_topic=current_topic,
-            clarification_question="How can I best assist you with Kepler Tech printing equipment?",
-            options_or_chips=["CAD Technical Plotters", "Professional Photo", "Dye-Sublimation", "Office Printers"],
+            clarification_question=q_text,
+            options_or_chips=["Technical CAD Plotters", "Professional Photo & Fine Art", "Dye-Sublimation", "Office Printers"],
             next_step="Please select a category or ask a specific model question.",
         )

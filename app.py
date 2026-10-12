@@ -592,18 +592,25 @@ def _process_chat_turn(raw_message, session_id, model_name, request_id, session_
                     "message": "Turn superseded by newer user input."
                 }), 409
 
-    # Save state and history turns via canonical state_manager
+    # Save state and history turns via canonical state_manager (prevent duplicates)
     inputs_to_save = input_messages or [raw_message]
-    if len(inputs_to_save) > 1:
-        for single_input in inputs_to_save:
-            state.history_turns.append({"role": "user", "content": single_input})
-            history.append({"role": "user", "content": single_input})
-    else:
-        state.history_turns.append({"role": "user", "content": normalized_msg})
-        history.append({"role": "user", "content": raw_message})
+    already_appended = bool(state.history_turns and state.history_turns[-1].get("content") == assistant_reply)
+    if not already_appended:
+        if len(inputs_to_save) > 1:
+            for single_input in inputs_to_save:
+                state.history_turns.append({"role": "user", "content": single_input})
+        else:
+            state.history_turns.append({"role": "user", "content": raw_message})
+        state.history_turns.append({"role": "assistant", "content": assistant_reply})
 
-    state.history_turns.append({"role": "assistant", "content": assistant_reply})
-    history.append({"role": "assistant", "content": assistant_reply})
+    if not history or history[-1].get("content") != assistant_reply:
+        if len(inputs_to_save) > 1:
+            for single_input in inputs_to_save:
+                history.append({"role": "user", "content": single_input})
+        else:
+            history.append({"role": "user", "content": raw_message})
+        history.append({"role": "assistant", "content": assistant_reply})
+
     state_manager.save(state, history)
 
     latency_ms = int((time.time() - turn_start_time) * 1000)

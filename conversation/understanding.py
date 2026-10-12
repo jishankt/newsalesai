@@ -48,6 +48,7 @@ class Intent(str, Enum):
     ALTERNATIVES = "alternatives"
     AVAILABILITY_OR_PRICE_POLICY = "availability_or_price_policy"
     CONTACT_SHOWROOM = "contact_showroom"
+    SHIPPING_OR_DELIVERY = "shipping_or_delivery"
     OTHER = "other"
 
 
@@ -278,7 +279,7 @@ class TurnUnderstandingExtractor:
     ]
 
     CONSUMABLES_PATTERNS = [
-        re.compile(r"\b(?:what\s+inks?|which\s+inks?|consumables|cartridges?|ribbons?|maintenance\s*box|supplies\s+for)\b", re.I),
+        re.compile(r"\b(?:what\s+inks?|which\s+inks?|consumables?|cartridges?|ribbons?|maintenance\s*box(?:es)?|supplies(?:\s+for)?|sublimation\s+inks?|print\s+supplies)\b", re.I),
     ]
 
     COMPARE_PATTERNS = [
@@ -300,6 +301,14 @@ class TurnUnderstandingExtractor:
             r"head\s*office|khalid\s+bin\s+waleed|directions\s+to\s+your)\b",
             re.I
         ),
+    ]
+
+    DELIVERY_PATTERNS = [
+        re.compile(r"\b(?:delivery|deliver|shipping|ship|dispatch|courier|do you deliver|can you deliver|delivery service|deliver to|delivering)\b", re.I),
+    ]
+
+    CONFUSION_PATTERNS = [
+        re.compile(r"\b(?:what (?:are )?you asking|what do you mean|i don'?t understand|previous chat|priviace chat|check (?:the )?chat|check (?:the )?history|what did i say|answer after checking)\b", re.I),
     ]
 
     @classmethod
@@ -517,6 +526,10 @@ class TurnUnderstandingExtractor:
         if any(p.search(text_l) for p in cls.OUT_OF_SCOPE_PATTERNS):
             return DialogueAct.OUT_OF_SCOPE, Intent.OTHER, 0.95, ambiguities
 
+        # 2b. Confusion or complaint about conversation
+        if any(p.search(text_l) for p in cls.CONFUSION_PATTERNS):
+            return DialogueAct.COMPLAINT, Intent.OTHER, 0.95, ambiguities
+
         # 3. Corrections
         if any(p.search(text_l) for p in cls.CORRECTION_PATTERNS):
             return DialogueAct.CORRECTION, Intent.OTHER, 0.90, ambiguities
@@ -564,6 +577,10 @@ class TurnUnderstandingExtractor:
         ])
         if not is_equipment_query and any(p.search(text_l) for p in cls.SHOWROOM_PATTERNS):
             return DialogueAct.QUESTION, Intent.CONTACT_SHOWROOM, 0.95, ambiguities
+
+        # 11b. Delivery & Shipping policy inquiry
+        if any(p.search(text_l) for p in cls.DELIVERY_PATTERNS):
+            return DialogueAct.QUESTION, Intent.SHIPPING_OR_DELIVERY, 0.96, ambiguities
 
         # 12. Category Mentions without specific model -> RECOMMEND intent
         category_entities = [e for e in entities if e.entity_type == "category"]

@@ -50,22 +50,49 @@ class StateRepository:
         """
         Merges history by appending any new turns from incoming_history that are not
         already present in base_history, preserving chronological order and preventing overwriting.
+        Preserves valid repeated messages across distinct conversation turns.
         """
+        if not base_history:
+            return list(incoming_history)
+        if not incoming_history:
+            return list(base_history)
+
+        def turns_equal(t1: Dict[str, Any], t2: Dict[str, Any]) -> bool:
+            r1 = t1.get("role", "")
+            r2 = t2.get("role", "")
+            c1 = (t1.get("content") or "").strip()
+            c2 = (t2.get("content") or "").strip()
+            return r1 == r2 and c1 == c2
+
+        # If incoming_history is a continuation/extension of base_history
+        if len(incoming_history) >= len(base_history):
+            is_prefix = True
+            for i in range(len(base_history)):
+                if not turns_equal(base_history[i], incoming_history[i]):
+                    is_prefix = False
+                    break
+            if is_prefix:
+                return list(incoming_history)
+
+        # If base_history is an extension of incoming_history
+        if len(base_history) >= len(incoming_history):
+            is_prefix = True
+            for i in range(len(incoming_history)):
+                if not turns_equal(base_history[i], incoming_history[i]):
+                    is_prefix = False
+                    break
+            if is_prefix:
+                return list(base_history)
+
+        # In case of concurrent branch divergence, find longest matching prefix and append suffix
+        match_len = 0
+        min_len = min(len(base_history), len(incoming_history))
+        while match_len < min_len and turns_equal(base_history[match_len], incoming_history[match_len]):
+            match_len += 1
+
         merged = list(base_history)
-
-        def turn_sig(turn):
-            role = turn.get("role", "")
-            content = turn.get("content", "")
-            if isinstance(content, str):
-                return (role, content.strip())
-            return (role, str(content))
-
-        existing_sigs = {turn_sig(t) for t in base_history}
-        for t in incoming_history:
-            sig = turn_sig(t)
-            if sig not in existing_sigs:
-                merged.append(t)
-                existing_sigs.add(sig)
+        for t in incoming_history[match_len:]:
+            merged.append(t)
         return merged
 
     def save_session(

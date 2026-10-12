@@ -207,6 +207,17 @@ def resolve_flowchart_step(
 
     cat_norm = category.lower().strip()
 
+    if cat_norm in ("printer", "printers"):
+        return FlowchartStep(
+            category="printer",
+            question="Which printing application fits your requirements?",
+            chips=["Technical CAD Plotters", "Professional Photo & Fine Art", "Dye-Sublimation", "High-Speed Office Printers"],
+            target_product_id=None,
+            supporting_product_ids=[],
+            explanation="Kepler Tech supplies official Epson and Citizen commercial printing systems across specialized applications.",
+            is_leaf=False,
+        )
+
     # ─────────────────────────────────────────────────────────────────────────────
     # PAGE 2: Office / Multifunction (With Per-Day Printing Volume)
     # ─────────────────────────────────────────────────────────────────────────────
@@ -751,7 +762,7 @@ def resolve_flowchart_step(
             return FlowchartStep(
                 category="scanners",
                 question="What type of documents or media will you be scanning?",
-                chips=["Graphic & Fine Art Film", "Books & Stacks (Hybrid Flatbed+ADF)", "Fast Sheetfed Business"],
+                chips=["Fast Sheetfed Business Scanners", "Photo & Fine Art Film Scanners", "Books & Stacks (Hybrid Flatbed+ADF)"],
                 target_product_id=None,
                 supporting_product_ids=[],
                 explanation="Kepler Tech supplies specialized Epson scanners ranging from museum-grade graphic film units to heavy-duty batch document scanners.",

@@ -340,7 +340,7 @@ class Orchestrator:
 
         # ── UNIFIED UNDERSTANDING & FALLBACK STRANGLER LAYER ───────────────
         from config import USE_UNIFIED_UNDERSTANDING
-        if USE_UNIFIED_UNDERSTANDING:
+        if USE_UNIFIED_UNDERSTANDING and getattr(state, "lead_prompt_status", None) not in ("offered_opt_in", "awaiting_details", "offered_history_save"):
             try:
                 from conversation.understanding import understand_turn
                 from conversation.dialogue_state import DialogueState as UnifiedDialogueState, ReferentResolver
@@ -350,9 +350,20 @@ class Orchestrator:
                 # Sync unified state from session state
                 unified_state = getattr(state, "_unified_dialogue_state", None)
                 if unified_state is None:
-                    unified_state = UnifiedDialogueState(session_id=getattr(state, "session_id", "default"))
+                    raw_uds = getattr(state, "unified_dialogue_state", None)
+                    if isinstance(raw_uds, dict):
+                        try:
+                            unified_state = UnifiedDialogueState(**raw_uds)
+                        except Exception:
+                            unified_state = None
+                    if unified_state is None:
+                        unified_state = UnifiedDialogueState(session_id=getattr(state, "session_id", "default"))
                     state._unified_dialogue_state = unified_state
                 unified_state.turn_count = state.turn_count
+
+                # Sync category if state has one and unified does not
+                if getattr(state, "category", None) and not unified_state.category:
+                    unified_state.category = state.category
 
                 # Sync last shown items from state
                 if getattr(state, "active_consumable", None):
@@ -376,6 +387,11 @@ class Orchestrator:
                     if resolved_turn.resolved_active_item:
                         state.active_consumable = resolved_turn.resolved_active_item.metadata
                     if unified_state.category:
+                        if state.category != unified_state.category:
+                            state.category = unified_state.category
+                            state.awaiting_field = None
+                            state.requirements.clear()
+                            state.missing_fields.clear()
                         state.category = unified_state.category
 
                     unified_state.record_shown_artifacts(
@@ -385,6 +401,9 @@ class Orchestrator:
                     )
                     unified_state.last_intent = turn_und.intent
                     unified_state.last_dialogue_act = turn_und.dialogue_act
+
+                    state._unified_dialogue_state = unified_state
+                    state.unified_dialogue_state = unified_state.model_dump()
 
                     state.last_assistant_response = plan.formatted_reply
                     state.increment_turn()
@@ -7301,16 +7320,16 @@ class Orchestrator:
 
         # Section 21: Clean internal database terms from customer-facing reply
         if reply:
-            if not source.startswith(("route:cost_per_print", "route:product_price", "route:consumable_price", "route:general_price", "route:purchase", "agent:purchase", "agent:price_objection", "agent:investment_cost_comparison", "agent:dye_sublimation_recommendation", "agent:direct_answer", "agent:delivery_policy", "agent:for_each_spec_query")):
+            if not source.startswith(("route:cost_per_print", "route:product_price", "route:consumable_price", "route:general_price", "route:purchase", "agent:purchase", "agent:price_objection", "agent:investment_cost_comparison", "agent:dye_sublimation_recommendation", "agent:direct_answer", "agent:delivery_policy", "agent:for_each_spec_query", "unified:")):
                 reply = re.sub(r":\s*\*\*(?:AED\s*[\d,.]+|Price on Request)[^*]*\*\*", "", reply, flags=re.I)
                 reply = re.sub(r"\*\*(?:AED\s*[\d,.]+|Price on Request)[^*]*\*\*", "", reply, flags=re.I)
                 reply = re.sub(r"\bAED\s*[\d,.]+(?:\s*\(Excl\. VAT\))?\b", "", reply, flags=re.I)
                 reply = re.sub(r"\bPrice on Request\b", "", reply, flags=re.I)
-            if not source.startswith(("route:purchase", "agent:purchase", "route:support", "route:business_info", "route:contact", "guardrail:", "route:product_price", "route:consumable_price", "route:general_price", "agent:price_objection", "agent:delivery_policy")):
+            if not source.startswith(("route:purchase", "agent:purchase", "route:support", "route:business_info", "route:contact", "guardrail:", "route:product_price", "route:consumable_price", "route:general_price", "agent:price_objection", "agent:delivery_policy", "unified:")):
                 reply = re.sub(r"\b[\w.+-]+@(?:keplertech\.ae|keplertechllc\.com)\b", "", reply, flags=re.I)
                 if not source.startswith(("customer_flow:", "route:customer_flow")):
                     reply = re.sub(r"\+971[\d\s-]{7,16}", "", reply)
-            if not source.startswith(("route:purchase", "agent:purchase", "guardrail:", "route:product_price", "route:consumable_price", "route:general_price", "route:support", "route:contact", "route:business_info", "agent:price_objection", "agent:delivery_policy")):
+            if not source.startswith(("route:purchase", "agent:purchase", "guardrail:", "route:product_price", "route:consumable_price", "route:general_price", "route:support", "route:contact", "route:business_info", "agent:price_objection", "agent:delivery_policy", "unified:")):
                 reply = "\n".join(
                     line for line in reply.splitlines()
                     if not re.search(r"\b(?:contact (?:our|the) (?:sales|support)|sales desk|commercial quotation|bulk delivery quotes|ask for (?:a )?quote|commercial sales|corporate financing|verified pricing|phone:|email:)\b", line, re.I)

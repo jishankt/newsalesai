@@ -111,6 +111,7 @@ class ConversationState:
     handover_reason: Optional[str] = None
     handover_timestamp: Optional[float] = None
     pending_agent_messages: List[Dict[str, Any]] = field(default_factory=list)
+    unified_dialogue_state: Optional[Dict[str, Any]] = None
 
     # ── Canonical Focus & Focus Resolution ───────────────────────────────
 
@@ -239,6 +240,7 @@ class ConversationState:
             "last_opener_index": self.last_opener_index,
             "last_pricing_index": self.last_pricing_index,
             "pending_agent_messages": self.pending_agent_messages,
+            "unified_dialogue_state": self.unified_dialogue_state,
         }
 
     @classmethod
@@ -315,6 +317,7 @@ class ConversationState:
             last_opener_index=data.get("last_opener_index"),
             last_pricing_index=data.get("last_pricing_index"),
             pending_agent_messages=data.get("pending_agent_messages", []),
+            unified_dialogue_state=data.get("unified_dialogue_state"),
         )
 
     # ── State Mutations ──────────────────────────────────────────────────

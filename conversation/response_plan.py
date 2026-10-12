@@ -261,11 +261,14 @@ class ResponsePlanValidator:
         if resolved.resolved_target_product and state.get_current_focus("printer"):
             current_f = state.get_current_focus("printer")
             new_f = resolved.resolved_target_product
-            # If changed without explicit mention in user text
-            if current_f.id != new_f.id and new_f.id not in resolved.understanding.raw_text.lower():
-                # Allow if resolved through reference, otherwise flag
-                if not any(r.resolved_entity and r.resolved_entity.id == new_f.id for r in resolved.resolved_referents):
-                    errors.append(f"Focus violation: switched focus from {current_f.id} to {new_f.id} without user mention.")
+            # If changed without explicit mention in user text or entities
+            is_explicitly_mentioned = (
+                new_f.id in resolved.understanding.raw_text.lower()
+                or any(e.normalised_id == new_f.id for e in resolved.understanding.entities)
+                or any(r.resolved_entity and r.resolved_entity.id == new_f.id for r in resolved.resolved_referents)
+            )
+            if current_f.id != new_f.id and not is_explicitly_mentioned:
+                errors.append(f"Focus violation: switched focus from {current_f.id} to {new_f.id} without user mention.")
 
         if errors:
             logger.warning(f"Response plan validation errors: {errors}. Falling back to deterministic template.")
