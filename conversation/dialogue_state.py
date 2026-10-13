@@ -435,7 +435,10 @@ class ReferentResolver:
                 )
 
         if not target_prod and state.get_current_focus("printer"):
-            target_prod = state.get_current_focus("printer")
+            cat_slot = understanding.slots.get("target_category")
+            new_cat = cat_slot.value if cat_slot else None
+            if not new_cat:
+                target_prod = state.get_current_focus("printer")
 
         # 4. Active consumable / item resolution:
         active_item = None

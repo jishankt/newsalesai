@@ -727,11 +727,13 @@ class PolicyEngine:
         flow_reqs = extract_flowchart_requirements(und.raw_text)
 
         is_flowchart_turn = False
-        if intent in (Intent.RECOMMEND, Intent.OTHER) and not resolved.resolved_target_product and not resolved.resolved_active_item:
+        if intent in (Intent.RECOMMEND, Intent.OTHER):
             if canonical_new_cat is not None:
                 is_flowchart_turn = True
-            elif getattr(state, "category", None) and (bool(flow_reqs) or any(c.lower() in und.raw_text.lower() for c in state.last_shown_chips)):
-                is_flowchart_turn = True
+                resolved.resolved_target_product = None
+            elif not resolved.resolved_target_product and not resolved.resolved_active_item:
+                if getattr(state, "category", None) and (bool(flow_reqs) or any(c.lower() in und.raw_text.lower() for c in state.last_shown_chips)):
+                    is_flowchart_turn = True
 
         if is_flowchart_turn:
             if canonical_new_cat:
@@ -1007,6 +1009,6 @@ class PolicyEngine:
             reason="Ambiguous input; clarify customer needs with structured chips.",
             clarification_topic=current_topic,
             clarification_question=q_text,
-            options_or_chips=["Technical CAD Plotters", "Professional Photo & Fine Art", "Dye-Sublimation", "Office Printers"],
+            options_or_chips=["Technical CAD Plotters", "Professional Photo & Fine Art", "Citizen Photo Booth / Events", "Dye-Sublimation", "Office Printers"],
             next_step="Please select a category or ask a specific model question.",
         )

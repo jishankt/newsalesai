@@ -228,7 +228,7 @@ def resolve_flowchart_step(
         return FlowchartStep(
             category="printer",
             question="Which printing application fits your requirements?",
-            chips=["Technical CAD Plotters", "Professional Photo & Fine Art", "Dye-Sublimation", "High-Speed Office Printers"],
+            chips=["Technical CAD Plotters", "Professional Photo & Fine Art", "Citizen Photo Booth / Events", "Dye-Sublimation", "High-Speed Office Printers"],
             target_product_id=None,
             supporting_product_ids=[],
             explanation="Kepler Tech supplies official Epson and Citizen commercial printing systems across specialized applications.",

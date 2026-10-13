@@ -134,6 +134,13 @@ class ResponsePlanBuilder:
         # 2. Clarification Flow
         elif decision.action == PolicyAction.CLARIFY:
             direct_answer = decision.clarification_question or "Could you clarify your requirements?"
+            opt_chips = [
+                c for c in (decision.options_or_chips or [])
+                if c not in ("Contact Sales Desk", "Official Quotation", "View Technical Specifications", "Ask a Question", "Continue Consultation", "Start Over")
+            ]
+            if opt_chips and not any(c.lower() in direct_answer.lower() for c in opt_chips[:2]):
+                options_block = "\n".join([f"• {c}" for c in opt_chips])
+                direct_answer = f"{direct_answer}\n\n{options_block}"
 
         # 3. Handoff Flow
         elif decision.action == PolicyAction.NOT_VERIFIED_HANDOFF:

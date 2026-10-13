@@ -500,8 +500,8 @@ class TurnUnderstandingExtractor:
                 "master studio", "spectro", "pro10", "pro12", "fine art gallery"
             ],
             "citizen_photo": [
-                "photo booth", "event photography", "instant prints", "passport photos", "citizen",
-                "instant photo", "photo booth printer", "dye-sub photo", "cz-01", "cx-02", "cy-02", "cx-02w"
+                "photo booth", "event photography", "instant prints", "passport photos", "citizen", "citizon", "citzen",
+                "citizen printer", "citizon printer", "instant photo", "photo booth printer", "dye-sub photo", "cz-01", "cx-02", "cy-02", "cx-02w"
             ],
             "dye_sublimation": [
                 "dye sublimation", "sublimation", "sublimation printer", "apparel printing",
