@@ -170,17 +170,12 @@ class PolicyEngine:
                         entity_ids=[target.id] if target else [],
                     ))
                 elif it == Intent.SHIPPING_OR_DELIVERY:
-                    dest_str = "Sharjah and across all UAE emirates" if "sharjah" in und.raw_text.lower() else "across all UAE emirates"
-                    d_claim = f"We provide insured direct delivery to {dest_str}, with on-site installation for production systems."
-                    claims.append(d_claim)
-                    ev_records.append(EvidenceRecord(
-                        claim=d_claim,
-                        verified=True,
-                        status=CompatibilityStatus.VERIFIED_YES,
-                        source_file="config.py",
-                        field="delivery_policy",
-                        entity_ids=[],
-                    ))
+                    from conversation.delivery_engine import DeliveryPolicyEngine
+                    deliv_text, d_chips, d_next, d_recs = DeliveryPolicyEngine.resolve_delivery_decision(
+                        und.raw_text, state, t_name
+                    )
+                    claims.append(deliv_text)
+                    ev_records.extend(d_recs)
                 elif it == Intent.PRODUCT_INFO:
                     if target:
                         if "speed" in und.raw_text.lower() or "fast" in und.raw_text.lower():
@@ -414,26 +409,19 @@ class PolicyEngine:
 
         # 8b. Delivery & Shipping Policy Intent
         if intent == Intent.SHIPPING_OR_DELIVERY:
-            delivery_text = (
-                "Kepler Tech provides insured delivery across Dubai, Abu Dhabi, and all UAE emirates "
-                "with fast express dispatch available.\n\n"
-                "For heavy large-format printers and production equipment, our technical team provides dedicated "
-                "site delivery, uncrating, and professional on-site installation."
-            )
-            rec = EvidenceRecord(
-                claim=delivery_text,
-                verified=True,
-                status=CompatibilityStatus.VERIFIED_YES,
-                source_file="config.py",
-                field="delivery_policy",
-                entity_ids=[],
+            from conversation.delivery_engine import DeliveryPolicyEngine
+            target = resolved.resolved_target_product
+            t_name = target.name if target else None
+            deliv_text, chips, next_q, ev_recs = DeliveryPolicyEngine.resolve_delivery_decision(
+                und.raw_text, state, t_name
             )
             return PolicyDecision(
                 action=PolicyAction.ANSWER,
-                reason="Customer asked about delivery and shipping services.",
-                options_or_chips=["Showroom Location", "Request Official Quote", "Contact Sales Desk"],
-                evidence_records=[rec],
-                next_step="Would you like to arrange delivery for a specific printer or consumable order?",
+                reason="Customer asked about delivery, shipping, returns, or policy details.",
+                target_entity_id=target.id if target else None,
+                options_or_chips=chips,
+                evidence_records=ev_recs,
+                next_step=next_q,
             )
 
         # 8c. Explicit Target Model Request (Case 9: e.g. "I want the Epson SC-P900")
@@ -690,12 +678,53 @@ class PolicyEngine:
 
         # 11. Contact Showroom Intent
         if intent == Intent.CONTACT_SHOWROOM:
-            return PolicyDecision(
-                action=PolicyAction.ANSWER,
-                reason="Showroom and location inquiry.",
-                options_or_chips=["Showroom Location", "Opening Hours", "Contact Numbers"],
-                next_step="Our showroom is located at D79, Khalid Bin Waleed Road, Office No. 1, Abdulla Al Awar Building, Dubai (Monday–Friday 8:30 AM – 5:30 PM).",
-            )
+            raw_l = und.raw_text.lower()
+            if any(k in raw_l for k in ["pickup", "pick up", "collect"]):
+                from conversation.delivery_engine import DeliveryPolicyEngine
+                pickup_reply, chips, next_q, ev_recs = DeliveryPolicyEngine.resolve_delivery_decision(
+                    "store pickup", state
+                )
+                return PolicyDecision(
+                    action=PolicyAction.ANSWER,
+                    reason="Store pickup collection inquiry.",
+                    options_or_chips=chips,
+                    evidence_records=ev_recs,
+                    next_step=next_q,
+                )
+            elif any(k in raw_l for k in ["hour", "timing", "open", "time"]):
+                from conversation.delivery_engine import DeliveryPolicyEngine
+                hours_reply, chips, next_q, ev_recs = DeliveryPolicyEngine.resolve_delivery_decision(
+                    "business hours", state
+                )
+                return PolicyDecision(
+                    action=PolicyAction.ANSWER,
+                    reason="Business and showroom hours inquiry.",
+                    options_or_chips=chips,
+                    evidence_records=ev_recs,
+                    next_step=next_q,
+                )
+            else:
+                loc_text = (
+                    "**Kepler Tech LLC Showroom & Office:**\n"
+                    "D79, Khalid Bin Waleed Road, Office No. 1, Abdulla Al Awar Building, Dubai, United Arab Emirates.\n\n"
+                    "• **Hours:** Monday – Friday 8:30 AM – 5:30 PM, Saturday 8:30 AM – 1:00 PM, Sunday Closed (GST).\n"
+                    f"• **Phone:** {OFFICIAL_SUPPORT_PHONE} | **Email:** {OFFICIAL_SUPPORT_EMAIL} / {OFFICIAL_INFO_EMAIL}."
+                )
+                rec = EvidenceRecord(
+                    claim=loc_text,
+                    verified=True,
+                    status=CompatibilityStatus.VERIFIED_YES,
+                    source_file="config.py",
+                    field="company_context",
+                    entity_ids=[],
+                )
+                return PolicyDecision(
+                    action=PolicyAction.ANSWER,
+                    reason="Showroom location and contact inquiry.",
+                    options_or_chips=["Showroom Location", "Opening Hours", "Contact Sales Desk"],
+                    evidence_records=[rec],
+                    next_step="Would you like directions or to schedule an on-site equipment demonstration?",
+                )
 
         # 12. Fallback Clarify
         state.clarifications_asked[current_topic] = topic_clarifications + 1

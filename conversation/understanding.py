@@ -300,13 +300,19 @@ class TurnUnderstandingExtractor:
         re.compile(
             r"\b(?:showroom|store\s*location|physical\s*store|office\s*location|office\s*address|"
             r"where\s+(?:is\s+your|are\s+you|can\s+i\s+visit)|visit\s+(?:your\s+)?(?:showroom|store|office)|"
-            r"head\s*office|khalid\s+bin\s+waleed|directions\s+to\s+your)\b",
+            r"head\s*office|khalid\s+bin\s+waleed|directions\s+to\s+your|"
+            r"working\s*hours|business\s*hours|opening\s*hours|when\s+are\s+you\s+open|open\s+today)\b",
             re.I
         ),
     ]
 
     DELIVERY_PATTERNS = [
-        re.compile(r"\b(?:delivery|deliver|shipping|ship|dispatch|courier|do you deliver|can you deliver|delivery service|deliver to|delivering)\b", re.I),
+        re.compile(
+            r"\b(?:delivery|deliver|shipping|ship|dispatch|courier|do you deliver|can you deliver|"
+            r"delivery service|deliver to|delivering|pickup|pick up|store pickup|return policy|returns?\b|"
+            r"refunds?\b|cancel(?:lation)?|cancel order|customs duty|import tax|import duty|tracking|track my order|track order)\b",
+            re.I
+        ),
     ]
 
     CONFUSION_PATTERNS = [

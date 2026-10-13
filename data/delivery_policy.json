@@ -1,0 +1,106 @@
+{
+  "policy_version": "1.0",
+  "last_verified": "2026-10-13",
+  "company": "Kepler Tech LLC",
+  "dispatch_time": "1 to 2 business days after order confirmation email (excluding weekends and public holidays)",
+  "zones": {
+    "UAE": {
+      "name": "United Arab Emirates",
+      "aliases": ["uae", "united arab emirates", "dubai", "abu dhabi", "sharjah", "ajman", "ras al khaimah", "fujairah", "umm al quwain", "al ain"],
+      "fee": "Flat AED 10 across all Emirates",
+      "fee_numeric_aed": 10.0,
+      "timing": "1 to 2 business days after order confirmation email",
+      "installation": "Free on-site delivery, uncrating, and certified engineer installation for heavy production and large-format printers",
+      "courier": "Insured third-party courier or Kepler Tech technical logistics team"
+    },
+    "OMAN": {
+      "name": "Sultanate of Oman",
+      "aliases": ["oman", "muscat", "salalah", "sohar"],
+      "fee": "Calculated at checkout based on package weight and destination",
+      "timing": "Standard cross-border transit via authorized courier (dispatched in 1 to 2 business days)",
+      "customs": "Customer is responsible for destination customs duty and local taxes",
+      "courier": "Authorized international road or air courier"
+    },
+    "GCC_OTHER": {
+      "name": "Other GCC Countries (Saudi Arabia, Qatar, Bahrain, Kuwait)",
+      "aliases": ["saudi", "saudi arabia", "ksa", "riyadh", "jeddah", "dammam", "qatar", "doha", "bahrain", "manama", "kuwait", "gcc"],
+      "fee": "Calculated dynamically at checkout based on weight and country",
+      "timing": "Cross-border transit dispatched within 1 to 2 business days",
+      "customs": "Import customs duty and VAT in the destination country are paid by the recipient",
+      "courier": "Authorized cross-border courier partner"
+    },
+    "OUTSIDE_GCC": {
+      "name": "International (Outside GCC)",
+      "aliases": ["international", "worldwide", "global", "europe", "africa", "asia", "uk", "usa", "india"],
+      "status": "conflict",
+      "fee": "Calculated at checkout depending on destination",
+      "timing": "Courier transit timeline (dispatched 1 to 2 business days from Dubai)",
+      "customs": "Customer is responsible for all local customs clearance, tariffs, and destination taxes",
+      "note": "Terms & Conditions s3 specifies UAE & GCC scope, while FAQ references international courier shipping."
+    },
+    "SANCTIONED": {
+      "name": "OFAC Sanctioned Jurisdictions",
+      "aliases": ["iran", "north korea", "syria", "cuba", "crimea", "sanctioned"],
+      "status": "prohibited",
+      "rule": "In compliance with UAE law and international sanctions, Kepler Tech does not trade with or ship to OFAC-sanctioned countries."
+    }
+  },
+  "pickup": {
+    "available": true,
+    "fee": "Free local store pickup",
+    "timing": "Ready for collection in 1 to 2 business days after order confirmation",
+    "location": "Kepler Tech LLC Showroom: D79, Khalid Bin Waleed Road, Office No. 1, Abdulla Al Awar Building, Dubai, UAE"
+  },
+  "tracking": {
+    "method": "A dispatch notification with courier tracking number is emailed automatically as soon as the package ships."
+  },
+  "courier": {
+    "description": "Shipments are handled by insured authorized third-party couriers (or Kepler Tech's dedicated technical delivery fleet for heavy production machinery)."
+  },
+  "returns": {
+    "window": "Defective, damaged, or incorrect items must be reported within 2 days of receipt",
+    "condition": "Products must remain unused and in original, unopened manufacturer packaging with intact warranty seals",
+    "refund_timeline": "Refunds are issued to the original payment method and may take up to 45 days to reflect",
+    "contact": "sales@keplertech.ae"
+  },
+  "cancellation": {
+    "window": "Orders may be cancelled only within 24 hours of placing the order",
+    "procedure": "Contact sales@keplertech.ae or +971 4 323 1008 immediately with your order reference"
+  },
+  "customs": {
+    "rule": "For shipments delivered outside the UAE, the customer is responsible for all destination import duties, clearance charges, and local VAT."
+  },
+  "payment": {
+    "terms": "Payment in full is required prior to dispatch",
+    "methods": "Visa or MasterCard in AED, or PayPal"
+  },
+  "same_day": {
+    "policy": "Standard orders dispatch in 1 to 2 business days. Same-day emergency delivery across Dubai may be arranged upon request with our sales desk for in-stock consumables and equipment."
+  },
+  "hours": {
+    "schedule": "Monday – Friday: 8:30 AM to 5:30 PM | Saturday: 8:30 AM to 1:00 PM | Sunday: Closed",
+    "timezone": "Dubai GST (UTC+4)"
+  },
+  "contacts": {
+    "sales_email": "sales@keplertech.ae",
+    "info_email": "info@keplertech.ae",
+    "phone": "+971 4 323 1008",
+    "mobile_whatsapp": "+971 55 835 8586"
+  },
+  "conflicts": [
+    {
+      "topic": "geographic_scope",
+      "status": "conflict",
+      "source_a": "T&C Section 3 (UAE and GCC delivery only)",
+      "source_b": "FAQ (International FedEx/Aramex shipping)",
+      "fail_closed_handling": "State verified UAE and GCC delivery; confirm outside GCC checkout calculation."
+    },
+    {
+      "topic": "contact_email",
+      "status": "conflict",
+      "source_a": "Website FAQ cites info@keplertech.ae",
+      "source_b": "T&C cites sales@keplertech.ae",
+      "fail_closed_handling": "Use sales@keplertech.ae for formal orders/returns; info@keplertech.ae for general inquiries."
+    }
+  ]
+}
