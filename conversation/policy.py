@@ -398,7 +398,7 @@ class PolicyEngine:
         if und.secondary_intents and len(und.secondary_intents) > 0:
             target = resolved.resolved_target_product
             t_name = target.name if target else "our equipment"
-            all_intents = [intent] + und.secondary_intents
+            all_intents = list(dict.fromkeys([intent] + und.secondary_intents))
             claims = []
             ev_records = []
 
@@ -439,7 +439,11 @@ class PolicyEngine:
                         ))
 
             if claims:
-                combined_claim = "\n\n".join(claims)
+                deduped_claims = []
+                for cl in claims:
+                    if cl not in deduped_claims:
+                        deduped_claims.append(cl)
+                combined_claim = "\n\n".join(deduped_claims)
                 combined_rec = EvidenceRecord(
                     claim=combined_claim,
                     verified=True,

@@ -383,10 +383,10 @@ class DeliveryPolicyEngine:
         if not paragraphs or any(t in topics for t in (DeliveryTopic.FEE, DeliveryTopic.TIME, DeliveryTopic.COVERAGE, DeliveryTopic.GENERAL)):
             if zone == DeliveryZone.UAE:
                 core_text = (
-                    f"Delivery across {dest_name} and all UAE emirates is a **flat AED 10**. "
-                    "Orders are processed and dispatched within **1 to 2 business days** (excluding weekends and public holidays).\n\n"
+                    f"Delivery across {dest_name} and all UAE emirates is a **flat AED 10**, "
+                    "dispatched within **1 to 2 business days** (excluding weekends and public holidays).\n\n"
                     "Free store pickup at our Dubai showroom is also available (ready in 1 to 2 days). "
-                    "For heavy production systems and large-format plotters, our certified engineers provide on-site uncrating and installation."
+                    "On-site installation is provided for production plotters."
                 )
             elif zone in (DeliveryZone.OMAN, DeliveryZone.GCC_OTHER):
                 core_text = (

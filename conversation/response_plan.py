@@ -41,13 +41,16 @@ class ResponsePlan(BaseModel):
 # ── Human Openers Rotation (3-turn no-repeat) ─────────────────────────────────
 
 OPENERS_POOL = [
-    "Certainly!",
+    "Understood.",
     "Yes, absolutely.",
     "Here are the verified details:",
-    "Glad to assist with that.",
-    "Understood.",
-    "Good question!",
-    "Here is the official confirmation:",
+    "Happy to help with that.",
+    "Good question.",
+    "Here is the official specification:",
+    "Right away.",
+    "Here is the breakdown:",
+    "Let's look at the specifications:",
+    "Here is what the manufacturer specifies:",
 ]
 
 
@@ -249,7 +252,15 @@ class ResponsePlanBuilder:
         parts = []
         if assumption:
             parts.append(f"*{assumption}*\n")
-        parts.append(direct_answer)
+
+        # If direct_answer starts directly with a brand or model, prepend a natural varied opener
+        clean_direct = direct_answer.strip()
+        if clean_direct.startswith(("Epson", "Citizen", "**Epson", "**Citizen")) and not assumption:
+            opener = _get_varied_opener(state)
+            parts.append(f"{opener}\n\n{clean_direct}")
+        else:
+            parts.append(direct_answer)
+
         if decision.next_step and decision.next_step not in direct_answer:
             parts.append(f"\n\n{decision.next_step}")
 
@@ -342,6 +353,63 @@ class ResponsePlanValidator:
         found_leaks = [m for m in LEAK_MARKERS if m in text]
         if found_leaks:
             errors.append(f"Template leak violation: markers found in response text: {found_leaks}")
+
+        # 5b. Pre-Transmission Accuracy Guard: All recommended models must belong to approved catalogue
+        is_unlisted_explanation = any(phrase in text.lower() for phrase in [
+            "not in our verified catalogue", "not part of our approved", "we do not supply", "unlisted", "does not list",
+            "not in our", "not part of our", "catalogue does not include", "do not carry", "is not in our"
+        ])
+        if not is_unlisted_explanation:
+            from catalog.catalogue_loader import catalogue_loader
+            all_prods = catalogue_loader.get_all()
+            model_mentions = re.findall(r"\b(?:sc-?)?(?:[tpf]\d{3,5}[a-z0-9]*|ds-?\d{3,5}[a-z0-9]*|cx-?[0-9o]{1,2}[a-z0-9]*|am-?c\d{3,4}[a-z0-9]*|wf-?(?:c|m)?\d{3,5}[a-z0-9]*)\b", text.lower())
+            for mm in model_mentions:
+                if len(mm) >= 4:
+                    in_cat = any(mm in str(p.get("id", "")).lower() or mm in str(p.get("model", "")).lower() or mm in str(p.get("display_name", "")).lower() for p in all_prods)
+                    in_cards = any(mm in (str(c.get("id", "")) + str(c.get("name", "")) + str(c.get("model", ""))).lower() for c in (plan.product_cards + plan.consumable_cards))
+                    in_ev = any(mm in eid.lower() or eid.lower() in mm for eid in plan.evidence_ids)
+                    if not (in_cat or in_cards or in_ev):
+                        errors.append(f"Accuracy violation: Model '{mm}' mentioned without verified evidence.")
+
+        # 5c. Banned Corporate Cliches Filter
+        BANNED_PHRASE_REPLACEMENTS = [
+            (r"\bCertainly!\s*", ""),
+            (r"\bWe would be delighted to assist you(?: in person)?!\s*", ""),
+            (r"\bdelighted to assist\b", "pleased to help"),
+            (r"\bBased on your requirements,?\s*", ""),
+            (r"\bAs an AI(?: language model)?,?\s*", ""),
+            (r"\bAccording to our database,?\s*", ""),
+            (r"\bAs per records,?\s*", ""),
+            (r"\bAs per your previous (?:question|message)?,?\s*", ""),
+        ]
+        for pat, repl in BANNED_PHRASE_REPLACEMENTS:
+            text = re.sub(pat, repl, text, flags=re.IGNORECASE).strip()
+        plan.formatted_reply = text
+
+        # 5d. Enforce Succinct Length (under ~60 words unless technical comparison table or structured list)
+        is_structured = (
+            ("|" in text and "---" in text)
+            or text.count("•") >= 2
+            or len(text.split("\n\n")) >= 3
+            or bool(getattr(resolved.understanding, "secondary_intents", []))
+            or "@" in text
+            or any(k in text.lower() for k in ["sales desk", "official quote", "official delivery", "flat aed 10", "business days"])
+        )
+        words = text.split()
+        if not is_structured and len(words) > 65:
+            sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if s.strip()]
+            trimmed = []
+            curr_words = 0
+            for s in sentences:
+                s_len = len(s.split())
+                if curr_words + s_len <= 60 or not trimmed:
+                    trimmed.append(s)
+                    curr_words += s_len
+                else:
+                    break
+            if trimmed:
+                text = " ".join(trimmed)
+                plan.formatted_reply = text
 
         if errors:
             logger.warning(f"Response plan validation errors: {errors}. Falling back to deterministic template.")

@@ -293,7 +293,7 @@ class TurnUnderstandingExtractor:
     ]
 
     PRICE_POLICY_PATTERNS = [
-        re.compile(r"\b(?:price|cost|how\s+much|quote|quotation|pricing|discount|rate|in\s+stock|available)\b", re.I),
+        re.compile(r"\b(?:price|cost|how\s+much|quote|quotation|pricing|discount|rates?|in\s+stock|available\s+in\s+stock)\b", re.I),
     ]
 
     SHOWROOM_PATTERNS = [
@@ -687,7 +687,12 @@ class TurnUnderstandingExtractor:
             act = DialogueAct.REFERENCE_FOLLOW_UP if refs else DialogueAct.QUESTION
             return act, Intent.ALTERNATIVES, 0.92, ambiguities
 
-        # 10. Availability or Pricing Policy
+        # 10. Delivery & Shipping policy inquiry (check before general availability)
+        has_explicit_price = any(k in text_l for k in ["price", "cost", "how much", "quote", "quotation", "pricing", "rate", "discount"])
+        if any(p.search(text_l) for p in cls.DELIVERY_PATTERNS) and not has_explicit_price:
+            return DialogueAct.QUESTION, Intent.SHIPPING_OR_DELIVERY, 0.96, ambiguities
+
+        # 10b. Availability or Pricing Policy
         if any(p.search(text_l) for p in cls.PRICE_POLICY_PATTERNS):
             return DialogueAct.QUESTION, Intent.AVAILABILITY_OR_PRICE_POLICY, 0.90, ambiguities
 
@@ -698,10 +703,6 @@ class TurnUnderstandingExtractor:
         ])
         if not is_equipment_query and any(p.search(text_l) for p in cls.SHOWROOM_PATTERNS):
             return DialogueAct.QUESTION, Intent.CONTACT_SHOWROOM, 0.95, ambiguities
-
-        # 11b. Delivery & Shipping policy inquiry
-        if any(p.search(text_l) for p in cls.DELIVERY_PATTERNS):
-            return DialogueAct.QUESTION, Intent.SHIPPING_OR_DELIVERY, 0.96, ambiguities
 
         # 12. Category Mentions without specific model -> RECOMMEND intent
         category_entities = [e for e in entities if e.entity_type == "category"]

@@ -6217,7 +6217,7 @@ class Orchestrator:
         ])
         if is_business_info:
             reply_text = (
-                "We would be delighted to assist you! Here are our official showroom and contact details:\n\n"
+                "Here are our official showroom and contact details:\n\n"
                 "**Kepler Tech LLC — Dubai Headquarters**\n\n"
                 "📍 **Address:** D79, Khalid Bin Waleed Road, Office No. 1, Abdulla Al Awar Building, Dubai, UAE.\n"
                 "🕒 **Working Hours:** Monday – Friday: 8:30 AM to 5:30 PM | Saturday: 8:30 AM to 1:00 PM | Sunday: Closed\n"

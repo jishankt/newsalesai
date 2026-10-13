@@ -60,6 +60,8 @@ class DialogueState(BaseModel):
     last_direct_answer: Optional[str] = None
     recent_mentions: List[SalientEntity] = Field(default_factory=list)
     recent_assistant_replies: List[str] = Field(default_factory=list)
+    recent_openers: List[str] = Field(default_factory=list)
+    category_intro_displayed: List[str] = Field(default_factory=list)
     last_user_message: Optional[str] = None
 
     def get_current_focus(self, entity_type: Optional[str] = None) -> Optional[SalientEntity]:
