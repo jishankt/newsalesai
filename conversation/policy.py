@@ -137,25 +137,44 @@ class PolicyEngine:
                 next_step=f"You can reach our sales desk directly at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}.",
             )
 
-        # 0.2 Lead Contact Capture (name + phone)
+        # 0.2 Lead Contact Capture (name + phone + email + company)
         phone_match = re.search(r"(?:\+971|00971|0)(?:5[0124568]|4|2|3|6|7|9)\d{7}\b", und.raw_text)
+        email_match = re.search(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", und.raw_text)
         name_match = re.search(r"(?:my name is|name is|i am|this is)\s+([a-zA-Z]+)", und.raw_text, re.I)
-        if phone_match or (name_match and any(w in raw_l for w in ["number", "phone", "call", "contact"])):
-            phone_str = phone_match.group(0) if phone_match else ""
+        company_match = re.search(r"(?:from|company|at)\s+([A-Z][a-zA-Z0-9\s]+(?:LLC|Trading|Est|Group|Studio|Prints|Printing)?)", und.raw_text, re.I)
+
+        if phone_match or email_match or (name_match and any(w in raw_l for w in ["number", "phone", "call", "contact", "email", "quote", "quotation"])):
+            phone_str = phone_match.group(0) if phone_match else None
+            email_str = email_match.group(0) if email_match else None
             name_str = name_match.group(1).title() if name_match else "valued customer"
+            comp_str = company_match.group(1).strip() if company_match else None
+
+            lead_id = None
             try:
                 from persistence.lead_repository import lead_repository
-                lead_repository.save_lead(
+                lead_id = lead_repository.save_lead(
                     session_id=state.session_id,
-                    customer_name=name_str,
+                    customer_name=name_str if name_str != "valued customer" else None,
+                    company=comp_str,
+                    email=email_str,
                     phone=phone_str,
                     product_interest=state.category or (resolved.resolved_target_product.name if resolved.resolved_target_product else "General Equipment"),
+                    notes=f"Customer input: {und.raw_text}",
                 )
             except Exception:
                 pass
+
+            contact_summary = []
+            if phone_str:
+                contact_summary.append(f"phone: {phone_str}")
+            if email_str:
+                contact_summary.append(f"email: {email_str}")
+            contacts_joined = " and ".join(contact_summary) if contact_summary else "contact details"
+            ref_str = f" (Reference #{lead_id})" if lead_id else ""
+
             claim = (
-                f"Thank you, {name_str}! I have recorded your contact details ({phone_str}). "
-                "Our commercial sales team will reach out to you shortly with official equipment quotations and tailored proposals."
+                f"Thank you, {name_str}! I have registered your inquiry{ref_str} with {contacts_joined}. "
+                "Our commercial sales team will reach out to you shortly with an official equipment quotation and tailored proposal."
             )
             rec = EvidenceRecord(
                 claim=claim,
@@ -722,10 +741,32 @@ class PolicyEngine:
             canonical_cat = state.category
 
             # Accumulate extracted requirements into state.confirmed_slots
-            new_reqs = extract_flowchart_requirements(und.raw_text, state.confirmed_slots)
+            req_text = und.raw_text
+            if resolved.bound_pending_option:
+                b_lbl = str(resolved.bound_pending_option.get("label", ""))
+                req_text = f"{req_text} {b_lbl}".strip()
+            new_reqs = extract_flowchart_requirements(req_text, state.confirmed_slots)
             state.confirmed_slots.update(new_reqs)
 
-            step = resolve_flowchart_step(canonical_cat, state.confirmed_slots, und.raw_text)
+            # Qualification Budget: Track qualification questions count
+            turns_on_flow = state.confirmed_slots.get("_qualification_turns", 0) + 1
+            state.confirmed_slots["_qualification_turns"] = turns_on_flow
+
+            step = resolve_flowchart_step(canonical_cat, state.confirmed_slots, req_text)
+
+            # Budget Gate: At max 3 questions before delivering leaf recommendations with product cards
+            if not step.is_leaf and turns_on_flow >= 3:
+                if canonical_cat in ("technical_large_format", "technical_cad", "cad"):
+                    state.confirmed_slots.setdefault("plotter_width", 24)
+                    state.confirmed_slots.setdefault("cad_config_24", "entry_desktop")
+                elif canonical_cat in ("photography_large_format", "photo"):
+                    state.confirmed_slots.setdefault("photo_width", 17)
+                    state.confirmed_slots.setdefault("photo_17_type", "desktop_sheet")
+                elif canonical_cat == "scanners":
+                    state.confirmed_slots.setdefault("scanner_type", "business_sheetfed")
+                elif canonical_cat == "dye_sublimation":
+                    state.confirmed_slots.setdefault("sublimation_format", "desktop")
+                step = resolve_flowchart_step(canonical_cat, state.confirmed_slots, req_text)
 
             # If a specific product or leaf was reached
             if step.is_leaf and step.target_product_id:

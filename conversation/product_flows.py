@@ -119,7 +119,7 @@ def extract_flowchart_requirements(text: str, current_reqs: Optional[Dict[str, A
         reqs["plotter_width"] = max(cad_widths)
 
     # CAD Configuration & Scanner
-    if any(k in text_l for k in ["entry desktop", "desktop stand", "t3100", "sc-t3100"]):
+    if any(k in text_l for k in ["desktop", "entry desktop", "desktop stand", "t3100", "sc-t3100"]):
         reqs["cad_config_24"] = "entry_desktop"
     elif any(k in text_l for k in ["single roll", "t3700e", "sc-t3700e"]):
         reqs["cad_config_24"] = "single_roll"

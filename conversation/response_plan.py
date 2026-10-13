@@ -158,20 +158,61 @@ class ResponsePlanBuilder:
                 if spid not in all_target_ids:
                     all_target_ids.append(spid)
 
-        for pid in all_target_ids:
+        for pid in all_target_ids[:3]:
             if not any(c.get("id") == pid for c in cards):
                 t_node = knowledge_graph.nodes.get(pid.lower())
-                if t_node and t_node.node_type == "printer":
-                    cards.append({
-                        "card_type": "hardware",
-                        "id": t_node.id,
-                        "model_family": t_node.attributes.get("model_family") or t_node.name,
-                        "display_name": t_node.name,
-                        "primary_category": t_node.attributes.get("category"),
-                        "product_url": t_node.attributes.get("url") or f"https://www.keplertechllc.com/product/{t_node.id}",
-                        "image_url": t_node.attributes.get("image_url") or "/static/img/products/default.png",
-                        "badges": ["Verified Official Model"],
-                    })
+                name_str = t_node.name if t_node else pid
+                cat_str = (t_node.attributes.get("category") if t_node else None) or "Hardware"
+                url_str = (t_node.attributes.get("url") if t_node else None) or f"https://www.keplertechllc.com/product/{pid}"
+                img_str = (t_node.attributes.get("image_url") if t_node else None) or "/static/img/products/default.png"
+                mod_str = (t_node.attributes.get("model_family") if t_node else None) or name_str
+
+                if not t_node:
+                    try:
+                        from catalog.catalogue_loader import catalogue_loader
+                        p_info = catalogue_loader.get_by_id(pid.lower()) or {}
+                        if p_info:
+                            name_str = p_info.get("display_name") or p_info.get("name") or name_str
+                            cat_str = p_info.get("category") or cat_str
+                            url_str = p_info.get("product_url") or url_str
+                            img_str = p_info.get("image_url") or img_str
+                            mod_str = p_info.get("model") or p_info.get("model_family") or mod_str
+                    except Exception:
+                        pass
+
+                is_primary = (len(cards) == 0)
+                badge = "Primary Recommendation" if is_primary else "Verified Alternative"
+                rationale = "Primary recommendation matching your specifications." if is_primary else "Verified alternative option with matching capabilities."
+
+                cards.append({
+                    "card_type": "hardware",
+                    "id": pid,
+                    "title": name_str,
+                    "name": name_str,
+                    "model": mod_str,
+                    "model_family": mod_str,
+                    "display_name": name_str,
+                    "primary_category": cat_str,
+                    "category": cat_str,
+                    "product_url": url_str,
+                    "image_url": img_str,
+                    "badges": [badge],
+                    "rationale": rationale,
+                    "match_reasons": [rationale],
+                    "actions": ["Request Official Quote", "View Specs", "Compare"],
+                    "buttons": [
+                        {"label": "Request Official Quote", "payload": f"quote_{pid}"},
+                        {"label": "Compare", "payload": f"compare_{pid}"},
+                    ],
+                    "price": None,
+                    "price_formatted": "Commercial Quote on Request",
+                    "price_str": "Commercial Quote on Request",
+                    "currency": "AED",
+                    "is_request": True,
+                })
+
+        # Cap hardware cards to 1 primary + up to 2 verified alternatives (max 3 cards)
+        cards = cards[:3]
 
         # Ensure consumable cards are attached whenever active_item_id is present
         if decision.active_item_id and not c_cards:

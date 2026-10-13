@@ -7196,19 +7196,35 @@ class Orchestrator:
                     continue
 
                 c_clean = dict(c)
-                if c.get("price"):
+                if source.startswith("unified:") or c.get("is_request") is True:
+                    c_clean["price"] = None
+                    c_clean["price_formatted"] = "Commercial Quote on Request"
+                    c_clean["price_str"] = "Commercial Quote on Request"
+                    c_clean["currency"] = "AED"
+                    c_clean["vat_note"] = ""
+                    c_clean["is_request"] = True
+                    c_clean["actions"] = c.get("actions") or ["Request Official Quote", "View Specs", "Compare"]
+                elif c.get("price"):
                     c_clean["price"] = float(c["price"])
                     c_clean["price_formatted"] = c.get("price_formatted") or f"AED {float(c['price']):,.2f}"
                     c_clean["price_str"] = c.get("price_str") or c_clean["price_formatted"]
                     c_clean["currency"] = c.get("currency") or "AED"
                     c_clean["vat_note"] = c.get("vat_note") or "(Excl. VAT)"
                     c_clean["is_request"] = False
+                    c_clean["actions"] = [
+                        a for a in c_clean.get("actions", [])
+                        if a.lower() not in ("lead", "handover", "quote")
+                    ]
                 elif c.get("price_str") and c.get("price_str") != "Price on Request":
                     c_clean["price_formatted"] = c.get("price_str")
                     c_clean["price_str"] = c.get("price_str")
                     c_clean["currency"] = c.get("currency") or "AED"
                     c_clean["vat_note"] = c.get("vat_note") or "(Excl. VAT)"
                     c_clean["is_request"] = False
+                    c_clean["actions"] = [
+                        a for a in c_clean.get("actions", [])
+                        if a.lower() not in ("lead", "handover", "quote")
+                    ]
                 else:
                     c_clean["price"] = None
                     c_clean["price_formatted"] = "Price on Request"
@@ -7216,11 +7232,10 @@ class Orchestrator:
                     c_clean["currency"] = "AED"
                     c_clean["vat_note"] = ""
                     c_clean["is_request"] = True
-
-                c_clean["actions"] = [
-                    a for a in c_clean.get("actions", [])
-                    if a.lower() not in ("lead", "handover", "quote")
-                ]
+                    c_clean["actions"] = [
+                        a for a in c_clean.get("actions", [])
+                        if a.lower() not in ("lead", "handover", "quote")
+                    ]
                 if not state.requirements or source.startswith("route:product_spec_attribute") or source.startswith("route:product_capability"):
                     c_clean["match_reasons"] = [
                         r for r in c_clean.get("match_reasons", [])
