@@ -188,14 +188,20 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Update header on company name change
-  companyNameInput.addEventListener('input', () => {
-    headerCompanyName.textContent = `${companyNameInput.value.trim() || 'Kepler Tech'} Assistant`;
-  });
+  if (companyNameInput) {
+    companyNameInput.addEventListener('input', () => {
+      if (headerCompanyName) {
+        headerCompanyName.textContent = `${companyNameInput.value.trim() || 'Kepler Tech'} Assistant`;
+      }
+    });
+  }
 
   // Toggle sidebar on smaller screens or button click
-  toggleSidebarBtn.addEventListener('click', () => {
-    sidebar.classList.toggle('open');
-  });
+  if (toggleSidebarBtn && sidebar) {
+    toggleSidebarBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+    });
+  }
 
   // Multi-input Batching & Turn Management State
   let unansweredUserMessages = [];
@@ -301,7 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Render initial greeting matching clean BotPenguin reference
   function renderInitialGreeting() {
     updateActiveAgentUI(DEFAULT_AGENT);
-    const company = companyNameInput.value.trim() || 'Kepler Tech';
+    const company = (companyNameInput && companyNameInput.value ? companyNameInput.value.trim() : '') || 'Kepler Tech';
     const welcomeMsg = `Hi! Welcome to ${company}, I'll be assisting you here today.`;
     appendMessage('bot', welcomeMsg, '', [], null, null, [], [], [], DEFAULT_AGENT);
 
@@ -365,12 +371,12 @@ document.addEventListener('DOMContentLoaded', () => {
     isAwaitingReply = true;
 
     const companyContext = {
-      company_name: companyNameInput.value.trim(),
-      business_type: businessTypeInput.value.trim(),
-      working_hours: workingHoursInput.value.trim(),
-      location: locationInput.value.trim(),
-      products_services: productsServicesInput.value.trim(),
-      additional_info: additionalInfoInput.value.trim()
+      company_name: (companyNameInput && companyNameInput.value ? companyNameInput.value.trim() : '') || 'Kepler Tech LLC',
+      business_type: (businessTypeInput && businessTypeInput.value ? businessTypeInput.value.trim() : ''),
+      working_hours: (workingHoursInput && workingHoursInput.value ? workingHoursInput.value.trim() : ''),
+      location: (locationInput && locationInput.value ? locationInput.value.trim() : ''),
+      products_services: (productsServicesInput && productsServicesInput.value ? productsServicesInput.value.trim() : ''),
+      additional_info: (additionalInfoInput && additionalInfoInput.value ? additionalInfoInput.value.trim() : '')
     };
 
     const combinedMessage = messagesToSend.join('\n');
@@ -379,8 +385,8 @@ document.addEventListener('DOMContentLoaded', () => {
       messages: messagesToSend,
       session_id: sessionId,
       company_context: companyContext,
-      model: ollamaModelInput.value.trim(),
-      ollama_base_url: ollamaUrlInput.value.trim()
+      model: (ollamaModelInput && ollamaModelInput.value ? ollamaModelInput.value.trim() : 'qwen2.5:32b'),
+      ollama_base_url: (ollamaUrlInput && ollamaUrlInput.value ? ollamaUrlInput.value.trim() : '')
     };
 
     activeAbortController = new AbortController();
