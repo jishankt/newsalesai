@@ -25,10 +25,8 @@ class StateRepository:
         self._init_db()
 
     def _get_connection(self) -> sqlite3.Connection:
-        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
-        conn = sqlite3.connect(self.db_path, timeout=10.0)
-        conn.row_factory = sqlite3.Row
-        return conn
+        from persistence.db_pool import SQLiteConnectionPool
+        return SQLiteConnectionPool.get_connection(self.db_path, timeout=10.0)
 
     def _init_db(self):
         try:

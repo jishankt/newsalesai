@@ -99,6 +99,15 @@ def add_security_headers(response):
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com data:; "
+        "img-src 'self' data: https:; "
+        "connect-src 'self';"
+    )
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
 
 
@@ -237,7 +246,8 @@ def readiness():
         "catalogue_count": len(all_prods),
         "catalogue_ok": catalogue_ok,
         "persistence_ok": persistence_ok,
-        "ollama_ok": ollama_ok
+        "ollama_ok": ollama_ok,
+        "circuit_breaker": health_info.get("circuit_breaker"),
     }), status_code
 
 

@@ -47,6 +47,9 @@ def classify_request_error(e: Exception) -> OllamaErrorKind:
     return OllamaErrorKind.INVALID_RESPONSE
 
 
+from security.circuit_breaker import CircuitBreaker, CircuitBreakerOpenException
+
+
 class OllamaClient:
     def __init__(self, base_url: str = OLLAMA_BASE_URL, default_model: str = DEFAULT_MODEL):
         self.base_url = base_url.rstrip("/")
@@ -56,6 +59,12 @@ class OllamaClient:
         adapter = requests.adapters.HTTPAdapter(pool_connections=10, pool_maxsize=20)
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
+        self.circuit_breaker = CircuitBreaker(
+            name="ollama_llm",
+            failure_threshold=3,
+            recovery_timeout=15.0,
+            half_open_success_threshold=1,
+        )
 
     def startup_health_check(self) -> Dict[str, Any]:
         """
@@ -155,14 +164,17 @@ class OllamaClient:
     def check_health(self) -> dict:
         """Checks if Ollama is running and retrieves list of installed models."""
         shc = self.startup_health_check()
+        cb_status = self.circuit_breaker.get_status()
+        is_online = bool(shc["online"] and self.circuit_breaker.is_available())
         return {
-            "online": shc["online"],
+            "online": is_online,
             "models": shc["models"],
             "model_available": shc["model_available"],
             "active_model": self.default_model,
             "base_url": self.base_url,
             "error_kind": shc.get("error_kind"),
-            "message": shc.get("error_message") or ("Ollama service online." if shc["online"] else "Ollama service offline. Rule-based simulation engine active.")
+            "circuit_breaker": cb_status,
+            "message": shc.get("error_message") or ("Ollama service online." if is_online else "Ollama service offline. Rule-based simulation engine active.")
         }
 
     def generate(self, prompt: str, model: str = None, options: dict = None) -> dict:
@@ -170,6 +182,18 @@ class OllamaClient:
         Sends generation request to Ollama /api/generate.
         If Ollama is unreachable, uses fallback engine adhering to prompt guidelines.
         """
+        target_model = model or self.default_model
+        if not self.circuit_breaker.allow_request():
+            logger.warning(f"Ollama generate: Circuit breaker OPEN for model '{target_model}'. Short-circuiting.")
+            return {
+                "success": False,
+                "response": "",
+                "source": "circuit_breaker_open",
+                "model": target_model,
+                "fallback_used": True,
+                "error": "Circuit breaker OPEN for Ollama service."
+            }
+
         payload = {
             "model": target_model,
             "prompt": prompt,
@@ -193,6 +217,7 @@ class OllamaClient:
                     timeout=(OLLAMA_CONNECT_TIMEOUT, OLLAMA_READ_TIMEOUT)
                 )
                 if resp.status_code == 200:
+                    self.circuit_breaker.record_success()
                     data = resp.json()
                     response_text = data.get("response", "").strip()
                     return {
@@ -209,6 +234,7 @@ class OllamaClient:
                     logger.warning(f"[{OllamaErrorKind.INVALID_RESPONSE.value}] Ollama /api/generate HTTP {resp.status_code} (attempt {attempt + 1}): {resp.text[:200]}")
             except requests.exceptions.RequestException as e:
                 kind = classify_request_error(e)
+                self.circuit_breaker.record_failure(e)
                 logger.warning(f"[{kind.value}] Ollama connection error on {endpoint} (attempt {attempt + 1}): {e}")
                 if kind in (OllamaErrorKind.CONNECTION_TIMEOUT, OllamaErrorKind.SERVER_UNAVAILABLE) and attempt >= OLLAMA_MAX_RETRIES:
                     break
@@ -244,7 +270,8 @@ class OllamaClient:
             }
         """
         target_model = model or self.default_model
-        if time.time() < getattr(self, "_offline_until", 0.0):
+        if not self.circuit_breaker.allow_request():
+            logger.info("Ollama classify: Circuit breaker OPEN. Returning fallback immediately.")
             return {
                 "success": False,
                 "result": {},
@@ -289,6 +316,7 @@ class OllamaClient:
 
                 if resp.status_code == 200:
                     self._offline_until = 0.0
+                    self.circuit_breaker.record_success()
                     data = resp.json()
                     content = data.get("message", {}).get("content", "")
                     clean_content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
@@ -326,6 +354,7 @@ class OllamaClient:
             except requests.exceptions.RequestException as e:
                 kind = classify_request_error(e)
                 last_error_kind = kind.value
+                self.circuit_breaker.record_failure(e)
                 logger.warning(f"[{kind.value}] Ollama classify connection error on {endpoint} (attempt {attempt + 1}): {e}")
                 if kind in (OllamaErrorKind.CONNECTION_TIMEOUT, OllamaErrorKind.SERVER_UNAVAILABLE):
                     self._offline_until = time.time() + 10.0
@@ -349,6 +378,18 @@ class OllamaClient:
         Sends an OpenAI-compatible chat completion request to /v1/chat/completions.
         """
         target_model = model or self.default_model
+        if not self.circuit_breaker.allow_request():
+            logger.info("Ollama chat_completions: Circuit breaker OPEN. Returning fallback immediately.")
+            return {
+                "success": False,
+                "response": "",
+                "source": "fallback",
+                "model": target_model,
+                "latency_ms": 0,
+                "fallback_used": True,
+                "error_kind": OllamaErrorKind.SERVER_UNAVAILABLE.value,
+            }
+
         temp = temperature if temperature is not None else OLLAMA_RESPONSE_TEMPERATURE
         p_val = top_p if top_p is not None else OLLAMA_TOP_P
         retries = max_retries if max_retries is not None else OLLAMA_MAX_RETRIES
@@ -374,6 +415,7 @@ class OllamaClient:
                 latency_ms = int((time.time() - start) * 1000)
 
                 if resp.status_code == 200:
+                    self.circuit_breaker.record_success()
                     data = resp.json()
                     choices = data.get("choices", [])
                     content = ""
@@ -398,6 +440,7 @@ class OllamaClient:
             except requests.exceptions.RequestException as e:
                 kind = classify_request_error(e)
                 last_error_kind = kind.value
+                self.circuit_breaker.record_failure(e)
                 logger.warning(f"[{kind.value}] Ollama v1 error on {endpoint} (attempt {attempt + 1}): {e}")
                 if kind in (OllamaErrorKind.CONNECTION_TIMEOUT, OllamaErrorKind.SERVER_UNAVAILABLE) and attempt >= retries:
                     break
@@ -420,7 +463,7 @@ class OllamaClient:
         falling back to native /api/chat if needed.
         """
         target_model = model or self.default_model
-        if time.time() < getattr(self, "_offline_until", 0.0):
+        if not self.circuit_breaker.allow_request():
             return {
                 "success": False,
                 "response": "",

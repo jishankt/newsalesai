@@ -1,0 +1,31 @@
+[Unit]
+Description=Kepler Tech Sales AI Conversational Assistant
+After=network.target ollama.service
+Wants=ollama.service
+
+[Service]
+Type=notify
+User=kyle
+Group=kyle
+WorkingDirectory=/opt/salesai
+Environment="PATH=/opt/salesai/venv/bin:/usr/local/bin:/usr/bin"
+Environment="PYTHONPATH=/opt/salesai"
+Environment="APP_ENV=production"
+Environment="FLASK_ENV=production"
+EnvironmentFile=-/opt/salesai/.env
+ExecStart=/opt/salesai/venv/bin/gunicorn --config /opt/salesai/deploy/gunicorn.conf.py app:app
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=always
+RestartSec=5
+KillMode=mixed
+TimeoutStopSec=30
+LimitNOFILE=65535
+
+# Hardening
+ProtectSystem=full
+ProtectHome=read-only
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
