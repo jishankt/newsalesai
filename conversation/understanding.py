@@ -492,6 +492,7 @@ class TurnUnderstandingExtractor:
             ],
             "technical_cad": [
                 "cad", "technical", "engineering", "blueprints", "line drawings", "architectural",
+                "architect", "archtect", "architecture", "drawing", "drawings", "architect drawings",
                 "gis", "cad plotter", "blueprint", "plotter", "plotters", "large format plotter"
             ],
             "photo_fine_art": [

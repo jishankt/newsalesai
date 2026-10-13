@@ -307,8 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setTimeout(() => {
       const followUp = "Do you want a scanner, printer, or consumables?";
-      const initialChips = ["Printer", "Scanner", "Consumables"];
-      appendMessage('bot', followUp, 'qualification:category_prompt', initialChips, null, null, [], [], [], DEFAULT_AGENT);
+      appendMessage('bot', followUp, 'qualification:category_prompt', [], null, null, [], [], [], DEFAULT_AGENT);
     }, 250);
   }
 
@@ -893,28 +892,7 @@ document.addEventListener('DOMContentLoaded', () => {
       metaEl.appendChild(groundBadge);
     }
 
-    // Render interactive quick reply chips
-    if (sender === 'bot' && parsedChips && parsedChips.length > 0) {
-      const chipsBar = document.createElement('div');
-      chipsBar.className = 'quick-chips-inline';
-      chipsBar.style.cssText = 'display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;';
-      parsedChips.forEach(chipText => {
-        const chipBtn = document.createElement('button');
-        chipBtn.type = 'button';
-        chipBtn.className = 'prompt-chip';
-        chipBtn.style.cssText = 'background: #ffffff; border: 1px solid #cbd5e1; border-radius: 14px; padding: 5px 12px; font-size: 0.74rem; cursor: pointer; color: #1e293b; font-weight: 500; transition: all 0.15s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.05);';
-        chipBtn.textContent = chipText;
-        chipBtn.addEventListener('click', () => {
-          if (chipText === '🔑 Open Login' || chipText === 'Open Login' || chipText === 'Login') {
-            openCustomerModal();
-            return;
-          }
-          enqueueUserMessage(chipText);
-        });
-        chipsBar.appendChild(chipBtn);
-      });
-      contentWrapper.appendChild(chipsBar);
-    }
+    // Quick reply suggestion chip buttons removed per user requirement
 
     row.appendChild(avatar);
     row.appendChild(contentWrapper);

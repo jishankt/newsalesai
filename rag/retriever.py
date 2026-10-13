@@ -14,6 +14,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 PRODUCTS_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "products.json")
 CORPUS_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "kepler_product_corpus.json")
+CATALOGUE_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "catalogue_products.json")
 
 # Confidence thresholds for retrieval gating
 EXACT_MATCH_THRESHOLD = 0.95       # Treat as a definitive match
@@ -22,9 +23,10 @@ UNKNOWN_QUERY_THRESHOLD = 0.20     # Below this — return empty (unknown / off-
 
 
 class RagRetriever:
-    def __init__(self, products_path: str = PRODUCTS_PATH, corpus_path: str = CORPUS_PATH):
+    def __init__(self, products_path: str = PRODUCTS_PATH, corpus_path: str = CORPUS_PATH, catalogue_path: str = CATALOGUE_PATH):
         self.products_path = products_path
         self.corpus_path = corpus_path
+        self.catalogue_path = catalogue_path
         self.products: List[Dict[str, Any]] = []
         self.sku_index: Dict[str, Dict[str, Any]] = {}
         self.doc_texts: List[str] = []
@@ -33,7 +35,7 @@ class RagRetriever:
         self._load_and_index()
 
     def _load_and_index(self):
-        """Loads products.json and builds lexical and TF-IDF search index."""
+        """Loads products.json, merges catalogue_products.json specifications, and builds lexical and TF-IDF search index."""
         raw_products = []
         if os.path.exists(self.products_path):
             with open(self.products_path, "r", encoding="utf-8") as f:
@@ -54,13 +56,39 @@ class RagRetriever:
             except Exception:
                 pass
 
+        # Load verified catalogue products (datasheets, components, exact speeds, dimensions, memory, DPI)
+        catalogue_lookup_by_id = {}
+        catalogue_lookup_by_norm = {}
+        catalogue_token_lookup = {}
+        catalogue_items = []
+        if os.path.exists(self.catalogue_path):
+            try:
+                with open(self.catalogue_path, "r", encoding="utf-8") as cat_f:
+                    catalogue_items = json.load(cat_f)
+                    for cp in catalogue_items:
+                        cid = str(cp.get("id", "")).strip().lower()
+                        cname = cp.get("display_name") or cp.get("name") or ""
+                        norm_cname = re.sub(r"[^a-z0-9]", "", cname.lower())
+                        if cid:
+                            catalogue_lookup_by_id[cid] = cp
+                        if norm_cname:
+                            catalogue_lookup_by_norm[norm_cname] = cp
+                        for tok in re.findall(r"[a-z0-9]{3,}", cname.lower()):
+                            if tok not in {"epson", "surecolor", "workforce", "printer", "technical", "plotter", "large", "format", "multifunction", "scanner"}:
+                                catalogue_token_lookup[tok] = cp
+            except Exception:
+                pass
+
         self.products = []
         self.sku_index = {}
         self.doc_texts = []
+        seen_catalogue_ids = set()
 
         for p in raw_products:
             prod = dict(p)
             norm_name = re.sub(r"[^a-z0-9]", "", prod.get("name", "").lower())
+            
+            # 1. Match from corpus
             extra = corpus_lookup.get(norm_name)
             if not extra:
                 for tok in re.findall(r"[a-z0-9]{3,}", prod.get("name", "").lower()):
@@ -73,6 +101,44 @@ class RagRetriever:
                     if k in extra and not prod.get(k):
                         prod[k] = extra[k]
 
+            # 2. Match from verified catalogue products (datasheet specs)
+            cat_entry = None
+            prod_id_low = str(prod.get("_id") or prod.get("id") or "").lower()
+            if prod_id_low in catalogue_lookup_by_id:
+                cat_entry = catalogue_lookup_by_id[prod_id_low]
+            elif norm_name in catalogue_lookup_by_norm:
+                cat_entry = catalogue_lookup_by_norm[norm_name]
+            else:
+                for norm_c, cp in catalogue_lookup_by_norm.items():
+                    if norm_c and (norm_c in norm_name or norm_name in norm_c):
+                        cat_entry = cp
+                        break
+                if not cat_entry:
+                    for tok in re.findall(r"[a-z0-9]{3,}", prod.get("name", "").lower()):
+                        if tok in catalogue_token_lookup:
+                            cat_entry = catalogue_token_lookup[tok]
+                            break
+
+            if cat_entry:
+                seen_catalogue_ids.add(str(cat_entry.get("id", "")).lower())
+                # Copy rich component and specification attributes
+                for field in [
+                    "dpi", "memory", "dimensions", "weight", "print_speed",
+                    "supported_print_sizes", "applications", "pattern_and_finishing",
+                    "colour_specification", "cartridge_sizes", "consumable_volume",
+                    "yield_capacity", "recommended_monthly_min", "recommended_monthly_max",
+                    "brochure_url", "product_url", "functions", "paper_size", "max_width_inches"
+                ]:
+                    if cat_entry.get(field) and not prod.get(field):
+                        prod[field] = cat_entry[field]
+
+                if not prod.get("speed") and cat_entry.get("print_speed"):
+                    prod["speed"] = cat_entry["print_speed"]
+                if not prod.get("ink_technology") and cat_entry.get("colour_specification"):
+                    prod["ink_technology"] = cat_entry["colour_specification"]
+                if not prod.get("consumables") and cat_entry.get("consumables"):
+                    prod["consumables"] = cat_entry["consumables"]
+
             prod.setdefault("width", "")
             prod.setdefault("speed", "")
             prod.setdefault("ink_technology", "")
@@ -81,6 +147,9 @@ class RagRetriever:
             sku = str(prod.get("sku", "")).strip()
             if sku:
                 self.sku_index[sku.upper()] = prod
+            prod_id = str(prod.get("_id") or prod.get("id") or "").strip()
+            if prod_id:
+                self.sku_index[prod_id.upper()] = prod
 
             # Build rich document string for indexing
             name = prod.get("name", "")
@@ -90,8 +159,15 @@ class RagRetriever:
             intended = prod.get("intended_usage", "")
             highlights = prod.get("comparison_highlights", "")
             width = prod.get("width", "")
-            speed = prod.get("speed", "")
-            ink = prod.get("ink_technology", "")
+            speed = prod.get("speed", "") or prod.get("print_speed", "")
+            ink = prod.get("ink_technology", "") or prod.get("colour_specification", "")
+            dpi = prod.get("dpi", "")
+            mem = prod.get("memory", "")
+            dims = prod.get("dimensions", "")
+            wt = prod.get("weight", "")
+            apps = ", ".join(prod.get("applications", [])) if isinstance(prod.get("applications"), list) else str(prod.get("applications", ""))
+            finishing = prod.get("pattern_and_finishing", "")
+            sizes = ", ".join(prod.get("supported_print_sizes", [])) if isinstance(prod.get("supported_print_sizes"), list) else str(prod.get("supported_print_sizes", ""))
 
             doc_parts = [
                 f"Name: {name}",
@@ -102,15 +178,58 @@ class RagRetriever:
                 f"Width: {width}",
                 f"Speed: {speed}",
                 f"Ink: {ink}",
-                f"Intended: {intended}",
+                f"DPI: {dpi}",
+                f"Memory: {mem}",
+                f"Dimensions: {dims}",
+                f"Weight: {wt}",
+                f"Applications: {apps} {intended}",
+                f"Paper Sizes: {sizes}",
+                f"Finishing: {finishing}",
                 f"Highlights: {highlights}"
             ]
             doc_str = " | ".join([part for part in doc_parts if not part.endswith(":")])
             self.products.append(prod)
             self.doc_texts.append(doc_str)
 
+        # 3. Add any catalogue products not represented in raw_products (e.g. Scanners or specific configurations)
+        for cat_p in catalogue_items:
+            cid = str(cat_p.get("id", "")).lower()
+            if cid not in seen_catalogue_ids:
+                seen_catalogue_ids.add(cid)
+                c_prod = {
+                    "_id": cat_p.get("id"),
+                    "id": cat_p.get("id"),
+                    "sku": cat_p.get("id"),
+                    "name": cat_p.get("display_name") or cat_p.get("name"),
+                    "category": cat_p.get("main_category", "Hardware"),
+                    "description": f"Verified {cat_p.get('display_name')} from Kepler Tech LLC.",
+                    "tags": [cat_p.get("brand", "Epson"), cat_p.get("model_family", ""), cat_p.get("main_category", "")],
+                    "image_url": cat_p.get("image_url", ""),
+                    "website_url": cat_p.get("product_url", ""),
+                    "consumables": cat_p.get("consumables", []),
+                    "speed": cat_p.get("print_speed", ""),
+                    "print_speed": cat_p.get("print_speed", ""),
+                    "dpi": cat_p.get("dpi", ""),
+                    "memory": cat_p.get("memory", ""),
+                    "dimensions": cat_p.get("dimensions", ""),
+                    "weight": cat_p.get("weight", ""),
+                    "width": f"{cat_p.get('max_width_inches', '')} inches" if cat_p.get("max_width_inches") else "",
+                    "ink_technology": cat_p.get("colour_specification", ""),
+                    "colour_specification": cat_p.get("colour_specification", ""),
+                    "supported_print_sizes": cat_p.get("supported_print_sizes", []),
+                    "applications": cat_p.get("applications", []),
+                    "pattern_and_finishing": cat_p.get("pattern_and_finishing", ""),
+                    "brochure_url": cat_p.get("brochure_url", ""),
+                    "product_url": cat_p.get("product_url", "")
+                }
+                cid_up = cat_p["id"].upper()
+                self.sku_index[cid_up] = c_prod
+                self.products.append(c_prod)
+                doc_str = f"Name: {c_prod['name']} | SKU: {c_prod['sku']} | Category: {c_prod['category']} | Speed: {c_prod['speed']} | DPI: {c_prod['dpi']} | Memory: {c_prod['memory']} | Dimensions: {c_prod['dimensions']} | Weight: {c_prod['weight']}"
+                self.doc_texts.append(doc_str)
+
         if self.doc_texts:
-            self.vectorizer = TfidfVectorizer(ngram_range=(1, 2), stop_words="english", max_features=8000)
+            self.vectorizer = TfidfVectorizer(ngram_range=(1, 2), stop_words="english", max_features=12000)
             self.tfidf_matrix = self.vectorizer.fit_transform(self.doc_texts)
 
     def search(self, query: str, category: Optional[str] = None, limit: int = 4) -> List[Dict[str, Any]]:

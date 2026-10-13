@@ -143,7 +143,7 @@ class ResponsePlanBuilder:
         elif decision.action == PolicyAction.OUT_OF_SCOPE_REDIRECT:
             direct_answer = (
                 "Kepler Tech is an authorized distributor specializing in official Epson large-format "
-                "and Citizen photo/dye-sublimation systems. We do not supply 3D printers, laser copiers, or third-party brands."
+                "and Citizen photo/dye-sublimation systems. We do not carry 3D printers, laser copiers, or third-party brands in our catalogue."
             )
 
         # 5. Default Answer Flow

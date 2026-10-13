@@ -212,14 +212,15 @@ def _normalize_category_single(raw_text: str, current_category: Optional[str] = 
         text_l
     ))
     # Affirmative CAD/plotter request (e.g. "no, I need a CAD plotter" or "no I want plotter") overrides negation
-    if bool(re.search(r"\b(?:i\s+(?:need|want|would\s+like|prefer)|looking\s+for|switch\s+to|show\s+me|give\s+me|interested\s+in|ineed|iwant)\b.*?\b(?:cad|technical|plotter|blueprint)\b", text_l)):
-        cad_negated = False
+    if not bool(re.search(r"\bnot\s+(?:for\s+)?(?:cad|technical|plotter|blueprint)\b", text_l)):
+        if bool(re.search(r"\b(?:i\s+(?:need|want|would\s+like|prefer)|looking\s+for|switch\s+to|show\s+me|give\s+me|interested\s+in|ineed|iwant)\b\s*(?:a\s+|an\s+)?(?:cad|technical|plotter|blueprint)\b", text_l)):
+            cad_negated = False
 
     if not cad_negated and (any(k in text_l for k in [
         "cad", "cad drawing", "cad drawings",
         "blueprint", "blueprints",
         "plotter", "plotters", "plottaer", "plottaers", "platter",
-        "architect", "architectural", "architecture",
+        "architect", "archtect", "architectural", "architecture",
         "engineering drawing", "engineering drawings", "engineering",
         "gis", "maps",
         "sc-t", "t3100", "t3700", "t5100", "t5400", "t5405", "t5700", "t7700",

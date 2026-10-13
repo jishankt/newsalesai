@@ -1,0 +1,374 @@
+[
+  {
+    "id": "conv_1_architecture_studio",
+    "title": "Architectural Studio Blueprint Buyer (Dubai Marina)",
+    "overall_score": 5.0,
+    "turn_scores": [
+      5.0,
+      5.0,
+      5.0,
+      5.0,
+      5.0,
+      5.0,
+      5.0
+    ],
+    "flags": [],
+    "transcript": [
+      {
+        "turn": 1,
+        "user": "Hi, I am looking for a large format plotter for my architectural consultancy in Dubai Marina. We produce CAD drawings and site plans.",
+        "bot": "Kepler Tech supplies the Epson SureColor T-Series, engineered for line accuracy, AEC drawings, and water-resistant UltraChrome XD2/XD3 inks.\n\nWhat plotter width do you require for CAD drawings, blueprints, or GIS mapping?",
+        "latency_ms": 281,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 2,
+        "user": "We usually print A1 and A0 blueprints, maybe 40 to 60 sheets a week.",
+        "bot": "36-inch plotters are available as dedicated high-speed printers or integrated multifunction workstations with wide-format scanners.\n\nDo you require a dedicated print-only 36-inch plotter or an integrated scan & copy MFP?",
+        "latency_ms": 185,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 3,
+        "user": "Does the 36-inch model come with a stand and catch basket?",
+        "bot": "Regarding your operational workflow:\n\n36-inch plotters are available as dedicated high-speed printers or integrated multifunction workstations with wide-format scanners.\n\nDo you require a dedicated print-only 36-inch plotter or an integrated scan & copy MFP?",
+        "latency_ms": 183,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 4,
+        "user": "Can we print directly from an iPad or phone on the site?",
+        "bot": "Which printing application fits your requirements?\n\nPlease select a category or ask a specific model question.",
+        "latency_ms": 1452,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 5,
+        "user": "What ink cartridges does it use and are they water resistant?",
+        "bot": "Which printer or scanner model do you need consumables for?\n\nPlease select your printer model.",
+        "latency_ms": 172,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 6,
+        "user": "How much is the printer and do you deliver to Dubai Marina?",
+        "bot": "Official pricing and volume quotations for the our equipment are provided directly through our sales desk.\n\nDelivery across Dubai and all UAE emirates is a flat AED 10, dispatched within 1 to 2 business days (excluding weekends and public holidays).\n\nFree store pickup at our Dubai showroom is also available (ready in 1 to 2 days). On-site installation is provided for production plotters.\n\nOur sales specialists are available at sales@keplertech.ae or +971 4 323 1008 to prepare your official proposal.",
+        "latency_ms": 176,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 7,
+        "user": "Thank you for the guidance. Can I visit your showroom to see it in person?",
+        "bot": "Kepler Tech LLC Showroom & Office:\nD79, Khalid Bin Waleed Road, Office No. 1, Abdulla Al Awar Building, Dubai, United Arab Emirates.\n\n\u2022 Hours: Monday \u2013 Friday 8:30 AM \u2013 5:30 PM, Saturday 8:30 AM \u2013 1:00 PM, Sunday Closed (GST).\n\u2022 Phone: +971 4 323 1008 | Email: sales@keplertech.ae / info@keplertech.ae.\n\nWould you like directions or to schedule an on-site equipment demonstration?",
+        "latency_ms": 180,
+        "score": 5.0,
+        "flags": []
+      }
+    ]
+  },
+  {
+    "id": "conv_2_fine_art_gallery",
+    "title": "Fine-Art Gallery Photographer (Inexperienced / Hesitant)",
+    "overall_score": 4.86,
+    "turn_scores": [
+      5.0,
+      5.0,
+      5.0,
+      5.0,
+      5.0,
+      4.5,
+      4.5
+    ],
+    "flags": [
+      "Turn 6: Repeated identical opener: 'moving forward with your'",
+      "Turn 7: Repeated identical opener: 'here is the breakdown:'"
+    ],
+    "transcript": [
+      {
+        "turn": 1,
+        "user": "Good morning! I'm completely new to professional photo printing and honestly feeling a bit lost with all the options.",
+        "bot": "Here is the breakdown:\n\nEpson SureColor P-Series printers feature UltraChrome PRO pigment inksets, dedicated Photo/Matte Black nozzles, and museum-grade archival stability.\n\nWhat print width and format do you require for photography and fine art printing?",
+        "latency_ms": 198,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 2,
+        "user": "I want to print exhibition-grade black and white photography up to 17 inches.",
+        "bot": "Moving forward with your request:\n\nHere is what the manufacturer specifies:\n\nEpson SureColor P-Series printers feature UltraChrome PRO pigment inksets, dedicated Photo/Matte Black nozzles, and museum-grade archival stability.\n\nWhat print width and format do you require for photography and fine art printing?",
+        "latency_ms": 176,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 3,
+        "user": "What makes the P900 better than an office inkjet for black and white prints?",
+        "bot": "Let's look at the specifications:\n\nEpson SureColor SC-P900 is an approved official equipment model in our catalogue.\n\u2022 Print speed: Approx. 90 sec for 8\u00d710\u2033 / 150 sec for 13\u00d719\u2033 / 280 sec for 17\u00d722\u2033 (Premium Glossy Photo Paper)\n\u2022 Resolution: 5,760 \u00d7 1,440 DPI\n\u2022 Supported format: 17-inch\n\nWould you like to review full technical specifications or request an official quotation for the Epson SureColor SC-P900?",
+        "latency_ms": 180,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 4,
+        "user": "Does it support roll paper for panoramic gallery prints?",
+        "bot": "Good question.\n\nEpson SureColor SC-P900 is an approved official equipment model in our catalogue.\n\nWould you like to review full technical specifications or request an official quotation for the Epson SureColor SC-P900?",
+        "latency_ms": 169,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 5,
+        "user": "Can you give me a 20% discount if I buy it today?",
+        "bot": "Commercial pricing, tax invoices, and volume discounts for the Epson SureColor SC-P900 are provided directly through our official sales desk.\n\nOfficial tax invoices and volume discounts are provided directly by our sales desk at sales@keplertech.ae or +971 4 323 1008.",
+        "latency_ms": 184,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 6,
+        "user": "Understood about the website pricing. Can I use third party dye ink to save cost?",
+        "bot": "Moving forward with your request:\n\nCommercial pricing, tax invoices, and volume discounts for the Epson SureColor SC-P900 are provided directly through our official sales desk.\n\nOfficial tax invoices and volume discounts are provided directly by our sales desk at sales@keplertech.ae or +971 4 323 1008.",
+        "latency_ms": 201,
+        "score": 4.5,
+        "flags": [
+          "Repeated identical opener: 'moving forward with your'"
+        ]
+      },
+      {
+        "turn": 7,
+        "user": "That makes complete sense. Thank you for being so patient with my questions!",
+        "bot": "Here is the breakdown:\n\nEpson SureColor SC-P900 is an approved official equipment model in our catalogue.\n\nWould you like to see detailed specifications or compatible consumables for the Epson SureColor SC-P900?",
+        "latency_ms": 182,
+        "score": 4.5,
+        "flags": [
+          "Repeated identical opener: 'here is the breakdown:'"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "conv_3_event_photo_booth",
+    "title": "Event Photo Booth Business Owner (High Speed & Volume)",
+    "overall_score": 5.0,
+    "turn_scores": [
+      5.0,
+      5.0,
+      5.0,
+      5.0,
+      5.0,
+      5.0,
+      5.0
+    ],
+    "flags": [],
+    "transcript": [
+      {
+        "turn": 1,
+        "user": "Hey there, we run event photo booths for weddings and corporate parties in Abu Dhabi and Dubai.",
+        "bot": "How can I best assist you with Kepler Tech printing equipment?\n\nPlease select a category or ask a specific model question.",
+        "latency_ms": 1413,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 2,
+        "user": "We need a compact, super fast printer that can do 4x6 photo strips on the spot without ink drying time.",
+        "bot": "Which printing application fits your requirements?\n\nPlease select a category or ask a specific model question.",
+        "latency_ms": 185,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 3,
+        "user": "How many seconds does the Citizen CX-02 take for a 4x6 print?",
+        "bot": "Understood.\n\nCitizen CX-02 is an approved official equipment model in our catalogue.\n\u2022 Print speed: 4\u00d76\u2033: 8.4s (High Speed) / 9.8s (High Quality); 5\u00d77\u2033: 14.2s; 6\u00d78\u2033: 15.6s; 6\u00d79\u2033: 20.8s\n\u2022 Resolution: 300 \u00d7 300 DPI (High-speed) / 300 \u00d7 600 DPI (High-resolution)\n\u2022 Supported format: 6-inch\n\nWould you like to review full technical specifications or request an official quotation for the Citizen CX-02?",
+        "latency_ms": 167,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 4,
+        "user": "Does it use ink cartridges or dye-sub ribbon rolls?",
+        "bot": "Found 4 verified compatible consumables for Citizen CX-02.\n\nWould you like to order replacement supplies or review printer specifications?",
+        "latency_ms": 165,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 5,
+        "user": "How many prints can we get from one media roll before reloading?",
+        "bot": "To get you exact specifications without delay, our senior sales consultant will assist you directly at sales@keplertech.ae.",
+        "latency_ms": 1187,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 6,
+        "user": "Do you have stock available in Dubai right now for immediate delivery?",
+        "bot": "Delivery across Dubai and all UAE emirates is a flat AED 10, dispatched within 1 to 2 business days (excluding weekends and public holidays).\n\nFree store pickup at our Dubai showroom is also available (ready in 1 to 2 days). On-site installation is provided for production plotters.\n\nWould you like to arrange delivery or pickup for a specific equipment model?",
+        "latency_ms": 196,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 7,
+        "user": "I need to talk to a human sales rep to set up a trade account.",
+        "bot": "I have notified our Live Sales Desk! A Kepler Tech sales specialist has been alerted and will join this conversation momentarily to assist you directly.\n\nIn the meantime, please feel free to share any details, preferred configurations, or project requirements you'd like our team to prepare.",
+        "latency_ms": 24,
+        "score": 5.0,
+        "flags": []
+      }
+    ]
+  },
+  {
+    "id": "conv_4_enterprise_office",
+    "title": "Enterprise Office Fleet Manager (WorkForce & Scanners)",
+    "overall_score": 5.0,
+    "turn_scores": [
+      5.0,
+      5.0,
+      5.0,
+      5.0,
+      5.0,
+      5.0,
+      5.0
+    ],
+    "flags": [],
+    "transcript": [
+      {
+        "turn": 1,
+        "user": "Hello, our law firm is looking to replace our old laser copiers with high-speed, lower heat business printers.",
+        "bot": "Which printing application fits your requirements?\n\nPlease select a category or ask a specific model question.",
+        "latency_ms": 1207,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 2,
+        "user": "We print roughly 30,000 pages per month, mostly legal contracts and court filings in color and mono.",
+        "bot": "Moving forward with your request:\n\nWhich printing application fits your requirements?\n\nPlease select a category or ask a specific model question.",
+        "latency_ms": 216,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 3,
+        "user": "What is the speed and ink capacity of the WorkForce Enterprise WF-C20600?",
+        "bot": "The wf-c20600 is not in our approved equipment catalogue. We offer verified official alternatives including Epson WorkForce Pro WF-C5890 DWF, Epson WorkForce Pro WF-C878R DWF, Epson WorkForce Pro WF-C879R DWF.\n\nWould you like to explore verified specifications for the Epson WorkForce Pro WF-C5890 DWF?",
+        "latency_ms": 183,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 4,
+        "user": "We also need to scan double-sided legal documents rapidly. Do you have dedicated document scanners?",
+        "bot": "Good question.\n\nEpson WorkForce Pro WF-C879R DWF is an approved official equipment model in our catalogue.\n\nWould you like to review full technical specifications or request an official quotation for the Epson WorkForce Pro WF-C879R DWF?",
+        "latency_ms": 187,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 5,
+        "user": "How fast is the DS-530II duplex scanning?",
+        "bot": "Here are the verified details:\n\nEpson WorkForce WF DS-530II Color Duplex Document Scanner is an approved official equipment model in our catalogue.\n\u2022 Resolution: 600 \u00d7 600 DPI\n\u2022 Supported format: a4\n\nWould you like to review full technical specifications or request an official quotation for the Epson WorkForce WF DS-530II Color Duplex Document Scanner?",
+        "latency_ms": 164,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 6,
+        "user": "Can we negotiate a lease contract with Kepler Tech?",
+        "bot": "Yes, absolutely.\n\nEpson WorkForce WF DS-530II Color Duplex Document Scanner is an approved official equipment model in our catalogue.\n\nWould you like to see detailed specifications or compatible consumables for the Epson WorkForce WF DS-530II Color Duplex Document Scanner?",
+        "latency_ms": 1343,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 7,
+        "user": "Got it, thanks for directing me to the commercial team.",
+        "bot": "Regarding your operational workflow:\n\nHere is the breakdown:\n\nEpson WorkForce WF DS-530II Color Duplex Document Scanner is an approved official equipment model in our catalogue.\n\nWould you like to see detailed specifications or compatible consumables for the Epson WorkForce WF DS-530II Color Duplex Document Scanner?",
+        "latency_ms": 183,
+        "score": 5.0,
+        "flags": []
+      }
+    ]
+  },
+  {
+    "id": "conv_5_returning_customer_flow",
+    "title": "Returning Customer Contact Onboarding & Technical Consultation",
+    "overall_score": 5.0,
+    "turn_scores": [
+      5.0,
+      5.0,
+      5.0,
+      5.0,
+      5.0,
+      5.0,
+      5.0
+    ],
+    "flags": [],
+    "transcript": [
+      {
+        "turn": 1,
+        "user": "Hello, I am looking for a 24 inch technical plotter.",
+        "bot": "Select between compact desktop placement or heavy-duty single/dual roll production engines.\n\nFor 24-inch CAD printing, what configuration fits your workspace?",
+        "latency_ms": 211,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 2,
+        "user": "My name is Omar Al Suwaidi and my mobile is +971 52 345 6789",
+        "bot": "Kepler Tech LLC Showroom & Office:\nD79, Khalid Bin Waleed Road, Office No. 1, Abdulla Al Awar Building, Dubai, United Arab Emirates.\n\n\u2022 Hours: Monday \u2013 Friday 8:30 AM \u2013 5:30 PM, Saturday 8:30 AM \u2013 1:00 PM, Sunday Closed (GST).\n\u2022 Phone: +971 4 323 1008 | Email: sales@keplertech.ae / info@keplertech.ae.\n\nWould you like directions or to schedule an on-site equipment demonstration?",
+        "latency_ms": 174,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 3,
+        "user": "Yes, save chat history",
+        "bot": "How can I best assist you with Kepler Tech printing equipment?\n\nPlease select a category or ask a specific model question.",
+        "latency_ms": 149,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 4,
+        "user": "Can the SC-T3100 handle cut sheets as well as roll media?",
+        "bot": "Here are the verified details:\n\nEpson SureColor SC-T3100 is an approved official equipment model in our catalogue.\n\u2022 Print speed: 34 sec / A1 CAD line drawing on plain paper (approx. 106 A1/hr)\n\u2022 Resolution: 2,400 \u00d7 1,200 DPI\n\u2022 Supported format: 24-inch\n\nWould you like to review full technical specifications or request an official quotation for the Epson SureColor SC-T3100?",
+        "latency_ms": 157,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 5,
+        "user": "What is the warranty coverage on this model?",
+        "bot": "Happy to help with that.\n\nEpson SureColor SC-T3100 is an approved official equipment model in our catalogue.\n\nWould you like to see detailed specifications or compatible consumables for the Epson SureColor SC-T3100?",
+        "latency_ms": 173,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 6,
+        "user": "Can you give me free extra ink cartridges with my order?",
+        "bot": "Found 13 verified compatible consumables for Epson SureColor SC-T3100.\n\nWould you like to order replacement supplies or review printer specifications?",
+        "latency_ms": 163,
+        "score": 5.0,
+        "flags": []
+      },
+      {
+        "turn": 7,
+        "user": "Thank you, that was very helpful.",
+        "bot": "Regarding your operational workflow:\n\nYes, absolutely.\n\nEpson SureColor SC-T3100 is an approved official equipment model in our catalogue.\n\nWould you like to see detailed specifications or compatible consumables for the Epson SureColor SC-T3100?",
+        "latency_ms": 162,
+        "score": 5.0,
+        "flags": []
+      }
+    ]
+  }
+]
