@@ -59,6 +59,8 @@ class DialogueState(BaseModel):
     last_dialogue_act: Optional[DialogueAct] = None
     last_direct_answer: Optional[str] = None
     recent_mentions: List[SalientEntity] = Field(default_factory=list)
+    recent_assistant_replies: List[str] = Field(default_factory=list)
+    last_user_message: Optional[str] = None
 
     def get_current_focus(self, entity_type: Optional[str] = None) -> Optional[SalientEntity]:
         """Returns the top entity from the focus stack matching entity_type if specified."""
@@ -307,24 +309,45 @@ class ReferentResolver:
         text: str,
         state: DialogueState,
     ) -> Optional[Dict[str, Any]]:
-        """Binds short replies ('yes', 'ok', '1', '2', 'the second') to pending question options."""
-        if not state.pending_question or not state.pending_question.options:
-            return None
+        """Binds short replies ('yes', 'ok', '1', '2', 'the first one', 'the second') to pending options or chips."""
+        options: List[Dict[str, Any]] = []
+        if state.pending_question and state.pending_question.options:
+            options = list(state.pending_question.options)
+        elif state.last_shown_products:
+            options = [
+                {
+                    "id": p.get("id") or p.get("model_family"),
+                    "label": p.get("display_name") or p.get("name") or p.get("id"),
+                    "value": p.get("id"),
+                    "product": p,
+                }
+                for p in state.last_shown_products
+            ]
+        elif state.last_shown_chips:
+            options = [{"id": c, "label": c, "value": c} for c in state.last_shown_chips]
 
         text_l = text.lower().strip()
-        options = state.pending_question.options
 
-        # Ordinal or numeric binding ("1", "first", "2", "second")
-        if text_l in ("1", "first", "the first", "option 1"):
+        # Direct chip label match if user typed or clicked a chip
+        if state.last_shown_chips:
+            for c in state.last_shown_chips:
+                c_l = c.lower().strip()
+                if text_l == c_l or (len(text_l) > 3 and text_l in c_l):
+                    return {"id": c, "label": c, "value": c}
+
+        if not options:
+            return None
+
+        # Ordinal or numeric binding ("1", "first", "the first one", "2", "second", "the second one")
+        if text_l in ("1", "first", "the first", "the first one", "first one", "option 1", "choice 1"):
             return options[0] if len(options) > 0 else None
-        if text_l in ("2", "second", "the second", "option 2"):
+        if text_l in ("2", "second", "the second", "the second one", "second one", "option 2", "choice 2"):
             return options[1] if len(options) > 1 else None
-        if text_l in ("3", "third", "the third", "option 3"):
+        if text_l in ("3", "third", "the third", "the third one", "third one", "option 3", "choice 3"):
             return options[2] if len(options) > 2 else None
 
         # Yes / Affirmative binding
         if text_l in ("yes", "yep", "sure", "ok", "correct", "affirmative", "that's right", "thats right"):
-            # If options have a yes/confirm option, bind to it; otherwise bind to option 0
             for opt in options:
                 if str(opt.get("id", "")).lower() in ("yes", "confirm", "proceed") or "yes" in str(opt.get("label", "")).lower():
                     return opt
@@ -361,7 +384,12 @@ class ReferentResolver:
         bound_option = None
 
         # 1. Short reply binding
-        if understanding.dialogue_act in (DialogueAct.CONFIRMATION, DialogueAct.REJECTION, DialogueAct.ANSWER_TO_MY_QUESTION) or len(understanding.raw_text.split()) <= 2:
+        is_short_or_ordinal = (
+            understanding.dialogue_act in (DialogueAct.CONFIRMATION, DialogueAct.REJECTION, DialogueAct.ANSWER_TO_MY_QUESTION)
+            or len(understanding.raw_text.split()) <= 4
+            or any(w in understanding.raw_text.lower() for w in ["first", "second", "third", "1st", "2nd", "3rd", "option", "yes", "ok", "confirm"])
+        )
+        if is_short_or_ordinal:
             bound_option = cls.bind_short_reply(understanding.raw_text, state)
 
         # 2. Reference expressions resolution
@@ -388,6 +416,21 @@ class ReferentResolver:
                 if r.resolved_entity and r.resolved_entity.entity_type == "printer":
                     target_prod = r.resolved_entity
                     break
+
+        if not target_prod and bound_option:
+            p_data = bound_option.get("product")
+            p_id = bound_option.get("id") or bound_option.get("value")
+            if not p_data and p_id:
+                from catalog.catalogue_loader import catalogue_loader
+                p_data = catalogue_loader.get_by_id(str(p_id))
+            if p_data:
+                target_prod = SalientEntity(
+                    id=str(p_data.get("id", p_id)),
+                    entity_type="printer",
+                    name=p_data.get("display_name") or str(p_id),
+                    metadata=p_data,
+                    turn_introduced=state.turn_count,
+                )
 
         if not target_prod and state.get_current_focus("printer"):
             target_prod = state.get_current_focus("printer")

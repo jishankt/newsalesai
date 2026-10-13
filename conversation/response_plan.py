@@ -336,4 +336,28 @@ class ResponsePlanValidator:
                     else:
                         plan.formatted_reply = plan.formatted_reply.replace(lm, "")
 
+        # 6. Anti-Repeat Consecutive Reply Guard
+        prev_replies = getattr(state, "recent_assistant_replies", []) or []
+        if prev_replies and plan.formatted_reply:
+            from difflib import SequenceMatcher
+            for prev_r in prev_replies[-2:]:
+                ratio = SequenceMatcher(None, plan.formatted_reply.strip().lower(), prev_r.strip().lower()).ratio()
+                if ratio >= 0.85:
+                    logger.warning(f"Anti-repeat guard: Candidate reply similarity {ratio:.2f} >= 0.85. Rephrasing.")
+                    transitions = [
+                        "To continue with your equipment selection:",
+                        "Moving forward with your request:",
+                        "Regarding your operational workflow:",
+                        "To help guide you to the right system:",
+                    ]
+                    chosen_t = transitions[state.turn_count % len(transitions)]
+                    plan.formatted_reply = f"{chosen_t}\n\n{plan.formatted_reply}"
+                    break
+
+        if not hasattr(state, "recent_assistant_replies") or state.recent_assistant_replies is None:
+            state.recent_assistant_replies = []
+        state.recent_assistant_replies.append(plan.formatted_reply)
+        if len(state.recent_assistant_replies) > 5:
+            state.recent_assistant_replies.pop(0)
+
         return plan

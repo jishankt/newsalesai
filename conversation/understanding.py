@@ -319,6 +319,32 @@ class TurnUnderstandingExtractor:
         re.compile(r"\b(?:what (?:are )?you asking|what do you mean|i don'?t understand|previous chat|priviace chat|check (?:the )?chat|check (?:the )?history|what did i say|answer after checking)\b", re.I),
     ]
 
+    FRUSTRATION_PATTERNS = [
+        re.compile(
+            r"\b(?:this is useless|useless|stupid\b|terrible|waste of time|"
+            r"i already said|already said|i told you|already told you|listen to me|you are not listening|"
+            r"not helpful|awful|talk to a human|human please|agent please)\b",
+            re.I
+        ),
+    ]
+
+    OBJECTION_PATTERNS = [
+        re.compile(r"\b(?:too expensive|too high|expensive|cannot afford|out of my budget|cheaper|lower cost|less expensive)\b", re.I),
+    ]
+
+    HESITATION_PATTERNS = [
+        re.compile(r"\b(?:think about it|i'?ll think about it|need to think|not sure yet|maybe later)\b", re.I),
+    ]
+
+    GRATITUDE_PATTERNS = [
+        re.compile(r"\b(?:shukran|thank you|thanks|thank u|thx|much appreciated|appreciate it)\b", re.I),
+    ]
+
+    LEAD_INFO_PATTERNS = [
+        re.compile(r"\b(?:my name is|number is|phone is|call me at|reach me at|contact me at)\b", re.I),
+        re.compile(r"(?:\+971|00971|0)(?:5[0124568]|4|2|3|6|7|9)\d{7}\b"),
+    ]
+
     @classmethod
     def extract_reference_expressions(cls, text: str) -> List[ReferenceExpression]:
         refs: List[ReferenceExpression] = []
@@ -423,9 +449,15 @@ class TurnUnderstandingExtractor:
 
         # 3b. Detect any unlisted model-code patterns (e.g. wf-c20600, t5200) not in approved catalogue
         if not any(e.entity_type in ("model", "unlisted_model") for e in entities):
-            for mc in re.finditer(r"\b([a-z]{1,4}[-_\s]?[a-z]?\d{2,5}[a-z0-9\-_]*)\b", text_l):
+            STOP_PREFIXES = {"is", "my", "no", "at", "in", "on", "to", "by", "or", "am", "pm", "if", "do", "so", "up", "me", "us", "we", "he", "it", "and", "the", "for"}
+            phone_scrubbed = re.sub(r"(?:\+971|00971|0)(?:5[0124568]|4|2|3|6|7|9)\d{7}\b", " ", text_l)
+
+            for mc in re.finditer(r"\b([a-z]{1,4}[-_]?[a-z]?\d{2,5}[a-z0-9\-_]*)\b", phone_scrubbed):
                 raw_code = mc.group(1).strip()
                 clean_code = raw_code.lower()
+                prefix_word = re.split(r"[-_0-9]", clean_code)[0]
+                if prefix_word in STOP_PREFIXES:
+                    continue
                 if clean_code not in seen_keys and len(clean_code) >= 3 and clean_code not in ["page", "pages", "day", "days"]:
                     if clean_code in alias_map:
                         norm_pid = alias_map[clean_code]
@@ -599,9 +631,25 @@ class TurnUnderstandingExtractor:
         if any(p.search(text_l) for p in cls.OUT_OF_SCOPE_PATTERNS):
             return DialogueAct.OUT_OF_SCOPE, Intent.OTHER, 0.95, ambiguities
 
-        # 2b. Confusion or complaint about conversation
-        if any(p.search(text_l) for p in cls.CONFUSION_PATTERNS):
-            return DialogueAct.COMPLAINT, Intent.OTHER, 0.95, ambiguities
+        # 2b. Confusion or complaint / frustration about conversation
+        if any(p.search(text_l) for p in cls.FRUSTRATION_PATTERNS) or any(p.search(text_l) for p in cls.CONFUSION_PATTERNS):
+            return DialogueAct.COMPLAINT, Intent.OTHER, 0.98, ambiguities
+
+        # 2c. Price objection
+        if any(p.search(text_l) for p in cls.OBJECTION_PATTERNS):
+            return DialogueAct.CORRECTION, Intent.AVAILABILITY_OR_PRICE_POLICY, 0.95, ambiguities
+
+        # 2d. Hesitation / thinking about it
+        if any(p.search(text_l) for p in cls.HESITATION_PATTERNS):
+            return DialogueAct.REJECTION, Intent.OTHER, 0.95, ambiguities
+
+        # 2e. Gratitude
+        if any(p.search(text_l) for p in cls.GRATITUDE_PATTERNS) and len(text_l.split()) <= 3:
+            return DialogueAct.CHITCHAT, Intent.OTHER, 0.98, ambiguities
+
+        # 2f. Lead info capture
+        if any(p.search(text_l) for p in cls.LEAD_INFO_PATTERNS):
+            return DialogueAct.ANSWER_TO_MY_QUESTION, Intent.CONTACT_SHOWROOM, 0.98, ambiguities
 
         # 3. Corrections
         if any(p.search(text_l) for p in cls.CORRECTION_PATTERNS):

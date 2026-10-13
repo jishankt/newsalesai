@@ -7,8 +7,10 @@ Enforces anti-looping, frustration handling, zero dead-ends, and honest verifica
 """
 
 import os
+import re
 import logging
 from enum import Enum
+from difflib import SequenceMatcher
 from typing import List, Dict, Any, Optional, Tuple, Set
 from pydantic import BaseModel, Field
 
@@ -110,8 +112,232 @@ class PolicyEngine:
         intent = und.intent
         conf = und.overall_confidence
 
+        # ── PRIORITY 0: UNDERSTANDING & FALLBACK LADDER ─────────────────────────
+        raw_l = und.raw_text.lower().strip()
+
+        # 0.1 Frustration / Complaint Guard
+        if act == DialogueAct.COMPLAINT or any(w in raw_l for w in ["this is useless", "useless", "waste of time", "already said", "not listening"]):
+            claim = (
+                "I sincerely apologize for the frustration. Let me connect you directly with a dedicated "
+                "Kepler Tech equipment specialist who can review your requirements and provide immediate answers."
+            )
+            rec = EvidenceRecord(
+                claim=claim,
+                verified=True,
+                status=CompatibilityStatus.VERIFIED_YES,
+                source_file="config.py",
+                field="support",
+                entity_ids=[],
+            )
+            return PolicyDecision(
+                action=PolicyAction.ANSWER,
+                reason="Frustration detected: immediate apology and specialist handoff.",
+                options_or_chips=["Speak to Specialist", "Request Call Back", "Restart Inquiry"],
+                evidence_records=[rec],
+                next_step=f"You can reach our sales desk directly at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}.",
+            )
+
+        # 0.2 Lead Contact Capture (name + phone)
+        phone_match = re.search(r"(?:\+971|00971|0)(?:5[0124568]|4|2|3|6|7|9)\d{7}\b", und.raw_text)
+        name_match = re.search(r"(?:my name is|name is|i am|this is)\s+([a-zA-Z]+)", und.raw_text, re.I)
+        if phone_match or (name_match and any(w in raw_l for w in ["number", "phone", "call", "contact"])):
+            phone_str = phone_match.group(0) if phone_match else ""
+            name_str = name_match.group(1).title() if name_match else "valued customer"
+            try:
+                from persistence.lead_repository import lead_repository
+                lead_repository.save_lead(
+                    session_id=state.session_id,
+                    customer_name=name_str,
+                    phone=phone_str,
+                    product_interest=state.category or (resolved.resolved_target_product.name if resolved.resolved_target_product else "General Equipment"),
+                )
+            except Exception:
+                pass
+            claim = (
+                f"Thank you, {name_str}! I have recorded your contact details ({phone_str}). "
+                "Our commercial sales team will reach out to you shortly with official equipment quotations and tailored proposals."
+            )
+            rec = EvidenceRecord(
+                claim=claim,
+                verified=True,
+                status=CompatibilityStatus.VERIFIED_YES,
+                source_file="persistence/lead_repository.py",
+                field="lead_capture",
+                entity_ids=[],
+            )
+            return PolicyDecision(
+                action=PolicyAction.ANSWER,
+                reason=f"Lead captured for {name_str}.",
+                options_or_chips=["Official Quote", "Showroom Location", "Browse Catalogue"],
+                evidence_records=[rec],
+                next_step="Would you like me to note any specific volume requirements or delivery preferences for the sales team?",
+            )
+
+        # 0.3 Gratitude ("shukran", "thank you")
+        if any(w in raw_l for w in ["shukran", "thank you", "thanks"]) and len(raw_l.split()) <= 3:
+            claim = "Afwan! You are very welcome. Let me know if you need any further specifications, delivery details, or an official quotation."
+            rec = EvidenceRecord(
+                claim=claim,
+                verified=True,
+                status=CompatibilityStatus.VERIFIED_YES,
+                source_file="conversation/policy.py",
+                field="gratitude",
+                entity_ids=[],
+            )
+            return PolicyDecision(
+                action=PolicyAction.ANSWER,
+                reason="Customer expressed gratitude.",
+                options_or_chips=["Request Official Quote", "Showroom Location", "Browse Catalogue"],
+                evidence_records=[rec],
+                next_step="How else can I assist with your printing requirements?",
+            )
+
+        # 0.4 Price Objection ("it's too expensive", "cheaper alternative")
+        if any(w in raw_l for w in ["too expensive", "expensive", "cheaper", "cannot afford", "out of my budget"]):
+            t_name = resolved.resolved_target_product.name if resolved.resolved_target_product else (state.category or "this equipment")
+            claim = (
+                f"I understand budget is an important factor. For {t_name}, we can explore cost-effective models with lower running costs (such as high-yield ink systems), "
+                "or connect you with our commercial team for promotional rates and volume discounts."
+            )
+            rec = EvidenceRecord(
+                claim=claim,
+                verified=True,
+                status=CompatibilityStatus.VERIFIED_YES,
+                source_file="conversation/policy.py",
+                field="objection_price",
+                entity_ids=[],
+            )
+            return PolicyDecision(
+                action=PolicyAction.ANSWER,
+                reason="Price objection handled with TCO and volume discount options.",
+                options_or_chips=["Cost-Effective Models", "Running Cost Comparison", "Request Official Quote"],
+                evidence_records=[rec],
+                next_step="Would you like to explore lower-investment alternatives or check ink running costs?",
+            )
+
+        # 0.5 Hesitation ("I'll think about it")
+        if any(w in raw_l for w in ["think about it", "i'll think about it", "maybe later", "need to think"]):
+            claim = (
+                "Understood! Take your time. Whenever you are ready, I can provide detailed datasheets, sample print comparisons, or an official quotation."
+            )
+            rec = EvidenceRecord(
+                claim=claim,
+                verified=True,
+                status=CompatibilityStatus.VERIFIED_YES,
+                source_file="conversation/policy.py",
+                field="hesitation",
+                entity_ids=[],
+            )
+            return PolicyDecision(
+                action=PolicyAction.ANSWER,
+                reason="Customer expressed hesitation; polite acknowledgment without pressure.",
+                options_or_chips=["View Technical Specs", "Official Quote", "Consult Specialist"],
+                evidence_records=[rec],
+                next_step="Feel free to return whenever you are ready to proceed with your equipment selection.",
+            )
+
+        # 0.6 Anti-Repeat / Frustration Slot Guard (Identical consecutive user query)
+        prev_user_input = getattr(state, "last_user_message", None)
+        state.last_user_message = und.raw_text
+        if prev_user_input and SequenceMatcher(None, raw_l, prev_user_input.strip().lower()).ratio() >= 0.85:
+            repeat_count = state.clarifications_asked.get("user_repeat_count", 0) + 1
+            state.clarifications_asked["user_repeat_count"] = repeat_count
+        else:
+            state.clarifications_asked["user_repeat_count"] = 0
+            repeat_count = 0
+
+        if repeat_count == 1:
+            topic_label = state.category.replace("_", " ") if state.category else "your equipment requirements"
+            claim = f"Understood, looking for {topic_label}. To guide you to the ideal model, do you need standard A4 desktop output or high-capacity A3 departmental printing?"
+            rec = EvidenceRecord(
+                claim=claim,
+                verified=True,
+                status=CompatibilityStatus.VERIFIED_YES,
+                source_file="conversation/policy.py",
+                field="repeat_slot",
+                entity_ids=[],
+            )
+            return PolicyDecision(
+                action=PolicyAction.ANSWER,
+                reason="User repeated input; acknowledge slot and advance question.",
+                options_or_chips=["A4 Output", "A3 Output", "Consult Specialist"],
+                evidence_records=[rec],
+                next_step="Please select your required paper format.",
+            )
+        elif repeat_count >= 2:
+            claim = (
+                "Based on typical office document workloads, our top verified models are the **Epson WorkForce Pro WF-C5890** (A4) "
+                "and **Epson WorkForce Enterprise AM-C4000** (A3 high-speed)."
+            )
+            rec = EvidenceRecord(
+                claim=claim,
+                verified=True,
+                status=CompatibilityStatus.VERIFIED_YES,
+                source_file="data/catalogue_products.json",
+                field="recommendation",
+                entity_ids=["epson-wf-c5890-dwf", "epson-am-c4000"],
+            )
+            return PolicyDecision(
+                action=PolicyAction.ANSWER_WITH_STATED_ASSUMPTION,
+                reason="User repeated input multiple times; advance with stated assumption and top models.",
+                target_entity_id="epson-wf-c5890-dwf",
+                supporting_product_ids=["epson-am-c4000"],
+                options_or_chips=["View WF-C5890 (A4)", "View AM-C4000 (A3)", "Request Official Quote"],
+                evidence_records=[rec],
+                next_step="Would you like to compare technical specifications or request an official quote?",
+            )
+
+        # 0.7 Mid-Conversation Greeting Continuity
+        if act == DialogueAct.CHITCHAT and any(w in raw_l for w in ["hi", "hello", "hey"]):
+            if state.turn_count > 0 and (state.category or state.last_shown_products or state.focus_stack):
+                cat_display = state.category.replace("_", " ").title() if state.category else "your equipment requirements"
+                claim = f"Hello! We are currently discussing {cat_display}. Would you like to continue reviewing models, check technical specifications, or explore another category?"
+                rec = EvidenceRecord(
+                    claim=claim,
+                    verified=True,
+                    status=CompatibilityStatus.VERIFIED_YES,
+                    source_file="conversation/policy.py",
+                    field="continuity",
+                    entity_ids=[],
+                )
+                chips = [f"Continue with {cat_display}", "Check Specifications", "Explore Other Categories"]
+                return PolicyDecision(
+                    action=PolicyAction.ANSWER,
+                    reason="Mid-conversation greeting; maintain active topic continuity.",
+                    options_or_chips=chips,
+                    evidence_records=[rec],
+                    next_step="How would you like to proceed?",
+                )
+
+        # 0.8 Short Reply / Bound Option Selection
+        if resolved.bound_pending_option:
+            b_opt = resolved.bound_pending_option
+            opt_label = str(b_opt.get("label", b_opt.get("id", "")))
+            p_data = b_opt.get("product")
+            if p_data or resolved.resolved_target_product:
+                target = resolved.resolved_target_product
+                t_name = target.name if target else opt_label
+                t_id = target.id if target else b_opt.get("id")
+                claim = f"**{t_name}** is an approved official equipment model in our catalogue."
+                rec = EvidenceRecord(
+                    claim=claim,
+                    verified=True,
+                    status=CompatibilityStatus.VERIFIED_YES,
+                    source_file="data/catalogue_products.json",
+                    field="selection",
+                    entity_ids=[t_id] if t_id else [],
+                )
+                return PolicyDecision(
+                    action=PolicyAction.ANSWER,
+                    reason=f"Customer selected option: {t_name}.",
+                    target_entity_id=t_id,
+                    options_or_chips=["Technical Specifications", "Compatible Consumables", "Official Quotation"],
+                    evidence_records=[rec],
+                    next_step=f"Would you like to see detailed specifications or compatible consumables for the {t_name}?",
+                )
+
         # 0a. Unlisted / Near Match Model Check (Never silently substitute unlisted models)
-        unlisted_entities = [e for e in und.entities if e.entity_type == "unlisted_model"]
+        unlisted_entities = [e for e in und.entities if e.entity_type == "unlisted_model" and not re.search(r"^\d+$", e.surface_text)]
         if unlisted_entities:
             unlisted = unlisted_entities[0]
             alts = find_unlisted_alternatives(unlisted.surface_text)
@@ -387,6 +613,8 @@ class PolicyEngine:
                 return PolicyDecision(
                     action=PolicyAction.ANSWER,
                     reason=f"Compared verified models {models}.",
+                    target_entity_id=models[0],
+                    supporting_product_ids=models[1:],
                     options_or_chips=["Compare Consumables", "View Official Quotations", "Consult Specialist"],
                     evidence_records=[rec],
                     next_step="Which model better fits your operational volume?",

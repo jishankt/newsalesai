@@ -7131,8 +7131,9 @@ class Orchestrator:
             sanitized_chips = []
             for ch in (suggested_chips or []):
                 ch_l = ch.lower()
-                if any(forbidden in ch_l for forbidden in ["quote", "quotation", "sales desk", "contact sales", "handover", "discount", "order on website"]):
-                    continue
+                if not source.startswith("unified:"):
+                    if any(forbidden in ch_l for forbidden in ["quote", "quotation", "sales desk", "contact sales", "handover", "discount", "order on website"]):
+                        continue
                 if ch not in sanitized_chips:
                     sanitized_chips.append(ch)
             suggested_chips = sanitized_chips
@@ -7570,6 +7571,7 @@ class Orchestrator:
             "product_cards": product_cards,
             "consumable_cards": consumable_cards,
             "suggested_chips": suggested_chips,
+            "chips": suggested_chips,
             "source": source,
             "nlp": nlp_result,
             "grounding": {
