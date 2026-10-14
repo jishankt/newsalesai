@@ -92,6 +92,7 @@ class TurnUnderstanding(BaseModel):
     slots: Dict[str, SlotValue] = Field(default_factory=dict)
     overall_confidence: float = 1.0
     ambiguities: List[str] = Field(default_factory=list)
+    buyer_pace: str = "standard"  # "concise" | "standard" | "technical"
     is_deterministic: bool = True
     used_llm: bool = False
     latency_ms: int = 0
@@ -1072,6 +1073,34 @@ class TurnUnderstandingExtractor:
         return []
 
     @classmethod
+    def extract_buyer_pace(cls, text: str) -> str:
+        """
+        Determines buyer pace: 'concise' | 'standard' | 'technical'
+        based on message length, impatience words (quick, fast, urgent, asap),
+        and technical tokens (dpi, duty cycle, ISO, picoliter, interface).
+        """
+        text_l = text.lower().strip()
+        words = text_l.split()
+
+        # 1. Technical tokens
+        tech_pattern = re.compile(
+            r"\b(?:dpi|dots\s+per\s+inch|duty\s*cycle|iso\b|iso/iec|picoliter|picolitre|picoliters|pl\b|interface|interfaces|ethernet|usb\s*3|postscript|esc/p|precisioncore|printhead|nozzle|nozzles|gm/m2|gsm)\b",
+            re.I
+        )
+        if tech_pattern.search(text_l):
+            return "technical"
+
+        # 2. Impatience tokens / short query
+        impatience_pattern = re.compile(
+            r"\b(?:quick|quickly|fast|urgent|urgently|asap|brief|briefly|short|no fluff|straight to the point|one word)\b",
+            re.I
+        )
+        if impatience_pattern.search(text_l) or (len(words) <= 3 and any(w in text_l for w in ["price?", "cost?", "how much?", "specs?"])):
+            return "concise"
+
+        return "standard"
+
+    @classmethod
     def parse(cls, text: str) -> TurnUnderstanding:
         """Runs the deterministic extractor pipeline."""
         t_start = time.time()
@@ -1080,6 +1109,13 @@ class TurnUnderstandingExtractor:
         slots = cls.extract_slots(text, entities)
         dialogue_act, intent, confidence, ambiguities = cls.classify_dialogue_act_and_intent(text, entities, refs)
         compound_intents = cls.extract_compound_intents(text, intent)
+        buyer_pace = cls.extract_buyer_pace(text)
+        slots["buyer_pace"] = SlotValue(
+            slot_name="buyer_pace",
+            value=buyer_pace,
+            confidence=0.95,
+            source="said_now"
+        )
         duration_ms = int((time.time() - t_start) * 1000)
 
         return TurnUnderstanding(
@@ -1092,6 +1128,7 @@ class TurnUnderstandingExtractor:
             slots=slots,
             overall_confidence=confidence,
             ambiguities=ambiguities,
+            buyer_pace=buyer_pace,
             is_deterministic=True,
             used_llm=False,
             latency_ms=duration_ms,

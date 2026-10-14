@@ -304,5 +304,67 @@ class TestAuditSalesBehavioursFix4(unittest.TestCase):
         self.assertTrue("pages" in reply2.lower() or "cost" in reply2.lower())
 
 
+class TestAuditSalesBehavioursFix6(unittest.TestCase):
+    """
+    FIX 6: Buyer pace (concise mode), content never changes.
+    - 'price? quick.' -> fewer than 2 sentences before the next_step and still passes the validator.
+    - concise and standard replies contain the same verified facts.
+    """
+
+    def test_price_quick_concise_mode_fewer_than_2_sentences_passes_validator(self):
+        turn = understand_turn("price? quick.")
+        self.assertEqual(turn.buyer_pace, "concise")
+
+        state = DialogueState(session_id="test_fix_6_pace_unfocused")
+        resolved = ReferentResolver.resolve_turn(turn, state)
+        self.assertEqual(state.buyer_pace, "concise")
+
+        decision = PolicyEngine.decide(resolved, state)
+        plan = ResponsePlanBuilder.build(decision, resolved, state)
+
+        self.assertTrue(plan.is_valid, "Response plan must pass validator")
+
+        # Must have fewer than 2 sentences before next_step
+        prefix = plan.formatted_reply.split(plan.next_step)[0].strip() if plan.next_step else plan.formatted_reply
+        sents = [s for s in re.split(r"(?<!excl\.)(?<!incl\.)(?<!etc\.)(?<=[.!?])\s+(?=[A-Z0-9])", prefix, flags=re.I) if s.strip()]
+        self.assertLess(len(sents), 2, f"Expected < 2 sentences before next_step, got {len(sents)}: {sents}")
+
+    def test_concise_and_standard_replies_contain_same_verified_facts(self):
+        from conversation.dialogue_state import SalientEntity
+
+        # State with focused product
+        state = DialogueState(session_id="test_fix_6_facts")
+        state.focus_stack.append(SalientEntity(id="epson-sc-f100", entity_type="printer", name="Epson SureColor SC-F100"))
+
+        # Standard pace query
+        turn_std = understand_turn("what is the price of sc-f100?")
+        res_std = ReferentResolver.resolve_turn(turn_std, state)
+        dec_std = PolicyEngine.decide(res_std, state)
+        plan_std = ResponsePlanBuilder.build(dec_std, res_std, state)
+
+        # Concise pace query
+        turn_conc = understand_turn("price? quick.")
+        res_conc = ReferentResolver.resolve_turn(turn_conc, state)
+        dec_conc = PolicyEngine.decide(res_conc, state)
+        plan_conc = ResponsePlanBuilder.build(dec_conc, res_conc, state)
+
+        self.assertTrue(plan_conc.is_valid)
+        self.assertTrue(plan_std.is_valid)
+
+        # Extract numeric prices
+        prices_std = set(re.findall(r"\b\d[\d,.]*\b", plan_std.formatted_reply))
+        prices_conc = set(re.findall(r"\b\d[\d,.]*\b", plan_conc.formatted_reply))
+
+        # Both must contain the verified price (1,950 or 1950)
+        self.assertTrue(any("1,950" in p or "1950" in p for p in prices_std))
+        self.assertTrue(any("1,950" in p or "1950" in p for p in prices_conc))
+
+        # Fewer than 2 sentences before next_step in concise
+        prefix_conc = plan_conc.formatted_reply.split(plan_conc.next_step)[0].strip() if plan_conc.next_step else plan_conc.formatted_reply
+        sents_conc = [s for s in re.split(r"(?<!excl\.)(?<!incl\.)(?<!etc\.)(?<=[.!?])\s+(?=[A-Z0-9])", prefix_conc, flags=re.I) if s.strip()]
+        self.assertLess(len(sents_conc), 2)
+
+
+
 
 

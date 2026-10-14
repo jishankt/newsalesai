@@ -66,6 +66,8 @@ class DialogueState(BaseModel):
     handover_triggered: bool = False
     handover_reason: Optional[str] = None
     handover_timestamp: Optional[float] = None
+    buyer_pace: str = "standard"  # "concise" | "standard" | "technical"
+    buyer_pace_turn: int = 0
 
     def get_current_focus(self, entity_type: Optional[str] = None) -> Optional[SalientEntity]:
         """Returns the top entity from the focus stack matching entity_type if specified."""
@@ -393,6 +395,16 @@ class ReferentResolver:
         """
         resolved_refs: List[ResolvedReferent] = []
         bound_option = None
+
+        # Track buyer pace with decay
+        current_pace = getattr(understanding, "buyer_pace", "standard") or "standard"
+        if current_pace != "standard":
+            state.buyer_pace = current_pace
+            state.buyer_pace_turn = state.turn_count
+        else:
+            if state.buyer_pace != "standard" and (state.turn_count - getattr(state, "buyer_pace_turn", 0) > 3):
+                state.buyer_pace = "standard"
+        state.confirmed_slots["buyer_pace"] = state.buyer_pace
 
         # 1. Short reply binding
         is_short_or_ordinal = (

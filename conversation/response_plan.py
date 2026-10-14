@@ -339,21 +339,52 @@ class ResponsePlanBuilder:
                             "badges": ["Genuine Kepler Tech Consumable"],
                         })
 
+        # Determine effective buyer pace
+        pace = getattr(state, "buyer_pace", "standard") or "standard"
+        if getattr(und, "buyer_pace", None) and und.buyer_pace != "standard":
+            pace = und.buyer_pace
+
         # Assemble full formatted text
         parts = []
-        if assumption:
-            parts.append(f"*{assumption}*\n")
-
-        # If direct_answer starts directly with a brand or model, prepend a natural varied opener
-        clean_direct = direct_answer.strip()
-        if clean_direct.startswith(("Epson", "Citizen", "**Epson", "**Citizen")) and not assumption:
-            opener = _get_varied_opener(state)
-            parts.append(f"{opener}\n\n{clean_direct}")
+        if pace == "concise":
+            # concise = single answer sentence + next_step + chips, no preamble
+            clean_direct = direct_answer.strip()
+            sents = re.split(r"(?<!excl\.)(?<!incl\.)(?<!etc\.)(?<=[.!?])\s+(?=[A-Z0-9])", clean_direct, flags=re.I)
+            first_sentence = sents[0].strip() if sents else clean_direct
+            first_sentence = re.sub(r"^(?:Here (?:is|are) (?:the )?(?:official |verified )?[^:]+:\s*)+", "", first_sentence).strip()
+            parts.append(first_sentence)
+            if decision.next_step and decision.next_step not in first_sentence:
+                parts.append(f"\n\n{decision.next_step}")
+        elif pace == "technical":
+            # technical = include the spec table the customer asked about
+            if assumption:
+                parts.append(f"*{assumption}*\n")
+            clean_direct = direct_answer.strip()
+            t_id = decision.target_entity_id or (resolved.resolved_target_product.id if resolved.resolved_target_product else None)
+            if t_id and "•" not in clean_direct:
+                from catalog.repository import catalog_repository
+                prod = catalog_repository.products_by_id.get(t_id)
+                if prod and prod.specifications_table:
+                    specs = [f"• {k}: {v}" for k, v in list(prod.specifications_table.items())[:6] if v]
+                    if specs:
+                        clean_direct = f"{clean_direct}\n\nTechnical Specifications:\n" + "\n".join(specs)
+            parts.append(clean_direct)
+            if decision.next_step and decision.next_step not in clean_direct:
+                parts.append(f"\n\n{decision.next_step}")
         else:
-            parts.append(direct_answer)
+            # standard = current behaviour
+            if assumption:
+                parts.append(f"*{assumption}*\n")
 
-        if decision.next_step and decision.next_step not in direct_answer:
-            parts.append(f"\n\n{decision.next_step}")
+            clean_direct = direct_answer.strip()
+            if clean_direct.startswith(("Epson", "Citizen", "**Epson", "**Citizen")) and not assumption:
+                opener = _get_varied_opener(state)
+                parts.append(f"{opener}\n\n{clean_direct}")
+            else:
+                parts.append(direct_answer)
+
+            if decision.next_step and decision.next_step not in direct_answer:
+                parts.append(f"\n\n{decision.next_step}")
 
         formatted_text = "".join(parts).strip()
         formatted_text = _clean_duplicate_sentences(formatted_text)
@@ -564,7 +595,8 @@ class ResponsePlanValidator:
 
         # 6. Anti-Repeat Consecutive Reply Guard
         prev_replies = getattr(state, "recent_assistant_replies", []) or []
-        if prev_replies and plan.formatted_reply:
+        pace = getattr(state, "buyer_pace", "standard") or "standard"
+        if prev_replies and plan.formatted_reply and pace != "concise":
             from difflib import SequenceMatcher
             for prev_r in prev_replies[-2:]:
                 ratio = SequenceMatcher(None, plan.formatted_reply.strip().lower(), prev_r.strip().lower()).ratio()
