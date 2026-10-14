@@ -374,7 +374,7 @@ class TurnUnderstandingExtractor:
 
     CONSUMABLES_PATTERNS = [
         re.compile(r"\b(?:what\s+inks?|which\s+inks?|consumables?|cartridges?|ribbons?|maintenance\s*box(?:es)?|supplies(?:\s+for)?|sublimation\s+inks?|print\s+supplies)\b", re.I),
-        re.compile(r"\b(?:(?:what|which|need|want|buy|order|get|looking\s+for)\s+.*?\b(?:ink|inks|cartridge|cartridges|ribbon|ribbons|maintenance\s*box|supplies|paper|media))\b", re.I),
+        re.compile(r"\b(?:(?:what|which|need|want|buy|order|get|looking\s+for)\s+(?:some|more|replacement|extra|new|compatible|original|the|these)?\s*(?:350ml|700ml|roll|paper)?\s*(?:ink|inks|cartridge|cartridges|ribbon|ribbons|maintenance\s*box|supplies|paper|media))\b", re.I),
         re.compile(r"\b(?!(?:our|the|my|this|that|their|its|more|less|high|low|zero|no)\s+)(?:[a-z0-9\-]+\s+(?:ink|inks|cartridge|cartridges|ribbon|ribbons|paper|media|supplies))\b", re.I),
         re.compile(r"\b(?:ink|inks|cartridge|cartridges|ribbon|ribbons|supplies|paper|media)\s+(?:for|of)\s+[a-z0-9\-]+\b", re.I),
     ]
@@ -431,7 +431,11 @@ class TurnUnderstandingExtractor:
             r"\b(?:specs?|technical\s+specs?|technical\s+specifications?|specifications?|specification|"
             r"details?|features?|functions?|capabilities|print\s+speed|resolution|dpi|dimension|dimensions|"
             r"measurement|measurements|size|how\s+big|weight|how\s+heavy|memory|ram|datasheet|brochure|"
-            r"spec\s+sheet|data\s+sheet|pdf|view\s+specs|full\s+specs|product\s*cards?|show\s*(?:the\s*)?card|show\s+product\s+card)\b",
+            r"spec\s+sheet|data\s+sheet|pdf|view\s+specs|full\s+specs|product\s*cards?|show\s*(?:the\s*)?card|show\s+product\s+card|"
+            r"prints?\s*(?:per|a|\/)\s*day|pages?\s*(?:per|a|\/)\s*day|daily\s*(?:volume|prints?|pages?|capacity)|"
+            r"monthly\s*(?:volume|prints?|pages?|capacity|duty)|duty\s*cycle|how\s*many\s*(?:prints?|pages?)|"
+            r"consum\w*|ink\s*consum\w*|how\s*much\s*ink|ink\s*usage|cartridge\s*sizes?|cartridge\s*capacit\w*|"
+            r"yield|page\s*yield|print\s*yield)\b",
             re.I
         ),
     ]
@@ -637,31 +641,24 @@ class TurnUnderstandingExtractor:
                         seen_keys.add(clean_code)
 
         # 4. Category Mentions (Matching Page 1 Flowchart Overview)
+        # Specific application domains are evaluated first so specific requirements take precedence
         categories = {
-            "office_workforce": [
-                "office printer", "office printers", "workforce", "business printer", "business printers", "printer for my office",
-                "printer for office", "printers for office", "for my office", "for our office", "office use",
-                "office printing", "office copier", "office copiers", "enterprise mfp", "enterprise mfps", "am-c", "wf-c",
-                "office multifunction", "office enterprise", "enterprise", "enterprise printer", "enterprise printers",
-                "line-head", "line head", "line-head enterprise", "office mfp", "office mfps", "business mfp",
-                "pages daily", "pages per day", "pages/day", "pages a day"
-            ],
             "technical_cad": [
                 "cad", "technical cad", "technical drawing", "technical drawings", "engineering", "blueprints", "line drawings", "architectural",
                 "architect", "archtect", "architecture", "drawing", "drawings", "architect drawings",
                 "gis", "cad plotter", "cad plotters", "blueprint", "plotter", "plotters", "large format plotter",
                 "large format plotters", "technical plotter", "technical plotters", "technical printer", "technical printers"
             ],
+            "photo_fine_art": [
+                "fine art", "photo printer", "photo printers", "gallery", "photography", "photo printing", "photo studio",
+                "photo machine", "photo machines", "master studio", "spectro", "pro10", "pro12", "fine art gallery",
+                "photography printer", "photography printers", "fine art printer", "fine art printers"
+            ],
             "citizen_photo": [
                 "photo booth", "photo booth printer", "photo booth printers", "event photography", "event photo", "event photos",
                 "event photo printer", "event photo printers", "instant prints", "passport photos",
                 "citizen", "citizon", "citzen", "ciyizon", "ctizen", "citizn",
                 "citizen printer", "citizen printers", "citizon printer", "ciyizon printer", "instant photo", "instant photo printer", "instant photo printers", "dye-sub photo", "cz-01", "cx-02", "cy-02", "cx-02w"
-            ],
-            "photo_fine_art": [
-                "fine art", "photo printer", "photo printers", "gallery", "photography", "photo printing", "photo studio",
-                "photo machine", "photo machines", "master studio", "spectro", "pro10", "pro12", "fine art gallery",
-                "photography printer", "photography printers", "fine art printer", "fine art printers"
             ],
             "dye_sublimation": [
                 "dye sublimation", "sublimation", "sublimation printer", "sublimation printers", "apparel printing",
@@ -673,7 +670,16 @@ class TurnUnderstandingExtractor:
                 "film scanner", "large format scanner", "book scanner", "scanning solutions",
                 "expression 12000xl", "workforce ds"
             ],
+            "office_workforce": [
+                "office printer", "office printers", "workforce", "business printer", "business printers", "printer for my office",
+                "printer for office", "printers for office", "for my office", "for our office", "office use",
+                "office printing", "office copier", "office copiers", "enterprise mfp", "enterprise mfps", "am-c", "wf-c",
+                "office multifunction", "office enterprise", "enterprise", "enterprise printer", "enterprise printers",
+                "line-head", "line head", "line-head enterprise", "office mfp", "office mfps", "business mfp",
+                "pages daily", "pages per day", "pages/day", "pages a day"
+            ],
         }
+        has_specific_app_match = any(e.entity_type == "category" and e.normalised_id != "category:office_workforce" for e in entities)
         for cat_id, cat_keywords in categories.items():
             if cat_id == "scanners":
                 if re.search(r"\b(?:no|without|dont\s+need|don't\s+need|not\s+needed)\s+(?:a\s+)?(?:scanner|scan|scanning)\b", text_l):
@@ -683,6 +689,11 @@ class TurnUnderstandingExtractor:
             elif cat_id == "photo_fine_art":
                 if any(w in text_l for w in ["scanner", "scanners", "scanning"]) and not any(p in text_l for p in ["printer", "printers", "plotter"]):
                     continue
+            elif cat_id == "office_workforce":
+                # If user already matched a specific application (e.g. photo printing, CAD plotter, sublimation),
+                # generic prepositional location phrases like "for my office" should NOT trigger office_workforce.
+                if has_specific_app_match or any(k in text_l for k in ["photo", "fine art", "cad", "blueprint", "plotter", "sublimation", "citizen"]):
+                    cat_keywords = ["workforce", "am-c", "wf-c", "enterprise mfp", "enterprise mfps", "office copier", "office copiers", "line-head", "line head"]
             for kw in cat_keywords:
                 if re.search(rf"\b{re.escape(kw)}\b", text_l):
                     entities.append(EntityMention(
@@ -702,11 +713,20 @@ class TurnUnderstandingExtractor:
         text_l = text.lower()
 
         # Category slot
+        CATEGORY_PRIORITY = {
+            "photo_fine_art": 1,
+            "citizen_photo": 2,
+            "technical_cad": 3,
+            "dye_sublimation": 4,
+            "scanners": 5,
+            "office_workforce": 6,
+        }
         cats = [e.normalised_id.replace("category:", "") for e in entities if e.entity_type == "category"]
         if cats:
+            cats_sorted = sorted(cats, key=lambda c: CATEGORY_PRIORITY.get(c, 99))
             slots["target_category"] = SlotValue(
                 slot_name="target_category",
-                value=cats[0],
+                value=cats_sorted[0],
                 confidence=0.95,
                 source="said_now"
             )
@@ -750,7 +770,15 @@ class TurnUnderstandingExtractor:
 
         # Target attribute slot (for specific spec inquiries)
         target_attr = None
-        if any(k in text_l for k in ["stand", "legs", "floor stand", "with a stand"]):
+        has_volume = bool(re.search(r"\b(?:prints?\s*(?:per|a|\/)\s*day|pages?\s*(?:per|a|\/)\s*day|daily\s*(?:volume|prints?|pages?|capacity)|duty\s*cycle|how\s*many\s*(?:prints?|pages?)|monthly\s*(?:volume|duty))\b", text_l))
+        has_consume = bool(re.search(r"\b(?:consum\w*|ink\s*consum\w*|how\s*much\s*ink|ink\s*usage|cartridge\s*capacit\w*|yield)\b", text_l))
+        if has_volume and has_consume:
+            target_attr = "volume_and_ink_consumption"
+        elif has_volume:
+            target_attr = "duty_cycle"
+        elif has_consume:
+            target_attr = "ink_consumption"
+        elif any(k in text_l for k in ["stand", "legs", "floor stand", "with a stand"]):
             target_attr = "stand"
         elif any(k in text_l for k in ["speed", "ppm", "fast", "how long to print"]):
             target_attr = "print_speed"
@@ -803,9 +831,10 @@ class TurnUnderstandingExtractor:
                 source="said_now"
             )
         elif cats:
+            cats_sorted = sorted(cats, key=lambda c: CATEGORY_PRIORITY.get(c, 99))
             slots["quote_product"] = SlotValue(
                 slot_name="quote_product",
-                value=cats[0],
+                value=cats_sorted[0],
                 confidence=0.90,
                 source="said_now"
             )
@@ -910,7 +939,15 @@ class TurnUnderstandingExtractor:
                 r"\b(?:printer|plotter|scanner)\s+for\b",
             ]
         )
-        if any(p.search(text_l) for p in cls.CONSUMABLES_PATTERNS) and not is_hardware_req:
+        is_volume_or_consumption_query = bool(re.search(
+            r"\b(?:"
+            r"consum\w*|usage|yield|prints?\s*(?:per|a|\/)\s*day|pages?\s*(?:per|a|\/)\s*day|"
+            r"daily\s*(?:prints?|pages?|volume|capacity)|monthly\s*(?:prints?|pages?|volume|capacity|duty)|"
+            r"duty\s*cycle|how\s*many\s*(?:prints?|pages?)|how\s*much\s*ink"
+            r")\b",
+            text_l
+        ))
+        if any(p.search(text_l) for p in cls.CONSUMABLES_PATTERNS) and not is_hardware_req and not is_volume_or_consumption_query:
             act = DialogueAct.REFERENCE_FOLLOW_UP if refs else DialogueAct.QUESTION
             return act, Intent.CONSUMABLES_LOOKUP, 0.95, ambiguities
 

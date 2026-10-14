@@ -1239,7 +1239,15 @@ class PolicyEngine:
                 attr = getattr(und, "target_attribute", None)
                 if not attr:
                     raw_l = und.raw_text.lower()
-                    if "stand" in raw_l:
+                    has_volume = bool(re.search(r"\b(?:prints?\s*(?:per|a|\/)\s*day|pages?\s*(?:per|a|\/)\s*day|daily\s*(?:volume|prints?|pages?|capacity)|duty\s*cycle|how\s*many\s*(?:prints?|pages?)|monthly\s*(?:volume|duty))\b", raw_l))
+                    has_consume = bool(re.search(r"\b(?:consum\w*|ink\s*consum\w*|how\s*much\s*ink|ink\s*usage|cartridge\s*capacit\w*|yield)\b", raw_l))
+                    if has_volume and has_consume:
+                        attr = "volume_and_ink_consumption"
+                    elif has_volume:
+                        attr = "duty_cycle"
+                    elif has_consume:
+                        attr = "ink_consumption"
+                    elif "stand" in raw_l:
                         attr = "stand"
                     elif "speed" in raw_l or "fast" in raw_l or "ppm" in raw_l:
                         attr = "print_speed"
@@ -1325,13 +1333,18 @@ class PolicyEngine:
                             next_step=f"Our sales specialists can verify the {attr_label} specifications for you at {OFFICIAL_SUPPORT_EMAIL}.",
                         )
                     else:
+                        chips = ["Technical Specifications", "Compatible Consumables", "Official Quotation"]
+                        next_step = f"Would you like to see additional specifications or compatible supplies for the {target.name}?"
+                        if attr in ("volume_and_ink_consumption", "duty_cycle", "ink_consumption"):
+                            chips = ["Cost Per Print Breakdown", "Official Quotation", "Technical Specifications"]
+                            next_step = f"Would you like an official cost-per-print breakdown or formal quotation for the {target.name}?"
                         return PolicyDecision(
                             action=PolicyAction.ANSWER,
                             reason=f"Verified attribute '{attr}' retrieved for {target.name}.",
                             target_entity_id=target.id,
-                            options_or_chips=["Technical Specifications", "Compatible Consumables", "Official Quotation"],
+                            options_or_chips=chips,
                             evidence_records=[rec],
-                            next_step=f"Would you like to see additional specifications or compatible supplies for the {target.name}?",
+                            next_step=next_step,
                         )
                 else:
                     # Check if customer is asking why this model was chosen/recommended

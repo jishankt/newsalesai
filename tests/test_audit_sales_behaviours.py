@@ -412,6 +412,38 @@ class TestAuditSalesBehavioursFix7(unittest.TestCase):
         self.assertIn(expected_rule.lower(), resp_step5.lower())
 
 
+class TestAuditSalesBehavioursFix8(unittest.TestCase):
+    """Category precedence and operational volume/ink consumption inquiries."""
+
+    def test_photo_printing_for_my_office_priority(self):
+        """'i need printers for photo printing for my office' must route to photo_fine_art, not office_workforce."""
+        turn = understand_turn("i need printers for photo printing for my office")
+        self.assertEqual(turn.slots.get("target_category").value, "photo_fine_art")
+        self.assertEqual(turn.slots.get("quote_product").value, "photo_fine_art")
+
+    def test_prints_per_day_ink_consume_spec_query(self):
+        """'i need how many prints per day ink consume how?' with target in focus must route to PRODUCT_INFO, not dump consumable SKUs."""
+        turn = understand_turn("i need how many prints per day ink consume how?")
+        self.assertEqual(turn.intent, Intent.PRODUCT_INFO)
+        self.assertEqual(turn.slots.get("target_attribute").value, "volume_and_ink_consumption")
+
+        state = DialogueState(session_id="test-volume-consume")
+        state.record_shown_artifacts(products=[{"id": "epson-sc-p7500", "name": "Epson SureColor SC-P7500"}])
+
+        resolved = ReferentResolver.resolve_turn(turn, state)
+        decision = PolicyEngine.decide(resolved, state)
+        plan = ResponsePlanBuilder.build(decision, resolved, state)
+
+        # Must not dump consumable cards
+        self.assertEqual(len(plan.consumable_cards), 0)
+        # Must answer volume/throughput and ink cartridge capacity
+        reply_lower = plan.formatted_reply.lower()
+        self.assertIn("throughput", reply_lower)
+        self.assertTrue("cartridge" in reply_lower or "capacity" in reply_lower)
+        self.assertIn("consumption", reply_lower)
+
+
+
 
 
 

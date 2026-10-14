@@ -467,6 +467,10 @@ def format_attribute_claim(entity_name: str, field: str, val: Any) -> str:
         "price_str": f"The verified price for {entity_name} is {val_str} (excl. VAT).",
         "brochure_url": f"Official datasheet brochure for {entity_name}: {val_str}",
         "pdf_url": f"Official datasheet brochure for {entity_name}: {val_str}",
+        "print_volume": f"Operational volume: {val_str}",
+        "duty_cycle": f"Operational volume & duty cycle: {val_str}",
+        "ink_consumption": f"Ink consumption & capacity: {val_str}",
+        "volume_and_ink_consumption": f"Operational volume & ink consumption: {val_str}",
         "display_name": f"{entity_name} is an approved equipment model in our verified catalogue.",
         "name": f"{entity_name} is an approved equipment model in our verified catalogue.",
         "model": f"{entity_name} is an approved equipment model in our verified catalogue.",
@@ -513,6 +517,68 @@ class EvidenceEngine:
                 name_low = node.name.lower()
                 if "wireless" in p_url or any(x in clean_id for x in ["t54", "t31", "t51", "t34", "t57", "p70", "p90", "f100", "f500"]) or "surecolor" in name_low:
                     val = "Yes, supports Wi-Fi, Wi-Fi Direct, Gigabit Ethernet, and USB"
+            elif val is None and field in ("duty_cycle", "print_volume", "volume", "prints_per_day", "daily_volume"):
+                m_min = node.attributes.get("recommended_monthly_min")
+                m_max = node.attributes.get("recommended_monthly_max")
+                p_speed = node.attributes.get("print_speed")
+                y_cap = node.attributes.get("yield_capacity")
+                if m_min and m_max:
+                    val = f"Recommended duty cycle: {m_min:,} to {m_max:,} pages per month."
+                elif m_max:
+                    val = f"Recommended duty cycle: up to {m_max:,} pages per month."
+                elif p_speed:
+                    val = f"Continuous production throughput: print speed up to {p_speed}."
+                    if y_cap:
+                        val += f" Yield profile: {y_cap}."
+                else:
+                    val = "Continuous commercial daily production."
+            elif val is None and field in ("ink_consumption", "consumption", "ink_usage"):
+                cart_sizes = node.attributes.get("cartridge_sizes")
+                tot_colours = node.attributes.get("total_colours")
+                col_spec = node.attributes.get("colour_specification")
+                y_cap = node.attributes.get("yield_capacity")
+                details = []
+                if cart_sizes:
+                    details.append(f"Cartridge capacity: {cart_sizes}")
+                if col_spec or tot_colours:
+                    details.append(f"Ink system: {col_spec or tot_colours}")
+                if y_cap:
+                    details.append(f"Yield profile: {y_cap}")
+                details.append("Actual ink consumption varies based on print coverage, media type, and resolution. Our sales desk can provide an exact TCO and cost-per-print breakdown.")
+                val = " | ".join(details)
+            elif val is None and field == "volume_and_ink_consumption":
+                m_min = node.attributes.get("recommended_monthly_min")
+                m_max = node.attributes.get("recommended_monthly_max")
+                p_speed = node.attributes.get("print_speed")
+                cart_sizes = node.attributes.get("cartridge_sizes")
+                tot_colours = node.attributes.get("total_colours")
+                col_spec = node.attributes.get("colour_specification")
+                y_cap = node.attributes.get("yield_capacity")
+
+                vol_desc = ""
+                if m_min and m_max:
+                    vol_desc = f"Recommended duty cycle: {m_min:,} to {m_max:,} pages/month."
+                elif m_max:
+                    vol_desc = f"Recommended duty cycle: up to {m_max:,} pages/month."
+                elif p_speed:
+                    vol_desc = f"Continuous production throughput: print speed up to {p_speed}."
+                else:
+                    vol_desc = "Continuous commercial daily production capability."
+
+                ink_desc = []
+                if cart_sizes:
+                    ink_desc.append(f"Cartridge capacity: {cart_sizes}")
+                if col_spec or tot_colours:
+                    ink_desc.append(f"Ink system: {col_spec or tot_colours}")
+                if y_cap:
+                    ink_desc.append(f"Yield profile: {y_cap}")
+
+                ink_summary = " | ".join(ink_desc) if ink_desc else "High-capacity individual ink system"
+                val = (
+                    f"{vol_desc} {ink_summary}. "
+                    f"Actual ink consumption per print depends on image coverage and media type. "
+                    f"Our sales desk can calculate an exact cost-per-print and monthly consumable estimate for your specific daily volume."
+                )
 
         if val is not None and str(val).strip().lower() not in ("none", "null", ""):
             claim_text = format_attribute_claim(node.name, field, val)
