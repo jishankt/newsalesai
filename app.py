@@ -667,6 +667,8 @@ def _process_chat_turn(raw_message, session_id, model_name, request_id, session_
         "cards": product_cards,
         "source": source,
         "active_agent": active_agent,
+        "handover_triggered": getattr(state, "handover_triggered", False),
+        "handover_reason": getattr(state, "handover_reason", None),
         "suggested_chips": suggested_chips,
         "retrieved_sources": sources_summary,
         "product_cards": product_cards,

@@ -411,6 +411,11 @@ class Orchestrator:
                     unified_state.last_intent = turn_und.intent
                     unified_state.last_dialogue_act = turn_und.dialogue_act
 
+                    if getattr(unified_state, "handover_triggered", False):
+                        state.handover_triggered = True
+                        state.handover_reason = unified_state.handover_reason
+                        state.handover_timestamp = unified_state.handover_timestamp or time.time()
+
                     state._unified_dialogue_state = unified_state
                     state.unified_dialogue_state = unified_state.model_dump()
 
@@ -7606,6 +7611,8 @@ class Orchestrator:
             "suggested_chips": suggested_chips,
             "chips": suggested_chips,
             "source": source,
+            "handover_triggered": getattr(state, "handover_triggered", False),
+            "handover_reason": getattr(state, "handover_reason", None),
             "nlp": nlp_result,
             "grounding": {
                 "is_grounded": is_grounded,

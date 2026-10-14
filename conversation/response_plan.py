@@ -67,6 +67,35 @@ def _get_varied_opener(state: DialogueState) -> str:
     return chosen
 
 
+def _clean_duplicate_sentences(text: str) -> str:
+    """Ensures no full sentence is repeated across paragraphs in a single reply."""
+    paragraphs = text.split("\n\n")
+    cleaned_paras = []
+    seen_sentences = set()
+    for para in paragraphs:
+        cleaned_lines = []
+        for line in para.split("\n"):
+            line_str = line.strip()
+            if not line_str or line_str.startswith(("•", "-", "*", "#")):
+                cleaned_lines.append(line)
+                continue
+            sents = re.split(r"(?<=[.!?])\s+", line_str)
+            kept = []
+            for s in sents:
+                s_clean = s.strip()
+                s_key = re.sub(r"[^a-zA-Z0-9]", "", s_clean).lower()
+                if len(s_key) > 20 and s_key in seen_sentences:
+                    continue
+                if len(s_key) > 20:
+                    seen_sentences.add(s_key)
+                kept.append(s_clean)
+            if kept:
+                cleaned_lines.append(" ".join(kept))
+        if cleaned_lines:
+            cleaned_paras.append("\n".join(cleaned_lines))
+    return "\n\n".join(cleaned_paras).strip()
+
+
 # ── Response Plan Builder ─────────────────────────────────────────────────────
 
 class ResponsePlanBuilder:
@@ -327,6 +356,7 @@ class ResponsePlanBuilder:
             parts.append(f"\n\n{decision.next_step}")
 
         formatted_text = "".join(parts).strip()
+        formatted_text = _clean_duplicate_sentences(formatted_text)
 
         plan = ResponsePlan(
             direct_answer=direct_answer,

@@ -8,6 +8,7 @@ Enforces anti-looping, frustration handling, zero dead-ends, and honest verifica
 
 import os
 import re
+import time
 import logging
 from enum import Enum
 from difflib import SequenceMatcher
@@ -1176,6 +1177,96 @@ class PolicyEngine:
                             next_step=f"Would you like to see detailed specifications or compatible consumables for the {target.name}?",
                         )
 
+        # 9b. Commercial Discount, Formal Quotation & Custom Configuration
+        if intent in (Intent.DISCOUNT_REQUEST, Intent.QUOTE_REQUEST, Intent.CUSTOM_CONFIG_REQUEST):
+            state.handover_triggered = True
+            if intent == Intent.DISCOUNT_REQUEST:
+                state.handover_reason = "discount_request"
+            elif intent == Intent.CUSTOM_CONFIG_REQUEST:
+                state.handover_reason = "custom_configuration"
+            else:
+                state.handover_reason = "quote_request"
+            state.handover_timestamp = time.time()
+
+            raw_l_quote = und.raw_text.lower()
+            qty = und.slots.get("quote_quantity")
+            qty_val = qty.value if qty else None
+            if not qty_val:
+                qty_match = re.search(r"\b(\d+)\s*(?:units?|pcs?|pieces?|printers?|machines?|scanners?|items?|qty)\b", raw_l_quote) or re.search(r"\b(?:qty|quantity)\s*[:=]?\s*(\d+)\b", raw_l_quote)
+                if qty_match:
+                    qty_val = int(qty_match.group(1) or qty_match.group(2))
+
+            target = resolved.resolved_target_product
+            t_name = target.name if target else None
+            if not t_name and state.category:
+                t_name = state.category
+
+            req_parts = []
+            if qty_val:
+                req_parts.append(f"{qty_val} units")
+            if t_name:
+                req_parts.append(f"of {t_name}")
+            if intent == Intent.CUSTOM_CONFIG_REQUEST:
+                req_parts.append("with custom setup")
+            detail_str = " ".join(req_parts).strip()
+
+            if intent == Intent.DISCOUNT_REQUEST:
+                disc_match = re.search(r"\b(\d+%)\b", raw_l_quote)
+                disc_str = f" of {disc_match.group(1)}" if disc_match else ""
+                ack_sentence = f"I note your request for a discount{disc_str}{' (' + detail_str + ')' if detail_str else ''}."
+            elif intent == Intent.CUSTOM_CONFIG_REQUEST:
+                ack_sentence = f"I note your request for a quotation{' for ' + detail_str if detail_str else ' with custom setup'}."
+            else:
+                ack_sentence = f"I note your request for a formal quotation{' (' + detail_str + ')' if detail_str else ''}."
+
+            bot_limitation = (
+                "Discounts, formal quotations, and custom configurations are handled directly "
+                "by our sales team, as I cannot approve a discount or confirm a quote."
+            )
+
+            from config import is_within_business_hours
+            if is_within_business_hours():
+                timing_msg = "Our sales specialists are available now to prepare this for you."
+            else:
+                timing_msg = (
+                    "Our sales office in Dubai is currently closed outside regular business hours "
+                    "(Monday–Friday 8:30 AM–5:30 PM, Saturday 8:30 AM–1:00 PM GST). "
+                    "Our team will review your inquiry on the next working day."
+                )
+
+            has_contact = bool(
+                state.confirmed_slots.get("phone")
+                or state.confirmed_slots.get("email")
+                or state.confirmed_slots.get("contact_phone")
+                or state.confirmed_slots.get("contact_email")
+                or state.confirmed_slots.get("contact_details")
+            )
+            if not has_contact:
+                contact_action = "Please provide your name and phone number or email address so our sales team can send your quotation."
+                chips = ["Leave Phone Number", "Leave Email Address", "Showroom Hours & Location"]
+            else:
+                contact_action = "We have your contact details on file and a specialist will follow up with your quotation."
+                chips = ["Showroom Hours & Location", "View Technical Specs"]
+
+            full_claim = f"{ack_sentence} {bot_limitation}\n\n{timing_msg}"
+            rec = EvidenceRecord(
+                claim=full_claim,
+                verified=True,
+                status=CompatibilityStatus.VERIFIED_YES,
+                source_file="conversation/policy.py",
+                field="commercial_handoff",
+                entity_ids=[target.id] if target else [],
+            )
+            return PolicyDecision(
+                action=PolicyAction.ANSWER,
+                reason=f"Commercial {state.handover_reason} logged; handover triggered.",
+                target_entity_id=target.id if target else None,
+                options_or_chips=chips,
+                evidence_records=[rec],
+                next_step=contact_action,
+                is_handoff=True,
+            )
+
         # 10. Availability & Price Policy Intent
         if intent == Intent.AVAILABILITY_OR_PRICE_POLICY:
             target = resolved.resolved_target_product
@@ -1379,12 +1470,7 @@ class PolicyEngine:
 
                 if v_price and float(v_price) > 0:
                     v_price_str = v_price_str or f"AED {float(v_price):,.2f}"
-                    p_claim = (
-                        f"The **{t_name}** is listed at **{v_price_str}** (excl. VAT). "
-                        f"Official tax invoices, volume discounts, and custom configurations are "
-                        f"provided directly through our sales desk at {OFFICIAL_SUPPORT_EMAIL} "
-                        f"or {OFFICIAL_SUPPORT_PHONE}."
-                    )
+                    p_claim = f"The **{t_name}** is listed at **{v_price_str}** (excl. VAT)."
                     rec = EvidenceRecord(
                         claim=p_claim,
                         verified=True,
@@ -1404,11 +1490,7 @@ class PolicyEngine:
                     )
                 else:
                     # Quote-only product (price: null)
-                    p_claim = (
-                        f"Pricing for the **{t_name}** is provided upon request based on duty cycle, "
-                        f"configuration, and volume requirements. Our sales desk will prepare a tailored "
-                        f"official quotation at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}."
-                    )
+                    p_claim = f"Official pricing for the **{t_name}** is provided on request based on configuration and volume."
                     rec = EvidenceRecord(
                         claim=p_claim,
                         verified=True,
@@ -1423,26 +1505,27 @@ class PolicyEngine:
                         target_entity_id=t_id,
                         options_or_chips=["Request Official Quote", "Contact Sales Desk", "View Product Page"],
                         evidence_records=[rec],
-                        next_step=f"Official tax invoices and volume discounts are provided directly at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}.",
+                        next_step=f"Would you like our sales team to prepare an official quotation at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}?",
                     )
 
-            # No target product identified
-            p_claim = f"Commercial pricing, tax invoices, and volume discounts for the **{t_name}** are provided directly through our official sales desk."
+            # No target product identified -> ask which model or application with category chips, zero prices
             rec = EvidenceRecord(
-                claim=p_claim,
+                claim="Which model or application are you looking to price?",
                 verified=True,
                 status=CompatibilityStatus.VERIFIED_YES,
-                source_file="config.py",
-                field="pricing_policy",
+                source_file="conversation/policy.py",
+                field="price_clarification",
                 entity_ids=[],
             )
             return PolicyDecision(
-                action=PolicyAction.ANSWER,
-                reason="Commercial policy inquiry: no target product; route to sales desk.",
+                action=PolicyAction.CLARIFY,
+                reason="Price inquiry with no product in context; clarify model or application.",
                 target_entity_id=None,
-                options_or_chips=["Request Official Quote", "Contact Sales Desk", "View Product Page"],
+                clarification_topic="model_or_application",
+                clarification_question="Which model or application are you looking to price?",
+                options_or_chips=["Office & Multifunction", "CAD / Blueprint / GIS", "Photo & Fine Art", "Photo Booth / Instant Photo", "Professional Scanners"],
                 evidence_records=[rec],
-                next_step=f"Official tax invoices and volume discounts are provided directly at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}.",
+                next_step="Please select a category or specify a model to view verified pricing.",
             )
 
         # 11. Contact Showroom Intent

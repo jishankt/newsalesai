@@ -47,6 +47,9 @@ class Intent(str, Enum):
     RECOMMEND = "recommend"
     ALTERNATIVES = "alternatives"
     AVAILABILITY_OR_PRICE_POLICY = "availability_or_price_policy"
+    DISCOUNT_REQUEST = "discount_request"
+    QUOTE_REQUEST = "quote_request"
+    CUSTOM_CONFIG_REQUEST = "custom_config_request"
     CONTACT_SHOWROOM = "contact_showroom"
     SHIPPING_OR_DELIVERY = "shipping_or_delivery"
     OTHER = "other"
@@ -396,6 +399,19 @@ class TurnUnderstandingExtractor:
 
     PRICE_POLICY_PATTERNS = [
         re.compile(r"\b(?:price|cost|how\s+much|quote|quotation|pricing|discount|rates?|in\s+stock|available\s+in\s+stock|print\s+cost|cost\s+per\s+print|running\s+cost|media\s+cost|investment|intial\s+investment|initial\s+investment|budget)\b", re.I),
+    ]
+
+    DISCOUNT_PATTERNS = [
+        re.compile(r"\b(?:discounts?|bargain|bargaining|negotiat\w*|best\s*price|price\s*cut|lower\s*(?:the\s*)?price|reduce\s*(?:the\s*)?price|less\s*price|special\s*rate)\b", re.I),
+        re.compile(r"\b\d+%\s*(?:off|discount)\b", re.I),
+    ]
+
+    CUSTOM_CONFIG_PATTERNS = [
+        re.compile(r"\b(?:custom\s*(?:setup|config\w*|installation|solution|spec\w*)|configured\s*with)\b", re.I),
+    ]
+
+    QUOTE_PATTERNS = [
+        re.compile(r"\b(?:quotation|formal\s*quote|request\s*(?:a\s*)?quote|send\s*(?:me\s*)?(?:a\s*)?quote|need\s*(?:a\s*)?quote|official\s*quote|tax\s*invoice\s*quote)\b", re.I),
     ]
 
     # Attribute-level spec query keywords — triggers PRODUCT_INFO
@@ -753,6 +769,33 @@ class TurnUnderstandingExtractor:
                 source="said_now"
             )
 
+        # Quote quantity slot (e.g. 5 units, 10 pcs, 2 printers)
+        qty_match = re.search(r"\b(\d+)\s*(?:units?|pcs?|pieces?|printers?|machines?|scanners?|items?|qty)\b", text_l) or re.search(r"\b(?:qty|quantity)\s*[:=]?\s*(\d+)\b", text_l)
+        if qty_match:
+            qty_val = int(qty_match.group(1) or qty_match.group(2))
+            slots["quote_quantity"] = SlotValue(
+                slot_name="quote_quantity",
+                value=qty_val,
+                confidence=0.95,
+                source="said_now"
+            )
+
+        # Quote product slot
+        if models:
+            slots["quote_product"] = SlotValue(
+                slot_name="quote_product",
+                value=models[0],
+                confidence=0.95,
+                source="said_now"
+            )
+        elif cats:
+            slots["quote_product"] = SlotValue(
+                slot_name="quote_product",
+                value=cats[0],
+                confidence=0.90,
+                source="said_now"
+            )
+
         return slots
 
     @classmethod
@@ -833,6 +876,18 @@ class TurnUnderstandingExtractor:
         # Compare (requires explicit comparison wording)
         if any(p.search(text_l) for p in cls.COMPARE_PATTERNS):
             return DialogueAct.QUESTION, Intent.COMPARE, 0.92, ambiguities
+
+        # Custom config / setup inquiry (e.g. "Send me a quotation for 5 units with custom setup")
+        if any(p.search(text_l) for p in cls.CUSTOM_CONFIG_PATTERNS):
+            return DialogueAct.QUESTION, Intent.CUSTOM_CONFIG_REQUEST, 0.96, ambiguities
+
+        # Discount inquiry (e.g. "Can you give me 20% discount?", "any discounts?")
+        if any(p.search(text_l) for p in cls.DISCOUNT_PATTERNS):
+            return DialogueAct.QUESTION, Intent.DISCOUNT_REQUEST, 0.96, ambiguities
+
+        # Formal Quotation request (e.g. "send me a quotation", "request official quote")
+        if any(p.search(text_l) for p in cls.QUOTE_PATTERNS):
+            return DialogueAct.QUESTION, Intent.QUOTE_REQUEST, 0.96, ambiguities
 
         # 8a. Specific model + price/print-cost query → direct AVAILABILITY_OR_PRICE_POLICY
         #     Prevents flowchart routing when customer asks "what is the price of Citizen CZ-01?"

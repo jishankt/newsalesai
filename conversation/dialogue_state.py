@@ -63,6 +63,9 @@ class DialogueState(BaseModel):
     recent_openers: List[str] = Field(default_factory=list)
     category_intro_displayed: List[str] = Field(default_factory=list)
     last_user_message: Optional[str] = None
+    handover_triggered: bool = False
+    handover_reason: Optional[str] = None
+    handover_timestamp: Optional[float] = None
 
     def get_current_focus(self, entity_type: Optional[str] = None) -> Optional[SalientEntity]:
         """Returns the top entity from the focus stack matching entity_type if specified."""
