@@ -112,3 +112,57 @@ class TestAuditSalesBehavioursFix1(unittest.TestCase):
         self.assertTrue(data.get("handover_triggered"))
         self.assertEqual(data.get("handover_reason"), "discount_request")
         self.assertFalse(_has_repeated_sentences(data.get("reply", "")))
+
+
+class TestAuditSalesBehavioursFix2(unittest.TestCase):
+    """FIX 2: Budget as a deterministic slot."""
+
+    def test_200_pages_daily_does_not_set_budget(self):
+        """'200 pages daily' does NOT set budget_aed."""
+        from conversation.product_flows import extract_flowchart_requirements
+        reqs = extract_flowchart_requirements("200 pages daily")
+        self.assertNotIn("budget_aed", reqs)
+        self.assertEqual(reqs.get("daily_pages"), 200)
+
+    def test_1800_aed_parses_to_1800(self):
+        """'1,800 AED' parses to 1800."""
+        from conversation.product_flows import extract_flowchart_requirements
+        reqs = extract_flowchart_requirements("1,800 AED")
+        self.assertEqual(reqs.get("budget_aed"), 1800.0)
+
+    def test_a4_office_printer_under_1800_aed(self):
+        """'A4 office printer under 1800 AED' never returns a product priced above 1800 as the primary pick."""
+        from conversation.product_flows import resolve_flowchart_step
+        step = resolve_flowchart_step("office_printer", {}, "A4 office printer under 1800 AED")
+
+        # Must either have target_product_id or budget explanation
+        self.assertTrue(step.target_product_id or "budget" in step.explanation.lower())
+
+        if step.target_product_id:
+            from catalog.price_resolver import PriceResolver
+            pr = PriceResolver()
+            p_info = pr.get_price_info(step.target_product_id)
+            if p_info.get("price") is not None:
+                self.assertLessEqual(p_info["price"], 1800.0)
+
+    def test_end_to_end_orchestrator_budget_gate(self):
+        """Full pipeline query 'A4 office printer under 1800 AED' never returns product priced > 1800."""
+        from domain.conversation_state import ConversationState
+        state = ConversationState(session_id="test-budget-e2e")
+        res = orchestrator.process_turn(
+            raw_message="A4 office printer under 1800 AED",
+            session_id="test-budget-e2e",
+            history=[],
+            state=state
+        )
+        cards = res.get("product_cards") or res.get("cards") or []
+        explanation_or_reply = res.get("reply", "")
+
+        # Assert that cards or a budget explanation exist (do NOT wrap assertions in if cards:)
+        self.assertTrue(len(cards) > 0 or "budget" in explanation_or_reply.lower(), "Expected cards or budget explanation")
+        if len(cards) > 0:
+            first_card = cards[0]
+            price = first_card.get("price")
+            if price is not None:
+                self.assertLessEqual(price, 1800.0, f"Primary pick exceeded 1800 AED: {first_card}")
+

@@ -55,13 +55,37 @@ def extract_flowchart_requirements(text: str, current_reqs: Optional[Dict[str, A
     Preserves existing requirements across conversational turns.
     """
     text_l = (text or "").lower()
+    text_clean = re.sub(r"(?<=\d),(?=\d)", "", text_l)
     reqs = dict(current_reqs or {})
+
+    # 0. Budget AED extraction
+    # The regex MUST require either a budget keyword (budget, under, below, max, up to, within)
+    # OR a currency token (aed, dhs, dh, د.إ) next to the number.
+    # A bare number such as "200 pages daily" or "A3 36 inch" must NEVER be read as a budget.
+    kw_match = re.search(
+        r"\b(?:budget|under|below|max|maximum|up\s*to|within|less\s*than)\s*(?:of|is|:)?\s*(?:aed|dhs?|dh|د\.إ)?\s*(\d+(?:\.\d+)?)\b",
+        text_clean,
+    )
+    curr_match = re.search(
+        r"\b(?:aed|dhs?|dh|د\.إ)\s*(\d+(?:\.\d+)?)\b|\b(\d+(?:\.\d+)?)\s*(?:aed|dhs?|dh|د\.إ)\b",
+        text_clean,
+    )
+    if kw_match:
+        reqs["budget_aed"] = float(kw_match.group(1))
+    elif curr_match:
+        reqs["budget_aed"] = float(curr_match.group(1) or curr_match.group(2))
 
     # 1. Paper Size
     if re.search(r"\ba4\b", text_l) or "desktop sheet" in text_l or "a4 output" in text_l:
         reqs["paper_size"] = "A4"
     elif re.search(r"\ba3\b", text_l) or "departmental" in text_l or "a3 output" in text_l:
         reqs["paper_size"] = "A3"
+
+    # If customer specified A4 office printer with a standard budget <= 2500 AED and omitted volume
+    if reqs.get("paper_size") == "A4" and not reqs.get("office_speed_class") and reqs.get("daily_pages") is None:
+        if reqs.get("budget_aed") and reqs["budget_aed"] <= 2500:
+            reqs["office_speed_class"] = "34_ppm"
+            reqs["office_duty_class"] = "standard_mfp"
 
     # 2. Office Daily Volume & Technology Class
     # Numbers: e.g. "50 pages", "100/day", "500 pages a day", "maybe 60 daily", "around 500 pic"
@@ -209,7 +233,7 @@ def extract_flowchart_requirements(text: str, current_reqs: Optional[Dict[str, A
     return reqs
 
 
-def resolve_flowchart_step(
+def _resolve_flowchart_step_raw(
     category: Optional[str],
     requirements: Dict[str, Any],
     text: str = "",
@@ -812,3 +836,78 @@ def resolve_flowchart_step(
         supporting_product_ids=[],
         is_leaf=False,
     )
+
+
+def _apply_budget_filter(step: FlowchartStep, reqs: Dict[str, Any]) -> FlowchartStep:
+    """
+    Enforces deterministic budget constraints on flowchart leaf recommendations.
+    If target price exceeds budget_aed, tries supporting products under budget.
+    If none fit, highlights closest verified fit and offers sales-desk quote route.
+    Handles quote-only (price null) without crashing.
+    """
+    if not step.is_leaf or not step.target_product_id:
+        return step
+
+    budget_aed = reqs.get("budget_aed")
+    if budget_aed is None:
+        return step
+
+    try:
+        from catalog.price_resolver import PriceResolver
+        pr = PriceResolver()
+        t_info = pr.get_price_info(step.target_product_id)
+        t_price = t_info.get("price")
+
+        if t_price is not None and t_price > budget_aed:
+            # Try supporting product IDs that fit the budget
+            fitted_supporting = None
+            remaining_supporting = []
+            for spid in step.supporting_product_ids:
+                sp_info = pr.get_price_info(spid)
+                sp_price = sp_info.get("price")
+                if sp_price is not None and sp_price <= budget_aed and not fitted_supporting:
+                    fitted_supporting = (spid, sp_price, sp_info)
+                else:
+                    remaining_supporting.append(spid)
+
+            if fitted_supporting:
+                swap_id, swap_price, swap_info = fitted_supporting
+                old_id = step.target_product_id
+                step.target_product_id = swap_id
+                step.supporting_product_ids = [old_id] + remaining_supporting
+                step.explanation = (
+                    f"Recommended verified model fitting your budget of AED {budget_aed:,.0f} "
+                    f"(listed at AED {swap_price:,.2f} excl. VAT)."
+                )
+            else:
+                # None of the supporting models fit under budget
+                step.explanation = (
+                    f"Note: At AED {t_price:,.2f} (excl. VAT), this model is above your stated budget of "
+                    f"AED {budget_aed:,.0f}. It represents the closest verified manufacturer fit meeting your requirements. "
+                    "Our sales desk can review tailored commercial options or volume pricing."
+                )
+                step.question = (
+                    f"The closest verified fit is listed at AED {t_price:,.2f}, which exceeds your budget of AED {budget_aed:,.0f}. "
+                    "Would you like to review this model or request an official sales desk quotation?"
+                )
+                step.chips = ["Request Official Quote", "Contact Sales Desk", "Adjust Budget"]
+    except Exception as e:
+        # Fail safe without crashing
+        pass
+
+    return step
+
+
+def resolve_flowchart_step(
+    category: Optional[str],
+    requirements: Dict[str, Any],
+    text: str = "",
+) -> FlowchartStep:
+    """
+    Evaluates customer requirements and text against the product qualification flowcharts,
+    applying deterministic budget gating before returning leaf recommendations.
+    """
+    reqs = extract_flowchart_requirements(text, requirements)
+    step = _resolve_flowchart_step_raw(category, reqs, text)
+    return _apply_budget_filter(step, reqs)
+
