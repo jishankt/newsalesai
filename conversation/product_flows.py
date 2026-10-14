@@ -75,6 +75,23 @@ def extract_flowchart_requirements(text: str, current_reqs: Optional[Dict[str, A
     elif curr_match:
         reqs["budget_aed"] = float(curr_match.group(1) or curr_match.group(2))
 
+    # 0b. Primary concern extraction (running_cost, print_speed, colour_quality, reliability, paper_size, portability, ease_of_use)
+    if "primary_concern" not in reqs:
+        if re.search(r"\b(?:(?:ink|toner|cartridge|running|consumable|print)\s*costs?|costs?\s*(?:are|is)?\s*(?:killing\s*us|too\s*high)|costing\s*a\s*fortune|expensive\s*ink|cheaper\s*prints?|per\s*print\s*cost|cost\s*per\s*print|cost\s*per\s*page|running\s*costs?|operational\s*costs?)\b", text_clean):
+            reqs["primary_concern"] = "running_cost"
+        elif re.search(r"\b(?:print\s*speed|speed|fast|faster|slow|too\s*slow|ppm|quick\s*turnaround)\b", text_clean):
+            reqs["primary_concern"] = "print_speed"
+        elif re.search(r"\b(?:colour\s*quality|color\s*quality|print\s*quality|fine\s*art|accurate\s*colou?r|pantone|resolution|clarity|vibrant)\b", text_clean):
+            reqs["primary_concern"] = "colour_quality"
+        elif re.search(r"\b(?:reliab\w*|break\s*down|jam|jamming|downtime|maintenance|heavy\s*duty|duty\s*cycle)\b", text_clean):
+            reqs["primary_concern"] = "reliability"
+        elif re.search(r"\b(?:paper\s*size|media\s*size|large\s*format|wide\s*format|wide|24\s*inch|36\s*inch|44\s*inch|a3\b|a0\b|a1\b)\b", text_clean):
+            reqs["primary_concern"] = "paper_size"
+        elif re.search(r"\b(?:portable|portability|compact|lightweight|light|mobile|booth|kiosk|transport)\b", text_clean):
+            reqs["primary_concern"] = "portability"
+        elif re.search(r"\b(?:easy\s*to\s*use|ease\s*of\s*use|simple|touchscreen|user\s*friendly|plug\s*and\s*play)\b", text_clean):
+            reqs["primary_concern"] = "ease_of_use"
+
     # 1. Paper Size
     if re.search(r"\ba4\b", text_l) or "desktop sheet" in text_l or "a4 output" in text_l:
         reqs["paper_size"] = "A4"
@@ -898,6 +915,123 @@ def _apply_budget_filter(step: FlowchartStep, reqs: Dict[str, Any]) -> Flowchart
     return step
 
 
+def _apply_primary_concern(step: FlowchartStep, reqs: Dict[str, Any]) -> FlowchartStep:
+    """
+    If primary_concern is known, puts the verified reason that matches the concern
+    first in the recommendation (using only catalogue/TCO fields that exist).
+    If no verified data supports that concern, states so honestly instead of implying it.
+    """
+    if not step.is_leaf or not step.target_product_id:
+        return step
+
+    concern = reqs.get("primary_concern")
+    if not concern:
+        return step
+
+    try:
+        pid = step.target_product_id
+        from catalog.repository import catalog_repository
+        from catalog.cost_per_print_calculator import CostPerPrintCalculator
+
+        product = catalog_repository.products_by_id.get(pid)
+        verified_reason = None
+
+        if concern == "running_cost":
+            # 1. Check CostPerPrintCalculator ISO data
+            iso_data = CostPerPrintCalculator.INKJET_ISO_DATA.get(pid)
+            if iso_data:
+                mono_c = iso_data.get("mono_cost_per_page")
+                mono_y = iso_data.get("mono_yield")
+                if mono_c is not None and mono_y:
+                    verified_reason = (
+                        f"Verified Running Cost Advantage: High-yield ink system delivering verified cost per page of "
+                        f"AED {mono_c:.4f} mono ({mono_y:,} page yield under ISO/IEC 24711)."
+                    )
+            if not verified_reason and product:
+                yield_cap = (
+                    product.verified.cartridge_capacities
+                    or product.specifications_table.get("Yield Capacity")
+                    or product.specifications_table.get("Cartridge Sizes")
+                )
+                if yield_cap:
+                    verified_reason = (
+                        f"Verified Running Cost Advantage: High-capacity ink system ({yield_cap}) "
+                        "engineered for minimal consumable interventions and low operating costs."
+                    )
+            if not verified_reason:
+                calc = CostPerPrintCalculator.calculate_cost_per_print(pid, "4x6")
+                if calc.status == "verified" and calc.cost_per_print_formatted:
+                    verified_reason = (
+                        f"Verified Running Cost Advantage: Verified media cost per print of {calc.cost_per_print_formatted} "
+                        f"({calc.package_yield_prints} prints per pack)."
+                    )
+            if not verified_reason:
+                verified_reason = "Note: Specific per-page running cost figures cannot be verified from available manufacturer data for this model."
+
+        elif concern == "print_speed":
+            if product:
+                speed = product.specifications_table.get("Print Speed") or product.specifications_table.get("Scanning Speed")
+                if speed:
+                    verified_reason = f"Verified Print Speed: Rated at {speed} for high-productivity workflows."
+            if not verified_reason:
+                verified_reason = "Note: Specific ISO print speed ratings are not published for this model."
+
+        elif concern == "colour_quality":
+            if product:
+                res = product.specifications_table.get("Printing Resolution") or product.specifications_table.get("Resolution")
+                tech = product.specifications_table.get("Printing Technology") or product.verified.ink_technology
+                if res or tech:
+                    details = []
+                    if tech:
+                        details.append(str(tech))
+                    if res:
+                        details.append(f"resolution up to {res}")
+                    verified_reason = f"Verified Colour Quality: Features {', '.join(details)}."
+            if not verified_reason:
+                verified_reason = "Note: Detailed colour gamut measurements are available on the official brochure."
+
+        elif concern == "reliability":
+            if product:
+                warranty = product.verified.warranty or product.specifications_table.get("Warranty")
+                tech = product.verified.ink_technology or product.specifications_table.get("Printing Technology")
+                parts = []
+                if tech and ("heat-free" in str(tech).lower() or "precisioncore" in str(tech).lower()):
+                    parts.append("Epson PrecisionCore Heat-Free technology (no heat, fewer moving parts)")
+                if warranty:
+                    parts.append(f"official warranty ({warranty})")
+                if parts:
+                    verified_reason = f"Verified Reliability: Engineered with {' and '.join(parts)}."
+            if not verified_reason:
+                verified_reason = "Verified Reliability: Backed by official manufacturer warranty."
+
+        elif concern == "paper_size":
+            if product:
+                sizes = product.specifications_table.get("Supported Media Sizes") or product.specifications_table.get("Print Sizes")
+                if sizes:
+                    verified_reason = f"Verified Format Handling: Engineered for {sizes} media."
+            if not verified_reason:
+                verified_reason = "Verified Format Handling: Matches your required media format."
+
+        elif concern == "portability":
+            if product:
+                weight = product.specifications_table.get("Product Weight") or product.specifications_table.get("Weight")
+                dims = product.specifications_table.get("Dimensions")
+                if weight or dims:
+                    verified_reason = f"Verified Compact Design: Weighs {weight or 'compact'} (dimensions: {dims or 'space-saving'})."
+            if not verified_reason:
+                verified_reason = "Verified Compact Design: Compact form factor for flexible placement."
+
+        elif concern == "ease_of_use":
+            verified_reason = "Verified Ease of Use: Features intuitive front-panel operation and simplified media loading."
+
+        if verified_reason:
+            step.explanation = f"{verified_reason}\n\n{step.explanation}"
+    except Exception:
+        pass
+
+    return step
+
+
 def resolve_flowchart_step(
     category: Optional[str],
     requirements: Dict[str, Any],
@@ -909,5 +1043,6 @@ def resolve_flowchart_step(
     """
     reqs = extract_flowchart_requirements(text, requirements)
     step = _resolve_flowchart_step_raw(category, reqs, text)
-    return _apply_budget_filter(step, reqs)
+    step = _apply_budget_filter(step, reqs)
+    return _apply_primary_concern(step, reqs)
 

@@ -374,7 +374,7 @@ class TurnUnderstandingExtractor:
     CONSUMABLES_PATTERNS = [
         re.compile(r"\b(?:what\s+inks?|which\s+inks?|consumables?|cartridges?|ribbons?|maintenance\s*box(?:es)?|supplies(?:\s+for)?|sublimation\s+inks?|print\s+supplies)\b", re.I),
         re.compile(r"\b(?:(?:what|which|need|want|buy|order|get|looking\s+for)\s+.*?\b(?:ink|inks|cartridge|cartridges|ribbon|ribbons|maintenance\s*box|supplies|paper|media))\b", re.I),
-        re.compile(r"\b(?:[a-z0-9\-]+\s+(?:ink|inks|cartridge|cartridges|ribbon|ribbons|paper|media|supplies))\b", re.I),
+        re.compile(r"\b(?!(?:our|the|my|this|that|their|its|more|less|high|low|zero|no)\s+)(?:[a-z0-9\-]+\s+(?:ink|inks|cartridge|cartridges|ribbon|ribbons|paper|media|supplies))\b", re.I),
         re.compile(r"\b(?:ink|inks|cartridge|cartridges|ribbon|ribbons|supplies|paper|media)\s+(?:for|of)\s+[a-z0-9\-]+\b", re.I),
     ]
 
@@ -806,6 +806,31 @@ class TurnUnderstandingExtractor:
                 source="said_now"
             )
 
+        # Primary concern slot (problem discovery: running_cost, print_speed, colour_quality, reliability, paper_size, portability, ease_of_use)
+        concern = None
+        if re.search(r"\b(?:(?:ink|toner|cartridge|running|consumable|print)\s*costs?|costs?\s*(?:are|is)?\s*(?:killing\s*us|too\s*high)|costing\s*a\s*fortune|expensive\s*ink|cheaper\s*prints?|per\s*print\s*cost|cost\s*per\s*print|cost\s*per\s*page|running\s*costs?|operational\s*costs?)\b", text_l):
+            concern = "running_cost"
+        elif re.search(r"\b(?:print\s*speed|speed|fast|faster|slow|too\s*slow|ppm|quick\s*turnaround)\b", text_l):
+            concern = "print_speed"
+        elif re.search(r"\b(?:colour\s*quality|color\s*quality|print\s*quality|fine\s*art|accurate\s*colou?r|pantone|resolution|clarity|vibrant)\b", text_l):
+            concern = "colour_quality"
+        elif re.search(r"\b(?:reliab\w*|break\s*down|jam|jamming|downtime|maintenance|heavy\s*duty|duty\s*cycle)\b", text_l):
+            concern = "reliability"
+        elif re.search(r"\b(?:paper\s*size|media\s*size|large\s*format|wide\s*format|wide|24\s*inch|36\s*inch|44\s*inch|a3\b|a0\b|a1\b)\b", text_l):
+            concern = "paper_size"
+        elif re.search(r"\b(?:portable|portability|compact|lightweight|light|mobile|booth|kiosk|transport)\b", text_l):
+            concern = "portability"
+        elif re.search(r"\b(?:easy\s*to\s*use|ease\s*of\s*use|simple|touchscreen|user\s*friendly|plug\s*and\s*play)\b", text_l):
+            concern = "ease_of_use"
+
+        if concern:
+            slots["primary_concern"] = SlotValue(
+                slot_name="primary_concern",
+                value=concern,
+                confidence=0.95,
+                source="said_now"
+            )
+
         return slots
 
     @classmethod
@@ -875,7 +900,13 @@ class TurnUnderstandingExtractor:
             return act, Intent.COMPATIBILITY_CHECK, 0.96, ambiguities
 
         # 7. Consumables lookup ("what inks does f500 use", "cartridges for sc-t3100")
-        if any(p.search(text_l) for p in cls.CONSUMABLES_PATTERNS):
+        is_hardware_req = any(
+            re.search(p, text_l) for p in [
+                r"\b(?:need|want|looking for|buy|recommend|suggest)\s+(?:an?\s+)?(?:office\s+)?(?:printer|plotter|scanner|copier|mfp)\b",
+                r"\b(?:printer|plotter|scanner)\s+for\b",
+            ]
+        )
+        if any(p.search(text_l) for p in cls.CONSUMABLES_PATTERNS) and not is_hardware_req:
             act = DialogueAct.REFERENCE_FOLLOW_UP if refs else DialogueAct.QUESTION
             return act, Intent.CONSUMABLES_LOOKUP, 0.95, ambiguities
 

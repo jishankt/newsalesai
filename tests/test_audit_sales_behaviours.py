@@ -267,5 +267,42 @@ class TestAuditSalesBehavioursFix4(unittest.TestCase):
                     break
             self.assertTrue(found or int(num) in (1, 2, 3, 4, 5, 24, 36, 44), f"Number {num} not found in catalogue data")
 
+    def test_fix_5_primary_concern_slot_and_recommendation_order(self):
+        """
+        FIX 5: 'our ink costs are killing us, need an office printer' stores running_cost,
+        the next question is the paper-size question (not repeated), and the final reply
+        leads with verified cost/yield data.
+        """
+        state = DialogueState(session_id="test_fix_5_concern")
+        turn1 = understand_turn("our ink costs are killing us, need an office printer")
+
+        self.assertIn("primary_concern", turn1.slots)
+        self.assertEqual(turn1.slots["primary_concern"].value, "running_cost")
+
+        resolved1 = ReferentResolver.resolve_turn(turn1, state)
+        dec1 = PolicyEngine.decide(resolved1, state)
+        plan1 = ResponsePlanBuilder.build(dec1, resolved1, state)
+
+        # Stored in confirmed_slots
+        self.assertEqual(state.confirmed_slots.get("primary_concern"), "running_cost")
+
+        # Next question should be paper size, NOT what matters most
+        reply1_lower = plan1.formatted_reply.lower()
+        self.assertNotIn("what matters most", reply1_lower)
+        self.assertTrue("paper" in reply1_lower or "format" in reply1_lower or "a4" in reply1_lower)
+
+        # Turn 2: Provide paper size and volume to reach leaf
+        turn2 = understand_turn("A4 format, 200 pages daily")
+        resolved2 = ReferentResolver.resolve_turn(turn2, state)
+        dec2 = PolicyEngine.decide(resolved2, state)
+        plan2 = ResponsePlanBuilder.build(dec2, resolved2, state)
+
+        # Final reply must lead with verified running cost / yield advantage
+        reply2 = plan2.formatted_reply
+        self.assertIn("Verified Running Cost Advantage", reply2)
+        # Should cite verified data from catalogue
+        self.assertTrue("pages" in reply2.lower() or "cost" in reply2.lower())
+
+
 
 

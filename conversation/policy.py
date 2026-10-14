@@ -113,6 +113,12 @@ class PolicyEngine:
         intent = und.intent
         conf = und.overall_confidence
 
+        # Store extracted understanding slots into state.confirmed_slots
+        if und.slots:
+            for sname, sval in und.slots.items():
+                val = sval.value if hasattr(sval, "value") else sval
+                state.confirmed_slots[sname] = val
+
         # ── PRIORITY 0: UNDERSTANDING & FALLBACK LADDER ─────────────────────────
         raw_l = und.raw_text.lower().strip()
 
@@ -1433,8 +1439,14 @@ class PolicyEngine:
                     f"including {strengths_text}.\n\n"
                     "We do not publish comparative specs or figures for third-party brands."
                 )
-                chips = ["Print Quality", "Running Cost", "Print Speed", "Official Quotation"]
-                next_q = "What matters most for your workflow: print quality, running cost, speed, or media size?"
+                known_concern = state.confirmed_slots.get("primary_concern")
+                if known_concern:
+                    primary_lbl = known_concern.replace("_", " ")
+                    chips = ["Official Quotation", "Technical Specs", "Warranty Details"]
+                    next_q = f"Since your primary priority is {primary_lbl}, would you like an official quotation or verified technical data for this model?"
+                else:
+                    chips = ["Print Quality", "Running Cost", "Print Speed", "Official Quotation"]
+                    next_q = "What matters most for your workflow: print quality, running cost, speed, or media size?"
                 target_ids = [t_id]
             else:
                 claim = (
@@ -1442,8 +1454,14 @@ class PolicyEngine:
                     "specializing in official Epson large-format and Citizen photo printing systems. Rather than quoting third-party "
                     "specifications, we focus on matching you with the verified system that delivers the best return on investment for your application."
                 )
-                chips = ["Print Quality", "Running Cost", "Print Speed", "Media Size"]
-                next_q = "To recommend the ideal model, what matters most to you: print quality, running cost, speed, or media size?"
+                known_concern = state.confirmed_slots.get("primary_concern")
+                if known_concern:
+                    primary_lbl = known_concern.replace("_", " ")
+                    chips = ["Technical CAD Plotters", "Photo & Fine Art", "Office Printers", "Citizen Photo Booth"]
+                    next_q = f"Since your primary priority is {primary_lbl}, which format or application category best matches your setup?"
+                else:
+                    chips = ["Print Quality", "Running Cost", "Print Speed", "Media Size"]
+                    next_q = "To recommend the ideal model, what matters most to you: print quality, running cost, speed, or media size?"
                 target_ids = []
 
             rec = EvidenceRecord(
