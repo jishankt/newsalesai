@@ -44,7 +44,22 @@ UNDERSTANDING_SCHEMA = {
         "entities": {
             "type": "object",
             "properties": {
-                "customer_name": {"type": "string"},
+                "customer_name": {
+                    "type": "string",
+                    "description": "Customer full name if they introduced themselves."
+                },
+                "customer_email": {
+                    "type": "string",
+                    "description": "Customer email address if provided."
+                },
+                "customer_phone": {
+                    "type": "string",
+                    "description": "Customer phone or WhatsApp number if provided."
+                },
+                "customer_company": {
+                    "type": "string",
+                    "description": "Customer company or organization name if mentioned."
+                },
                 "product_category": {
                     "type": "string",
                     "enum": ["technical_cad", "photo_fine_art", "photo_booth",
@@ -123,6 +138,7 @@ UNDERSTANDING_SCHEMA = {
             "enum": [
                 "respond_socially", "ask_qualification_question",
                 "search_products", "show_product_specs",
+                "answer_product_attribute",
                 "show_consumables", "compare_products",
                 "provide_business_info", "provide_support",
                 "ask_clarification", "close_conversation",
@@ -220,6 +236,11 @@ Your job is to analyze the customer's latest message and return a structured JSO
     - "no scanner", "without scanner", "scanner no need", "not for CAD", "not this one" must set negative requirements or rejection. Do not classify "not for CAD" as CAD.
 
 ## Entity Extraction
+- Customer contact data:
+  * customer_name: Extract from introductions ("my name is X", "I am X", "this is X").
+  * customer_email: Extract any email address mentioned (e.g. user@domain.com).
+  * customer_phone: Extract phone/WhatsApp numbers (e.g. +971 55 123 4567, 0551234567).
+  * customer_company: Extract company/organization name ("from XYZ Trading", "I work at ABC").
 - product_category rules:
   * "technical_cad": CAD drawings, blueprints, architectural plans, technical plotters (including "plottaer" / "cad").
   * "photo_fine_art": Photography, fine art, gallery prints, exhibition photo printers ("fine art").

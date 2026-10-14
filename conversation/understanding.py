@@ -287,7 +287,19 @@ class TurnUnderstandingExtractor:
     ]
 
     COMPARE_PATTERNS = [
-        re.compile(r"\b(?:compare|comparison|difference\s+between|which\s+is\s+better|versus|\bvs\b)\b", re.I),
+        re.compile(
+            r"\b(?:"
+            r"compare|campare|compair|comapre|comparison|differences?|difference\s+between|"
+            r"which\s+(?:one\s+)?(?:is\s+)?(?:better|best|recommended)|"
+            r"which\s+(?:one\s+)?to\s+(?:choose|pick|get|buy)|"
+            r"which\s+(?:one\s+)?should\s+i\s+(?:choose|pick|get|buy)|"
+            r"what\s+is\s+the\s+difference|"
+            r"how\s+do\s+they\s+compare|"
+            r"better\s+(?:choice|option)|"
+            r"versus|\bvs\b|compare\s+(?:these|them|both|all)|campare\s+these"
+            r")\b",
+            re.I
+        ),
     ]
 
     ALTERNATIVES_PATTERNS = [
@@ -295,7 +307,7 @@ class TurnUnderstandingExtractor:
     ]
 
     PRICE_POLICY_PATTERNS = [
-        re.compile(r"\b(?:price|cost|how\s+much|quote|quotation|pricing|discount|rates?|in\s+stock|available\s+in\s+stock|print\s+cost|cost\s+per\s+print|running\s+cost|media\s+cost)\b", re.I),
+        re.compile(r"\b(?:price|cost|how\s+much|quote|quotation|pricing|discount|rates?|in\s+stock|available\s+in\s+stock|print\s+cost|cost\s+per\s+print|running\s+cost|media\s+cost|investment|intial\s+investment|initial\s+investment|budget)\b", re.I),
     ]
 
     # Attribute-level spec query keywords — triggers PRODUCT_INFO
@@ -785,6 +797,10 @@ class TurnUnderstandingExtractor:
         # 15. Recommendation query
         if any(w in text_l for w in ["need", "want", "looking for", "recommend", "best", "which"]):
             return DialogueAct.QUESTION, Intent.RECOMMEND, 0.80, ambiguities
+
+        # 16. Short inquiry or clarification prompts ("what", "what?", "tell me", "show me", "explain")
+        if text_l in ("what", "what?", "tell me", "show me", "what is it", "what's that", "whats that", "explain"):
+            return DialogueAct.QUESTION, Intent.PRODUCT_INFO, 0.90, ambiguities
 
         # Fallback chitchat / greetings
         if re.search(r"\b(?:hello|hi|hey|good\s*morning|good\s*afternoon|good\s*evening)\b", text_l):

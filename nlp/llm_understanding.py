@@ -3,6 +3,12 @@ LLM Understanding Module for Kepler Tech Conversational AI.
 Sends customer messages to the local Ollama model for structured intent
 classification. Returns a validated LLMUnderstanding dataclass.
 
+Pipeline (in order):
+  1. Semantic embedding classifier (fast, vector-similarity, no LLM needed)
+  2. Deterministic fast-path (regex/keyword, <1ms)
+  3. Full LLM classify (12-30s, only when needed)
+  4. Enriched fallback (regex + semantic features)
+
 If the LLM is unavailable or returns invalid JSON, falls back to
 intent="unclear" with requested_action="ask_clarification".
 """
@@ -18,6 +24,22 @@ from prompts.understanding_prompt import (
 from ollama_client import OllamaClient
 
 logger = logging.getLogger("llm_understanding")
+
+# Intent label mapping from semantic classifier → domain Intent enum
+_SEMANTIC_INTENT_MAP: Dict[str, Intent] = {
+    "greeting": Intent.GREETING,
+    "product_discovery": Intent.PRODUCT_DISCOVERY,
+    "product_question": Intent.PRODUCT_QUESTION,
+    "product_comparison": Intent.PRODUCT_COMPARISON,
+    "consumables_query": Intent.CONSUMABLES_QUERY,
+    "correction": Intent.CORRECTION,
+    "confirmation": Intent.CONFIRMATION,
+    "rejection": Intent.REJECTION,
+    "business_information": Intent.BUSINESS_INFORMATION,
+    "customer_introduction": Intent.CUSTOMER_INTRODUCTION,
+    "conversation_ending": Intent.CONVERSATION_ENDING,
+    "troubleshooting": Intent.TROUBLESHOOTING,
+}
 
 
 class LLMUnderstandingEngine:
@@ -35,8 +57,11 @@ class LLMUnderstandingEngine:
         raw_message: Optional[str] = None,
     ) -> LLMUnderstanding:
         """
-        Classify the customer message using the local LLM.
-        Preserves raw message, normalized message, and structured semantic meaning.
+        Classify the customer message using a 4-stage pipeline:
+          1. Semantic embedding intent classifier (fast, no LLM)
+          2. Deterministic fast-path (regex/keyword, <1ms)
+          3. Full LLM classify (only when needed)
+          4. Enriched fallback (regex + semantic features)
 
         Returns a validated LLMUnderstanding. On any failure,
         returns intent=UNCLEAR with requested_action=ask_clarification.
@@ -47,18 +72,35 @@ class LLMUnderstandingEngine:
             state_summary=state_summary
         )
 
+        # ── Stage 1: Semantic Embedding Classifier ──────────────────────────
+        # Run embedding-based intent classification first — it is fast (<100ms)
+        # and provides intent + semantic requirements without any LLM overhead.
+        semantic_intent_result = self._run_semantic_classifier(
+            customer_message, state_summary, semantic_features
+        )
+
         if not self.client:
             logger.warning("No Ollama client configured — returning fallback understanding.")
-            return self._fallback(customer_message, state_summary=state_summary, raw_message=raw_message, semantic_features=semantic_features)
+            fallback = self._fallback(
+                customer_message, state_summary=state_summary,
+                raw_message=raw_message, semantic_features=semantic_features
+            )
+            # Merge semantic intent if confident and fallback is unclear
+            if semantic_intent_result and fallback.intent == Intent.UNCLEAR:
+                fallback = self._apply_semantic_intent(fallback, semantic_intent_result, semantic_features)
+            return fallback
 
-        # Check fast path to bypass 12s LLM classify when answer is deterministic
+        # ── Stage 2: Deterministic fast-path ──────────────────────────────
         if self.is_deterministic_fast_path(customer_message, state_summary):
-            fast = self._fallback(customer_message, state_summary=state_summary, raw_message=raw_message, semantic_features=semantic_features)
+            fast = self._fallback(
+                customer_message, state_summary=state_summary,
+                raw_message=raw_message, semantic_features=semantic_features
+            )
             if fast.intent != Intent.UNCLEAR:
                 logger.info(f"Fast-path classification (<1ms): intent={fast.intent.value} action={fast.requested_action}")
                 return fast
 
-        # Build messages for the classifier with both raw and normalized text
+        # ── Stage 3: Full LLM classify ─────────────────────────────────────
         messages = build_understanding_messages(
             customer_message=customer_message,
             recent_turns=recent_turns,
@@ -66,7 +108,6 @@ class LLMUnderstandingEngine:
             raw_message=raw_message,
         )
 
-        # Call Ollama structured output
         result = self.client.classify(
             messages=messages,
             schema=UNDERSTANDING_SCHEMA,
@@ -75,7 +116,13 @@ class LLMUnderstandingEngine:
 
         if not result.get("success") or not result.get("result"):
             logger.warning("LLM classify failed or returned empty — using fallback.")
-            return self._fallback(customer_message, state_summary=state_summary, raw_message=raw_message, semantic_features=semantic_features)
+            fallback = self._fallback(
+                customer_message, state_summary=state_summary,
+                raw_message=raw_message, semantic_features=semantic_features
+            )
+            if semantic_intent_result and fallback.intent == Intent.UNCLEAR:
+                fallback = self._apply_semantic_intent(fallback, semantic_intent_result, semantic_features)
+            return fallback
 
         raw = result["result"]
         logger.info(f"LLM understanding raw: intent={raw.get('intent')} "
@@ -90,6 +137,11 @@ class LLMUnderstandingEngine:
             understanding.customer_goal = semantic_features["customer_goal"]
         if not understanding.requirements and semantic_features.get("requirements"):
             understanding.requirements = semantic_features["requirements"]
+        elif understanding.requirements and semantic_features.get("semantic_requirements"):
+            # Merge semantically-extracted requirements for fields not already set
+            for k, v in semantic_features.get("semantic_requirements", {}).items():
+                if k not in understanding.requirements:
+                    understanding.requirements[k] = v
         if not understanding.corrections and semantic_features.get("corrections"):
             understanding.corrections = semantic_features["corrections"]
         if not understanding.requested_attributes and semantic_features.get("requested_attributes"):
@@ -107,11 +159,77 @@ class LLMUnderstandingEngine:
         if not understanding.rejection and semantic_features.get("rejection"):
             understanding.rejection = True
 
-        # Safety: if confidence is very low, treat as unclear
+        # Safety: if confidence is very low, apply semantic intent as override
         if understanding.confidence < 0.3 and understanding.intent != Intent.UNCLEAR:
             logger.info(f"Low confidence ({understanding.confidence}) — overriding to UNCLEAR")
             understanding.intent = Intent.UNCLEAR
             understanding.requested_action = "ask_clarification"
+
+        if understanding.intent == Intent.UNCLEAR and semantic_intent_result:
+            understanding = self._apply_semantic_intent(understanding, semantic_intent_result, semantic_features)
+
+        return understanding
+
+    def _run_semantic_classifier(
+        self,
+        customer_message: str,
+        state_summary: Optional[Dict[str, Any]],
+        semantic_features: Dict[str, Any],
+    ) -> Optional[Dict[str, Any]]:
+        """Runs the embedding-based semantic intent classifier."""
+        try:
+            from nlp.semantic_understanding import (
+                semantic_classify_intent,
+                semantic_extract_requirements,
+            )
+            result = semantic_classify_intent(customer_message, state_summary)
+            if result:
+                # Also extract structured requirements via embeddings
+                sem_reqs = semantic_extract_requirements(customer_message)
+                result["semantic_requirements"] = sem_reqs
+                semantic_features["semantic_requirements"] = sem_reqs
+                logger.info(
+                    f"SemanticClassifier result: intent={result['intent']} "
+                    f"confidence={result['confidence']} reqs={sem_reqs}"
+                )
+            return result
+        except Exception as e:
+            logger.debug(f"Semantic classifier unavailable: {e}")
+            return None
+
+    def _apply_semantic_intent(
+        self,
+        understanding: LLMUnderstanding,
+        semantic_result: Dict[str, Any],
+        semantic_features: Dict[str, Any],
+    ) -> LLMUnderstanding:
+        """Applies semantic classifier result to an unclear/low-confidence understanding."""
+        sem_intent_label = semantic_result.get("intent", "")
+        sem_intent = _SEMANTIC_INTENT_MAP.get(sem_intent_label)
+        sem_confidence = semantic_result.get("confidence", 0.0)
+        sem_action = semantic_result.get("requested_action", "ask_clarification")
+
+        if sem_intent and sem_confidence >= 0.62:
+            logger.info(
+                f"Applying semantic intent override: {sem_intent_label} "
+                f"(confidence={sem_confidence:.3f}) → action={sem_action}"
+            )
+            understanding.intent = sem_intent
+            understanding.requested_action = sem_action
+            understanding.confidence = sem_confidence
+            understanding.product_related = sem_intent in (
+                Intent.PRODUCT_DISCOVERY, Intent.PRODUCT_QUESTION,
+                Intent.CONSUMABLES_QUERY, Intent.PRODUCT_COMPARISON,
+            )
+
+            # Merge semantically-extracted requirements
+            sem_reqs = semantic_result.get("semantic_requirements", {})
+            if sem_reqs:
+                if not understanding.requirements:
+                    understanding.requirements = {}
+                for k, v in sem_reqs.items():
+                    if k not in understanding.requirements:
+                        understanding.requirements[k] = v
 
         return understanding
 

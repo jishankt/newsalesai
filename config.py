@@ -16,7 +16,9 @@ if not (raw_ollama_url.startswith("http://") or raw_ollama_url.startswith("https
     raw_ollama_url = f"http://{raw_ollama_url}"
 
 OLLAMA_BASE_URL = raw_ollama_url
-DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:32b")
+DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:latest")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "nomic-embed-text:latest")
+USE_NEURAL_EMBEDDINGS = os.getenv("USE_NEURAL_EMBEDDINGS", "true").lower() in ("true", "1", "yes")
 
 APP_ENV = os.getenv("APP_ENV") or os.getenv("FLASK_ENV") or os.getenv("ENVIRONMENT") or "development"
 IS_PRODUCTION = APP_ENV.lower() in ("production", "prod")

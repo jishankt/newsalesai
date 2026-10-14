@@ -228,13 +228,23 @@ class ResponsePlanBuilder:
         if decision.active_item_id and not c_cards:
             c_node = knowledge_graph.nodes.get(decision.active_item_id.upper())
             if c_node and c_node.node_type == "consumable":
+                c_url = c_node.attributes.get("product_url") or c_node.attributes.get("url") or c_node.attributes.get("website_url") or f"https://www.keplertechllc.com/product/{c_node.id.lower()}"
+                c_img = c_node.attributes.get("image_url") or c_node.attributes.get("image") or "https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png"
                 c_cards.append({
                     "card_type": "consumable",
                     "sku": c_node.id,
                     "name": c_node.name,
-                    "category": c_node.attributes.get("type", "consumable"),
+                    "title": c_node.name,
+                    "category": c_node.attributes.get("category") or c_node.attributes.get("type", "consumable"),
                     "color": c_node.attributes.get("color"),
-                    "product_url": c_node.attributes.get("url") or f"https://www.keplertechllc.com/product/{c_node.id.lower()}",
+                    "product_url": c_url,
+                    "url": c_url,
+                    "source_url": c_url,
+                    "website_url": c_url,
+                    "image_url": c_img,
+                    "image": c_img,
+                    "price": c_node.attributes.get("price"),
+                    "price_str": c_node.attributes.get("price_str") or c_node.attributes.get("price_formatted"),
                     "badges": ["Genuine Kepler Tech Consumable"],
                 })
 
@@ -242,16 +252,61 @@ class ResponsePlanBuilder:
         for rec_item in decision.evidence_records:
             if rec_item.supporting_data and "consumables" in rec_item.supporting_data:
                 for c_item in rec_item.supporting_data["consumables"][:6]:
-                    c_sku = c_item.get("sku") or c_item.get("id")
+                    if isinstance(c_item, dict):
+                        c_sku = c_item.get("sku") or c_item.get("id")
+                        c_name = c_item.get("name") or f"Genuine Consumable {c_sku}"
+                        c_cat = c_item.get("category") or "consumable"
+                        c_col = c_item.get("color")
+                        c_url = c_item.get("product_url") or c_item.get("url") or c_item.get("website_url") or c_item.get("source_url")
+                        c_img = c_item.get("image_url") or c_item.get("image")
+                        c_price = c_item.get("price")
+                        c_price_str = c_item.get("price_str") or c_item.get("price_formatted")
+                    else:
+                        c_sku = str(c_item)
+                        c_name = f"Genuine Consumable {c_sku}"
+                        c_cat = "consumable"
+                        c_col = None
+                        c_url = None
+                        c_img = None
+                        c_price = None
+                        c_price_str = None
+
+                    # If image or url is missing, lookup from knowledge_graph node
+                    if c_sku:
+                        knode = knowledge_graph.nodes.get(c_sku.upper()) or knowledge_graph.nodes.get(c_sku)
+                        if knode:
+                            if not c_img or c_img == "/static/img/products/default.png":
+                                c_img = knode.attributes.get("image_url") or knode.attributes.get("image")
+                            if not c_url or c_url.endswith("#") or c_url.endswith("/product/"):
+                                c_url = knode.attributes.get("product_url") or knode.attributes.get("url") or knode.attributes.get("website_url") or knode.attributes.get("source_url")
+                            if c_price is None:
+                                c_price = knode.attributes.get("price")
+                                c_price_str = knode.attributes.get("price_str") or knode.attributes.get("price_formatted")
+                            if not c_name or c_name == f"Genuine Consumable {c_sku}":
+                                c_name = knode.name or c_name
+
+                    if not c_url:
+                        c_url = f"https://www.keplertechllc.com/product/{c_sku.lower()}"
+
+                    if not c_img:
+                        c_img = "https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png"
+
                     if c_sku and not any(cc.get("sku") == c_sku for cc in c_cards):
                         c_cards.append({
                             "card_type": "consumable",
                             "sku": c_sku,
-                            "name": c_item.get("name") or f"Genuine Consumable {c_sku}",
-                            "category": c_item.get("category") or "consumable",
-                            "color": c_item.get("color"),
-                            "product_url": c_item.get("url") or f"https://www.keplertechllc.com/product/{c_sku.lower()}",
-                            "image_url": c_item.get("image_url") or "/static/img/products/default.png",
+                            "name": c_name,
+                            "title": c_name,
+                            "category": c_cat,
+                            "color": c_col,
+                            "product_url": c_url,
+                            "url": c_url,
+                            "source_url": c_url,
+                            "website_url": c_url,
+                            "image_url": c_img,
+                            "image": c_img,
+                            "price": c_price,
+                            "price_str": c_price_str,
                             "badges": ["Genuine Kepler Tech Consumable"],
                         })
 
@@ -340,13 +395,27 @@ class ResponsePlanValidator:
         if has_price_violation and "official request" not in text.lower():
             errors.append("Commercial policy violation: unverified price numeric claim in text.")
 
-        # 2. Grounding Check: If text mentions a SKU, verify it exists in evidence records
+        # 2. Grounding Check: If text mentions a SKU, verify it exists in evidence records or associated products
         sku_mentions = re.findall(r"\b(c1[123][a-z0-9]{5,9}|cy-ms\w+|cz-ms\w+|cx2\w+)\b", text.lower())
         for sm in sku_mentions:
-            if not any(sm.upper() in eid.upper() for eid in plan.evidence_ids):
-                # Allow if it's the known active item
-                if not (resolved.resolved_active_item and sm.upper() in resolved.resolved_active_item.id.upper()):
-                    errors.append(f"Grounding violation: SKU '{sm}' in text without supporting evidence.")
+            sm_clean = sm.upper().replace(" ", "").replace("-", "")
+            in_ev_ids = any(sm_clean in eid.upper().replace("-", "") for eid in plan.evidence_ids)
+            in_active_item = bool(resolved.resolved_active_item and sm_clean in resolved.resolved_active_item.id.upper().replace("-", ""))
+            in_associated = False
+            if not (in_ev_ids or in_active_item):
+                for rec in plan.evidence_records:
+                    for eid in rec.entity_ids:
+                        node = knowledge_graph.nodes.get(eid.lower()) or knowledge_graph.nodes.get(eid.upper())
+                        if node:
+                            node_cons = [str(c).upper().replace(" ", "").replace("-", "") for c in node.attributes.get("consumables", [])]
+                            if any(sm_clean in nc or nc in sm_clean for nc in node_cons):
+                                in_associated = True
+                                break
+                    if in_associated:
+                        break
+
+            if not (in_ev_ids or in_active_item or in_associated):
+                errors.append(f"Grounding violation: SKU '{sm}' in text without supporting evidence.")
 
         # 3. Intent Relevance Check
         if resolved.understanding.intent == Intent.COMPATIBILITY_CHECK:

@@ -19,3 +19,4 @@ data/battery_latest_run.json
 data/job_runs/
 data/notifications.log
 data/dispatched_notifications.json
+*.npz

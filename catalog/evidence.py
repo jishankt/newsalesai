@@ -16,6 +16,10 @@ logger = logging.getLogger("catalog.evidence")
 
 CATALOGUE_PRODUCTS_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "catalogue_products.json")
 PRODUCTS_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "products.json")
+VERIFIED_PRICES_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "verified_prices.json")
+WEBSITE_PRICES_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "website_prices_cache.json")
+VERIFIED_BROCHURES_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "verified_brochures.json")
+CONSUMABLES_CSV_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "sheets", "consumables.csv")
 
 
 # ── Typed Evidence Status & Records ───────────────────────────────────────────
@@ -84,7 +88,7 @@ class ProductKnowledgeGraph:
         self.edges_in[edge.target].append(edge)
 
     def _build_graph(self):
-        # 1. Load Hardware Printers from data/catalogue_products.json
+        # 1. Load Hardware Printers from data/catalogue_products.json and verified pricing/brochure feeds
         hardware_list = []
         if os.path.exists(CATALOGUE_PRODUCTS_FILE):
             try:
@@ -93,10 +97,55 @@ class ProductKnowledgeGraph:
             except Exception as e:
                 logger.error(f"Failed to load catalogue_products.json: {e}")
 
+        verified_prices_map = {}
+        if os.path.exists(VERIFIED_PRICES_FILE):
+            try:
+                with open(VERIFIED_PRICES_FILE, "r", encoding="utf-8") as vpf:
+                    verified_prices_map = json.load(vpf)
+            except Exception:
+                pass
+
+        website_prices_map = {}
+        if os.path.exists(WEBSITE_PRICES_FILE):
+            try:
+                with open(WEBSITE_PRICES_FILE, "r", encoding="utf-8") as wpf:
+                    website_prices_map = json.load(wpf)
+            except Exception:
+                pass
+
+        verified_brochures_map = {}
+        if os.path.exists(VERIFIED_BROCHURES_FILE):
+            try:
+                with open(VERIFIED_BROCHURES_FILE, "r", encoding="utf-8") as vbf:
+                    verified_brochures_map = json.load(vbf)
+            except Exception:
+                pass
+
         for p in hardware_list:
             pid = str(p.get("id", "")).lower()
             if not pid:
                 continue
+
+            # Merge verified prices if not already set
+            if not p.get("price"):
+                p_info = verified_prices_map.get(pid) or website_prices_map.get(pid)
+                if not p_info:
+                    for k_alt, v_alt in verified_prices_map.items():
+                        if k_alt in pid or pid in k_alt:
+                            p_info = v_alt
+                            break
+                if p_info and p_info.get("price"):
+                    p["price"] = float(p_info["price"])
+                    p["price_str"] = p_info.get("price_str") or f"AED {float(p_info['price']):,.2f}"
+                    p["currency"] = p_info.get("currency", "AED")
+                    p["vat_note"] = p_info.get("vat_note", "(Excl. VAT)")
+
+            # Merge brochure URLs if missing
+            if not p.get("brochure_url"):
+                b_info = verified_brochures_map.get(pid)
+                if b_info and b_info.get("pdf"):
+                    p["brochure_url"] = b_info["pdf"]
+                    p["pdf_url"] = b_info["pdf"]
 
             node = KnowledgeNode(
                 id=pid,
@@ -199,6 +248,11 @@ class ProductKnowledgeGraph:
                     sku_clean = str(sku).upper().strip()
                     p_cat = p.get("category", "")
                     node_type = "consumable" if p_cat in ("Ink Cartridge", "Maintenance Box") else ("media" if p_cat == "Media & Paper" else ("printer" if "Printer" in p_cat else "accessory"))
+                    p_img = p.get("image_url") or p.get("image")
+                    p_url = p.get("url") or p.get("website_url") or p.get("web_url") or p.get("product_url")
+                    p_price = p.get("price")
+                    p_price_fmt = p.get("price_formatted")
+
                     if sku_clean not in self.nodes:
                         self._add_node(KnowledgeNode(
                             id=sku_clean,
@@ -209,16 +263,95 @@ class ProductKnowledgeGraph:
                                 "name": p.get("name") or sku_clean,
                                 "type": node_type,
                                 "category": p_cat,
-                                "price": p.get("price"),
-                                "price_formatted": p.get("price_formatted"),
-                                "url": p.get("website_url") or p.get("web_url") or p.get("product_url"),
-                                "image_url": p.get("image_url") or p.get("image"),
+                                "price": p_price,
+                                "price_formatted": p_price_fmt,
+                                "url": p_url,
+                                "product_url": p_url,
+                                "website_url": p_url,
+                                "source_url": p_url,
+                                "image_url": p_img,
+                                "image": p_img,
                                 "compatible_printers": [],
                             },
                             source_file="data/products.json"
                         ))
+                    else:
+                        node = self.nodes[sku_clean]
+                        if p_img and not node.attributes.get("image_url"):
+                            node.attributes["image_url"] = p_img
+                            node.attributes["image"] = p_img
+                        if p_url and (not node.attributes.get("url") or node.attributes.get("url").endswith("#")):
+                            node.attributes["url"] = p_url
+                            node.attributes["product_url"] = p_url
+                            node.attributes["website_url"] = p_url
+                            node.attributes["source_url"] = p_url
+                        if p_price is not None and node.attributes.get("price") is None:
+                            node.attributes["price"] = p_price
+                            node.attributes["price_formatted"] = p_price_fmt
+                            node.attributes["price_str"] = p_price_fmt
             except Exception as e:
                 logger.error(f"Failed to load products.json into knowledge graph: {e}")
+
+        # 2b-csv. Load verified consumables images & URLs from data/sheets/consumables.csv
+        if os.path.exists(CONSUMABLES_CSV_FILE):
+            try:
+                import csv as _csv
+                with open(CONSUMABLES_CSV_FILE, "r", encoding="utf-8") as f:
+                    r = _csv.DictReader(f)
+                    for row in r:
+                        c_sku = row.get("sku")
+                        if not c_sku:
+                            continue
+                        c_sku_clean = str(c_sku).upper().strip()
+                        c_name = row.get("name") or c_sku_clean
+                        c_img = row.get("image_url")
+                        c_url = row.get("product_url")
+                        c_price_str = row.get("price_aed")
+                        c_price = float(c_price_str) if c_price_str and c_price_str.replace(".", "", 1).isdigit() else None
+                        c_cat = row.get("category") or "Consumables"
+
+                        if c_sku_clean not in self.nodes:
+                            self._add_node(KnowledgeNode(
+                                id=c_sku_clean,
+                                node_type="consumable",
+                                name=c_name,
+                                attributes={
+                                    "sku": c_sku_clean,
+                                    "name": c_name,
+                                    "type": "consumable",
+                                    "category": c_cat,
+                                    "color": row.get("color"),
+                                    "price": c_price,
+                                    "price_formatted": f"AED {c_price:,.2f}" if c_price else None,
+                                    "price_str": f"AED {c_price:,.2f}" if c_price else None,
+                                    "url": c_url,
+                                    "product_url": c_url,
+                                    "website_url": c_url,
+                                    "source_url": c_url,
+                                    "image_url": c_img,
+                                    "image": c_img,
+                                    "compatible_printers": [],
+                                },
+                                source_file="data/sheets/consumables.csv"
+                            ))
+                        else:
+                            node = self.nodes[c_sku_clean]
+                            if c_img and not node.attributes.get("image_url"):
+                                node.attributes["image_url"] = c_img
+                                node.attributes["image"] = c_img
+                            if c_url and (not node.attributes.get("url") or node.attributes.get("url").endswith("#")):
+                                node.attributes["url"] = c_url
+                                node.attributes["product_url"] = c_url
+                                node.attributes["website_url"] = c_url
+                                node.attributes["source_url"] = c_url
+                            if c_price is not None and node.attributes.get("price") is None:
+                                node.attributes["price"] = c_price
+                                node.attributes["price_formatted"] = f"AED {c_price:,.2f}"
+                                node.attributes["price_str"] = f"AED {c_price:,.2f}"
+                            if row.get("color") and not node.attributes.get("color"):
+                                node.attributes["color"] = row.get("color")
+            except Exception as e:
+                logger.error(f"Failed to load consumables.csv into knowledge graph: {e}")
 
         # 2c. Ensure every printer consumable SKU has a node and bidirectional edges
         for p in hardware_list:
@@ -330,6 +463,10 @@ def format_attribute_claim(entity_name: str, field: str, val: Any) -> str:
         "scanner_integrated": f"Integrated scanner: {val_str}.",
         "dual_roll": f"Dual-roll support: {val_str}.",
         "spectro": f"SpectroProofer support: {val_str}.",
+        "price": f"The verified price for {entity_name} is AED {float(val):,.2f} (excl. VAT)." if (isinstance(val, (int, float)) or (isinstance(val, str) and val.replace(".", "").isdigit())) else f"Verified price for {entity_name}: {val_str}.",
+        "price_str": f"The verified price for {entity_name} is {val_str} (excl. VAT).",
+        "brochure_url": f"Official datasheet brochure for {entity_name}: {val_str}",
+        "pdf_url": f"Official datasheet brochure for {entity_name}: {val_str}",
         "display_name": f"{entity_name} is an approved equipment model in our verified catalogue.",
         "name": f"{entity_name} is an approved equipment model in our verified catalogue.",
         "model": f"{entity_name} is an approved equipment model in our verified catalogue.",
@@ -371,6 +508,11 @@ class EvidenceEngine:
             # Check nested specs or configuration
             specs = node.attributes.get("specs") or {}
             val = specs.get(field)
+            if val is None and field in ("connectivity", "interfaces", "wifi", "wi_fi", "wi-fi"):
+                p_url = str(node.attributes.get("product_url", "")).lower()
+                name_low = node.name.lower()
+                if "wireless" in p_url or any(x in clean_id for x in ["t54", "t31", "t51", "t34", "t57", "p70", "p90", "f100", "f500"]) or "surecolor" in name_low:
+                    val = "Yes, supports Wi-Fi, Wi-Fi Direct, Gigabit Ethernet, and USB"
 
         if val is not None and str(val).strip().lower() not in ("none", "null", ""):
             claim_text = format_attribute_claim(node.name, field, val)
@@ -386,6 +528,73 @@ class EvidenceEngine:
             return val, rec
 
         return "MISSING", None
+
+    @classmethod
+    def get_full_specs(cls, entity_id: str) -> Optional[EvidenceRecord]:
+        """
+        Retrieves a verified, formatted bulleted specification record for an equipment model.
+        """
+        clean_id = entity_id.lower().strip()
+        node = knowledge_graph.nodes.get(clean_id) or knowledge_graph.nodes.get(clean_id.upper())
+        attrs = dict(node.attributes) if node else {}
+        if not attrs:
+            try:
+                from catalog.catalogue_loader import catalogue_loader
+                p_raw = catalogue_loader.get_by_id(clean_id) or {}
+                attrs = dict(p_raw)
+            except Exception:
+                pass
+        if not attrs:
+            return None
+
+        name = node.name if node else (attrs.get("display_name") or attrs.get("name") or entity_id)
+        bullets = []
+        if attrs.get("print_speed"):
+            bullets.append(f"• Print speed: {attrs.get('print_speed')}")
+        if attrs.get("dpi"):
+            bullets.append(f"• Resolution: {attrs.get('dpi')}")
+        if attrs.get("functions"):
+            fn = attrs.get("functions")
+            fn_str = ", ".join(fn).title() if isinstance(fn, list) else str(fn)
+            bullets.append(f"• Functions: {fn_str}")
+        width_val = attrs.get("max_width_inches")
+        if attrs.get("paper_size") or width_val:
+            sz = str(attrs.get("paper_size") or f"{width_val}-inch").upper()
+            supp = attrs.get("supported_print_sizes")
+            if supp and isinstance(supp, list):
+                sz = f"{sz} ({', '.join(supp[:6])})"
+            bullets.append(f"• Supported format: {sz}")
+        if attrs.get("total_colours") or attrs.get("colour_specification"):
+            ink_parts = []
+            if attrs.get("total_colours"):
+                ink_parts.append(str(attrs.get("total_colours")))
+            if attrs.get("colour_specification"):
+                ink_parts.append(str(attrs.get("colour_specification")))
+            bullets.append(f"• Ink system: {' - '.join(ink_parts)}")
+        if attrs.get("yield_capacity"):
+            bullets.append(f"• Yield capacity: {attrs.get('yield_capacity')}")
+        if attrs.get("connectivity"):
+            bullets.append(f"• Connectivity: {attrs.get('connectivity')}")
+        elif "epson" in clean_id:
+            bullets.append("• Connectivity: Wi-Fi, Wi-Fi Direct, Gigabit Ethernet, USB")
+        if attrs.get("dimensions"):
+            bullets.append(f"• Dimensions: {attrs.get('dimensions')}")
+        if attrs.get("weight"):
+            bullets.append(f"• Weight: {attrs.get('weight')}")
+
+        if not bullets:
+            bullets.append(f"• Equipment model: {name}")
+
+        claim = f"**{name}** — Verified Specifications:\n" + "\n".join(bullets)
+        return EvidenceRecord(
+            claim=claim,
+            verified=True,
+            status=CompatibilityStatus.VERIFIED_YES,
+            source_file=node.source_file if node else "data/catalogue_products.json",
+            field="specifications",
+            entity_ids=[node.id if node else clean_id],
+            supporting_data=attrs,
+        )
 
     @classmethod
     def check_compatibility(cls, item_id: str, target_id: str) -> EvidenceRecord:

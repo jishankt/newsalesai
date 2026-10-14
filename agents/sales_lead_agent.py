@@ -72,12 +72,51 @@ class SalesLeadAgent(BaseSpecialistAgent):
 
         # 4. Name extraction patterns
         name_m = re.search(
-            r"(?:my name is|i am|name is|this is)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)(?=[.,\n]|(?:\s+(?:from|with|at|and|you|email))\b|$)",
+            r"(?:my name is|i am|name is|this is|name[:\s]+)\s*([A-Za-z\u0600-\u06FF]+(?:\s+[A-Za-z\u0600-\u06FF]+)?)(?=[.,\n]|(?:\s+(?:from|with|at|and|you|email|phone|mobile|contact))\b|$)",
             text,
             re.IGNORECASE,
         )
         if name_m:
-            info["name"] = name_m.group(1).strip()
+            cand = name_m.group(1).strip()
+            if cand.lower() not in ["none", "na", "no", "looking", "interested", "sure", "here"]:
+                info["name"] = cand.capitalize() if cand.islower() else cand
+
+        # 5. AI fallback if contact details present but name missing, or if ambiguous
+        if not info["name"] or (not info["phone"] and not info["email"]):
+            if any(k in text.lower() for k in ["name", "email", "@", "phone", "mobile", "+971", "call", "whatsapp"]):
+                try:
+                    from ollama_client import ollama_client
+                    schema = {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string"},
+                            "phone": {"type": "string"},
+                            "email": {"type": "string"},
+                            "company": {"type": "string"}
+                        }
+                    }
+                    ai_res = ollama_client.classify(
+                        messages=[
+                            {"role": "system", "content": "Extract customer name, phone, email, and company if mentioned in text."},
+                            {"role": "user", "content": text}
+                        ],
+                        schema=schema,
+                        temperature=0.0
+                    )
+                    if ai_res.get("success") and ai_res.get("result"):
+                        res = ai_res["result"]
+                        if not info["name"] and res.get("name") and str(res["name"]).strip().lower() not in ("none", "n/a", "unknown", "null"):
+                            info["name"] = str(res["name"]).strip()
+                        if not info["email"] and res.get("email") and "@" in str(res["email"]):
+                            info["email"] = str(res["email"]).strip()
+                        if not info["phone"] and res.get("phone"):
+                            p = str(res["phone"]).strip()
+                            if len(re.sub(r"[^\d]", "", p)) >= 7:
+                                info["phone"] = p
+                        if not info["company"] and res.get("company") and str(res["company"]).strip().lower() not in ("none", "n/a", "unknown", "null"):
+                            info["company"] = str(res["company"]).strip()
+                except Exception:
+                    pass
 
         return info
 

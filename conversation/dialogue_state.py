@@ -93,15 +93,21 @@ class DialogueState(BaseModel):
         """Updates last shown artifacts and pushes them to salience."""
         if products is not None:
             self.last_shown_products = products
-            for p in products:
-                pid = p.get("id") or p.get("model_family") or p.get("sku")
-                pname = p.get("display_name") or p.get("name") or pid
+            for p in reversed(products):
+                if isinstance(p, dict):
+                    pid = p.get("id") or p.get("model_family") or p.get("sku")
+                    pname = p.get("display_name") or p.get("name") or pid
+                    meta = p
+                else:
+                    pid = str(p)
+                    pname = str(p)
+                    meta = {"id": str(p)}
                 if pid:
                     self.push_focus(SalientEntity(
                         id=str(pid),
                         entity_type="printer",
                         name=str(pname),
-                        metadata=p,
+                        metadata=meta,
                         turn_introduced=self.turn_count,
                         salience_score=1.0,
                     ))

@@ -806,7 +806,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const cCard = document.createElement('div');
         cCard.className = 'consumable-card';
         const cImg = c.image_url || c.image || 'https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png';
-        const cUrl = c.source_url || c.url || c.website_url || '#';
+        const cUrl = c.product_url || c.source_url || c.url || c.website_url || '#';
         const cTitle = c.title || c.name;
 
         let cPriceHtml = '';
@@ -835,7 +835,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="consumable-sku">${c.sku}</div>
           ${cPriceHtml}
           <div class="consumable-actions" style="margin-top: auto; padding-top: 4px;">
-            <a href="${cUrl}" target="_blank" class="card-btn" style="color: var(--chat-blue); font-size: 0.68rem; padding: 4px 6px; text-align: center; text-decoration: none; background: #f0f2f5;">
+            <a href="${cUrl}" target="_blank" rel="noopener noreferrer" class="card-btn" style="color: var(--chat-blue); font-size: 0.68rem; padding: 4px 6px; text-align: center; text-decoration: none; background: #f0f2f5;">
               View on Website ↗
             </a>
           </div>

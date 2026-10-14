@@ -139,18 +139,41 @@ def extract_full_name(text: str, email: Optional[str] = None, phone: Optional[st
 def extract_name_and_contact(text: str) -> Tuple[Optional[str], Optional[str], Optional[str], Optional[str]]:
     """
     Extracts (name, contact, phone, email) from input text.
-    Uses robust full-name extraction supporting up to 4 tokens (Arabic, hyphens, apostrophes).
+
+    Pipeline:
+      1. Regex fast-path via SalesLeadAgent.extract_contact_info
+      2. AI-powered extraction (LLM) when regex misses details
+         Uses semantic_understanding.ai_extract_customer_data for accurate
+         name/phone/email extraction from informal or multilingual messages.
     """
     contact_info = sales_lead_agent.extract_contact_info(text)
     email = contact_info.get("email")
     phone = contact_info.get("phone")
-    contact = email or phone
 
     name = extract_full_name(text, email=email, phone=phone)
     if not name:
         name = contact_info.get("name")
 
+    # If regex didn't find name or contact, try AI extraction
+    if not name or (not email and not phone):
+        try:
+            from nlp.semantic_understanding import ai_extract_customer_data
+            ai_info = ai_extract_customer_data(text)
+            if not name and ai_info.get("name"):
+                name = ai_info["name"]
+                logger.debug(f"AI extraction found name: {name}")
+            if not email and ai_info.get("email"):
+                email = ai_info["email"]
+                logger.debug(f"AI extraction found email: {email}")
+            if not phone and ai_info.get("phone"):
+                phone = ai_info["phone"]
+                logger.debug(f"AI extraction found phone: {phone}")
+        except Exception as e:
+            logger.debug(f"AI contact extraction unavailable: {e}")
+
+    contact = email or phone
     return name, contact, phone, email
+
 
 
 def mask_contact(contact: str) -> str:

@@ -64,8 +64,11 @@ def extract_flowchart_requirements(text: str, current_reqs: Optional[Dict[str, A
         reqs["paper_size"] = "A3"
 
     # 2. Office Daily Volume & Technology Class
-    # Numbers: e.g. "50 pages", "100/day", "500 pages a day"
-    vol_num_match = re.search(r"\b(\d+)\s*(?:pages?|prints?|drawings?|items?)\s*(?:a\s*day|per\s*day|daily)?\b", text_l)
+    # Numbers: e.g. "50 pages", "100/day", "500 pages a day", "maybe 60 daily", "around 500 pic"
+    vol_num_match = (
+        re.search(r"\b(\d+)\s*(?:pages?|prints?|drawings?|items?|sheets?|photos?|pics?|docs?|plans?)?\s*(?:a\s*day|per\s*day|daily|\/day)\b", text_l)
+        or re.search(r"\b(?:around|about|maybe|approx)?\s*(\d+)\s*(?:pages?|prints?|drawings?|items?|sheets?|photos?|pics?|docs?|plans?)\b", text_l)
+    )
     if vol_num_match:
         pages = int(vol_num_match.group(1))
         reqs["daily_pages"] = pages
@@ -126,9 +129,20 @@ def extract_flowchart_requirements(text: str, current_reqs: Optional[Dict[str, A
     elif any(k in text_l for k in ["dual roll", "t3700d", "sc-t3700d", "t3700de"]):
         reqs["cad_config_24"] = "dual_roll"
 
-    if any(k in text_l for k in ["print-only", "print only", "without scanner", "no scanner"]):
+    if (
+        any(k in text_l for k in [
+            "print-only", "print only", "without scanner", "no scanner", "no scan",
+            "without scan", "no scanning", "scanner not needed", "scan not needed",
+            "don't need scanner", "dont need scanner", "don't need scan", "dont need scan",
+            "no mfp", "without mfp"
+        ])
+        or re.search(r"\b(?:no|without|dont\s+need|don't\s+need)\s+(?:a\s+)?(?:scanner|scan|scanning)\b", text_l)
+    ):
         reqs["scanner_needed"] = False
-    elif any(k in text_l for k in ["scanner", "scan & copy", "mfp", "t5100m", "t5400m", "t5700dm", "t7700dm"]):
+    elif (
+        any(k in text_l for k in ["scanner", "scan & copy", "mfp", "t5100m", "t5400m", "t5700dm", "t7700dm"])
+        and not any(neg in text_l for neg in ["no scan", "without scan", "no scanner", "without scanner", "scan not needed"])
+    ):
         reqs["scanner_needed"] = True
 
     if any(k in text_l for k in ["1.6l", "bulk ink", "t7700dl"]):
@@ -156,11 +170,11 @@ def extract_flowchart_requirements(text: str, current_reqs: Optional[Dict[str, A
     elif any(k in text_l for k in ["10-colour heavy duty", "heavy duty", "p5300"]):
         reqs["photo_17_type"] = "heavy_duty_10col"
 
-    if any(k in text_l for k in ["commercial compact", "compact", "p6500"]):
+    if any(k in text_l for k in ["commercial compact", "commercial", "commercal", "compact", "p6500", "6500", "sc-p6500"]):
         reqs["photo_24_type"] = "commercial_compact"
-    elif any(k in text_l for k in ["12-colour master", "master", "p7500"]):
+    elif any(k in text_l for k in ["12-colour master", "12-color master", "12-colour", "12-color", "12 colour", "12 color", "master", "p7500", "7500", "sc-p7500"]):
         reqs["photo_24_type"] = "12_colour_master"
-    elif any(k in text_l for k in ["spectro", "spectrophotometer"]):
+    elif any(k in text_l for k in ["spectro", "spectrophotometer", "automated spectro", "spectro proofer"]):
         reqs["photo_24_type"] = "spectro"
 
     if any(k in text_l for k in ["production mfp", "p8500d", "p8500dm"]):
@@ -181,7 +195,7 @@ def extract_flowchart_requirements(text: str, current_reqs: Optional[Dict[str, A
     # 6. Dye Sublimation
     if any(k in text_l for k in ["a4 desktop gifts", "a4", "mugs", "gifts", "sc-f100", "f100"]):
         reqs["sublimation_format"] = "a4_gifts"
-    elif any(k in text_l for k in ["24-inch roll apparel", "24-inch", "apparel", "t-shirt", "textiles", "sc-f500", "f500"]):
+    elif any(k in text_l for k in ["24-inch roll apparel", "24-inch", "24 inch", "24inch", "24 roll", "roll", "apparel", "t-shirt", "textiles", "sc-f500", "f500"]) or re.search(r"\b24[\s-]*(?:inch|in|\")?\b", text_l):
         reqs["sublimation_format"] = "24_roll"
 
     # 7. Scanners
@@ -255,7 +269,8 @@ def resolve_flowchart_step(
         # Step 2 for A4: Per-Day Printing Volume & Technology Class
         if paper_size == "A4":
             speed_class = reqs.get("office_speed_class")
-            if speed_class == "34_ppm":
+            daily_pages = reqs.get("daily_pages")
+            if speed_class == "34_ppm" or (daily_pages is not None and daily_pages <= 100):
                 return FlowchartStep(
                     category="office_printer",
                     question="Here is the verified standard A4 WorkForce Pro MFP:",
@@ -264,7 +279,7 @@ def resolve_flowchart_step(
                     explanation="**Epson WorkForce Pro WF-C5890 DWF**: Standard 34 ppm color MFP with low energy consumption and high-yield ink packs for up to 100 pages/day.",
                     is_leaf=True,
                 )
-            elif speed_class == "25_ppm_rips":
+            elif speed_class == "25_ppm_rips" or (daily_pages is not None and 100 < daily_pages <= 300):
                 return FlowchartStep(
                     category="office_printer",
                     question="Here is the verified compact RIPS A4 model:",
@@ -273,7 +288,7 @@ def resolve_flowchart_step(
                     explanation="**Epson WorkForce Pro EM-C800**: Compact RIPS 25 ppm MFP engineered for 100–300 pages/day with minimal consumable interventions.",
                     is_leaf=True,
                 )
-            elif speed_class == "40_ppm_linehead":
+            elif speed_class == "40_ppm_linehead" or (daily_pages is not None and 300 < daily_pages <= 800):
                 return FlowchartStep(
                     category="office_printer",
                     question="Here is the verified 40 ppm line-head enterprise A4 MFP:",
@@ -282,7 +297,7 @@ def resolve_flowchart_step(
                     explanation="**Epson WorkForce Enterprise AM-C400**: Line-head enterprise 40 ppm color MFP delivering fast, reliable production for 300–800 pages/day.",
                     is_leaf=True,
                 )
-            elif speed_class == "55_ppm_linehead":
+            elif speed_class == "55_ppm_linehead" or (daily_pages is not None and daily_pages > 800):
                 return FlowchartStep(
                     category="office_printer",
                     question="Here is the verified 55 ppm line-head enterprise A4 MFP:",
@@ -311,17 +326,18 @@ def resolve_flowchart_step(
         # Step 2 for A3: Duty & Volume Class (Per-Day Printing)
         if paper_size == "A3":
             duty_class = reqs.get("office_duty_class")
-            if duty_class == "departmental_rips":
+            daily_pages = reqs.get("daily_pages")
+            if duty_class in ("departmental_rips", "standard_mfp") or (daily_pages is not None and daily_pages <= 500):
                 return FlowchartStep(
                     category="office_printer",
                     question="Here are the verified A3 departmental RIPS MFPs:",
                     chips=["WF-C878R DWF", "WF-C879R DWF", "RIPS Inks", "Official Quotation"],
                     target_product_id="epson-wf-c878r-dwf",
                     supporting_product_ids=["epson-wf-c879r-dwf"],
-                    explanation="**Epson WorkForce Pro WF-C878R / WF-C879R**: Departmental A3 RIPS (25 ppm) delivering up to 86,000 black pages, ideal for 200–500 pages/day.",
+                    explanation="**Epson WorkForce Pro WF-C878R / WF-C879R**: Departmental A3 RIPS (25 ppm) delivering up to 86,000 black pages, ideal for workloads up to 500 pages/day.",
                     is_leaf=True,
                 )
-            elif duty_class == "linehead_40":
+            elif duty_class == "linehead_40" or (daily_pages is not None and 500 < daily_pages <= 1500):
                 return FlowchartStep(
                     category="office_printer",
                     question="Here is the verified 40 ppm enterprise line-head A3 MFP:",
@@ -330,7 +346,7 @@ def resolve_flowchart_step(
                     explanation="**Epson WorkForce Enterprise AM-C4000**: Enterprise line-head 40 ppm color MFP designed for medium-to-large departments printing 500–1,500 pages/day.",
                     is_leaf=True,
                 )
-            elif duty_class == "linehead_50_60":
+            elif duty_class == "linehead_50_60" or (daily_pages is not None and 1500 < daily_pages <= 3000):
                 return FlowchartStep(
                     category="office_printer",
                     question="Here are the verified 50–60 ppm enterprise line-head A3 MFPs:",
@@ -340,7 +356,7 @@ def resolve_flowchart_step(
                     explanation="**Epson WorkForce Enterprise AM-C5000 / AM-C6000**: High-speed line-head 50–60 ppm MFPs with enterprise security and modular finishing for 1,500–3,000 pages/day.",
                     is_leaf=True,
                 )
-            elif duty_class == "ultra_100":
+            elif duty_class == "ultra_100" or (daily_pages is not None and daily_pages > 3000):
                 return FlowchartStep(
                     category="office_printer",
                     question="Here is the verified ultra high-speed 100 ppm enterprise MFP:",

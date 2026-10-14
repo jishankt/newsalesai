@@ -365,10 +365,10 @@ class Orchestrator:
                 if getattr(state, "category", None) and not unified_state.category:
                     unified_state.category = state.category
 
-                # Sync last shown items from state
-                if getattr(state, "active_consumable", None):
+                # Sync last shown items from state only if unified state has none recorded
+                if getattr(state, "active_consumable", None) and not unified_state.last_shown_consumables:
                     unified_state.record_shown_artifacts(consumables=[state.active_consumable])
-                if getattr(state, "active_product", None):
+                if getattr(state, "active_product", None) and not unified_state.last_shown_products:
                     unified_state.record_shown_artifacts(products=[state.active_product])
 
                 # 1. Structured Understanding
@@ -382,8 +382,17 @@ class Orchestrator:
 
                 if plan and plan.formatted_reply and plan.is_valid:
                     # Sync back active focus
-                    if resolved_turn.resolved_target_product:
-                        state.active_product_id = resolved_turn.resolved_target_product.id
+                    target_pid = None
+                    if policy_dec.target_entity_id:
+                        target_pid = policy_dec.target_entity_id
+                    elif plan.product_cards:
+                        target_pid = plan.product_cards[0].get("id")
+                    elif resolved_turn.resolved_target_product:
+                        target_pid = resolved_turn.resolved_target_product.id
+
+                    if target_pid:
+                        state.set_canonical_focus(target_pid)
+
                     if resolved_turn.resolved_active_item:
                         state.active_consumable = resolved_turn.resolved_active_item.metadata
                     if unified_state.category:
@@ -4408,9 +4417,11 @@ class Orchestrator:
 
         # 6a-cpp. Real-time Cost-Per-Print / Cost-Per-Page (CPP) & Investment Inquiry Route
         is_cpp_inquiry = bool(re.search(
-            r"\b(?:cost\s*per\s*(?:print|page|copy)|per\s*(?:print|page|copy)\s*cost|cpp|running\s*cost(?:s)?|printing\s*cost(?:s)?)\b",
+            r"\b(?:cost\s*per\s*(?:print|page|copy|photo)|per\s*(?:print|page|copy|photo)\s*cost|cpp|running\s*cost(?:s)?|print(?:ing)?\s*cost(?:s)?)\b",
             normalized_msg.lower()
-        ))
+        )) or any(k in normalized_msg.lower() for k in [
+            "print cost", "cost per print", "cost per page", "running cost", "divide by quantity", "price divide by quantity"
+        ])
         is_investment_q = bool(re.search(
             r"\b(?:investment|invest|hardware\s*cost|machine\s*cost|purchase\s*cost|upfront|initial\s*cost|printer\s*price|printer\s*cost|buying\s*cost|total\s*cost)\b",
             normalized_msg.lower()
@@ -4423,23 +4434,30 @@ class Orchestrator:
             from catalog.cost_per_print_calculator import cost_per_print_calculator
             
             prods_to_calc = []
+            has_single_model_named = any(m in normalized_msg.lower() for m in ["cx-02", "cy-02", "cz-01", "cx-02w", "p700", "p900", "t3100"])
             if mentioned_products:
                 prods_to_calc = mentioned_products
             elif getattr(state, "candidate_products", []) and len(state.candidate_products) >= 2 and (
                 any(w in normalized_msg.lower() for w in ["each", "both", "all", "compare", "which", "better", "best", "vs", "versus"])
-                or is_rec_q or is_investment_q
+                or is_rec_q or is_investment_q or not has_single_model_named
             ):
                 prods_to_calc = state.candidate_products
             elif getattr(state, "compared_products", []) and len(state.compared_products) >= 2 and (
                 any(w in normalized_msg.lower() for w in ["each", "both", "all", "compare", "which", "better", "best", "vs", "versus"])
-                or is_rec_q or is_investment_q
+                or is_rec_q or is_investment_q or not has_single_model_named
             ):
                 prods_to_calc = state.compared_products
             elif getattr(state, "displayed_product_ids", []) and len(state.displayed_product_ids) >= 2 and (
                 any(w in normalized_msg.lower() for w in ["each", "both", "all", "compare", "which", "better", "best", "vs", "versus"])
-                or is_rec_q or is_investment_q
+                or is_rec_q or is_investment_q or not has_single_model_named
             ):
                 prods_to_calc = [catalogue_loader.get_by_id(pid) for pid in state.displayed_product_ids if catalogue_loader.get_by_id(pid)]
+            elif getattr(state, "last_shown_products", []) and len(state.last_shown_products) >= 2 and not has_single_model_named:
+                prods_to_calc = [
+                    (catalogue_loader.get_by_id(p.get("id")) if isinstance(p, dict) else catalogue_loader.get_by_id(str(p)))
+                    for p in state.last_shown_products
+                    if (isinstance(p, dict) and catalogue_loader.get_by_id(p.get("id"))) or (isinstance(p, str) and catalogue_loader.get_by_id(p))
+                ]
             elif state.active_product:
                 target_p = state.active_product if isinstance(state.active_product, dict) else (state.active_product.to_dict() if hasattr(state.active_product, "to_dict") else None)
                 if target_p:

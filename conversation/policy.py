@@ -337,6 +337,25 @@ class PolicyEngine:
                 target = resolved.resolved_target_product
                 t_name = target.name if target else opt_label
                 t_id = target.id if target else b_opt.get("id")
+
+                raw_u = und.raw_text.lower().strip()
+                is_affirm_or_spec = (
+                    any(k in opt_label.lower() for k in ["spec", "technical", "detail"])
+                    or any(k in raw_u for k in ["yes", "sure", "ok", "okay", "fine", "show", "see", "spec", "detail", "i want to see", "give full", "what", "tell me", "explain"])
+                    or und.dialogue_act == DialogueAct.CONFIRMATION
+                )
+                if is_affirm_or_spec and t_id:
+                    full_rec = EvidenceEngine.get_full_specs(t_id)
+                    if full_rec:
+                        return PolicyDecision(
+                            action=PolicyAction.ANSWER,
+                            reason=f"Technical specifications requested via option for {t_name}.",
+                            target_entity_id=t_id,
+                            options_or_chips=["Official Quotation", "Compatible Consumables", "Cost Per Page", "Delivery Details"],
+                            evidence_records=[full_rec],
+                            next_step=f"Would you like an official quotation or to review compatible supplies for the {t_name}?",
+                        )
+
                 claim = f"**{t_name}** is an approved official equipment model in our catalogue."
                 rec = EvidenceRecord(
                     claim=claim,
@@ -631,13 +650,19 @@ class PolicyEngine:
         # 7. Comparison Intent
         if intent == Intent.COMPARE:
             models = [e.normalised_id for e in und.entities if e.entity_type == "model"]
+            if len(models) < 2 and state.last_shown_products:
+                models = [
+                    (p.get("id") if isinstance(p, dict) else str(p))
+                    for p in state.last_shown_products
+                    if (p.get("id") if isinstance(p, dict) else str(p))
+                ]
             if len(models) >= 2:
-                matrix, rec = EvidenceEngine.compare(models, ["category", "width", "resolution", "speed", "connectivity"])
+                matrix, rec = EvidenceEngine.compare(models[:3], ["category", "width", "resolution", "speed", "connectivity"])
                 return PolicyDecision(
                     action=PolicyAction.ANSWER,
-                    reason=f"Compared verified models {models}.",
+                    reason=f"Compared verified models {models[:3]}.",
                     target_entity_id=models[0],
-                    supporting_product_ids=models[1:],
+                    supporting_product_ids=models[1:3],
                     options_or_chips=["Compare Consumables", "View Official Quotations", "Consult Specialist"],
                     evidence_records=[rec],
                     next_step="Which model better fits your operational volume?",
@@ -734,23 +759,54 @@ class PolicyEngine:
         already_at_leaf = bool(state.confirmed_slots.get("_flowchart_leaf_reached"))
 
         is_flowchart_turn = False
-        if not already_at_leaf or canonical_new_cat is not None:
-            if intent in (Intent.RECOMMEND, Intent.OTHER):
-                if canonical_new_cat is not None:
-                    is_flowchart_turn = True
-                    resolved.resolved_target_product = None
-                elif not resolved.resolved_target_product and not resolved.resolved_active_item:
+        is_direct_query = (
+            intent in (Intent.AVAILABILITY_OR_PRICE_POLICY, Intent.PRODUCT_INFO, Intent.COMPATIBILITY_CHECK, Intent.COMPARE)
+            and bool(resolved.resolved_target_product or resolved.resolved_active_item)
+        )
+        if not is_direct_query:
+            if canonical_new_cat is not None:
+                is_flowchart_turn = True
+                resolved.resolved_target_product = None
+                state.confirmed_slots.pop("_flowchart_leaf_reached", None)
+                state.confirmed_slots.pop("_leaf_product_id", None)
+            elif bool(flow_reqs) and getattr(state, "category", None):
+                # Customer specified or modified parameters (e.g. 24 inch, a3, 500 pages, commercial)
+                is_flowchart_turn = True
+                state.confirmed_slots.pop("_flowchart_leaf_reached", None)
+                state.confirmed_slots.pop("_leaf_product_id", None)
+            elif not already_at_leaf and (intent in (Intent.RECOMMEND, Intent.OTHER)):
+                if not resolved.resolved_target_product and not resolved.resolved_active_item:
                     if getattr(state, "category", None) and (
-                        bool(flow_reqs)
-                        or any(c.lower() in und.raw_text.lower() for c in state.last_shown_chips)
+                        any(c.lower() in und.raw_text.lower() for c in state.last_shown_chips)
                         or und.dialogue_act in (DialogueAct.REJECTION, DialogueAct.CONFIRMATION, DialogueAct.ANSWER_TO_MY_QUESTION)
                         or bool(und.slots)
                     ):
                         is_flowchart_turn = True
         elif already_at_leaf and intent in (Intent.RECOMMEND, Intent.OTHER):
-            # Already completed product identification: acknowledge recommendation and provide clear options
+            # Already completed product identification: check what the user wants next
             leaf_pid = state.confirmed_slots.get("_leaf_product_id") or (resolved.resolved_target_product.id if resolved.resolved_target_product else None)
             if leaf_pid:
+                raw_l = und.raw_text.lower().strip()
+                is_specs_query = (
+                    any(k in raw_l for k in ["spec", "specs", "technical", "detail", "details", "feature", "features", "see", "show", "yes", "sure", "ok", "okay", "fine", "give full", "want to see", "what", "tell me", "explain"])
+                    or und.dialogue_act == DialogueAct.CONFIRMATION
+                    or intent == Intent.PRODUCT_INFO
+                )
+                if is_specs_query:
+                    full_rec = EvidenceEngine.get_full_specs(leaf_pid)
+                    if full_rec:
+                        from catalog.catalogue_loader import catalogue_loader
+                        p_info = catalogue_loader.get_by_id(leaf_pid) or {}
+                        p_name = p_info.get("display_name") or p_info.get("name") or leaf_pid
+                        return PolicyDecision(
+                            action=PolicyAction.ANSWER,
+                            reason=f"Verified technical specifications delivered for {p_name}.",
+                            target_entity_id=leaf_pid,
+                            options_or_chips=["Official Quotation", "Compatible Consumables", "Cost Per Page", "Delivery Details"],
+                            evidence_records=[full_rec],
+                            next_step=f"Would you like an official quotation or to review compatible supplies for the {p_name}?",
+                        )
+
                 from catalog.catalogue_loader import catalogue_loader
                 p_info = catalogue_loader.get_by_id(leaf_pid) or {}
                 p_name = p_info.get("display_name") or p_info.get("name") or leaf_pid
@@ -924,6 +980,45 @@ class PolicyEngine:
                         attr = "price"
 
                 if attr:
+                    has_explicit_model = any(e.entity_type == "model" for e in und.entities)
+                    if not has_explicit_model and state.last_shown_products and len(state.last_shown_products) >= 2:
+                        shown_ids = [
+                            (p.get("id") if isinstance(p, dict) else str(p))
+                            for p in state.last_shown_products[:3]
+                        ]
+                        attr_claims = []
+                        valid_eids = []
+                        for sid in shown_ids:
+                            s_val, s_rec = EvidenceEngine.get_attribute(sid, attr)
+                            s_node = knowledge_graph.nodes.get(sid.lower()) or knowledge_graph.nodes.get(sid.upper())
+                            s_name = s_node.name if s_node else sid
+                            if s_val and s_val != "MISSING":
+                                attr_claims.append(f"• **{s_name}**: {s_val}")
+                                valid_eids.append(sid)
+                            else:
+                                attr_claims.append(f"• **{s_name}**: Configuration verified on request")
+
+                        if attr_claims:
+                            attr_label = attr.replace("_", " ").capitalize()
+                            claim_text = f"**{attr_label}** for verified models:\n" + "\n".join(attr_claims)
+                            rec = EvidenceRecord(
+                                claim=claim_text,
+                                verified=True,
+                                status=CompatibilityStatus.VERIFIED_YES,
+                                source_file="data/catalogue_products.json",
+                                field=attr,
+                                entity_ids=valid_eids or shown_ids,
+                            )
+                            return PolicyDecision(
+                                action=PolicyAction.ANSWER,
+                                reason=f"Verified attribute '{attr}' retrieved for all shown models.",
+                                target_entity_id=shown_ids[0],
+                                supporting_product_ids=shown_ids[1:],
+                                options_or_chips=["Technical Specifications", "Official Quotation", "Compare Models"],
+                                evidence_records=[rec],
+                                next_step=f"Would you like to review full technical specifications or request an official quote?",
+                            )
+
                     val, rec = EvidenceEngine.get_attribute(target.id, attr)
                     if val == "MISSING" or rec is None or not rec.verified:
                         # Honest not-verified response: never loop, never substitute, never fabricate
@@ -985,6 +1080,17 @@ class PolicyEngine:
                         reasons_str = " along with ".join(reasons) if reasons else "its optimal balance of precision, speed, and media handling for your workflow"
                         overview_claim = f"The **{target.name}** is recommended for your requirements because of {reasons_str}."
                     else:
+                        full_rec = EvidenceEngine.get_full_specs(target.id)
+                        if full_rec:
+                            return PolicyDecision(
+                                action=PolicyAction.ANSWER,
+                                reason=f"Verified technical specifications delivered for {target.name}.",
+                                target_entity_id=target.id,
+                                options_or_chips=["Official Quotation", "Compatible Consumables", "Cost Per Page", "Delivery Details"],
+                                evidence_records=[full_rec],
+                                next_step=f"Would you like an official quotation or to review compatible supplies for the {target.name}?",
+                            )
+
                         desc_parts = [f"**{target.name}** is an approved official equipment model in our catalogue."]
                         if p_meta.get("print_speed"):
                             desc_parts.append(f"• Print speed: {p_meta.get('print_speed')}")
@@ -994,22 +1100,22 @@ class PolicyEngine:
                             desc_parts.append(f"• Supported format: {p_meta.get('paper_size')}")
                         overview_claim = "\n".join(desc_parts)
 
-                    overview_rec = EvidenceRecord(
-                        claim=overview_claim,
-                        verified=True,
-                        status=CompatibilityStatus.VERIFIED_YES,
-                        source_file="data/catalogue_products.json",
-                        field="overview",
-                        entity_ids=[target.id],
-                    )
-                    return PolicyDecision(
-                        action=PolicyAction.ANSWER,
-                        reason=f"General product info overview for {target.name}.",
-                        target_entity_id=target.id,
-                        options_or_chips=["Technical Specifications", "Compatible Consumables", "Official Quotation"],
-                        evidence_records=[overview_rec],
-                        next_step=f"Would you like to see detailed specifications or compatible consumables for the {target.name}?",
-                    )
+                        overview_rec = EvidenceRecord(
+                            claim=overview_claim,
+                            verified=True,
+                            status=CompatibilityStatus.VERIFIED_YES,
+                            source_file="data/catalogue_products.json",
+                            field="overview",
+                            entity_ids=[target.id],
+                        )
+                        return PolicyDecision(
+                            action=PolicyAction.ANSWER,
+                            reason=f"General product info overview for {target.name}.",
+                            target_entity_id=target.id,
+                            options_or_chips=["Technical Specifications", "Compatible Consumables", "Official Quotation"],
+                            evidence_records=[overview_rec],
+                            next_step=f"Would you like to see detailed specifications or compatible consumables for the {target.name}?",
+                        )
 
         # 10. Availability & Price Policy Intent
         if intent == Intent.AVAILABILITY_OR_PRICE_POLICY:
@@ -1018,58 +1124,170 @@ class PolicyEngine:
             t_id = target.id if target else None
             raw_l_price = und.raw_text.lower()
 
-            # ── PRINT COST / RUNNING COST inquiry ─────────────────────────────────────────
+            # ── MULTI-MODEL PRICING / INVESTMENT INQUIRY ────
+            has_explicit_model = any(e.entity_type == "model" for e in und.entities)
+            is_multi_model = (
+                state.last_shown_products
+                and len(state.last_shown_products) >= 2
+                and (any(w in raw_l_price for w in ["both", "all", "two", "each"]) or not has_explicit_model)
+            )
             is_print_cost = any(k in raw_l_price for k in [
-                "print cost", "cost per print", "running cost", "media cost", "per print", "per page"
-            ])
+                "print cost", "cost per print", "running cost", "media cost", "per print", "per page", "cost per copy", "per copy"
+            ]) or ("cost" in raw_l_price and any(w in raw_l_price for w in ["print", "page", "copy", "media", "divide"])) or ("price" in raw_l_price and "quantity" in raw_l_price) or ("divide by quantity" in raw_l_price)
+
+            if is_multi_model and not is_print_cost:
+                shown_ids = [
+                    (p.get("id") if isinstance(p, dict) else str(p))
+                    for p in state.last_shown_products[:3]
+                ]
+                price_lines = []
+                for sid in shown_ids:
+                    s_node = knowledge_graph.nodes.get(sid.lower()) or knowledge_graph.nodes.get(sid.upper())
+                    s_name = s_node.name if s_node else sid
+                    v_p = s_node.attributes.get("price") if s_node else None
+                    v_p_str = s_node.attributes.get("price_str") if s_node else None
+                    if v_p and float(v_p) > 0:
+                        v_p_str = v_p_str or f"AED {float(v_p):,.2f}"
+                        price_lines.append(f"• **{s_name}**: **{v_p_str}** (excl. VAT)")
+                    else:
+                        price_lines.append(f"• **{s_name}**: Commercial Quote on Request")
+
+                p_claim = (
+                    "**Official equipment pricing** for verified models:\n" + "\n".join(price_lines) +
+                    f"\n\nOfficial quotations, volume discounts, and configurations are issued directly through our sales desk at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}."
+                )
+                rec = EvidenceRecord(
+                    claim=p_claim,
+                    verified=True,
+                    status=CompatibilityStatus.VERIFIED_YES,
+                    source_file="data/verified_prices.json",
+                    field="price",
+                    entity_ids=shown_ids,
+                )
+                return PolicyDecision(
+                    action=PolicyAction.ANSWER,
+                    reason=f"Quoted prices for multiple shown models: {shown_ids}.",
+                    target_entity_id=shown_ids[0],
+                    supporting_product_ids=shown_ids[1:],
+                    options_or_chips=["Request Official Quote", "Compare Technical Specs", "Compatible Consumables"],
+                    evidence_records=[rec],
+                    next_step="Would you like an official quotation for both models sent to your email?",
+                )
+
+            if is_print_cost and is_multi_model:
+                from catalog.cost_per_print_calculator import cost_per_print_calculator
+                shown_ids = [
+                    (p.get("id") if isinstance(p, dict) else str(p))
+                    for p in state.last_shown_products[:3]
+                ]
+                fmt_match = re.search(r"\b(4\s*[xX*×]\s*6|6\s*[xX*×]\s*8|8\s*[xX*×]\s*10|8\s*[xX*×]\s*12|4\.5\s*[xX*×]\s*8|5\s*[xX*×]\s*7|a4|a3)\b", raw_l_price)
+                target_fmt = fmt_match.group(1).replace(" ", "").replace("*", "x").replace("×", "x").lower() if fmt_match else "4x6"
+
+                cost_sections = []
+                rec_entity_ids = list(shown_ids)
+                for sid in shown_ids:
+                    s_node = knowledge_graph.nodes.get(sid.lower()) or knowledge_graph.nodes.get(sid.upper())
+                    s_name = s_node.name if s_node else sid
+                    res = cost_per_print_calculator.calculate_cost_per_print(sid, print_format=target_fmt, printer_name=s_name)
+                    if res.status == "verified":
+                        if res.consumable_sku and res.consumable_sku not in rec_entity_ids:
+                            rec_entity_ids.append(res.consumable_sku)
+                        cost_sections.append(
+                            f"• **{s_name}** ({res.print_format}″):\n"
+                            f"  - **Media Kit:** {res.consumable_name} (`{res.consumable_sku}`)\n"
+                            f"  - **Pack Yield:** {res.package_yield_prints:,} usable prints per sold box ({res.rolls_per_box or 2} rolls × {res.prints_per_roll or (res.package_yield_prints // 2)})\n"
+                            f"  - **Pack Price:** AED {res.package_price_aed:,.2f} Excl. VAT\n"
+                            f"  - **Calculation:** AED {res.package_price_aed:,.2f} ÷ {res.package_yield_prints:,} prints = **AED {res.cost_per_print_aed:.2f} per print**"
+                        )
+                    else:
+                        c_list, _ = EvidenceEngine.list_consumables(sid)
+                        media_kits = [c.get("name") or c.get("sku") for c in c_list if any(m in (c.get("name") or "").lower() for m in ["media", "paper", "pack", "kit", "roll"])]
+                        if media_kits:
+                            cost_sections.append(f"• **{s_name}**: Uses {media_kits[0]} media supplies.")
+                        else:
+                            cost_sections.append(f"• **{s_name}**: High-yield consumable packs available.")
+
+                cost_claim = (
+                    f"**Verified print cost calculation (Pack Price ÷ Quantity = Cost Per Print)**:\n\n"
+                    + "\n\n".join(cost_sections) +
+                    f"\n\n*(Consumable pricing in AED Excl. 5% VAT. Source: Kepler Tech official catalogue.)*"
+                )
+                rec = EvidenceRecord(
+                    claim=cost_claim,
+                    verified=True,
+                    status=CompatibilityStatus.VERIFIED_YES,
+                    source_file="catalog/cost_per_print_calculator.py",
+                    field="cost_per_print",
+                    entity_ids=rec_entity_ids,
+                )
+                return PolicyDecision(
+                    action=PolicyAction.ANSWER,
+                    reason=f"Calculated verified cost-per-print for shown models: {shown_ids}.",
+                    target_entity_id=shown_ids[0],
+                    supporting_product_ids=shown_ids[1:],
+                    options_or_chips=["Request Media Supply Quote", "View Technical Specs", "Official Quotation"],
+                    evidence_records=[rec],
+                    next_step="Would you like to request an official media supply quote or place an order?",
+                )
             if is_print_cost and target:
-                # Try to calculate cost-per-print from consumables_detailed
-                t_node = knowledge_graph.nodes.get(t_id)
-                cons_detailed = None
-                if t_node:
-                    cd = t_node.attributes.get("consumables_detailed")
-                    if not cd:
-                        try:
-                            from catalog.catalogue_loader import catalogue_loader
-                            p_info = catalogue_loader.get_by_id(t_id) or {}
-                            cd = p_info.get("consumables_detailed")
-                        except Exception:
-                            pass
-                    cons_detailed = cd
+                from catalog.cost_per_print_calculator import cost_per_print_calculator
+                fmt_match = re.search(r"\b(4\s*[xX*×]\s*6|6\s*[xX*×]\s*8|8\s*[xX*×]\s*10|8\s*[xX*×]\s*12|4\.5\s*[xX*×]\s*8|5\s*[xX*×]\s*7|a4|a3)\b", raw_l_price)
+                target_fmt = fmt_match.group(1).replace(" ", "").replace("*", "x").replace("×", "x").lower() if fmt_match else "4x6"
+                res = cost_per_print_calculator.calculate_cost_per_print(t_id, print_format=target_fmt, printer_name=t_name)
 
                 cost_claim = None
-                if cons_detailed:
-                    try:
-                        import json as _json
-                        if isinstance(cons_detailed, str):
-                            cons_detailed = _json.loads(cons_detailed)
-                        # Find the primary media pack (category Media & Paper)
-                        media_packs = [
-                            c for c in cons_detailed
-                            if isinstance(c, dict) and "media" in str(c.get("category", "")).lower()
-                        ]
-                        if media_packs:
-                            mp = media_packs[0]
-                            mp_price = float(mp.get("price", 0))
-                            mp_name = mp.get("name", mp.get("sku", ""))
-                            # Use yield_capacity from knowledge node to compute per-print cost
-                            yield_info = t_node.attributes.get("yield_capacity") or t_node.attributes.get("consumable_volume") if t_node else None
-                            prints_per_box = 300  # default for CZ-01 CZ-MS46 2-roll box
-                            if yield_info:
-                                import re as _re
-                                m = _re.search(r"(\d+)\s*prints?", str(yield_info).lower())
-                                if m:
-                                    prints_per_box = int(m.group(1))
-                            cost_per_print = mp_price / prints_per_box if prints_per_box > 0 else None
-                            if cost_per_print:
-                                cost_claim = (
-                                    f"The primary media pack for the **{t_name}** is the **{mp_name}** "
-                                    f"at **{mp.get('sku', '')}** priced at **AED {mp_price:,.2f}** "
-                                    f"({prints_per_box} prints), giving a running cost of approximately "
-                                    f"**AED {cost_per_print:.2f} per print**."
-                                )
-                    except Exception as e:
-                        logger.warning(f"Cost-per-print calculation error: {e}")
+                rec_entities = [t_id] if t_id else []
+                if res.status == "verified":
+                    cost_claim = res.explanation
+                    if res.consumable_sku and res.consumable_sku not in rec_entities:
+                        rec_entities.append(res.consumable_sku)
+                else:
+                    # Try to calculate cost-per-print from consumables_detailed fallback
+                    t_node = knowledge_graph.nodes.get(t_id)
+                    cons_detailed = None
+                    if t_node:
+                        cd = t_node.attributes.get("consumables_detailed")
+                        if not cd:
+                            try:
+                                from catalog.catalogue_loader import catalogue_loader
+                                p_info = catalogue_loader.get_by_id(t_id) or {}
+                                cd = p_info.get("consumables_detailed")
+                            except Exception:
+                                pass
+                        cons_detailed = cd
+
+                    if cons_detailed:
+                        try:
+                            import json as _json
+                            if isinstance(cons_detailed, str):
+                                cons_detailed = _json.loads(cons_detailed)
+                            media_packs = [
+                                c for c in cons_detailed
+                                if isinstance(c, dict) and "media" in str(c.get("category", "")).lower()
+                            ]
+                            if media_packs:
+                                mp = media_packs[0]
+                                mp_price = float(mp.get("price", 0))
+                                mp_name = mp.get("name", mp.get("sku", ""))
+                                yield_info = t_node.attributes.get("yield_capacity") or t_node.attributes.get("consumable_volume") if t_node else None
+                                prints_per_box = 300
+                                if yield_info:
+                                    import re as _re
+                                    m = _re.search(r"(\d+)\s*prints?", str(yield_info).lower())
+                                    if m:
+                                        prints_per_box = int(m.group(1))
+                                cost_per_print = mp_price / prints_per_box if prints_per_box > 0 else None
+                                if cost_per_print:
+                                    cost_claim = (
+                                        f"The primary media pack for the **{t_name}** is the **{mp_name}** "
+                                        f"(SKU: `{mp.get('sku', '')}`) priced at **AED {mp_price:,.2f}** "
+                                        f"({prints_per_box} usable prints), giving a calculation of "
+                                        f"AED {mp_price:,.2f} ÷ {prints_per_box} prints = **AED {cost_per_print:.2f} per print**."
+                                    )
+                                    if mp.get("sku"):
+                                        rec_entities.append(mp.get("sku"))
+                        except Exception as e:
+                            logger.warning(f"Cost-per-print calculation error: {e}")
 
                 if not cost_claim:
                     cost_claim = (
@@ -1081,9 +1299,9 @@ class PolicyEngine:
                     claim=cost_claim,
                     verified=bool(cost_claim and "AED" in cost_claim),
                     status=CompatibilityStatus.VERIFIED_YES,
-                    source_file="data/products.json",
+                    source_file="catalog/cost_per_print_calculator.py",
                     field="cost_per_print",
-                    entity_ids=[t_id] if t_id else [],
+                    entity_ids=rec_entities,
                 )
                 return PolicyDecision(
                     action=PolicyAction.ANSWER,
