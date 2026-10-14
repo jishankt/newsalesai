@@ -365,6 +365,54 @@ class TestAuditSalesBehavioursFix6(unittest.TestCase):
         self.assertLess(len(sents_conc), 2)
 
 
+class TestAuditSalesBehavioursFix7(unittest.TestCase):
+    """
+    FIX 7: Prompt conflict (consumables).
+    Static test that reads both prompts/system_prompt.py and prompts/response_prompt.py
+    and fails if their consumables rules differ.
+    """
+
+    def test_consumables_prompt_rules_are_identical(self):
+        from pathlib import Path
+
+        base_dir = Path(__file__).parent.parent / "prompts"
+        sys_prompt_file = base_dir / "system_prompt.py"
+        resp_prompt_file = base_dir / "response_prompt.py"
+
+        self.assertTrue(sys_prompt_file.exists(), "system_prompt.py must exist")
+        self.assertTrue(resp_prompt_file.exists(), "response_prompt.py must exist")
+
+        sys_text = sys_prompt_file.read_text(encoding="utf-8")
+        resp_text = resp_prompt_file.read_text(encoding="utf-8")
+
+        # Extract STEP 5 block from both
+        step5_regex = re.compile(r"(STEP 5:[^\n]+\n(?:[ \t]*-[^\n]+\n)+)", re.M)
+
+        sys_match = step5_regex.search(sys_text)
+        resp_match = step5_regex.search(resp_text)
+
+        self.assertIsNotNone(sys_match, "STEP 5 block not found in system_prompt.py")
+        self.assertIsNotNone(resp_match, "STEP 5 block not found in response_prompt.py")
+
+        sys_step5 = sys_match.group(1).strip()
+        resp_step5 = resp_match.group(1).strip()
+
+        self.assertEqual(
+            sys_step5,
+            resp_step5,
+            f"Consumables rules in prompt files differ:\n--- system_prompt.py ---\n{sys_step5}\n--- response_prompt.py ---\n{resp_step5}"
+        )
+
+        # Assert key aligned rule is present in both
+        expected_rule = (
+            "mention running cost once, after a recommendation, only when verified yield/price data exists for that product; "
+            "never list supply SKUs or ink technology unless the customer asks."
+        )
+        self.assertIn(expected_rule.lower(), sys_step5.lower())
+        self.assertIn(expected_rule.lower(), resp_step5.lower())
+
+
+
 
 
 
