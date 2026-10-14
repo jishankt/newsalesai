@@ -114,7 +114,6 @@ def test_comparison_preserves_both_models():
 # Invariant 4: Budget Parsing ('k', commas, ranges, Arabic-Indic digits)
 # ==============================================================================
 
-@pytest.mark.xfail(strict=True, reason="DEFECT: extract_slots in understanding.py does not extract budget_ceiling at all (0% accuracy)")
 def test_budget_k_suffix():
     """'10k' or 'budget 10k AED' must extract budget_ceiling=10000."""
     turn = understand_turn("my budget is 10k AED", allow_llm=False)
@@ -122,7 +121,6 @@ def test_budget_k_suffix():
     assert budget is not None and budget.value == 10000, f"Expected 10000, got {budget}"
 
 
-@pytest.mark.xfail(strict=True, reason="DEFECT: extract_slots in understanding.py does not extract budget_ceiling for comma numbers '10,000'")
 def test_budget_comma_separated():
     """'10,000-15,000 AED' must extract budget_ceiling."""
     turn = understand_turn("budget is between 10,000 and 15,000 AED", allow_llm=False)
@@ -130,7 +128,6 @@ def test_budget_comma_separated():
     assert budget is not None, "budget_ceiling was not extracted for comma-formatted number"
 
 
-@pytest.mark.xfail(strict=True, reason="DEFECT: Arabic-Indic digits '١٨٠٠ AED' are not converted or recognized as budget")
 def test_budget_arabic_indic_digits():
     """'ميزانيتي ١٨٠٠ درهم' must extract budget_ceiling=1800."""
     turn = understand_turn("ميزانيتي ١٨٠٠ درهم", allow_llm=False)

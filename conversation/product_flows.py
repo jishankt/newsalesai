@@ -58,22 +58,15 @@ def extract_flowchart_requirements(text: str, current_reqs: Optional[Dict[str, A
     text_clean = re.sub(r"(?<=\d),(?=\d)", "", text_l)
     reqs = dict(current_reqs or {})
 
-    # 0. Budget AED extraction
-    # The regex MUST require either a budget keyword (budget, under, below, max, up to, within)
-    # OR a currency token (aed, dhs, dh, د.إ) next to the number.
-    # A bare number such as "200 pages daily" or "A3 36 inch" must NEVER be read as a budget.
-    kw_match = re.search(
-        r"\b(?:budget|under|below|max|maximum|up\s*to|within|less\s*than)\s*(?:of|is|:)?\s*(?:aed|dhs?|dh|د\.إ)?\s*(\d+(?:\.\d+)?)\b",
-        text_clean,
-    )
-    curr_match = re.search(
-        r"\b(?:aed|dhs?|dh|د\.إ)\s*(\d+(?:\.\d+)?)\b|\b(\d+(?:\.\d+)?)\s*(?:aed|dhs?|dh|د\.إ)\b",
-        text_clean,
-    )
-    if kw_match:
-        reqs["budget_aed"] = float(kw_match.group(1))
-    elif curr_match:
-        reqs["budget_aed"] = float(curr_match.group(1) or curr_match.group(2))
+    # 0. Budget AED extraction (single source of truth from numeric_parse)
+    from conversation.numeric_parse import extract_budget
+    b_res = extract_budget(text)
+    if b_res and b_res.budget_ceiling is not None:
+        reqs["budget_aed"] = b_res.budget_ceiling
+        if b_res.budget_floor is not None:
+            reqs["budget_floor_aed"] = b_res.budget_floor
+        if b_res.budget_scope:
+            reqs["budget_scope"] = b_res.budget_scope
 
     # 0b. Primary concern extraction (running_cost, print_speed, colour_quality, reliability, paper_size, portability, ease_of_use)
     if "primary_concern" not in reqs:

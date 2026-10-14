@@ -864,6 +864,32 @@ class TurnUnderstandingExtractor:
                 source="said_now"
             )
 
+        # Budget extraction (budget_ceiling, budget_floor, budget_scope)
+        from conversation.numeric_parse import extract_budget
+        b_res = extract_budget(text)
+        if b_res:
+            if b_res.budget_ceiling is not None:
+                slots["budget_ceiling"] = SlotValue(
+                    slot_name="budget_ceiling",
+                    value=b_res.budget_ceiling,
+                    confidence=0.95,
+                    source="said_now"
+                )
+            if b_res.budget_floor is not None:
+                slots["budget_floor"] = SlotValue(
+                    slot_name="budget_floor",
+                    value=b_res.budget_floor,
+                    confidence=0.95,
+                    source="said_now"
+                )
+            if b_res.budget_scope is not None:
+                slots["budget_scope"] = SlotValue(
+                    slot_name="budget_scope",
+                    value=b_res.budget_scope,
+                    confidence=0.90,
+                    source="said_now"
+                )
+
         return slots
 
     @classmethod
