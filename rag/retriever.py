@@ -15,6 +15,10 @@ from sklearn.metrics.pairwise import cosine_similarity
 PRODUCTS_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "products.json")
 CORPUS_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "kepler_product_corpus.json")
 CATALOGUE_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "catalogue_products.json")
+VERIFIED_PRICES_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "verified_prices.json")
+WEBSITE_PRICES_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "website_prices_cache.json")
+VERIFIED_BROCHURES_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "verified_brochures.json")
+COMPLETE_CORPUS_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "sheets", "complete_training_corpus.json")
 
 # Confidence thresholds for retrieval gating
 EXACT_MATCH_THRESHOLD = 0.95       # Treat as a definitive match
@@ -34,12 +38,43 @@ class RagRetriever:
         self.tfidf_matrix = None
         self._load_and_index()
 
+    @staticmethod
+    def _load_json_map(path: str) -> Dict[str, Any]:
+        """Safely loads a JSON file as a dict, returns empty dict on failure."""
+        if os.path.exists(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception:
+                pass
+        return {}
+
     def _load_and_index(self):
-        """Loads products.json, merges catalogue_products.json specifications, and builds lexical and TF-IDF search index."""
+        """Loads products.json, merges catalogue_products.json specifications, verified pricing,
+        brochure URLs, and complete training corpus datasheet specs; then builds the TF-IDF index."""
         raw_products = []
         if os.path.exists(self.products_path):
             with open(self.products_path, "r", encoding="utf-8") as f:
                 raw_products = json.load(f)
+
+        # ── NEW: Load verified pricing & brochure reference maps ──────────────
+        verified_prices_map: Dict[str, Any] = self._load_json_map(VERIFIED_PRICES_PATH)
+        website_prices_map: Dict[str, Any] = self._load_json_map(WEBSITE_PRICES_PATH)
+        verified_brochures_map: Dict[str, Any] = self._load_json_map(VERIFIED_BROCHURES_PATH)
+
+        # ── NEW: Build id-keyed lookup from complete_training_corpus.json ─────
+        complete_corpus_map: Dict[str, Any] = {}
+        complete_corpus_token_map: Dict[str, Any] = {}
+        raw_corpus_list = self._load_json_map(COMPLETE_CORPUS_PATH)
+        if isinstance(raw_corpus_list, list):
+            for entry in raw_corpus_list:
+                cid = str(entry.get("id", "")).lower().strip()
+                if cid:
+                    complete_corpus_map[cid] = entry
+                title_tokens = re.findall(r"[a-z0-9]{3,}", str(entry.get("title", "")).lower())
+                for tok in title_tokens:
+                    if tok not in {"epson", "citizen", "surecolor", "printer", "photo"}:
+                        complete_corpus_token_map[tok] = entry
 
         # Merge additional rich specification fields from kepler_product_corpus if available
         corpus_lookup = {}
@@ -87,7 +122,52 @@ class RagRetriever:
         for p in raw_products:
             prod = dict(p)
             norm_name = re.sub(r"[^a-z0-9]", "", prod.get("name", "").lower())
-            
+
+            # ── NEW: Merge verified price data ────────────────────────────────
+            prod_id_key = str(prod.get("_id") or prod.get("id") or "").lower().strip()
+            p_price_info = (
+                verified_prices_map.get(prod_id_key)
+                or website_prices_map.get(prod_id_key)
+            )
+            if not p_price_info:
+                # Try matching by normalized name fragment
+                for k, v in verified_prices_map.items():
+                    k_norm = re.sub(r"[^a-z0-9]", "", k)
+                    if k_norm and (k_norm in norm_name or norm_name in k_norm):
+                        p_price_info = v
+                        break
+            if p_price_info and p_price_info.get("price") and not prod.get("price"):
+                prod["price"] = float(p_price_info["price"])
+                prod["price_str"] = p_price_info.get("price_str") or f"AED {float(p_price_info['price']):,.2f}"
+                prod["currency"] = p_price_info.get("currency", "AED")
+                prod["vat_note"] = p_price_info.get("vat_note", "(Excl. VAT)")
+
+            # ── NEW: Merge brochure / PDF URL ─────────────────────────────────
+            b_info = verified_brochures_map.get(prod_id_key)
+            if b_info and b_info.get("pdf") and not prod.get("brochure_url"):
+                prod["brochure_url"] = b_info["pdf"]
+                prod["pdf_url"] = b_info["pdf"]
+
+            # ── NEW: Merge rich datasheet specs from complete_training_corpus ──
+            corpus_entry = complete_corpus_map.get(prod_id_key)
+            if not corpus_entry:
+                for tok in re.findall(r"[a-z0-9]{3,}", prod.get("name", "").lower()):
+                    if tok in complete_corpus_token_map:
+                        corpus_entry = complete_corpus_token_map[tok]
+                        break
+            if corpus_entry:
+                for field in ["dimensions", "weight", "dpi", "memory", "print_speed",
+                               "yield_capacity", "consumables_detailed", "brochure_url"]:
+                    if corpus_entry.get(field) and not prod.get(field):
+                        prod[field] = corpus_entry[field]
+                # Also pull price_aed if price not yet set
+                if corpus_entry.get("price_aed") and not prod.get("price"):
+                    pa = float(corpus_entry["price_aed"])
+                    prod["price"] = pa
+                    prod["price_str"] = f"AED {pa:,.2f}"
+                    prod["currency"] = "AED"
+                    prod["vat_note"] = "(Excl. VAT)"
+
             # 1. Match from corpus
             extra = corpus_lookup.get(norm_name)
             if not extra:
@@ -168,6 +248,8 @@ class RagRetriever:
             apps = ", ".join(prod.get("applications", [])) if isinstance(prod.get("applications"), list) else str(prod.get("applications", ""))
             finishing = prod.get("pattern_and_finishing", "")
             sizes = ", ".join(prod.get("supported_print_sizes", [])) if isinstance(prod.get("supported_print_sizes"), list) else str(prod.get("supported_print_sizes", ""))
+            price_str = prod.get("price_str", "")
+            brochure = prod.get("brochure_url", "") or prod.get("pdf_url", "")
 
             doc_parts = [
                 f"Name: {name}",
@@ -185,7 +267,9 @@ class RagRetriever:
                 f"Applications: {apps} {intended}",
                 f"Paper Sizes: {sizes}",
                 f"Finishing: {finishing}",
-                f"Highlights: {highlights}"
+                f"Highlights: {highlights}",
+                f"Price: {price_str}",
+                f"Brochure: {brochure}",
             ]
             doc_str = " | ".join([part for part in doc_parts if not part.endswith(":")])
             self.products.append(prod)
@@ -231,6 +315,14 @@ class RagRetriever:
         if self.doc_texts:
             self.vectorizer = TfidfVectorizer(ngram_range=(1, 2), stop_words="english", max_features=12000)
             self.tfidf_matrix = self.vectorizer.fit_transform(self.doc_texts)
+            try:
+                from rag.embeddings_engine import embeddings_engine
+                self.embeddings_engine = embeddings_engine
+                doc_ids = [str(p.get("_id") or p.get("id") or p.get("sku") or idx) for idx, p in enumerate(self.products)]
+                self.embeddings_engine.load_or_build_index(doc_ids=doc_ids, doc_texts=self.doc_texts)
+            except Exception as e:
+                import logging
+                logging.getLogger("rag.retriever").warning(f"Embeddings engine index init skipped: {e}")
 
     def search(self, query: str, category: Optional[str] = None, limit: int = 4) -> List[Dict[str, Any]]:
         """
@@ -299,12 +391,29 @@ class RagRetriever:
                 if res:
                     return res
 
-        # 3. TF-IDF Semantic Vector Similarity
+        # 3. Dense Neural Vector Similarity (Embeddings) + TF-IDF Lexical Similarity
         if not self.vectorizer or self.tfidf_matrix is None:
             return []
 
         query_vec = self.vectorizer.transform([query])
-        scores = cosine_similarity(query_vec, self.tfidf_matrix)[0]
+        tfidf_scores = cosine_similarity(query_vec, self.tfidf_matrix)[0]
+
+        dense_scores = np.zeros(len(self.products), dtype=np.float32)
+        if getattr(self, "embeddings_engine", None) and self.embeddings_engine.embeddings is not None:
+            try:
+                dense_sims = self.embeddings_engine.compute_similarity(query, top_k=len(self.products))
+                for doc_idx, sim in dense_sims:
+                    if 0 <= doc_idx < len(dense_scores):
+                        dense_scores[doc_idx] = sim
+            except Exception:
+                pass
+
+        if dense_scores.max() > 0:
+            d_max = float(dense_scores.max())
+            norm_dense = dense_scores / d_max
+            scores = (0.55 * norm_dense) + (0.45 * tfidf_scores)
+        else:
+            scores = np.array(tfidf_scores, dtype=np.float32)
 
         # Category and keyword boosting
         for idx, p in enumerate(self.products):
@@ -442,12 +551,44 @@ class RagRetriever:
                 lines.append(f"    Description: {item['description']}")
             if item.get("width"):
                 lines.append(f"    Print Width/Size: {item['width']}")
-            if item.get("speed"):
-                lines.append(f"    Speed: {item['speed']}")
+            if item.get("speed") or item.get("print_speed"):
+                lines.append(f"    Speed: {item.get('speed') or item.get('print_speed')}")
             if item.get("ink_technology"):
                 lines.append(f"    Technology: {item['ink_technology']}")
             if item.get("intended_usage"):
                 lines.append(f"    Intended Use: {item['intended_usage']}")
+            # ── NEW: verified pricing ─────────────────────────────────────────
+            if item.get("price_str") or item.get("price"):
+                price_label = item.get("price_str") or f"AED {float(item['price']):,.2f}"
+                vat = item.get("vat_note", "(Excl. VAT)")
+                lines.append(f"    Price: {price_label} {vat}")
+            # ── NEW: datasheet / brochure PDF URL ─────────────────────────────
+            brochure = item.get("brochure_url") or item.get("pdf_url", "")
+            if brochure:
+                lines.append(f"    Datasheet / Brochure PDF: {brochure}")
+            # ── NEW: physical dimensions & weight ─────────────────────────────
+            if item.get("dimensions"):
+                lines.append(f"    Dimensions: {item['dimensions']}")
+            if item.get("weight"):
+                lines.append(f"    Weight: {item['weight']}")
+            # ── NEW: resolution / DPI ─────────────────────────────────────────
+            if item.get("dpi"):
+                lines.append(f"    Resolution / DPI: {item['dpi']}")
+            # ── NEW: memory ───────────────────────────────────────────────────
+            if item.get("memory"):
+                lines.append(f"    Memory: {item['memory']}")
+            # ── NEW: consumables ──────────────────────────────────────────────
+            if item.get("consumables_detailed"):
+                try:
+                    import json as _json
+                    cons = item["consumables_detailed"]
+                    if isinstance(cons, str):
+                        cons = _json.loads(cons)
+                    if isinstance(cons, list):
+                        c_names = ", ".join(f"{c.get('sku','?')} ({c.get('name','')}) AED {c.get('price',0):,.2f}" for c in cons[:4])
+                        lines.append(f"    Consumables: {c_names}")
+                except Exception:
+                    pass
             if url:
                 lines.append(f"    Product URL: {url}")
             if img:

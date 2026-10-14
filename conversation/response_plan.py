@@ -316,7 +316,8 @@ class ResponsePlanValidator:
         text = plan.formatted_reply
 
         # 1. Commercial Policy Guardrail: No chat pricing or volume discount promises
-        # Official quotations must strictly route to sales desk (except verified flat AED 10 delivery fee)
+        # Official quotations must strictly route to sales desk (except verified flat AED 10 delivery fee
+        # and explicitly verified list prices / print-cost calculations backed by evidence records).
         has_price_violation = False
         for m in cls.PRICE_NUMERIC_PATTERN.finditer(text):
             matched = m.group(0).lower()
@@ -325,6 +326,16 @@ class ResponsePlanValidator:
                 continue
             has_price_violation = True
             break
+
+        # Allow numeric prices when supported by a verified evidence record (price, cost_per_print, pricing_policy)
+        if has_price_violation:
+            PRICE_EVIDENCE_FIELDS = {"price", "price_str", "cost_per_print", "pricing_policy"}
+            has_verified_price_evidence = any(
+                rec.field in PRICE_EVIDENCE_FIELDS and rec.verified
+                for rec in plan.evidence_records
+            )
+            if has_verified_price_evidence:
+                has_price_violation = False
 
         if has_price_violation and "official request" not in text.lower():
             errors.append("Commercial policy violation: unverified price numeric claim in text.")

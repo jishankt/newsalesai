@@ -271,7 +271,7 @@ class TurnUnderstandingExtractor:
     ]
 
     OUT_OF_SCOPE_PATTERNS = [
-        re.compile(r"\b(?:3d\s*printer|resin|laser\s*jet|toner|canon|hp\s+designjet|food\s*printer|edible\s*ink)\b", re.I),
+        re.compile(r"\b(?:label\s*printers?|barcode\s*printers?|thermal\s*labels?|pos\s*printers?|receipt\s*printers?|3d\s*printers?|resin|laser\s*jets?|toner|canon|hp\s+designjet|food\s*printers?|edible\s*inks?)\b", re.I),
     ]
 
     COMPATIBILITY_PATTERNS = [
@@ -281,7 +281,9 @@ class TurnUnderstandingExtractor:
 
     CONSUMABLES_PATTERNS = [
         re.compile(r"\b(?:what\s+inks?|which\s+inks?|consumables?|cartridges?|ribbons?|maintenance\s*box(?:es)?|supplies(?:\s+for)?|sublimation\s+inks?|print\s+supplies)\b", re.I),
-        re.compile(r"\b(?:(?:what|which|need|want|buy|order|get|looking\s+for)\s+(?:an?\s+)?(?:ink|inks|cartridge|cartridges|ribbon|ribbons|toner|supplies)|(?:ink|inks|cartridge|cartridges|supplies)\s+for)\b", re.I),
+        re.compile(r"\b(?:(?:what|which|need|want|buy|order|get|looking\s+for)\s+.*?\b(?:ink|inks|cartridge|cartridges|ribbon|ribbons|maintenance\s*box|supplies|paper|media))\b", re.I),
+        re.compile(r"\b(?:[a-z0-9\-]+\s+(?:ink|inks|cartridge|cartridges|ribbon|ribbons|paper|media|supplies))\b", re.I),
+        re.compile(r"\b(?:ink|inks|cartridge|cartridges|ribbon|ribbons|supplies|paper|media)\s+(?:for|of)\s+[a-z0-9\-]+\b", re.I),
     ]
 
     COMPARE_PATTERNS = [
@@ -293,7 +295,12 @@ class TurnUnderstandingExtractor:
     ]
 
     PRICE_POLICY_PATTERNS = [
-        re.compile(r"\b(?:price|cost|how\s+much|quote|quotation|pricing|discount|rates?|in\s+stock|available\s+in\s+stock)\b", re.I),
+        re.compile(r"\b(?:price|cost|how\s+much|quote|quotation|pricing|discount|rates?|in\s+stock|available\s+in\s+stock|print\s+cost|cost\s+per\s+print|running\s+cost|media\s+cost)\b", re.I),
+    ]
+
+    # Attribute-level spec query keywords — triggers PRODUCT_INFO when model is known
+    SPEC_ATTRIBUTE_PATTERNS = [
+        re.compile(r"\b(?:dimension|dimensions|measurement|measurements|size|how\s+big|weight|how\s+heavy|memory|ram|datasheet|brochure|spec\s+sheet|data\s+sheet|pdf|specification|specifications)\b", re.I),
     ]
 
     SHOWROOM_PATTERNS = [
@@ -304,6 +311,8 @@ class TurnUnderstandingExtractor:
             r"working\s*hours|business\s*hours|opening\s*hours|when\s+are\s+you\s+open|open\s+today)\b",
             re.I
         ),
+        re.compile(r"\bwhere\b.*?\b(?:licat\w*|locat\w*|compani\w*|company|office|store|shop|showroom|situat\w*|based|address)\b", re.I),
+        re.compile(r"\b(?:where\s+is\s+(?:your|the)\s+(?:company|office|store|shop|showroom))\b", re.I),
     ]
 
     DELIVERY_PATTERNS = [
@@ -484,37 +493,49 @@ class TurnUnderstandingExtractor:
         # 4. Category Mentions (Matching Page 1 Flowchart Overview)
         categories = {
             "office_workforce": [
-                "office printer", "workforce", "business printer", "printer for my office",
-                "printer for office", "for my office", "for our office", "office use",
-                "office printing", "office copier", "enterprise mfp", "am-c", "wf-c",
-                "office multifunction", "office enterprise", "enterprise", "enterprise printer",
+                "office printer", "office printers", "workforce", "business printer", "business printers", "printer for my office",
+                "printer for office", "printers for office", "for my office", "for our office", "office use",
+                "office printing", "office copier", "office copiers", "enterprise mfp", "enterprise mfps", "am-c", "wf-c",
+                "office multifunction", "office enterprise", "enterprise", "enterprise printer", "enterprise printers",
                 "line-head", "line head", "line-head enterprise", "office mfp", "office mfps", "business mfp"
             ],
             "technical_cad": [
                 "cad", "technical", "engineering", "blueprints", "line drawings", "architectural",
                 "architect", "archtect", "architecture", "drawing", "drawings", "architect drawings",
-                "gis", "cad plotter", "blueprint", "plotter", "plotters", "large format plotter"
-            ],
-            "photo_fine_art": [
-                "fine art", "photo printer", "gallery", "photography", "photo printing", "photo studio",
-                "master studio", "spectro", "pro10", "pro12", "fine art gallery"
+                "gis", "cad plotter", "cad plotters", "blueprint", "plotter", "plotters", "large format plotter",
+                "large format plotters", "technical plotter", "technical plotters", "technical printer", "technical printers"
             ],
             "citizen_photo": [
-                "photo booth", "event photography", "instant prints", "passport photos", "citizen", "citizon", "citzen",
-                "citizen printer", "citizon printer", "instant photo", "photo booth printer", "dye-sub photo", "cz-01", "cx-02", "cy-02", "cx-02w"
+                "photo booth", "photo booth printer", "photo booth printers", "event photography", "event photo", "event photos",
+                "event photo printer", "event photo printers", "instant prints", "passport photos",
+                "citizen", "citizon", "citzen", "ciyizon", "ctizen", "citizn",
+                "citizen printer", "citizen printers", "citizon printer", "ciyizon printer", "instant photo", "instant photo printer", "instant photo printers", "dye-sub photo", "cz-01", "cx-02", "cy-02", "cx-02w"
+            ],
+            "photo_fine_art": [
+                "fine art", "photo printer", "photo printers", "gallery", "photography", "photo printing", "photo studio",
+                "photo machine", "photo machines", "master studio", "spectro", "pro10", "pro12", "fine art gallery",
+                "photography printer", "photography printers", "fine art printer", "fine art printers"
             ],
             "dye_sublimation": [
-                "dye sublimation", "sublimation", "sublimation printer", "apparel printing",
+                "dye sublimation", "sublimation", "sublimation printer", "sublimation printers", "apparel printing",
                 "t-shirt printing", "textile printing", "mug printing", "sportswear printing",
                 "apparel", "t-shirt", "mug"
             ],
             "scanners": [
-                "scanner", "scanners", "document scanner", "sheetfed", "flatbed scanner",
+                "scanner", "scanners", "document scanner", "document scanners", "sheetfed", "flatbed scanner", "flatbed scanners",
                 "film scanner", "large format scanner", "book scanner", "scanning solutions",
                 "expression 12000xl", "workforce ds"
             ],
         }
         for cat_id, cat_keywords in categories.items():
+            if cat_id == "scanners":
+                if re.search(r"\b(?:no|without|dont\s+need|don't\s+need|not\s+needed)\s+(?:a\s+)?(?:scanner|scan|scanning)\b", text_l):
+                    continue
+                if any(w in text_l for w in ["print only", "print-only"]):
+                    continue
+            elif cat_id == "photo_fine_art":
+                if any(w in text_l for w in ["scanner", "scanners", "scanning"]) and not any(p in text_l for p in ["printer", "printers", "plotter"]):
+                    continue
             for kw in cat_keywords:
                 if re.search(rf"\b{re.escape(kw)}\b", text_l):
                     entities.append(EntityMention(
@@ -683,13 +704,27 @@ class TurnUnderstandingExtractor:
         if any(p.search(text_l) for p in cls.COMPARE_PATTERNS):
             return DialogueAct.QUESTION, Intent.COMPARE, 0.92, ambiguities
 
+        # 8a. Specific model + price/print-cost query → direct AVAILABILITY_OR_PRICE_POLICY
+        #     Prevents flowchart routing when customer asks "what is the price of Citizen CZ-01?"
+        has_explicit_price = any(k in text_l for k in [
+            "price", "cost", "how much", "quote", "quotation", "pricing", "rate", "discount",
+            "print cost", "cost per print", "running cost", "media cost"
+        ])
+        if (models or skus) and has_explicit_price:
+            return DialogueAct.QUESTION, Intent.AVAILABILITY_OR_PRICE_POLICY, 0.95, ambiguities
+
+        # 8b. Specific model + spec/datasheet attribute query → direct PRODUCT_INFO
+        #     Prevents flowchart routing when customer asks "what are the dimensions of SC-T3100?"
+        has_spec_query = any(p.search(text_l) for p in cls.SPEC_ATTRIBUTE_PATTERNS)
+        if (models or skus) and has_spec_query:
+            return DialogueAct.QUESTION, Intent.PRODUCT_INFO, 0.96, ambiguities
+
         # 9. Alternatives
         if any(p.search(text_l) for p in cls.ALTERNATIVES_PATTERNS):
             act = DialogueAct.REFERENCE_FOLLOW_UP if refs else DialogueAct.QUESTION
             return act, Intent.ALTERNATIVES, 0.92, ambiguities
 
         # 10. Delivery & Shipping policy inquiry (check before general availability)
-        has_explicit_price = any(k in text_l for k in ["price", "cost", "how much", "quote", "quotation", "pricing", "rate", "discount"])
         if any(p.search(text_l) for p in cls.DELIVERY_PATTERNS) and not has_explicit_price:
             return DialogueAct.QUESTION, Intent.SHIPPING_OR_DELIVERY, 0.96, ambiguities
 

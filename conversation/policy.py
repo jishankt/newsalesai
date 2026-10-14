@@ -676,7 +676,10 @@ class PolicyEngine:
             )
 
         # 8c. Explicit Target Model Request (Case 9: e.g. "I want the Epson SC-P900")
-        if intent == Intent.RECOMMEND and resolved.resolved_target_product:
+        explicit_model_in_turn = any(e.entity_type == "model" for e in und.entities) or (
+            resolved.bound_pending_option and resolved.bound_pending_option.get("product")
+        )
+        if intent == Intent.RECOMMEND and resolved.resolved_target_product and explicit_model_in_turn:
             target = resolved.resolved_target_product
             p_meta = target.metadata or {}
             claim_parts = [f"**{target.name}** is an approved official equipment model in our catalogue."]
@@ -716,6 +719,7 @@ class PolicyEngine:
             "photo": "photography_large_format",
             "photo_booth": "citizen_photo",
             "citizen": "citizen_photo",
+            "citizen_photo": "citizen_photo",
             "dye_sublimation": "dye_sublimation",
             "sublimation": "dye_sublimation",
             "scanners": "scanners",
@@ -732,12 +736,25 @@ class PolicyEngine:
                 is_flowchart_turn = True
                 resolved.resolved_target_product = None
             elif not resolved.resolved_target_product and not resolved.resolved_active_item:
-                if getattr(state, "category", None) and (bool(flow_reqs) or any(c.lower() in und.raw_text.lower() for c in state.last_shown_chips)):
+                if getattr(state, "category", None) and (
+                    bool(flow_reqs)
+                    or any(c.lower() in und.raw_text.lower() for c in state.last_shown_chips)
+                    or und.dialogue_act in (DialogueAct.REJECTION, DialogueAct.CONFIRMATION, DialogueAct.ANSWER_TO_MY_QUESTION)
+                    or bool(und.slots)
+                ):
                     is_flowchart_turn = True
 
         if is_flowchart_turn:
             if canonical_new_cat:
-                if state.category != canonical_new_cat:
+                is_cad_scanner_feature = (
+                    state.category in ("technical_large_format", "technical_cad", "cad")
+                    and canonical_new_cat == "scanners"
+                    and (
+                        any("scan" in str(c).lower() for c in state.last_shown_chips)
+                        or state.confirmed_slots.get("plotter_width") == 36
+                    )
+                )
+                if not is_cad_scanner_feature and state.category != canonical_new_cat:
                     # User explicitly stated a new category: switch category and reset stale slots!
                     state.category = canonical_new_cat
                     state.confirmed_slots.clear()
@@ -860,12 +877,22 @@ class PolicyEngine:
                         attr = "stand"
                     elif "speed" in raw_l or "fast" in raw_l or "ppm" in raw_l:
                         attr = "print_speed"
-                    elif "dpi" in raw_l or "resolution" in raw_l:
+                    elif "dpi" in raw_l or "resolution" in raw_l or "clarity" in raw_l:
                         attr = "dpi"
-                    elif "width" in raw_l or "size" in raw_l:
+                    elif "width" in raw_l or "max width" in raw_l or "print width" in raw_l:
                         attr = "width"
                     elif "connectivity" in raw_l or "wifi" in raw_l or "wi-fi" in raw_l or "network" in raw_l:
                         attr = "connectivity"
+                    elif any(k in raw_l for k in ["dimension", "dimensions", "measurement", "how big", "physical size"]):
+                        attr = "dimensions"
+                    elif any(k in raw_l for k in ["weight", "how heavy", "heavy", "kg"]):
+                        attr = "weight"
+                    elif any(k in raw_l for k in ["memory", "ram", "storage"]):
+                        attr = "memory"
+                    elif any(k in raw_l for k in ["datasheet", "brochure", "spec sheet", "data sheet", "pdf"]):
+                        attr = "brochure_url"
+                    elif any(k in raw_l for k in ["price", "cost", "how much", "quote"]):
+                        attr = "price"
 
                 if attr:
                     val, rec = EvidenceEngine.get_attribute(target.id, attr)
@@ -902,16 +929,42 @@ class PolicyEngine:
                             next_step=f"Would you like to see additional specifications or compatible supplies for the {target.name}?",
                         )
                 else:
-                    # General product info overview from verified attributes
+                    # Check if customer is asking why this model was chosen/recommended
+                    is_why_query = bool(re.search(r"\b(?:why|why\s+this|why\s+this\s+one|why\s+recommend|how\s+come)\b", und.raw_text.lower()))
                     p_meta = target.metadata or {}
-                    desc_parts = [f"**{target.name}** is an approved official equipment model in our catalogue."]
-                    if p_meta.get("print_speed"):
-                        desc_parts.append(f"• Print speed: {p_meta.get('print_speed')}")
-                    if p_meta.get("dpi"):
-                        desc_parts.append(f"• Resolution: {p_meta.get('dpi')}")
-                    if p_meta.get("paper_size"):
-                        desc_parts.append(f"• Supported format: {p_meta.get('paper_size')}")
-                    overview_claim = "\n".join(desc_parts)
+                    slots = state.confirmed_slots or {}
+
+                    if is_why_query:
+                        reasons = []
+                        if slots.get("plotter_width") == 36 or "540" in target.id or "5100" in target.id:
+                            reasons.append("its 36-inch (A0) width specifically engineered for technical CAD and architectural drawings")
+                        elif slots.get("plotter_width") == 24 or "3100" in target.id:
+                            reasons.append("its compact 24-inch (A1) width ideal for technical CAD line drawings")
+                        elif slots.get("citizen_format") or "citizen" in str(state.category).lower():
+                            reasons.append("its reliable dye-sublimation speed and print quality for wedding and event photo booths")
+
+                        if slots.get("scanner_needed") is True or "integrated" in str(p_meta.get("functions", "")).lower() or "m" in target.id:
+                            reasons.append("its integrated 36-inch scanner for scanning hand-marked blueprints and site plans")
+                        elif slots.get("scanner_needed") is False:
+                            reasons.append("its dedicated high-efficiency print-only design without unnecessary scanner cost")
+
+                        if slots.get("daily_pages"):
+                            reasons.append(f"its heavy-duty capacity to comfortably meet your daily volume of {slots.get('daily_pages')} drawings/prints")
+                        elif p_meta.get("print_speed"):
+                            reasons.append(f"its fast print speed of {p_meta.get('print_speed')}")
+
+                        reasons_str = " along with ".join(reasons) if reasons else "its optimal balance of precision, speed, and media handling for your workflow"
+                        overview_claim = f"The **{target.name}** is recommended for your requirements because of {reasons_str}."
+                    else:
+                        desc_parts = [f"**{target.name}** is an approved official equipment model in our catalogue."]
+                        if p_meta.get("print_speed"):
+                            desc_parts.append(f"• Print speed: {p_meta.get('print_speed')}")
+                        if p_meta.get("dpi"):
+                            desc_parts.append(f"• Resolution: {p_meta.get('dpi')}")
+                        if p_meta.get("paper_size"):
+                            desc_parts.append(f"• Supported format: {p_meta.get('paper_size')}")
+                        overview_claim = "\n".join(desc_parts)
+
                     overview_rec = EvidenceRecord(
                         claim=overview_claim,
                         verified=True,
@@ -929,10 +982,145 @@ class PolicyEngine:
                         next_step=f"Would you like to see detailed specifications or compatible consumables for the {target.name}?",
                     )
 
-        # 10. Availability & Price Policy Intent (Strict No Chat Pricing Policy)
+        # 10. Availability & Price Policy Intent
         if intent == Intent.AVAILABILITY_OR_PRICE_POLICY:
             target = resolved.resolved_target_product
             t_name = target.name if target else "our equipment"
+            t_id = target.id if target else None
+            raw_l_price = und.raw_text.lower()
+
+            # ── PRINT COST / RUNNING COST inquiry ─────────────────────────────────────────
+            is_print_cost = any(k in raw_l_price for k in [
+                "print cost", "cost per print", "running cost", "media cost", "per print", "per page"
+            ])
+            if is_print_cost and target:
+                # Try to calculate cost-per-print from consumables_detailed
+                t_node = knowledge_graph.nodes.get(t_id)
+                cons_detailed = None
+                if t_node:
+                    cd = t_node.attributes.get("consumables_detailed")
+                    if not cd:
+                        try:
+                            from catalog.catalogue_loader import catalogue_loader
+                            p_info = catalogue_loader.get_by_id(t_id) or {}
+                            cd = p_info.get("consumables_detailed")
+                        except Exception:
+                            pass
+                    cons_detailed = cd
+
+                cost_claim = None
+                if cons_detailed:
+                    try:
+                        import json as _json
+                        if isinstance(cons_detailed, str):
+                            cons_detailed = _json.loads(cons_detailed)
+                        # Find the primary media pack (category Media & Paper)
+                        media_packs = [
+                            c for c in cons_detailed
+                            if isinstance(c, dict) and "media" in str(c.get("category", "")).lower()
+                        ]
+                        if media_packs:
+                            mp = media_packs[0]
+                            mp_price = float(mp.get("price", 0))
+                            mp_name = mp.get("name", mp.get("sku", ""))
+                            # Use yield_capacity from knowledge node to compute per-print cost
+                            yield_info = t_node.attributes.get("yield_capacity") or t_node.attributes.get("consumable_volume") if t_node else None
+                            prints_per_box = 300  # default for CZ-01 CZ-MS46 2-roll box
+                            if yield_info:
+                                import re as _re
+                                m = _re.search(r"(\d+)\s*prints?", str(yield_info).lower())
+                                if m:
+                                    prints_per_box = int(m.group(1))
+                            cost_per_print = mp_price / prints_per_box if prints_per_box > 0 else None
+                            if cost_per_print:
+                                cost_claim = (
+                                    f"The primary media pack for the **{t_name}** is the **{mp_name}** "
+                                    f"at **{mp.get('sku', '')}** priced at **AED {mp_price:,.2f}** "
+                                    f"({prints_per_box} prints), giving a running cost of approximately "
+                                    f"**AED {cost_per_print:.2f} per print**."
+                                )
+                    except Exception as e:
+                        logger.warning(f"Cost-per-print calculation error: {e}")
+
+                if not cost_claim:
+                    cost_claim = (
+                        f"Running cost details for the **{t_name}** are provided by our sales specialists. "
+                        f"Please contact us at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}."
+                    )
+
+                rec = EvidenceRecord(
+                    claim=cost_claim,
+                    verified=bool(cost_claim and "AED" in cost_claim),
+                    status=CompatibilityStatus.VERIFIED_YES,
+                    source_file="data/products.json",
+                    field="cost_per_print",
+                    entity_ids=[t_id] if t_id else [],
+                )
+                return PolicyDecision(
+                    action=PolicyAction.ANSWER,
+                    reason=f"Calculated cost-per-print for {t_name}.",
+                    target_entity_id=t_id,
+                    options_or_chips=["Order Media Pack", "View Full Specs", "Request Official Quote"],
+                    evidence_records=[rec],
+                    next_step=f"Would you like to request an official media supply quote at {OFFICIAL_SUPPORT_EMAIL}?",
+                )
+
+            # ── HARDWARE LIST PRICE inquiry ─────────────────────────────────────────────
+            if target:
+                t_node = knowledge_graph.nodes.get(t_id)
+                v_price = t_node.attributes.get("price") if t_node else None
+                v_price_str = t_node.attributes.get("price_str") if t_node else None
+
+                if v_price and float(v_price) > 0:
+                    v_price_str = v_price_str or f"AED {float(v_price):,.2f}"
+                    p_claim = (
+                        f"The **{t_name}** is listed at **{v_price_str}** (excl. VAT). "
+                        f"Official tax invoices, volume discounts, and custom configurations are "
+                        f"provided directly through our sales desk at {OFFICIAL_SUPPORT_EMAIL} "
+                        f"or {OFFICIAL_SUPPORT_PHONE}."
+                    )
+                    rec = EvidenceRecord(
+                        claim=p_claim,
+                        verified=True,
+                        status=CompatibilityStatus.VERIFIED_YES,
+                        source_file="data/verified_prices.json",
+                        field="price",
+                        entity_ids=[t_id],
+                        supporting_data={"price": v_price, "price_str": v_price_str},
+                    )
+                    return PolicyDecision(
+                        action=PolicyAction.ANSWER,
+                        reason=f"Quoted verified list price for {t_name}.",
+                        target_entity_id=t_id,
+                        options_or_chips=["Request Official Quote", "Compatible Consumables", "View Technical Specs"],
+                        evidence_records=[rec],
+                        next_step=f"Official quotations and tax invoices are issued directly at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}.",
+                    )
+                else:
+                    # Quote-only product (price: null)
+                    p_claim = (
+                        f"Pricing for the **{t_name}** is provided upon request based on duty cycle, "
+                        f"configuration, and volume requirements. Our sales desk will prepare a tailored "
+                        f"official quotation at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}."
+                    )
+                    rec = EvidenceRecord(
+                        claim=p_claim,
+                        verified=True,
+                        status=CompatibilityStatus.VERIFIED_YES,
+                        source_file="config.py",
+                        field="pricing_policy",
+                        entity_ids=[t_id],
+                    )
+                    return PolicyDecision(
+                        action=PolicyAction.ANSWER,
+                        reason=f"Quote-only product: {t_name}. No public list price.",
+                        target_entity_id=t_id,
+                        options_or_chips=["Request Official Quote", "Contact Sales Desk", "View Product Page"],
+                        evidence_records=[rec],
+                        next_step=f"Official tax invoices and volume discounts are provided directly at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}.",
+                    )
+
+            # No target product identified
             p_claim = f"Commercial pricing, tax invoices, and volume discounts for the **{t_name}** are provided directly through our official sales desk."
             rec = EvidenceRecord(
                 claim=p_claim,
@@ -940,15 +1128,15 @@ class PolicyEngine:
                 status=CompatibilityStatus.VERIFIED_YES,
                 source_file="config.py",
                 field="pricing_policy",
-                entity_ids=[target.id] if target else [],
+                entity_ids=[],
             )
             return PolicyDecision(
                 action=PolicyAction.ANSWER,
-                reason="Commercial policy inquiry: adhere strictly to sales desk quotation policy without disclosing digits.",
-                target_entity_id=target.id if target else None,
+                reason="Commercial policy inquiry: no target product; route to sales desk.",
+                target_entity_id=None,
                 options_or_chips=["Request Official Quote", "Contact Sales Desk", "View Product Page"],
                 evidence_records=[rec],
-                next_step=f"Official tax invoices and volume discounts are provided directly by our sales desk at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}.",
+                next_step=f"Official tax invoices and volume discounts are provided directly at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}.",
             )
 
         # 11. Contact Showroom Intent
