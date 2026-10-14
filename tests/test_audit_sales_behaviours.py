@@ -166,3 +166,63 @@ class TestAuditSalesBehavioursFix2(unittest.TestCase):
             if price is not None:
                 self.assertLessEqual(price, 1800.0, f"Primary pick exceeded 1800 AED: {first_card}")
 
+
+class TestAuditSalesBehavioursFix3(unittest.TestCase):
+    """FIX 3: Price objection clarify first, no unverified promises."""
+
+    def test_price_objection_clarifies_first_no_promo_words(self):
+        """Reply to 'too expensive' contains a question and none of ['promotional', 'promo', 'special offer']."""
+        state = DialogueState(session_id="test-obj-price-1")
+        turn = understand_turn("This is too expensive")
+        resolved = ReferentResolver.resolve_turn(turn, state)
+        decision = PolicyEngine.decide(resolved, state)
+        plan = ResponsePlanBuilder.build(decision, resolved, state)
+
+        reply_lower = plan.formatted_reply.lower()
+
+        # Must contain a question mark
+        self.assertIn("?", reply_lower)
+        # Must ask about upfront price or running cost
+        self.assertTrue(
+            "upfront" in reply_lower or "running cost" in reply_lower,
+            f"Expected upfront vs running cost question, got: {plan.formatted_reply}"
+        )
+        # Must NOT contain promotional promises
+        for forbidden in ["promotional", "promo", "special offer"]:
+            self.assertNotIn(forbidden, reply_lower)
+        # Chips must include Upfront price and Running cost
+        self.assertIn("Upfront price", plan.chips)
+        self.assertIn("Running cost", plan.chips)
+
+    def test_price_objection_running_cost_followup_verified_or_cannot_be_verified(self):
+        """Follow-up 'running cost' produces a verified calculation or the explicit 'cannot be verified' message."""
+        state = DialogueState(session_id="test-obj-price-2")
+        # First turn: objection
+        turn1 = understand_turn("This is too expensive")
+        resolved1 = ReferentResolver.resolve_turn(turn1, state)
+        decision1 = PolicyEngine.decide(resolved1, state)
+        _ = ResponsePlanBuilder.build(decision1, resolved1, state)
+
+        # Set a target product in focus (e.g. Citizen CY-02)
+        state.record_shown_artifacts(products=[{"id": "citizen-cy-02", "name": "Citizen CY-02"}])
+
+        # Second turn: user says "running cost"
+        turn2 = understand_turn("running cost")
+        resolved2 = ReferentResolver.resolve_turn(turn2, state)
+        decision2 = PolicyEngine.decide(resolved2, state)
+        plan2 = ResponsePlanBuilder.build(decision2, resolved2, state)
+
+        reply2 = plan2.formatted_reply
+
+        # Must either have a verified calculation (e.g. AED / print) OR explicit "cannot be verified"
+        is_verified_calc = bool(re.search(r"AED\s*[\d.]+\s*(?:per print|per page|\/\s*print)", reply2, re.I)) or "calculation" in reply2.lower()
+        is_explicit_unverified = "cannot be verified" in reply2.lower()
+
+        self.assertTrue(
+            is_verified_calc or is_explicit_unverified,
+            f"Expected verified calculation or explicit cannot be verified message, got: {reply2}"
+        )
+        for forbidden in ["promotional", "promo", "special offer"]:
+            self.assertNotIn(forbidden, reply2.lower())
+
+

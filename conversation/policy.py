@@ -214,10 +214,20 @@ class PolicyEngine:
 
         # 0.4 Price Objection ("it's too expensive", "cheaper alternative")
         if any(w in raw_l for w in ["too expensive", "expensive", "cheaper", "cannot afford", "out of my budget"]):
-            t_name = resolved.resolved_target_product.name if resolved.resolved_target_product else (state.category or "this equipment")
+            target = resolved.resolved_target_product
+            t_name = target.name if target else (state.category or "this equipment")
+
+            # Mention ink-system economics only if the focused product's catalogue data supports it
+            ink_econ_note = ""
+            if target and target.metadata:
+                m = target.metadata
+                ink_sys = str(m.get("ink_system") or m.get("ink_technology") or "").lower()
+                if any(k in ink_sys for k in ["rips", "replaceable ink", "precisioncore", "high-yield", "ciss"]):
+                    ink_econ_note = " This model utilizes a high-capacity ink system designed to reduce ongoing page costs."
+
             claim = (
-                f"I understand budget is an important factor. For {t_name}, we can explore cost-effective models with lower running costs (such as high-yield ink systems), "
-                "or connect you with our commercial team for promotional rates and volume discounts."
+                f"I understand budget is an important factor. For {t_name}, is your main concern "
+                f"the upfront equipment purchase price or the ongoing running cost per print?{ink_econ_note}"
             )
             rec = EvidenceRecord(
                 claim=claim,
@@ -225,15 +235,138 @@ class PolicyEngine:
                 status=CompatibilityStatus.VERIFIED_YES,
                 source_file="conversation/policy.py",
                 field="objection_price",
-                entity_ids=[],
+                entity_ids=[target.id] if target else [],
+            )
+            from conversation.dialogue_state import PendingQuestion
+            state.pending_question = PendingQuestion(
+                question_id="price_objection_concern",
+                question_text=f"For {t_name}, is your concern the upfront price or running cost?",
+                topic="price_objection",
+                expected_type="choice",
+                options=[
+                    {"id": "upfront", "label": "Upfront price", "value": "upfront"},
+                    {"id": "running_cost", "label": "Running cost", "value": "running_cost"},
+                    {"id": "cheaper", "label": "Show cheaper options", "value": "cheaper"},
+                ],
+                turn_asked=state.turn_count,
             )
             return PolicyDecision(
-                action=PolicyAction.ANSWER,
-                reason="Price objection handled with TCO and volume discount options.",
-                options_or_chips=["Cost-Effective Models", "Running Cost Comparison", "Request Official Quote"],
+                action=PolicyAction.CLARIFY,
+                reason="Price objection acknowledged; clarify upfront price vs running cost without unverified claims.",
+                target_entity_id=target.id if target else None,
+                clarification_topic="price_objection",
+                clarification_question="Is your main concern the upfront price or the running cost per print?",
+                options_or_chips=["Upfront price", "Running cost", "Show cheaper options"],
                 evidence_records=[rec],
-                next_step="Would you like to explore lower-investment alternatives or check ink running costs?",
+                next_step="Please let me know whether you want to focus on upfront equipment cost or ongoing running costs.",
             )
+
+        # 0.45 Price Objection Follow-up ("running cost" vs "upfront price")
+        if state.pending_question and state.pending_question.topic == "price_objection":
+            state.pending_question = None
+            target = resolved.resolved_target_product or state.get_current_focus()
+            t_name = target.name if target else "your selected model"
+            t_id = target.id if target else None
+
+            if any(k in raw_l for k in ["running", "running cost", "cost per print", "per print", "per page", "ongoing", "supplies"]):
+                if t_id:
+                    from catalog.cost_per_print_calculator import cost_per_print_calculator
+                    fmt_match = re.search(r"\b(4\s*[xX*×]\s*6|6\s*[xX*×]\s*8|8\s*[xX*×]\s*10|8\s*[xX*×]\s*12|4\.5\s*[xX*×]\s*8|5\s*[xX*×]\s*7|a4|a3)\b", raw_l)
+                    target_fmt = fmt_match.group(1).replace(" ", "").replace("*", "x").replace("×", "x").lower() if fmt_match else "4x6"
+                    res = cost_per_print_calculator.calculate_cost_per_print(t_id, print_format=target_fmt, printer_name=t_name)
+                    if res.status == "verified" and res.explanation:
+                        claim_text = res.explanation
+                        rec = EvidenceRecord(
+                            claim=claim_text,
+                            verified=True,
+                            status=CompatibilityStatus.VERIFIED_YES,
+                            source_file="catalog/cost_per_print_calculator.py",
+                            field="cost_per_print",
+                            entity_ids=[t_id] + ([res.consumable_sku] if res.consumable_sku else []),
+                        )
+                    else:
+                        claim_text = (
+                            f"Print cost cannot be verified from the available data for the **{t_name}**. "
+                            f"Our sales specialists can calculate tailored consumable yield costs for your specific media volume at {OFFICIAL_SUPPORT_EMAIL}."
+                        )
+                        rec = EvidenceRecord(
+                            claim=claim_text,
+                            verified=True,
+                            status=CompatibilityStatus.VERIFIED_YES,
+                            source_file="conversation/policy.py",
+                            field="cost_per_print_unverified",
+                            entity_ids=[t_id],
+                        )
+                    return PolicyDecision(
+                        action=PolicyAction.ANSWER,
+                        reason=f"Addressed running cost concern for {t_name}.",
+                        target_entity_id=t_id,
+                        options_or_chips=["Request Media Quote", "Official Quotation", "View Technical Specs"],
+                        evidence_records=[rec],
+                        next_step=f"Would you like an official consumable supply quotation for the {t_name}?",
+                    )
+            elif any(k in raw_l for k in ["upfront", "purchase", "cheaper", "equipment", "lower", "show cheaper"]):
+                if t_id:
+                    from catalog.price_resolver import PriceResolver
+                    pr = PriceResolver()
+                    t_info = pr.get_price_info(t_id)
+                    t_price = t_info.get("price")
+                    from catalog.catalogue_loader import catalogue_loader
+                    all_prods = catalogue_loader.load_and_validate()
+                    t_prod = catalogue_loader.get_by_id(t_id) or {}
+                    t_cat = t_prod.get("main_category") or t_prod.get("category")
+                    cheaper_alts = []
+                    for p in all_prods:
+                        if (p.get("main_category") == t_cat or p.get("category") == t_cat) and p.get("id") != t_id:
+                            p_info = pr.get_price_info(p.get("id"))
+                            p_p = p_info.get("price")
+                            if p_p is not None and t_price is not None and p_p < t_price:
+                                cheaper_alts.append((p, p_p, p_info.get("price_str")))
+                    if cheaper_alts:
+                        cheaper_alts.sort(key=lambda x: x[1])
+                        c_pick, c_price_val, c_price_str = cheaper_alts[0]
+                        c_name = c_pick.get("display_name") or c_pick.get("name")
+                        claim_text = (
+                            f"For a lower upfront investment in this category, we recommend the **{c_name}**, "
+                            f"listed at **{c_price_str}** (excl. VAT) compared to {t_name}."
+                        )
+                        rec = EvidenceRecord(
+                            claim=claim_text,
+                            verified=True,
+                            status=CompatibilityStatus.VERIFIED_YES,
+                            source_file="data/verified_prices.json",
+                            field="cheaper_alternative",
+                            entity_ids=[c_pick.get("id")],
+                        )
+                        return PolicyDecision(
+                            action=PolicyAction.ANSWER,
+                            reason=f"Provided lower-priced verified alternative {c_name} for upfront price objection.",
+                            target_entity_id=c_pick.get("id"),
+                            options_or_chips=["Compare Specifications", "Request Official Quote", "Compatible Consumables"],
+                            evidence_records=[rec],
+                            next_step=f"Would you like to compare the {c_name} with the {t_name}?",
+                        )
+                    else:
+                        claim_text = (
+                            f"The **{t_name}** is already the most cost-effective verified entry model for this specification in our catalogue. "
+                            f"For custom commercial quotes, educational discounts, or trade-in options, our sales desk can assist directly at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}."
+                        )
+                        rec = EvidenceRecord(
+                            claim=claim_text,
+                            verified=True,
+                            status=CompatibilityStatus.VERIFIED_YES,
+                            source_file="conversation/policy.py",
+                            field="sales_desk_cheaper",
+                            entity_ids=[t_id],
+                        )
+                        return PolicyDecision(
+                            action=PolicyAction.ANSWER,
+                            reason="No cheaper model in catalogue meeting requirements; route to sales desk.",
+                            target_entity_id=t_id,
+                            options_or_chips=["Request Official Quote", "Contact Sales Desk", "View Technical Specs"],
+                            evidence_records=[rec],
+                            next_step=f"Our sales specialists can review tailored pricing at {OFFICIAL_SUPPORT_EMAIL}.",
+                        )
 
         # 0.5 Hesitation ("I'll think about it")
         if any(w in raw_l for w in ["think about it", "i'll think about it", "maybe later", "need to think"]):
@@ -1441,8 +1574,8 @@ class PolicyEngine:
 
                 if not cost_claim:
                     cost_claim = (
-                        f"Running cost details for the **{t_name}** are provided by our sales specialists. "
-                        f"Please contact us at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}."
+                        f"Print cost cannot be verified from the available data for the **{t_name}**. "
+                        f"Official consumable running cost details are provided by our sales specialists at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}."
                     )
 
                 rec = EvidenceRecord(
