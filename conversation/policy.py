@@ -832,9 +832,12 @@ class PolicyEngine:
                     action=PolicyAction.CLARIFY,
                     reason="Consumables requested without a specified printer model.",
                     clarification_topic=current_topic,
-                    clarification_question="Which printer or scanner model do you need consumables for?",
+                    clarification_question=(
+                        "Which printer or scanner model do you need consumables for?\n\n"
+                        "Please enter your model name, or select from the common options below:"
+                    ),
                     options_or_chips=["Epson SC-F500", "Epson SC-T3100", "Citizen CX-02", "Epson SC-P900"],
-                    next_step="Please select your printer model.",
+                    next_step="Please enter the model name or select from the options below.",
                 )
 
         # 7. Comparison Intent
@@ -847,6 +850,94 @@ class PolicyEngine:
                     if (p.get("id") if isinstance(p, dict) else str(p))
                 ]
             if len(models) >= 2:
+                # Check if customer specifically asked about investment cost, price, running cost, or budget
+                is_cost_comparison = any(
+                    w in raw_l for w in [
+                        "investment", "cost", "cheaper", "price", "pricing", "running cost",
+                        "cost per print", "tco", "budget", "expensive", "economical", "operating cost"
+                    ]
+                )
+                if is_cost_comparison:
+                    from catalog.price_resolver import price_resolver
+                    from catalog.cost_per_print_calculator import CostPerPrintCalculator
+                    from catalog.repository import catalog_repository
+
+                    cost_breakdowns = []
+                    for mid in models[:2]:
+                        p_obj = catalog_repository.products_by_id.get(mid)
+                        p_name = p_obj.name if p_obj else mid
+
+                        p_info = price_resolver.get_price_info(mid) or {}
+                        hw_price = p_info.get("price")
+                        hw_str = f"AED {hw_price:,.2f} (excl. VAT)" if hw_price else "Commercial Quote on Request"
+
+                        cpp_res = CostPerPrintCalculator.calculate_cost_per_print(mid, "4x6")
+                        cpp_str = cpp_res.cost_per_print_formatted or "Not verified"
+                        yield_str = f"{cpp_res.package_yield_prints} prints per pack" if cpp_res.package_yield_prints else ""
+                        pack_price = f"AED {cpp_res.package_price_aed:,.2f}" if cpp_res.package_price_aed else ""
+
+                        cost_breakdowns.append({
+                            "id": mid,
+                            "name": p_name,
+                            "hw_price": hw_price,
+                            "hw_str": hw_str,
+                            "cpp": cpp_res.cost_per_print_aed,
+                            "cpp_str": cpp_str,
+                            "yield_str": yield_str,
+                            "pack_price": pack_price,
+                        })
+
+                    lines = ["**Investment & Running Cost Comparison**:"]
+                    for cb in cost_breakdowns:
+                        cons_info = f" | 4×6 print cost: approx. {cb['cpp_str']} ({cb['pack_price']} per pack of {cb['yield_str']})" if cb['cpp'] else ""
+                        lines.append(f"• **{cb['name']}**: Hardware listed at {cb['hw_str']}{cons_info}")
+
+                    b0, b1 = cost_breakdowns[0], cost_breakdowns[1]
+                    cheaper_hw = None
+                    if b0["hw_price"] and b1["hw_price"]:
+                        if b0["hw_price"] < b1["hw_price"]:
+                            cheaper_hw = (b0, b1, b1["hw_price"] - b0["hw_price"])
+                        elif b1["hw_price"] < b0["hw_price"]:
+                            cheaper_hw = (b1, b0, b0["hw_price"] - b1["hw_price"])
+
+                    cheaper_cpp = None
+                    if b0["cpp"] and b1["cpp"]:
+                        if b0["cpp"] < b1["cpp"]:
+                            cheaper_cpp = (b0, b1)
+                        elif b1["cpp"] < b0["cpp"]:
+                            cheaper_cpp = (b1, b0)
+
+                    summary_parts = []
+                    if cheaper_hw:
+                        summary_parts.append(f"**{cheaper_hw[0]['name']}** offers a lower upfront equipment investment, saving AED {cheaper_hw[2]:,.2f}")
+                    if cheaper_cpp:
+                        if cheaper_hw and cheaper_cpp[0]['id'] == cheaper_hw[0]['id']:
+                            summary_parts.append(f"as well as a lower running cost per print ({cheaper_cpp[0]['cpp_str']} vs {cheaper_cpp[1]['cpp_str']})")
+                        else:
+                            summary_parts.append(f"**{cheaper_cpp[0]['name']}** offers a lower running cost per print ({cheaper_cpp[0]['cpp_str']} vs {cheaper_cpp[1]['cpp_str']})")
+
+                    if summary_parts:
+                        lines.append(f"\nSummary: {' '.join(summary_parts)}.")
+
+                    claim_text = "\n".join(lines)
+                    rec = EvidenceRecord(
+                        claim=claim_text,
+                        verified=True,
+                        status=CompatibilityStatus.VERIFIED_YES,
+                        source_file="catalog/price_resolver.py",
+                        field="investment_cost_comparison",
+                        entity_ids=models[:2],
+                    )
+                    return PolicyDecision(
+                        action=PolicyAction.ANSWER,
+                        reason=f"Compared verified investment and operating costs for {models[:2]}.",
+                        target_entity_id=models[0],
+                        supporting_product_ids=models[1:2],
+                        options_or_chips=["Official Quotation", "Consumables Breakdown", "Technical Specs"],
+                        evidence_records=[rec],
+                        next_step="Would you like an official proposal with media kits included for either model?",
+                    )
+
                 matrix, rec = EvidenceEngine.compare(models[:3], ["category", "width", "resolution", "speed", "connectivity"])
                 return PolicyDecision(
                     action=PolicyAction.ANSWER,

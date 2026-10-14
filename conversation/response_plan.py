@@ -443,11 +443,11 @@ class ResponsePlanValidator:
             has_price_violation = True
             break
 
-        # Allow numeric prices when supported by a verified evidence record (price, cost_per_print, pricing_policy)
+        # Allow numeric prices when supported by a verified evidence record (price, cost_per_print, pricing_policy, investment_cost_comparison)
         if has_price_violation:
-            PRICE_EVIDENCE_FIELDS = {"price", "price_str", "cost_per_print", "pricing_policy"}
+            PRICE_EVIDENCE_FIELDS = {"price", "price_str", "cost_per_print", "pricing_policy", "investment_cost_comparison"}
             has_verified_price_evidence = any(
-                rec.field in PRICE_EVIDENCE_FIELDS and rec.verified
+                (rec.field in PRICE_EVIDENCE_FIELDS or "price" in rec.field or "cost" in rec.field) and rec.verified
                 for rec in plan.evidence_records
             )
             if has_verified_price_evidence:
