@@ -14,7 +14,7 @@ from difflib import SequenceMatcher
 from typing import List, Dict, Any, Optional, Tuple, Set
 from pydantic import BaseModel, Field
 
-from conversation.understanding import DialogueAct, Intent, TurnUnderstanding
+from conversation.understanding import DialogueAct, Intent, TurnUnderstanding, TurnUnderstandingExtractor
 from conversation.dialogue_state import DialogueState, ResolvedTurn, SalientEntity
 from catalog.evidence import EvidenceEngine, EvidenceRecord, CompatibilityStatus, knowledge_graph
 from config import OFFICIAL_SUPPORT_EMAIL, OFFICIAL_SUPPORT_PHONE, OFFICIAL_INFO_EMAIL
@@ -495,9 +495,42 @@ class PolicyEngine:
         if act == DialogueAct.OUT_OF_SCOPE:
             return PolicyDecision(
                 action=PolicyAction.OUT_OF_SCOPE_REDIRECT,
-                reason="Request references non-catalogue categories or unapproved brands (3D printers, laser, edible).",
-                options_or_chips=["Technical CAD Plotters", "Photo & Fine Art", "Dye-Sublimation", "Office Printers"],
-                next_step="Kepler Tech specializes in Epson and Citizen large-format inkjet and dye-sublimation systems. Which category fits your requirements?",
+                reason="Request references non-catalogue categories or unapproved brands (3D printers, laser, edible, food, general trivia).",
+                options_or_chips=["Technical CAD Plotters", "Photo & Fine Art", "Citizen Photo Booth", "Dye-Sublimation", "Office Printers"],
+                next_step="Kepler Tech is an authorized commercial distributor specializing strictly in Epson and Citizen large-format printers, enterprise office MFPs, and professional document scanners. We do not provide non-commercial or culinary equipment. Which equipment category can we assist you with?",
+            )
+
+        # 2b. Company Capability / Full Product List / Authorized Dealership Inquiry
+        is_capability = (
+            "company_capability" in und.ambiguities
+            or any(p.search(und.raw_text.lower()) for p in TurnUnderstandingExtractor.COMPANY_CAPABILITY_PATTERNS)
+        )
+        if is_capability and not any(e.entity_type in ("model", "sku") for e in und.entities):
+            cap_claim = (
+                "Yes, absolutely. **Kepler Tech LLC** is an authorized distributor in the UAE supplying official "
+                "commercial printing and scanning solutions across 6 key categories:\n\n"
+                "• **Technical CAD Plotters (Epson SureColor SC-T Series)**: 24″, 36″, and 44″ precision plotters & MFPs (SC-T3100, SC-T5100, SC-T5405, SC-T3700D, SC-T5700D, SC-T7700D).\n"
+                "• **Professional Photo & Fine Art (Epson SureColor SC-P Series)**: 13″ to 64″ 10–12 colour master printers (SC-P700, SC-P900, SC-P5300, SC-P7500, SC-P9500, SC-P20500).\n"
+                "• **Citizen Dye-Sublimation Photo Printers**: High-speed instant event & photo booth printers (CZ-01 4″, CX-02 6″, CY-02 6″, CX-02W 8″).\n"
+                "• **Dye-Sublimation Transfer (Epson SureColor SC-F Series)**: A4 desktop gifts (SC-F100) and 24″ roll production for apparel & textiles (SC-F500).\n"
+                "• **Office WorkForce Pro Enterprise MFPs**: Ultra-low running cost Heat-Free line-head systems (WF-C5890, EM-C800, AM-C400, AM-C550, AM-C4000, AM-C5000, AM-C6000, WF-C21000).\n"
+                "• **Epson High-Speed Document & Flatbed Scanners**: WorkForce sheetfed (DS-530II, DS-770II, DS-800WN, DS-900WN, DS-970) and flatbed/graphics (DS-1630, DS-6500, DS-60000, Expression 12000XL).\n\n"
+                "All hardware is backed by official manufacturer warranties, genuine consumable stocks, and our Dubai showroom."
+            )
+            rec = EvidenceRecord(
+                claim=cap_claim,
+                verified=True,
+                status=CompatibilityStatus.VERIFIED_YES,
+                source_file="catalog/catalogue_products.json",
+                field="overview",
+                entity_ids=[],
+            )
+            return PolicyDecision(
+                action=PolicyAction.ANSWER,
+                reason="Delivered comprehensive company capability and product line overview.",
+                options_or_chips=["Technical CAD Plotters", "Photo & Fine Art", "Citizen Photo Booth", "Office Printers", "Document Scanners"],
+                evidence_records=[rec],
+                next_step="Which equipment category or specific model would you like to review?",
             )
 
         # 3. Chitchat / Friendly Greeting
@@ -518,22 +551,39 @@ class PolicyEngine:
                 next_step=greeting_text,
             )
 
-        # 3b. Confusion / Context Review / Customer Frustration
-        if act == DialogueAct.COMPLAINT or any(w in und.raw_text.lower() for w in ["what you asking", "what do you mean", "previous chat", "priviace chat", "answer after checking"]):
+        # 3b. Confusion / Customer Frustration / Wrong Answer Complaint
+        if act == DialogueAct.COMPLAINT or any(w in und.raw_text.lower() for w in ["what you asking", "what do you mean", "what i asked", "previous chat", "priviace chat", "answer after checking"]):
             # Clear stuck state so the customer is never locked in an unwanted flow
             state.category = None
             state.confirmed_slots.clear()
             return PolicyDecision(
-                action=PolicyAction.CLARIFY,
-                reason="Customer expressed confusion or requested chat review.",
-                options_or_chips=["Office Printers", "CAD Technical Plotters", "Photo & Fine Art", "Document Scanners", "Speak to Specialist"],
-                clarification_question=(
-                    "My apologies for any confusion! Let's get right on track: "
-                    "Are you looking for office printers, CAD technical plotters, photo & fine art printers, "
-                    "dye-sublimation systems, or document scanners? You can also ask about specific models, delivery, or supplies."
+                action=PolicyAction.ANSWER,
+                reason="Addressed customer frustration or misunderstanding directly.",
+                options_or_chips=["Equipment Pricing", "Technical Specifications", "Official Quotation", "Speak to Sales Specialist"],
+                next_step=(
+                    "I sincerely apologize for the misunderstanding and for giving you the wrong information. "
+                    "Let me assist you directly: could you tell me the specific model, price, or printing requirement you would like answered?"
                 ),
-                next_step="",
             )
+
+        # 3c. Customer Confirmation / Acknowledgment ("thats fine", "fine", "sounds good", "ok", "yes")
+        if act == DialogueAct.CONFIRMATION and und.intent in (Intent.OTHER, Intent.CONSUMABLES_LOOKUP):
+            target = resolved.resolved_target_product
+            if target:
+                return PolicyDecision(
+                    action=PolicyAction.ANSWER,
+                    reason=f"Acknowledged customer confirmation for active target {target.name}.",
+                    target_entity_id=target.id,
+                    options_or_chips=["Request Official Quote", "Delivery Details", "Technical Specifications", "View Other Models"],
+                    next_step=f"Understood! Would you like to proceed with an official quotation or delivery details for the **{target.name}**?",
+                )
+            else:
+                return PolicyDecision(
+                    action=PolicyAction.ANSWER,
+                    reason="Acknowledged customer confirmation without active focus.",
+                    options_or_chips=["Technical CAD Plotters", "Photo & Fine Art", "Office Printers", "Document Scanners"],
+                    next_step="Understood! What equipment specifications or quotation would you like to review next?",
+                )
 
         # 4. Repair / Correction Handling
         if act == DialogueAct.CORRECTION or any(w in und.raw_text.lower() for w in ["i meant", "no, i said", "not that", "changed my mind"]):
@@ -1080,16 +1130,25 @@ class PolicyEngine:
                         reasons_str = " along with ".join(reasons) if reasons else "its optimal balance of precision, speed, and media handling for your workflow"
                         overview_claim = f"The **{target.name}** is recommended for your requirements because of {reasons_str}."
                     else:
-                        full_rec = EvidenceEngine.get_full_specs(target.id)
-                        if full_rec:
-                            return PolicyDecision(
-                                action=PolicyAction.ANSWER,
-                                reason=f"Verified technical specifications delivered for {target.name}.",
-                                target_entity_id=target.id,
-                                options_or_chips=["Official Quotation", "Compatible Consumables", "Cost Per Page", "Delivery Details"],
-                                evidence_records=[full_rec],
-                                next_step=f"Would you like an official quotation or to review compatible supplies for the {target.name}?",
-                            )
+                        has_explicit_spec_kw = any(k in und.raw_text.lower() for k in [
+                            "spec", "detail", "feature", "dpi", "speed", "resolution", "dimension",
+                            "size", "weight", "function", "sheet", "brochure", "datasheet", "tell me about",
+                            "what is", "overview", "what about", "how about", "what can you tell me", "what does it have",
+                            "card", "show", "again"
+                        ])
+                        has_explicit_model_this_turn = any(e.entity_type == "model" for e in und.entities)
+
+                        if has_explicit_spec_kw or has_explicit_model_this_turn:
+                            full_rec = EvidenceEngine.get_full_specs(target.id)
+                            if full_rec:
+                                return PolicyDecision(
+                                    action=PolicyAction.ANSWER,
+                                    reason=f"Verified technical specifications delivered for {target.name}.",
+                                    target_entity_id=target.id,
+                                    options_or_chips=["Official Quotation", "Compatible Consumables", "Cost Per Page", "Delivery Details"],
+                                    evidence_records=[full_rec],
+                                    next_step=f"Would you like an official quotation or to review compatible supplies for the {target.name}?",
+                                )
 
                         desc_parts = [f"**{target.name}** is an approved official equipment model in our catalogue."]
                         if p_meta.get("print_speed"):

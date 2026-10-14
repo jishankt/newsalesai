@@ -156,19 +156,47 @@ def _get_catalogue_aliases() -> Dict[str, str]:
             "t5405": "epson-sc-t5405",
             "t5700": "epson-sc-t5700d",
             "t7700": "epson-sc-t7700d",
+            # Citizen Photo Booth Printers & Common Typo Aliases (e.g. cz-02 -> cx-02)
             "cx02": "citizen-cx-02",
             "cx-02": "citizen-cx-02",
             "cx 02": "citizen-cx-02",
+            "cx2": "citizen-cx-02",
+            "cx-2": "citizen-cx-02",
+            "cx 2": "citizen-cx-02",
             "citizen cx02": "citizen-cx-02",
+            "cz02": "citizen-cx-02",
+            "cz-02": "citizen-cx-02",
+            "cz 02": "citizen-cx-02",
+            "cz2": "citizen-cx-02",
+            "cz-2": "citizen-cx-02",
+            "cz 2": "citizen-cx-02",
+            "citizen cz02": "citizen-cx-02",
+            "citizen cz-02": "citizen-cx-02",
+            "citizen cz 02": "citizen-cx-02",
             "cx02w": "citizen-cx-02w",
             "cx-02w": "citizen-cx-02w",
+            "cx 02w": "citizen-cx-02w",
+            "cx2w": "citizen-cx-02w",
+            "cx-2w": "citizen-cx-02w",
+            "cx 2w": "citizen-cx-02w",
             "citizen cx02w": "citizen-cx-02w",
             "cy02": "citizen-cy-02",
             "cy-02": "citizen-cy-02",
+            "cy 02": "citizen-cy-02",
+            "cy2": "citizen-cy-02",
+            "cy-2": "citizen-cy-02",
+            "cy 2": "citizen-cy-02",
             "citizen cy02": "citizen-cy-02",
             "cz01": "citizen-cz-01",
             "cz-01": "citizen-cz-01",
+            "cz 01": "citizen-cz-01",
+            "cz1": "citizen-cz-01",
+            "cz-1": "citizen-cz-01",
+            "cz 1": "citizen-cz-01",
             "citizen cz01": "citizen-cz-01",
+            "citizen cz-01": "citizen-cz-01",
+            "citizen cz 01": "citizen-cz-01",
+            # Epson SureColor Photo & Fine Art
             "p700": "epson-sc-p700",
             "sc-p700": "epson-sc-p700",
             "p900": "epson-sc-p900",
@@ -180,6 +208,26 @@ def _get_catalogue_aliases() -> Dict[str, str]:
             "p8500": "epson-sc-p8500d",
             "p9500": "epson-sc-p9500",
             "p20500": "epson-sc-p20500",
+            # Epson WorkForce Enterprise & Scanners
+            "em-c800": "epson-em-c800",
+            "em c800": "epson-em-c800",
+            "em800": "epson-em-c800",
+            "c800": "epson-em-c800",
+            "am-c4000": "epson-am-c4000",
+            "am c4000": "epson-am-c4000",
+            "am-c5000": "epson-am-c5000",
+            "am c5000": "epson-am-c5000",
+            "am-c6000": "epson-am-c6000",
+            "am c6000": "epson-am-c6000",
+            "ds-1630": "epson-workforce-ds-1630",
+            "ds 1630": "epson-workforce-ds-1630",
+            "ds1630": "epson-workforce-ds-1630",
+            "ds-6500": "epson-workforce-ds-6500",
+            "ds 6500": "epson-workforce-ds-6500",
+            "ds6500": "epson-workforce-ds-6500",
+            "ds-60000": "epson-workforce-ds-60000",
+            "ds 60000": "epson-workforce-ds-60000",
+            "ds60000": "epson-workforce-ds-60000",
             "12000xl": "epson-expression-12000xl",
         }
         for k, v in high_frequency.items():
@@ -254,7 +302,11 @@ class TurnUnderstandingExtractor:
     ]
 
     CONFIRMATION_PATTERNS = [
-        re.compile(r"^\s*(?:yes|yep|yeah|sure|ok|okay|correct|that'?s\s+right|affirmative|absolutely|indeed|proceed|agree)\b", re.I),
+        re.compile(
+            r"^\s*(?:yes|yep|yeah|sure|ok|okay|correct|that'?s\s+right|affirmative|absolutely|indeed|proceed|agree|"
+            r"that'?s\s+(?:fine|good|ok|okay|great|cool|clear)|fine|sounds\s+good|alright|all\s+right|okey|noted)\b",
+            re.I
+        ),
         re.compile(r"^\s*(?:1|first|option\s*1)\s*$", re.I),
     ]
 
@@ -271,7 +323,43 @@ class TurnUnderstandingExtractor:
     ]
 
     OUT_OF_SCOPE_PATTERNS = [
-        re.compile(r"\b(?:label\s*printers?|barcode\s*printers?|thermal\s*labels?|pos\s*printers?|receipt\s*printers?|3d\s*printers?|resin|laser\s*jets?|toner|canon|hp\s+designjet|food\s*printers?|edible\s*inks?)\b", re.I),
+        # Non-catalogue hardware
+        re.compile(
+            r"\b(?:label\s*printers?|barcode\s*printers?|thermal\s*labels?|pos\s*printers?|receipt\s*printers?|"
+            r"3d\s*printers?|resin|laser\s*jets?|toner\b|canon\b|hp\s+designjet|brother\b|"
+            r"food\s*printers?|edible\s*inks?)\b",
+            re.I
+        ),
+        # Food, cooking, recipes, dining (e.g. "do you know about biriyani", "recipe for pizza")
+        re.compile(
+            r"\b(?:biriyani|biryani|food|cooking|cook|recipe|recipes|pizza|burger|sandwich|curry|pasta|"
+            r"restaurant|cafe|coffee|tea|dinner|lunch|breakfast|eat|eating|meal|snack|kitchen)\b",
+            re.I
+        ),
+        # Non-business / general trivia / personal chitchat
+        re.compile(
+            r"\b(?:weather\s+today|temperature\s+outside|football|cricket|fifa|movie|movies|cinema|"
+            r"song|music|actor|actress|politics|election|president|prime\s+minister|horoscope|joke|tell\s+me\s+a\s+joke)\b",
+            re.I
+        ),
+    ]
+
+    COMPANY_CAPABILITY_PATTERNS = [
+        re.compile(
+            r"\b(?:"
+            r"do\s+you\s+(?:supplay|supply|sell|carry|provide|deal\s+in|have|stock|distribute)\s+(?:printers?|scanners?|plotters?|hardware|equipment|machines?)|"
+            r"are\s+you\s+(?:an?\s+)?(?:authorized|official)?\s*(?:dealer|distributor|reseller|supplier|partner)|"
+            r"what\s+(?:printers?|scanners?|equipment|hardware)\s+do\s+you\s+(?:have|sell|supply|deal\s+in)|"
+            r"what\s+do\s+you\s+(?:sell|supply|distribute)|"
+            r"do\s+you\s+(?:have|sell)\s+epson|"
+            r"do\s+you\s+(?:have|sell)\s+citizen|"
+            r"give\s+all\s+(?:the\s+)?product\s+list|"
+            r"all\s+(?:the\s+)?products?\s+list|"
+            r"list\s+all\s+(?:the\s+)?(?:products?|printers?|scanners?)|"
+            r"show\s+all\s+(?:products?|printers?|scanners?)"
+            r")\b",
+            re.I
+        ),
     ]
 
     COMPATIBILITY_PATTERNS = [
@@ -316,7 +404,7 @@ class TurnUnderstandingExtractor:
             r"\b(?:specs?|technical\s+specs?|technical\s+specifications?|specifications?|specification|"
             r"details?|features?|functions?|capabilities|print\s+speed|resolution|dpi|dimension|dimensions|"
             r"measurement|measurements|size|how\s+big|weight|how\s+heavy|memory|ram|datasheet|brochure|"
-            r"spec\s+sheet|data\s+sheet|pdf|view\s+specs|full\s+specs)\b",
+            r"spec\s+sheet|data\s+sheet|pdf|view\s+specs|full\s+specs|product\s*cards?|show\s*(?:the\s*)?card|show\s+product\s+card)\b",
             re.I
         ),
     ]
@@ -348,9 +436,20 @@ class TurnUnderstandingExtractor:
 
     FRUSTRATION_PATTERNS = [
         re.compile(
-            r"\b(?:this is useless|useless|stupid\b|terrible|waste of time|"
+            r"\b(?:"
+            r"this is useless|useless|stupid\b|terrible|waste of time|"
             r"i already said|already said|i told you|already told you|listen to me|you are not listening|"
-            r"not helpful|awful|talk to a human|human please|agent please)\b",
+            r"not helpful|awful|talk to a human|human please|agent please|"
+            r"what\s+(?:did\s+)?i\s+ask(?:ed)?\s+what\s+(?:are\s+)?you\s+giving|"
+            r"what\s+i\s+asked\s+what\s+you\s+giving|"
+            r"not\s+what\s+i\s+asked|"
+            r"not\s+what\s+i\s+want(?:ed)?|"
+            r"why\s+(?:are\s+)?you\s+(?:giving|showing|sending)\s+this|"
+            r"wrong\s+answer|wrong\s+information|wrong\s+product|"
+            r"you\s+didn'?t\s+answer|didn'?t\s+answer\s+my\s+question|"
+            r"what\s+are\s+you\s+talking\s+about|"
+            r"did\s+you\s+(?:even\s+)?(?:read|listen|hear)"
+            r")\b",
             re.I
         ),
     ]
@@ -667,13 +766,18 @@ class TurnUnderstandingExtractor:
         if any(p.search(text_l) for p in cls.HANDOFF_PATTERNS):
             return DialogueAct.HANDOFF_REQUEST, Intent.CONTACT_SHOWROOM, 0.99, ambiguities
 
-        # 2. Out of scope
+        # 2. Out of scope (food, general trivia, personal chat, unapproved brands)
         if any(p.search(text_l) for p in cls.OUT_OF_SCOPE_PATTERNS):
-            return DialogueAct.OUT_OF_SCOPE, Intent.OTHER, 0.95, ambiguities
+            return DialogueAct.OUT_OF_SCOPE, Intent.OTHER, 0.99, ambiguities
 
         # 2b. Confusion or complaint / frustration about conversation
         if any(p.search(text_l) for p in cls.FRUSTRATION_PATTERNS) or any(p.search(text_l) for p in cls.CONFUSION_PATTERNS):
-            return DialogueAct.COMPLAINT, Intent.OTHER, 0.98, ambiguities
+            return DialogueAct.COMPLAINT, Intent.OTHER, 0.99, ambiguities
+
+        # 2bb. Company capability / authorized dealership / catalogue overview
+        has_models_or_skus = any(e.entity_type in ("model", "sku") for e in entities)
+        if any(p.search(text_l) for p in cls.COMPANY_CAPABILITY_PATTERNS) and not has_models_or_skus:
+            return DialogueAct.QUESTION, Intent.OTHER, 0.98, ["company_capability"]
 
         # 2c. Price objection
         if any(p.search(text_l) for p in cls.OBJECTION_PATTERNS):
@@ -695,8 +799,16 @@ class TurnUnderstandingExtractor:
         if any(p.search(text_l) for p in cls.CORRECTION_PATTERNS):
             return DialogueAct.CORRECTION, Intent.OTHER, 0.90, ambiguities
 
-        # 4. Confirmation
-        if any(p.search(text_l) for p in cls.CONFIRMATION_PATTERNS):
+        # 4. Confirmation (only if not accompanied by a price query, spec question, or model mention)
+        has_substantive_query = (
+            any(p.search(text_l) for p in cls.PRICE_POLICY_PATTERNS)
+            or any(p.search(text_l) for p in cls.SPEC_ATTRIBUTE_PATTERNS)
+            or any(p.search(text_l) for p in cls.COMPATIBILITY_PATTERNS)
+            or any(p.search(text_l) for p in cls.CONSUMABLES_PATTERNS)
+            or any(p.search(text_l) for p in cls.COMPARE_PATTERNS)
+            or any(e.entity_type in ("model", "sku") for e in entities)
+        )
+        if any(p.search(text_l) for p in cls.CONFIRMATION_PATTERNS) and not has_substantive_query:
             return DialogueAct.CONFIRMATION, Intent.OTHER, 0.95, ambiguities
 
         # 5. Rejection
@@ -936,8 +1048,13 @@ def understand_turn(
         {
             "role": "system",
             "content": (
-                "You are an accurate dialogue understanding parser for Kepler Tech printer sales. "
-                "Classify the customer's message into the specified dialogue_act and intent. "
+                "You are an accurate dialogue understanding parser for Kepler Tech printer sales.\n"
+                "Classify the customer's message into the specified dialogue_act and intent.\n"
+                "Guidelines:\n"
+                "- If the customer asks off-topic questions (food, cooking, recipes, personal queries, weather, sports, general knowledge): dialogue_act='out_of_scope', intent='other'.\n"
+                "- If the customer expresses frustration, says 'not what I asked', 'what I asked what you giving': dialogue_act='complaint', intent='other'.\n"
+                "- If the customer acknowledges or says 'thats fine', 'sounds good', 'okay', 'alright': dialogue_act='confirmation', intent='other'.\n"
+                "- If the customer asks what you supply or sell: dialogue_act='question', intent='other'.\n"
                 "Output strictly JSON matching the required schema."
             )
         },
