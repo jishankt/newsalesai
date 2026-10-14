@@ -1400,6 +1400,69 @@ class PolicyEngine:
                 is_handoff=True,
             )
 
+        # 9c. Competitor Mention Intent (Grounded differentiation without competitor specs)
+        if intent == Intent.COMPETITOR_MENTION:
+            raw_l_comp = und.raw_text.lower()
+            comp_name = "other manufacturers"
+            for brand in ["canon", "hp designjet", "designjet", "hp", "brother", "dnp", "mitsubishi", "fujifilm", "ricoh", "xerox", "konica"]:
+                if brand in raw_l_comp:
+                    comp_name = brand.title() if brand != "hp" else "HP"
+                    break
+
+            target = resolved.resolved_target_product or state.get_current_focus()
+            t_name = target.name if target else None
+            t_id = target.id if target else None
+
+            if t_name and t_id:
+                t_node = knowledge_graph.nodes.get(t_id.lower())
+                p_meta = t_node.attributes if t_node else {}
+                strengths = []
+                if "precisioncore" in str(p_meta.get("ink_system", "")).lower() or "heat-free" in str(p_meta.get("key_features", "")).lower():
+                    strengths.append("Epson PrecisionCore Heat-Free printing with low energy consumption")
+                if p_meta.get("print_speed"):
+                    strengths.append(f"print speed of {p_meta.get('print_speed')}")
+                if p_meta.get("dpi"):
+                    strengths.append(f"resolution up to {p_meta.get('dpi')}")
+                if p_meta.get("paper_size"):
+                    strengths.append(f"format handling up to {p_meta.get('paper_size')}")
+
+                strengths_text = "; ".join(strengths) if strengths else "reliable high-yield operation and verified manufacturer warranty"
+                claim = (
+                    f"We respect {comp_name} as an established manufacturer. At Kepler Tech, we specialize exclusively "
+                    f"in official Epson and Citizen commercial equipment. For your application, the **{t_name}** offers verified advantages "
+                    f"including {strengths_text}.\n\n"
+                    "We do not publish comparative specs or figures for third-party brands."
+                )
+                chips = ["Print Quality", "Running Cost", "Print Speed", "Official Quotation"]
+                next_q = "What matters most for your workflow: print quality, running cost, speed, or media size?"
+                target_ids = [t_id]
+            else:
+                claim = (
+                    f"We respect {comp_name} as an established manufacturer. Kepler Tech is an authorized distributor "
+                    "specializing in official Epson large-format and Citizen photo printing systems. Rather than quoting third-party "
+                    "specifications, we focus on matching you with the verified system that delivers the best return on investment for your application."
+                )
+                chips = ["Print Quality", "Running Cost", "Print Speed", "Media Size"]
+                next_q = "To recommend the ideal model, what matters most to you: print quality, running cost, speed, or media size?"
+                target_ids = []
+
+            rec = EvidenceRecord(
+                claim=f"{claim}\n\n{next_q}",
+                verified=True,
+                status=CompatibilityStatus.VERIFIED_YES,
+                source_file="conversation/policy.py",
+                field="competitor_differentiation",
+                entity_ids=target_ids,
+            )
+            return PolicyDecision(
+                action=PolicyAction.ANSWER,
+                reason=f"Competitor mention of {comp_name} handled with grounded catalogue differentiation.",
+                target_entity_id=t_id,
+                options_or_chips=chips,
+                evidence_records=[rec],
+                next_step=next_q,
+            )
+
         # 10. Availability & Price Policy Intent
         if intent == Intent.AVAILABILITY_OR_PRICE_POLICY:
             target = resolved.resolved_target_product

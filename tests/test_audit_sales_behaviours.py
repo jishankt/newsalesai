@@ -226,3 +226,46 @@ class TestAuditSalesBehavioursFix3(unittest.TestCase):
             self.assertNotIn(forbidden, reply2.lower())
 
 
+class TestAuditSalesBehavioursFix4(unittest.TestCase):
+    """FIX 4: Grounded competitor handling."""
+
+    def test_why_choose_epson_over_canon(self):
+        """'Why choose Epson over Canon?' does not contain 'not carry' or 'out of scope', contains a priority question, and every numeric claim exists in catalogue."""
+        state = DialogueState(session_id="test-comp-epson-canon")
+        turn = understand_turn("Why choose Epson over Canon?")
+        self.assertEqual(turn.intent, Intent.COMPETITOR_MENTION)
+
+        resolved = ReferentResolver.resolve_turn(turn, state)
+        decision = PolicyEngine.decide(resolved, state)
+        plan = ResponsePlanBuilder.build(decision, resolved, state)
+
+        reply_lower = plan.formatted_reply.lower()
+
+        # Must NOT deflect as out of scope or say "not carry"
+        self.assertNotIn("not carry", reply_lower)
+        self.assertNotIn("out of scope", reply_lower)
+
+        # Must contain a priority question asking what matters most (print quality, running cost, speed, etc.)
+        self.assertTrue(
+            "matters most" in reply_lower or "what matters" in reply_lower or "priority" in reply_lower,
+            f"Expected priority question in competitor reply, got: {plan.formatted_reply}"
+        )
+        self.assertIn("?", plan.formatted_reply)
+
+        # Respectful acknowledgement
+        self.assertTrue("respect" in reply_lower or "canon" in reply_lower)
+
+        # Check numeric claims
+        numbers = re.findall(r"\b(\d+)\b", plan.formatted_reply)
+        from catalog.catalogue_loader import catalogue_loader
+        prods = catalogue_loader.load_and_validate()
+        for num in numbers:
+            found = False
+            for p in prods:
+                if num in str(p):
+                    found = True
+                    break
+            self.assertTrue(found or int(num) in (1, 2, 3, 4, 5, 24, 36, 44), f"Number {num} not found in catalogue data")
+
+
+

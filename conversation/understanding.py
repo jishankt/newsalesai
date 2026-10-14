@@ -50,6 +50,7 @@ class Intent(str, Enum):
     DISCOUNT_REQUEST = "discount_request"
     QUOTE_REQUEST = "quote_request"
     CUSTOM_CONFIG_REQUEST = "custom_config_request"
+    COMPETITOR_MENTION = "competitor_mention"
     CONTACT_SHOWROOM = "contact_showroom"
     SHIPPING_OR_DELIVERY = "shipping_or_delivery"
     OTHER = "other"
@@ -326,10 +327,10 @@ class TurnUnderstandingExtractor:
     ]
 
     OUT_OF_SCOPE_PATTERNS = [
-        # Non-catalogue hardware
+        # Non-catalogue hardware categories
         re.compile(
             r"\b(?:label\s*printers?|barcode\s*printers?|thermal\s*labels?|pos\s*printers?|receipt\s*printers?|"
-            r"3d\s*printers?|resin|laser\s*jets?|toner\b|canon\b|hp\s+designjet|brother\b|"
+            r"3d\s*printers?|resin|laser\s*jets?|toner\b|"
             r"food\s*printers?|edible\s*inks?)\b",
             re.I
         ),
@@ -412,6 +413,15 @@ class TurnUnderstandingExtractor:
 
     QUOTE_PATTERNS = [
         re.compile(r"\b(?:quotation|formal\s*quote|request\s*(?:a\s*)?quote|send\s*(?:me\s*)?(?:a\s*)?quote|need\s*(?:a\s*)?quote|official\s*quote|tax\s*invoice\s*quote)\b", re.I),
+    ]
+
+    COMPETITOR_PATTERNS = [
+        re.compile(
+            r"\b(?:canon|hp\s+designjet|designjet|brother|dnp|dnp\s*rx1|rx1\b|mitsubishi|fujifilm|noritsu|ricoh|xerox|konica|lexmark)\b|"
+            r"\b(?:epson\s+(?:vs|versus|over|or)\s+[a-z0-9\-]+|[a-z0-9\-]+\s+(?:vs|versus|over|or)\s+epson)\b|"
+            r"\b(?:citizen\s+(?:vs|versus|over|or)\s+[a-z0-9\-]+|[a-z0-9\-]+\s+(?:vs|versus|over|or)\s+citizen)\b",
+            re.I
+        ),
     ]
 
     # Attribute-level spec query keywords — triggers PRODUCT_INFO
@@ -888,6 +898,10 @@ class TurnUnderstandingExtractor:
         # Formal Quotation request (e.g. "send me a quotation", "request official quote")
         if any(p.search(text_l) for p in cls.QUOTE_PATTERNS):
             return DialogueAct.QUESTION, Intent.QUOTE_REQUEST, 0.96, ambiguities
+
+        # Competitor Mention (e.g. "Why choose Epson over Canon?", "Epson vs HP DesignJet", "DNP RX1")
+        if any(p.search(text_l) for p in cls.COMPETITOR_PATTERNS):
+            return DialogueAct.QUESTION, Intent.COMPETITOR_MENTION, 0.95, ambiguities
 
         # 8a. Specific model + price/print-cost query → direct AVAILABILITY_OR_PRICE_POLICY
         #     Prevents flowchart routing when customer asks "what is the price of Citizen CZ-01?"
