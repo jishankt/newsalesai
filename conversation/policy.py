@@ -119,6 +119,35 @@ class PolicyEngine:
                 val = sval.value if hasattr(sval, "value") else sval
                 state.confirmed_slots[sname] = val
 
+            # Honour slots["excluded"] by clearing corresponding confirmed slots and state attributes
+            excluded_dict = {}
+            if "excluded" in und.slots:
+                ex_val = und.slots["excluded"]
+                if hasattr(ex_val, "value") and isinstance(ex_val.value, dict):
+                    excluded_dict.update(ex_val.value)
+                elif isinstance(ex_val, dict):
+                    excluded_dict.update(ex_val)
+            for k, sval in und.slots.items():
+                if k.startswith("excluded."):
+                    sub_key = k[len("excluded."):]
+                    val = sval.value if hasattr(sval, "value") else sval
+                    excluded_dict[sub_key] = val
+
+            if excluded_dict:
+                for ex_slot, ex_target in excluded_dict.items():
+                    state.confirmed_slots.pop(ex_slot, None)
+                    state.confirmed_slots.pop(f"excluded.{ex_slot}", None)
+                    if ex_slot == "target_category":
+                        if state.category == ex_target or not ex_target or (isinstance(ex_target, list) and state.category in ex_target):
+                            state.category = None
+                    elif ex_slot == "target_model":
+                        if state.active_product_id == ex_target or not ex_target or (isinstance(ex_target, list) and state.active_product_id in ex_target):
+                            state.active_product_id = None
+                    elif ex_slot == "media_size":
+                        state.confirmed_slots.pop("media_size", None)
+                        state.confirmed_slots.pop("plotter_width", None)
+                        state.confirmed_slots.pop("photo_width", None)
+
         # ── PRIORITY 0: UNDERSTANDING & FALLBACK LADDER ─────────────────────────
         raw_l = und.raw_text.lower().strip()
 

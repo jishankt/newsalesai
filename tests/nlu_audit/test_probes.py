@@ -46,7 +46,6 @@ def test_bare_number_not_parsed_as_budget():
 # Invariant 2: Negation & Correction
 # ==============================================================================
 
-@pytest.mark.xfail(strict=True, reason="DEFECT: extract_slots has no negation detection; 'not A3' regex matches 'a3' and sets media_size='a3'")
 def test_negated_media_size_not_filled():
     """'not A3' must not fill media_size='a3' in slots."""
     turn = understand_turn("not A3", allow_llm=False)
@@ -55,7 +54,6 @@ def test_negated_media_size_not_filled():
     assert val != "a3", f"Negated media size was filled as {val}"
 
 
-@pytest.mark.xfail(strict=True, reason="DEFECT: extract_slots matches 'photo' in 'I don't need photo printing' and assigns target_category='photo_fine_art'")
 def test_negated_category_not_filled():
     """'I don't need photo printing' must not set target_category='photo_fine_art'."""
     turn = understand_turn("I don't need photo printing", allow_llm=False)
@@ -64,7 +62,6 @@ def test_negated_category_not_filled():
     assert val != "photo_fine_art", f"Negated category was filled as {val}"
 
 
-@pytest.mark.xfail(strict=True, reason="DEFECT: 'forget the plotter' matches 'plotter' and fills target_category='technical_cad'")
 def test_forget_category_not_filled():
     """'forget the plotter' must not set target_category='technical_cad'."""
     turn = understand_turn("forget the plotter", allow_llm=False)
@@ -73,7 +70,6 @@ def test_forget_category_not_filled():
     assert val != "technical_cad", f"Negated category was filled as {val}"
 
 
-@pytest.mark.xfail(strict=True, reason="DEFECT: Negated model 'not CX-02' fills target_model with citizen-cx-02")
 def test_negated_model_not_filled():
     """'not CX-02' must not set target_model='citizen-cx-02'."""
     turn = understand_turn("not CX-02", allow_llm=False)

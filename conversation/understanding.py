@@ -269,6 +269,49 @@ def _get_known_skus() -> Dict[str, Dict[str, Any]]:
     return sku_map
 
 
+# ── Negation and Polarity Detection ──────────────────────────────────────────
+
+NEGATION_TOKENS = {
+    "not", "no", "dont", "don't", "without", "except", "forget", "skip",
+    "never", "cancel", "neither", "nor", "nahi", "nahin", "mat", "nhi",
+    "la", "mush", "mish", "venda", "alla", "allathe",
+    "لا", "مش", "غير", "بدون", "بلا", "ويند", "വേണ്ട", "അല്ല"
+}
+
+NEGATION_PHRASES = [
+    "do not", "don't need", "dont need", "don't want", "dont want",
+    "not interested", "not needed", "no need", "instead of", "never mind",
+    "change of mind", "ما نريد", "ما نحتاج", "don't print", "dont print",
+    "we don't", "we dont", "don't include", "dont include"
+]
+
+
+def is_negated_match(text_l: str, start_idx: int, end_idx: Optional[int] = None) -> bool:
+    """
+    Checks if a slot keyword or entity mention starting at start_idx in text_l
+    is preceded by a negation token or phrase within a 4-token window,
+    or followed by a post-position negation token.
+    """
+    if start_idx > 0:
+        window = text_l[max(0, start_idx - 50):start_idx].strip()
+        if window:
+            for p in NEGATION_PHRASES:
+                if p in window:
+                    return True
+            tokens = re.findall(r"[\w']+", window)
+            check_tokens = tokens[-4:] if len(tokens) >= 4 else tokens
+            for t in check_tokens:
+                if t in NEGATION_TOKENS:
+                    return True
+    if end_idx is not None and end_idx < len(text_l):
+        window_after = text_l[end_idx:min(len(text_l), end_idx + 25)].strip()
+        after_tokens = re.findall(r"[\w']+", window_after)[:2]
+        for t in after_tokens:
+            if t in {"nahi", "nahin", "mat", "venda", "alla", "allathe", "no", "not"}:
+                return True
+    return False
+
+
 # ── Deterministic Turn Understanding Extractor ──────────────────────────────
 
 class TurnUnderstandingExtractor:
@@ -316,11 +359,29 @@ class TurnUnderstandingExtractor:
     ]
 
     REJECTION_PATTERNS = [
-        re.compile(r"^\s*(?:no|nope|not\s+really|neither|none|incorrect|disagree|don'?t\s+want\s+this|not\s+this)\b", re.I),
+        re.compile(
+            r"\b(?:"
+            r"^\s*(?:no|nope|not\s+really|neither|none|incorrect|disagree|nah)|"
+            r"(?:don'?t|do\s+not)\s+(?:need|want|print|include)|"
+            r"not\s+(?:for|interested|needed|a3|a4|laser|citizen|dye\s+sublimation)|"
+            r"forget\s+(?:the|this)|skip\s+the|never\s+mind|cancel\s+(?:the|previous)|"
+            r"without\s+(?:a\s+)?(?:stand|scanner)|no\s+scanner\s+needed"
+            r")\b",
+            re.I
+        ),
     ]
 
     CORRECTION_PATTERNS = [
-        re.compile(r"\b(?:no[,\s]+i\s+meant|actually\s+i\s+mean|i\s+said|correction|not\s+[a-z0-9\-]+[,\s]+(?:i\s+mean\s+)?[a-z0-9\-]+)\b", re.I),
+        re.compile(
+            r"\b(?:"
+            r"no[,\s]+(?:i\s+)?(?:meant|said)|actually|instead\s+of|correction\b|"
+            r"change\s+(?:it\s+)?to|change\s+of\s+mind|"
+            r"not\s+[a-z0-9\-]+[,\s]+(?:the\s+|i\s+mean\s+|we\s+need\s+|make\s+it\s+)?[a-z0-9\-]+|"
+            r"never\s+mind\s+the\s+[a-z0-9\-]+[,\s]+just\s+the|"
+            r"not\s+[a-z0-9\-]+[,\s]+it'?s\s+for|no\s+not\s+[a-z0-9\-]+[,\s]+[a-z0-9\-]+\s+only"
+            r")\b",
+            re.I
+        ),
     ]
 
     HANDOFF_PATTERNS = [
@@ -563,16 +624,18 @@ class TurnUnderstandingExtractor:
                 continue
             # Use word boundaries for aliases to prevent substring collisions
             pattern = rf"\b{re.escape(alias)}\b"
-            if re.search(pattern, text_l):
+            m = re.search(pattern, text_l)
+            if m:
                 norm_pid = alias_map[alias]
                 if norm_pid not in seen_keys:
+                    is_neg = is_negated_match(text_l, m.start(), m.end())
                     entities.append(EntityMention(
                         surface_text=alias,
                         normalised_id=norm_pid,
                         entity_type="model",
                         match_type="alias",
                         confidence=0.98,
-                        metadata={"canonical_id": norm_pid},
+                        metadata={"canonical_id": norm_pid, "is_negated": is_neg},
                     ))
                     seen_keys.add(norm_pid)
 
@@ -618,6 +681,7 @@ class TurnUnderstandingExtractor:
                 if prefix_word in STOP_PREFIXES:
                     continue
                 if clean_code not in seen_keys and len(clean_code) >= 3 and clean_code not in ["page", "pages", "day", "days"]:
+                    is_neg = is_negated_match(text_l, mc.start(), mc.end())
                     if clean_code in alias_map:
                         norm_pid = alias_map[clean_code]
                         entities.append(EntityMention(
@@ -626,7 +690,7 @@ class TurnUnderstandingExtractor:
                             entity_type="model",
                             match_type="alias",
                             confidence=1.0,
-                            metadata={"canonical_id": norm_pid},
+                            metadata={"canonical_id": norm_pid, "is_negated": is_neg},
                         ))
                         seen_keys.add(norm_pid)
                     else:
@@ -695,13 +759,16 @@ class TurnUnderstandingExtractor:
                 if has_specific_app_match or any(k in text_l for k in ["photo", "fine art", "cad", "blueprint", "plotter", "sublimation", "citizen"]):
                     cat_keywords = ["workforce", "am-c", "wf-c", "enterprise mfp", "enterprise mfps", "office copier", "office copiers", "line-head", "line head"]
             for kw in cat_keywords:
-                if re.search(rf"\b{re.escape(kw)}\b", text_l):
+                m = re.search(rf"\b{re.escape(kw)}\b", text_l)
+                if m:
+                    is_neg = is_negated_match(text_l, m.start())
                     entities.append(EntityMention(
                         surface_text=kw,
                         normalised_id=f"category:{cat_id}",
                         entity_type="category",
                         match_type="exact",
                         confidence=0.95,
+                        metadata={"is_negated": is_neg},
                     ))
                     break
 
@@ -711,6 +778,7 @@ class TurnUnderstandingExtractor:
     def extract_slots(cls, text: str, entities: List[EntityMention]) -> Dict[str, SlotValue]:
         slots: Dict[str, SlotValue] = {}
         text_l = text.lower()
+        excluded: Dict[str, Any] = {}
 
         # Category slot
         CATEGORY_PRIORITY = {
@@ -721,9 +789,12 @@ class TurnUnderstandingExtractor:
             "scanners": 5,
             "office_workforce": 6,
         }
-        cats = [e.normalised_id.replace("category:", "") for e in entities if e.entity_type == "category"]
-        if cats:
-            cats_sorted = sorted(cats, key=lambda c: CATEGORY_PRIORITY.get(c, 99))
+        cats_pos = [e.normalised_id.replace("category:", "") for e in entities if e.entity_type == "category" and not (e.metadata and e.metadata.get("is_negated"))]
+        cats_neg = [e.normalised_id.replace("category:", "") for e in entities if e.entity_type == "category" and (e.metadata and e.metadata.get("is_negated"))]
+        if cats_neg:
+            excluded["target_category"] = cats_neg[0] if len(cats_neg) == 1 else cats_neg
+        if cats_pos:
+            cats_sorted = sorted(cats_pos, key=lambda c: CATEGORY_PRIORITY.get(c, 99))
             slots["target_category"] = SlotValue(
                 slot_name="target_category",
                 value=cats_sorted[0],
@@ -732,38 +803,51 @@ class TurnUnderstandingExtractor:
             )
 
         # Target model slot
-        models = [e.normalised_id for e in entities if e.entity_type == "model"]
-        if models:
+        models_pos = [e.normalised_id for e in entities if e.entity_type == "model" and not (e.metadata and e.metadata.get("is_negated"))]
+        models_neg = [e.normalised_id for e in entities if e.entity_type == "model" and (e.metadata and e.metadata.get("is_negated"))]
+        if models_neg:
+            excluded["target_model"] = models_neg[0] if len(models_neg) == 1 else models_neg
+        if models_pos:
             slots["target_model"] = SlotValue(
                 slot_name="target_model",
-                value=models[0],
+                value=models_pos[0],
                 confidence=0.95,
                 source="said_now"
             )
-            if len(models) > 1:
+            if len(models_pos) > 1:
                 slots["comparison_models"] = SlotValue(
                     slot_name="comparison_models",
-                    value=models,
+                    value=models_pos,
                     confidence=0.95,
                     source="said_now"
                 )
 
         # Target SKU slot
-        skus = [e.normalised_id for e in entities if e.entity_type == "sku"]
-        if skus:
+        skus_pos = [e.normalised_id for e in entities if e.entity_type == "sku" and not (e.metadata and e.metadata.get("is_negated"))]
+        skus_neg = [e.normalised_id for e in entities if e.entity_type == "sku" and (e.metadata and e.metadata.get("is_negated"))]
+        if skus_neg:
+            excluded["target_sku"] = skus_neg[0] if len(skus_neg) == 1 else skus_neg
+        if skus_pos:
             slots["target_sku"] = SlotValue(
                 slot_name="target_sku",
-                value=skus[0],
+                value=skus_pos[0],
                 confidence=1.0,
                 source="said_now"
             )
 
-        # Size slot (e.g. 24 inch, 36 inch, 4x6, 6x8, A4)
-        size_match = re.search(r"\b(24\s*inch|36\s*inch|44\s*inch|a4|a3\+?|4x6|5x7|6x8|8x10)\b", text_l)
-        if size_match:
+        # Size slot (e.g. 24 inch, 36 inch, 44 inch, a4, a3, 4x6, 5x7, 6x8, 8x10)
+        size_matches = list(re.finditer(r"\b(24\s*inch|36\s*inch|44\s*inch|a4|a3\+?|4x6|5x7|6x8|8x10)\b", text_l))
+        pos_sizes = []
+        for sm in size_matches:
+            val = sm.group(1).replace(" ", "")
+            if is_negated_match(text_l, sm.start(), sm.end()):
+                excluded["media_size"] = val
+            else:
+                pos_sizes.append(val)
+        if pos_sizes:
             slots["media_size"] = SlotValue(
                 slot_name="media_size",
-                value=size_match.group(1).replace(" ", ""),
+                value=pos_sizes[0],
                 confidence=0.90,
                 source="said_now"
             )
@@ -778,22 +862,34 @@ class TurnUnderstandingExtractor:
             target_attr = "duty_cycle"
         elif has_consume:
             target_attr = "ink_consumption"
-        elif any(k in text_l for k in ["stand", "legs", "floor stand", "with a stand"]):
+        elif any(k in text_l for k in ["stand", "legs", "floor stand", "with a stand", "without stand"]):
             target_attr = "stand"
+            m_stand = re.search(r"\b(?:stand|legs)\b", text_l)
+            if m_stand and is_negated_match(text_l, m_stand.start(), m_stand.end()):
+                excluded["stand"] = True
+                excluded["target_attribute"] = "stand"
         elif any(k in text_l for k in ["speed", "ppm", "fast", "how long to print"]):
             target_attr = "print_speed"
         elif any(k in text_l for k in ["dpi", "resolution", "clarity"]):
             target_attr = "dpi"
         elif any(k in text_l for k in ["width", "max width", "print width", "paper size"]):
             target_attr = "print_width"
-        elif any(k in text_l for k in ["connectivity", "wifi", "wi-fi", "ethernet", "usb", "network"]):
+        elif any(k in text_l for k in ["connectivity", "wifi", "wi-fi", "ethernet", "usb", "network", "wireless"]):
             target_attr = "connectivity"
+            m_conn = re.search(r"\b(?:connectivity|wifi|wi-fi|ethernet|usb|network|wireless)\b", text_l)
+            if m_conn and is_negated_match(text_l, m_conn.start(), m_conn.end()):
+                excluded["connectivity"] = True
+                excluded["target_attribute"] = "connectivity"
         elif any(k in text_l for k in ["dimension", "dimensions", "size", "height"]):
             target_attr = "dimensions"
         elif any(k in text_l for k in ["weight", "heavy", "kg"]):
             target_attr = "weight"
         elif any(k in text_l for k in ["scanner", "scan", "copy", "mfp"]):
             target_attr = "scanner_integrated"
+            m_scan = re.search(r"\b(?:scanner|scan)\b", text_l)
+            if m_scan and is_negated_match(text_l, m_scan.start(), m_scan.end()):
+                excluded["scanner"] = True
+                excluded["target_attribute"] = "scanner_integrated"
         elif any(k in text_l for k in ["dual roll", "dual-roll"]):
             target_attr = "dual_roll"
         elif any(k in text_l for k in ["warranty", "guarantee"]):
@@ -823,15 +919,15 @@ class TurnUnderstandingExtractor:
             )
 
         # Quote product slot
-        if models:
+        if models_pos:
             slots["quote_product"] = SlotValue(
                 slot_name="quote_product",
-                value=models[0],
+                value=models_pos[0],
                 confidence=0.95,
                 source="said_now"
             )
-        elif cats:
-            cats_sorted = sorted(cats, key=lambda c: CATEGORY_PRIORITY.get(c, 99))
+        elif cats_pos:
+            cats_sorted = sorted(cats_pos, key=lambda c: CATEGORY_PRIORITY.get(c, 99))
             slots["quote_product"] = SlotValue(
                 slot_name="quote_product",
                 value=cats_sorted[0],
@@ -887,6 +983,21 @@ class TurnUnderstandingExtractor:
                     slot_name="budget_scope",
                     value=b_res.budget_scope,
                     confidence=0.90,
+                    source="said_now"
+                )
+
+        if excluded:
+            slots["excluded"] = SlotValue(
+                slot_name="excluded",
+                value=excluded,
+                confidence=0.95,
+                source="said_now"
+            )
+            for k, v in excluded.items():
+                slots[f"excluded.{k}"] = SlotValue(
+                    slot_name=f"excluded.{k}",
+                    value=v,
+                    confidence=0.95,
                     source="said_now"
                 )
 

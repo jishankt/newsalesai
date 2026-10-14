@@ -423,7 +423,7 @@ class ReferentResolver:
         # 3. Target product resolution:
         # Check explicit entities first
         target_prod = None
-        explicit_models = [e for e in understanding.entities if e.entity_type == "model"]
+        explicit_models = [e for e in understanding.entities if e.entity_type == "model" and not (e.metadata and e.metadata.get("is_negated"))]
         if explicit_models:
             from catalog.catalogue_loader import catalogue_loader
             p_data = catalogue_loader.get_by_id(explicit_models[0].normalised_id) or {}
