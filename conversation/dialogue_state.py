@@ -435,10 +435,23 @@ class ReferentResolver:
                 )
 
         if not target_prod and state.get_current_focus("printer"):
+            text_l = understanding.raw_text.lower()
             cat_slot = understanding.slots.get("target_category")
             new_cat = cat_slot.value if cat_slot else None
-            if not new_cat:
-                target_prod = state.get_current_focus("printer")
+            is_category_query = bool(new_cat) or any(e.entity_type == "category" for e in understanding.entities)
+            is_general_discovery = any(w in text_l for w in ["do you have", "recommend", "looking for", "show me", "what printers", "what options", "options for"])
+            
+            prev_focus = state.get_current_focus("printer")
+            prev_is_scanner = "scanner" in prev_focus.name.lower() or "ds-" in prev_focus.id.lower() or "12000xl" in prev_focus.id.lower()
+            query_wants_printer = any(w in text_l for w in ["printer", "plotter", "print", "printing"])
+            query_wants_scanner = any(w in text_l for w in ["scanner", "scanning", "scan"])
+            
+            hardware_mismatch = (prev_is_scanner and query_wants_printer and not query_wants_scanner) or (not prev_is_scanner and query_wants_scanner and not query_wants_printer)
+            
+            if understanding.intent in (Intent.PRODUCT_INFO, Intent.AVAILABILITY_OR_PRICE_POLICY, Intent.CONSUMABLES_LOOKUP):
+                target_prod = prev_focus
+            elif not is_category_query and not is_general_discovery and not hardware_mismatch and understanding.intent != Intent.RECOMMEND:
+                target_prod = prev_focus
 
         # 4. Active consumable / item resolution:
         active_item = None

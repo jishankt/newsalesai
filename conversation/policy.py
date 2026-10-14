@@ -730,19 +730,46 @@ class PolicyEngine:
         from conversation.product_flows import resolve_flowchart_step, extract_flowchart_requirements
         flow_reqs = extract_flowchart_requirements(und.raw_text)
 
+        # Check if flowchart leaf was already reached in this conversation
+        already_at_leaf = bool(state.confirmed_slots.get("_flowchart_leaf_reached"))
+
         is_flowchart_turn = False
-        if intent in (Intent.RECOMMEND, Intent.OTHER):
-            if canonical_new_cat is not None:
-                is_flowchart_turn = True
-                resolved.resolved_target_product = None
-            elif not resolved.resolved_target_product and not resolved.resolved_active_item:
-                if getattr(state, "category", None) and (
-                    bool(flow_reqs)
-                    or any(c.lower() in und.raw_text.lower() for c in state.last_shown_chips)
-                    or und.dialogue_act in (DialogueAct.REJECTION, DialogueAct.CONFIRMATION, DialogueAct.ANSWER_TO_MY_QUESTION)
-                    or bool(und.slots)
-                ):
+        if not already_at_leaf or canonical_new_cat is not None:
+            if intent in (Intent.RECOMMEND, Intent.OTHER):
+                if canonical_new_cat is not None:
                     is_flowchart_turn = True
+                    resolved.resolved_target_product = None
+                elif not resolved.resolved_target_product and not resolved.resolved_active_item:
+                    if getattr(state, "category", None) and (
+                        bool(flow_reqs)
+                        or any(c.lower() in und.raw_text.lower() for c in state.last_shown_chips)
+                        or und.dialogue_act in (DialogueAct.REJECTION, DialogueAct.CONFIRMATION, DialogueAct.ANSWER_TO_MY_QUESTION)
+                        or bool(und.slots)
+                    ):
+                        is_flowchart_turn = True
+        elif already_at_leaf and intent in (Intent.RECOMMEND, Intent.OTHER):
+            # Already completed product identification: acknowledge recommendation and provide clear options
+            leaf_pid = state.confirmed_slots.get("_leaf_product_id") or (resolved.resolved_target_product.id if resolved.resolved_target_product else None)
+            if leaf_pid:
+                from catalog.catalogue_loader import catalogue_loader
+                p_info = catalogue_loader.get_by_id(leaf_pid) or {}
+                p_name = p_info.get("display_name") or p_info.get("name") or leaf_pid
+                rec = EvidenceRecord(
+                    claim=f"The **{p_name}** is our verified primary recommendation for your requirements.",
+                    verified=True,
+                    status=CompatibilityStatus.VERIFIED_YES,
+                    source_file="data/catalogue_products.json",
+                    field="recommendation",
+                    entity_ids=[leaf_pid],
+                )
+                return PolicyDecision(
+                    action=PolicyAction.ANSWER,
+                    reason=f"Follow-up on completed recommendation for {leaf_pid}.",
+                    target_entity_id=leaf_pid,
+                    options_or_chips=["Technical Specs", "Replaceable Ink Packs", "Official Quotation"],
+                    evidence_records=[rec],
+                    next_step=f"Would you like to review full technical specs or request an official quote for the {p_name}?",
+                )
 
         if is_flowchart_turn:
             if canonical_new_cat:
@@ -793,6 +820,8 @@ class PolicyEngine:
 
             # If a specific product or leaf was reached
             if step.is_leaf and step.target_product_id:
+                state.confirmed_slots["_flowchart_leaf_reached"] = True
+                state.confirmed_slots["_leaf_product_id"] = step.target_product_id
                 rec = EvidenceRecord(
                     claim=f"{step.explanation}\n\n{step.question}",
                     verified=True,

@@ -312,6 +312,109 @@ class RagRetriever:
                 doc_str = f"Name: {c_prod['name']} | SKU: {c_prod['sku']} | Category: {c_prod['category']} | Speed: {c_prod['speed']} | DPI: {c_prod['dpi']} | Memory: {c_prod['memory']} | Dimensions: {c_prod['dimensions']} | Weight: {c_prod['weight']}"
                 self.doc_texts.append(doc_str)
 
+        # 4. Index Verified Delivery & Shipping Policy Documents
+        delivery_policy_path = os.path.join(os.path.dirname(__file__), "..", "data", "delivery_policy.json")
+        if os.path.exists(delivery_policy_path):
+            try:
+                with open(delivery_policy_path, "r", encoding="utf-8") as dpf:
+                    dp_data = json.load(dpf)
+                    uae_zone = dp_data.get("zones", {}).get("UAE", {})
+                    uae_doc = {
+                        "_id": "policy-delivery-uae",
+                        "id": "policy-delivery-uae",
+                        "sku": "POLICY-DELIVERY-UAE",
+                        "name": "Kepler Tech UAE Delivery Policy",
+                        "display_name": "Kepler Tech UAE Delivery & Shipping Policy",
+                        "category": "Policy",
+                        "description": (
+                            f"Delivery across all UAE Emirates (Dubai, Abu Dhabi, Sharjah, Ajman, RAK, Fujairah, Umm Al Quwain, Al Ain): "
+                            f"{uae_zone.get('fee', 'Flat AED 10')}. Dispatch timeline: {uae_zone.get('timing', '1 to 2 business days')}. "
+                            f"Heavy printers and large-format plotters include {uae_zone.get('installation', 'free on-site delivery, uncrating, and certified engineer installation')}."
+                        ),
+                        "tags": ["delivery", "shipping", "fee", "uae", "dubai", "abu dhabi", "sharjah", "aed 10", "installation", "timeline"],
+                        "fee": uae_zone.get("fee", "Flat AED 10 across all Emirates"),
+                        "timing": uae_zone.get("timing", "1 to 2 business days"),
+                        "installation": uae_zone.get("installation", ""),
+                    }
+                    self.products.append(uae_doc)
+                    self.doc_texts.append(
+                        f"Policy: UAE Delivery & Shipping | Fee: {uae_doc['fee']} | Destination: Dubai, Abu Dhabi, Sharjah, Ajman, UAE | "
+                        f"Timing: {uae_doc['timing']} | Installation: {uae_doc['installation']} | Courier: Insured courier or Kepler technical fleet"
+                    )
+
+                    oman_zone = dp_data.get("zones", {}).get("OMAN", {})
+                    gcc_zone = dp_data.get("zones", {}).get("GCC_OTHER", {})
+                    gcc_doc = {
+                        "_id": "policy-delivery-gcc",
+                        "id": "policy-delivery-gcc",
+                        "sku": "POLICY-DELIVERY-GCC",
+                        "name": "Kepler Tech Oman & GCC Shipping Policy",
+                        "display_name": "Kepler Tech Oman & GCC Shipping Policy",
+                        "category": "Policy",
+                        "description": (
+                            f"Oman and GCC delivery (Saudi Arabia, Qatar, Bahrain, Kuwait): Dispatched in 1 to 2 business days from Dubai. "
+                            f"Shipping fee is calculated at checkout based on weight and country. Customer pays local import duties and VAT."
+                        ),
+                        "tags": ["delivery", "shipping", "oman", "gcc", "saudi", "qatar", "bahrain", "kuwait", "customs", "export"],
+                        "timing": "1 to 2 business days dispatch",
+                        "fee": "Calculated at checkout based on package weight and destination",
+                    }
+                    self.products.append(gcc_doc)
+                    self.doc_texts.append(
+                        f"Policy: Oman and GCC Delivery & Shipping | Destinations: Oman, Saudi Arabia, Qatar, Bahrain, Kuwait | "
+                        f"Fee: Calculated at checkout by weight | Timing: 1 to 2 business days | Customs: Recipient pays destination customs duty and VAT"
+                    )
+
+                    pickup_data = dp_data.get("pickup", {})
+                    pickup_doc = {
+                        "_id": "policy-pickup-sameday",
+                        "id": "policy-pickup-sameday",
+                        "sku": "POLICY-PICKUP-SAMEDAY",
+                        "name": "Kepler Tech Showroom Store Pickup & Same-Day Dubai Delivery",
+                        "display_name": "Kepler Tech Store Pickup & Same-Day Dubai Delivery",
+                        "category": "Policy",
+                        "description": (
+                            f"Free store pickup at Kepler Tech LLC Showroom: {pickup_data.get('location', 'D79 Khalid Bin Waleed Rd, Dubai')}. "
+                            f"Ready for collection in 1 to 2 business days. "
+                            f"Same-day emergency delivery across Dubai may be arranged upon request with our sales desk for in-stock consumables and equipment."
+                        ),
+                        "tags": ["store pickup", "collection", "showroom", "same day", "dubai", "emergency delivery", "free pickup"],
+                        "fee": "Free Store Pickup",
+                        "location": pickup_data.get("location", ""),
+                    }
+                    self.products.append(pickup_doc)
+                    self.doc_texts.append(
+                        f"Policy: Local Store Pickup & Same-Day Delivery | Fee: Free store pickup | "
+                        f"Location: {pickup_doc['location']} | Timing: Ready in 1-2 business days | "
+                        f"Same-day emergency delivery: Available across Dubai on request for in-stock items"
+                    )
+
+                    ret_data = dp_data.get("returns", {})
+                    canc_data = dp_data.get("cancellation", {})
+                    returns_doc = {
+                        "_id": "policy-returns-cancellation",
+                        "id": "policy-returns-cancellation",
+                        "sku": "POLICY-RETURNS-CANCELLATION",
+                        "name": "Kepler Tech Return, Cancellation & Warranty Policy",
+                        "display_name": "Kepler Tech Return & Cancellation Policy",
+                        "category": "Policy",
+                        "description": (
+                            f"Cancellation: {canc_data.get('window', 'Within 24 hours of placing order')}. "
+                            f"Returns: {ret_data.get('window', 'Defective or incorrect items must be reported within 2 days of receipt in original unopened packaging')}. "
+                            f"Refunds: Processed to original payment method in up to 45 days. Contact: sales@keplertech.ae."
+                        ),
+                        "tags": ["returns", "cancellation", "refund", "damaged", "warranty", "defective"],
+                    }
+                    self.products.append(returns_doc)
+                    self.doc_texts.append(
+                        f"Policy: Return, Refund and Order Cancellation | Cancellation window: 24 hours | "
+                        f"Returns: Defective or damaged items reported within 2 days of receipt in unopened original packaging | "
+                        f"Refund timeline: Up to 45 days to original payment method | Contact: sales@keplertech.ae"
+                    )
+            except Exception as e:
+                import logging
+                logging.getLogger("rag.retriever").warning(f"Failed to index delivery policy: {e}")
+
         if self.doc_texts:
             self.vectorizer = TfidfVectorizer(ngram_range=(1, 2), stop_words="english", max_features=12000)
             self.tfidf_matrix = self.vectorizer.fit_transform(self.doc_texts)

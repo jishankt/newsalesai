@@ -293,6 +293,27 @@ class TestResponseValidatorPriceAllowance(unittest.TestCase):
         self.assertTrue(price_errors, "Unverified price should be flagged by validator")
 
 
+# ── Phase 5 Tests: RAG Retriever indexes verified delivery policies ────────────
+
+class TestRagDeliveryPolicy(unittest.TestCase):
+
+    def test_rag_retrieves_uae_delivery_policy(self):
+        """RAG retriever should retrieve UAE delivery policy with flat AED 10 fee."""
+        from rag.retriever import rag_retriever
+        results = rag_retriever.search("what is the delivery policy in dubai?")
+        uae_docs = [r for r in results if "uae" in r.get("name", "").lower() or "dubai" in r.get("description", "").lower()]
+        self.assertTrue(uae_docs, f"Expected UAE delivery doc in results: {[r.get('name') for r in results]}")
+        doc = uae_docs[0]
+        self.assertIn("10", str(doc.get("fee", "")), "UAE delivery doc should include flat AED 10 fee")
+
+    def test_rag_retrieves_store_pickup(self):
+        """RAG retriever should retrieve local showroom pickup policy."""
+        from rag.retriever import rag_retriever
+        results = rag_retriever.search("can i do free store pickup in dubai?")
+        pickup_docs = [r for r in results if "pickup" in r.get("name", "").lower() or "pickup" in r.get("description", "").lower()]
+        self.assertTrue(pickup_docs, f"Expected pickup doc in results: {[r.get('name') for r in results]}")
+
+
 if __name__ == "__main__":
     # Run all tests with verbose output
     loader = unittest.TestLoader()

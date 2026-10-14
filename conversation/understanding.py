@@ -298,9 +298,15 @@ class TurnUnderstandingExtractor:
         re.compile(r"\b(?:price|cost|how\s+much|quote|quotation|pricing|discount|rates?|in\s+stock|available\s+in\s+stock|print\s+cost|cost\s+per\s+print|running\s+cost|media\s+cost)\b", re.I),
     ]
 
-    # Attribute-level spec query keywords — triggers PRODUCT_INFO when model is known
+    # Attribute-level spec query keywords — triggers PRODUCT_INFO
     SPEC_ATTRIBUTE_PATTERNS = [
-        re.compile(r"\b(?:dimension|dimensions|measurement|measurements|size|how\s+big|weight|how\s+heavy|memory|ram|datasheet|brochure|spec\s+sheet|data\s+sheet|pdf|specification|specifications)\b", re.I),
+        re.compile(
+            r"\b(?:specs?|technical\s+specs?|technical\s+specifications?|specifications?|specification|"
+            r"details?|features?|functions?|capabilities|print\s+speed|resolution|dpi|dimension|dimensions|"
+            r"measurement|measurements|size|how\s+big|weight|how\s+heavy|memory|ram|datasheet|brochure|"
+            r"spec\s+sheet|data\s+sheet|pdf|view\s+specs|full\s+specs)\b",
+            re.I
+        ),
     ]
 
     SHOWROOM_PATTERNS = [
@@ -500,7 +506,7 @@ class TurnUnderstandingExtractor:
                 "line-head", "line head", "line-head enterprise", "office mfp", "office mfps", "business mfp"
             ],
             "technical_cad": [
-                "cad", "technical", "engineering", "blueprints", "line drawings", "architectural",
+                "cad", "technical cad", "technical drawing", "technical drawings", "engineering", "blueprints", "line drawings", "architectural",
                 "architect", "archtect", "architecture", "drawing", "drawings", "architect drawings",
                 "gis", "cad plotter", "cad plotters", "blueprint", "plotter", "plotters", "large format plotter",
                 "large format plotters", "technical plotter", "technical plotters", "technical printer", "technical printers"
@@ -713,11 +719,19 @@ class TurnUnderstandingExtractor:
         if (models or skus) and has_explicit_price:
             return DialogueAct.QUESTION, Intent.AVAILABILITY_OR_PRICE_POLICY, 0.95, ambiguities
 
-        # 8b. Specific model + spec/datasheet attribute query → direct PRODUCT_INFO
-        #     Prevents flowchart routing when customer asks "what are the dimensions of SC-T3100?"
+        # 8b. Spec/datasheet attribute query → direct PRODUCT_INFO
+        #     Applies both with explicit model or implicitly referring to active focus
         has_spec_query = any(p.search(text_l) for p in cls.SPEC_ATTRIBUTE_PATTERNS)
-        if (models or skus) and has_spec_query:
+        if has_spec_query:
             return DialogueAct.QUESTION, Intent.PRODUCT_INFO, 0.96, ambiguities
+
+        # 8c. Consumable/ink pack chip clicks and inquiries
+        if any(k in text_l for k in ["replaceable ink packs", "rips high yield", "ink packs", "consumable cards", "view compatible printers"]):
+            return DialogueAct.QUESTION, Intent.CONSUMABLES_LOOKUP, 0.96, ambiguities
+
+        # 8d. Quotation chip clicks
+        if any(k in text_l for k in ["official quotation", "request official quote", "request quotation"]):
+            return DialogueAct.QUESTION, Intent.AVAILABILITY_OR_PRICE_POLICY, 0.96, ambiguities
 
         # 9. Alternatives
         if any(p.search(text_l) for p in cls.ALTERNATIVES_PATTERNS):
