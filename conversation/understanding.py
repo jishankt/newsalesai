@@ -577,6 +577,8 @@ class TurnUnderstandingExtractor:
         if not any(e.entity_type == "model" for e in entities):
             words = [w for w in re.findall(r"[a-z0-9\-]+", text_l) if len(w) >= 3]
             for word in words:
+                if word.isdigit():
+                    continue
                 best_alias = None
                 best_score = 0.0
                 for alias, pid in alias_map.items():
@@ -641,7 +643,8 @@ class TurnUnderstandingExtractor:
                 "printer for office", "printers for office", "for my office", "for our office", "office use",
                 "office printing", "office copier", "office copiers", "enterprise mfp", "enterprise mfps", "am-c", "wf-c",
                 "office multifunction", "office enterprise", "enterprise", "enterprise printer", "enterprise printers",
-                "line-head", "line head", "line-head enterprise", "office mfp", "office mfps", "business mfp"
+                "line-head", "line head", "line-head enterprise", "office mfp", "office mfps", "business mfp",
+                "pages daily", "pages per day", "pages/day", "pages a day"
             ],
             "technical_cad": [
                 "cad", "technical cad", "technical drawing", "technical drawings", "engineering", "blueprints", "line drawings", "architectural",
