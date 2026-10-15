@@ -161,7 +161,7 @@ def _get_catalogue_aliases() -> Dict[str, str]:
             "t5405": "epson-sc-t5405",
             "t5700": "epson-sc-t5700d",
             "t7700": "epson-sc-t7700d",
-            # Citizen Photo Booth Printers & Common Typo Aliases (e.g. cz-02 -> cx-02)
+            # Citizen Photo Booth Printers
             "cx02": "citizen-cx-02",
             "cx-02": "citizen-cx-02",
             "cx 02": "citizen-cx-02",
@@ -169,15 +169,6 @@ def _get_catalogue_aliases() -> Dict[str, str]:
             "cx-2": "citizen-cx-02",
             "cx 2": "citizen-cx-02",
             "citizen cx02": "citizen-cx-02",
-            "cz02": "citizen-cx-02",
-            "cz-02": "citizen-cx-02",
-            "cz 02": "citizen-cx-02",
-            "cz2": "citizen-cx-02",
-            "cz-2": "citizen-cx-02",
-            "cz 2": "citizen-cx-02",
-            "citizen cz02": "citizen-cx-02",
-            "citizen cz-02": "citizen-cx-02",
-            "citizen cz 02": "citizen-cx-02",
             "cx02w": "citizen-cx-02w",
             "cx-02w": "citizen-cx-02w",
             "cx 02w": "citizen-cx-02w",
@@ -237,6 +228,19 @@ def _get_catalogue_aliases() -> Dict[str, str]:
         }
         for k, v in high_frequency.items():
             alias_map[k] = v
+
+        # Add letter-digit spaced variants (e.g. "p 7500", "p-7500", "cx 02", "t 3100")
+        spaced_variants: Dict[str, str] = {}
+        for alias, pid in list(alias_map.items()):
+            m_code = re.match(r"^([a-z]{1,4})[-_]?(\d{2,5}[a-z]*)$", alias)
+            if m_code:
+                spaced_variants[f"{m_code.group(1)} {m_code.group(2)}"] = pid
+                spaced_variants[f"{m_code.group(1)}-{m_code.group(2)}"] = pid
+            m_sc = re.match(r"^(sc|surecolor)[-\s]+([a-z]{1,3})[-_]?(\d{2,5}[a-z]*)$", alias)
+            if m_sc:
+                spaced_variants[f"{m_sc.group(1)} {m_sc.group(2)} {m_sc.group(3)}"] = pid
+                spaced_variants[f"{m_sc.group(1)}-{m_sc.group(2)} {m_sc.group(3)}"] = pid
+        alias_map.update(spaced_variants)
     except Exception as e:
         logger.warning(f"Error initializing catalogue aliases: {e}")
 
@@ -618,13 +622,15 @@ class TurnUnderstandingExtractor:
                 seen_keys.add(norm_id)
 
         # 2. Catalogue Model Alias matching (longest matches first)
+        # Check against both original text and space-collapsed text (e.g. "p 7500" -> "p7500")
+        collapsed_text = re.sub(r"\b([a-z]{1,4})\s+(\d{2,5}[a-z]*)\b", r"\1\2", text_l)
         sorted_aliases = sorted(alias_map.keys(), key=lambda a: len(a), reverse=True)
         for alias in sorted_aliases:
             if len(alias) < 2:
                 continue
             # Use word boundaries for aliases to prevent substring collisions
             pattern = rf"\b{re.escape(alias)}\b"
-            m = re.search(pattern, text_l)
+            m = re.search(pattern, text_l) or re.search(pattern, collapsed_text)
             if m:
                 norm_pid = alias_map[alias]
                 if norm_pid not in seen_keys:
@@ -640,34 +646,47 @@ class TurnUnderstandingExtractor:
                     seen_keys.add(norm_pid)
 
         # 3. Model Matching: Exact alias matches only!
-        # Near/fuzzy matches never answer as that model; flag as unlisted_model
+        # Near/fuzzy matches never answer as that model; flag as unlisted_model or ambiguous_candidate
         if not any(e.entity_type == "model" for e in entities):
             words = [w for w in re.findall(r"[a-z0-9\-]+", text_l) if len(w) >= 3]
             for word in words:
                 if word.isdigit():
                     continue
-                best_alias = None
-                best_score = 0.0
+                candidate_matches = []
                 for alias, pid in alias_map.items():
                     if len(alias) >= 3 and abs(len(alias) - len(word)) <= 2:
                         ratio = SequenceMatcher(None, word, alias).ratio()
-                        if ratio > best_score:
-                            best_score = ratio
-                            best_alias = alias
+                        if ratio >= FUZZY_MATCH_THRESHOLD - 0.05:
+                            candidate_matches.append((ratio, alias, pid))
 
-                if best_alias and best_score >= FUZZY_MATCH_THRESHOLD:
-                    # Near matches NEVER answer as that model! Mark as unlisted_model
-                    norm_pid = alias_map[best_alias]
-                    if word.lower() not in seen_keys:
-                        entities.append(EntityMention(
-                            surface_text=word,
-                            normalised_id=word.lower(),
-                            entity_type="unlisted_model",
-                            match_type="near_match",
-                            confidence=round(best_score, 3),
-                            metadata={"matched_alias": best_alias, "candidate_id": norm_pid, "similarity": best_score},
-                        ))
-                        seen_keys.add(word.lower())
+                if candidate_matches:
+                    candidate_matches.sort(key=lambda x: x[0], reverse=True)
+                    best_score, best_alias, best_pid = candidate_matches[0]
+                    runner_ups = [c for c in candidate_matches[1:] if c[2] != best_pid and abs(best_score - c[0]) <= 0.15]
+                    if runner_ups:
+                        all_pids = sorted(list(set([best_pid] + [r[2] for r in runner_ups])))
+                        if word.lower() not in seen_keys:
+                            entities.append(EntityMention(
+                                surface_text=word,
+                                normalised_id=word.lower(),
+                                entity_type="unlisted_model",
+                                match_type="ambiguous_candidate",
+                                confidence=0.60,
+                                metadata={"ambiguous_candidates": all_pids, "similarity": best_score},
+                            ))
+                            seen_keys.add(word.lower())
+                    elif best_score >= FUZZY_MATCH_THRESHOLD:
+                        norm_pid = alias_map[best_alias]
+                        if word.lower() not in seen_keys:
+                            entities.append(EntityMention(
+                                surface_text=word,
+                                normalised_id=word.lower(),
+                                entity_type="unlisted_model",
+                                match_type="near_match",
+                                confidence=round(best_score, 3),
+                                metadata={"matched_alias": best_alias, "candidate_id": norm_pid, "similarity": best_score},
+                            ))
+                            seen_keys.add(word.lower())
 
         # 3b. Detect any unlisted model-code patterns (e.g. wf-c20600, t5200) not in approved catalogue
         if not any(e.entity_type in ("model", "unlisted_model") for e in entities):
@@ -711,28 +730,33 @@ class TurnUnderstandingExtractor:
                 "cad", "technical cad", "technical drawing", "technical drawings", "engineering", "blueprints", "line drawings", "architectural",
                 "architect", "archtect", "architecture", "drawing", "drawings", "architect drawings",
                 "gis", "cad plotter", "cad plotters", "blueprint", "plotter", "plotters", "large format plotter",
-                "large format plotters", "technical plotter", "technical plotters", "technical printer", "technical printers"
+                "large format plotters", "technical plotter", "technical plotters", "technical printer", "technical printers",
+                "مخططات", "طابعة مخططات", "طابعة كاد", "طابعة هندسية", "بلوتر", "بلاتر", "رسومات هندسية", "naksha"
             ],
             "photo_fine_art": [
                 "fine art", "photo printer", "photo printers", "gallery", "photography", "photo printing", "photo studio",
                 "photo machine", "photo machines", "master studio", "spectro", "pro10", "pro12", "fine art gallery",
-                "photography printer", "photography printers", "fine art printer", "fine art printers"
+                "photography printer", "photography printers", "fine art printer", "fine art printers",
+                "فوتوغرافية", "طابعة فوتوغرافية", "طابعة صور", "طباعة فوتوغرافية", "طباعة صور", "طابعات صور", "طابعات فوتوغرافية", "صور احترافية", "tasveer"
             ],
             "citizen_photo": [
                 "photo booth", "photo booth printer", "photo booth printers", "event photography", "event photo", "event photos",
                 "event photo printer", "event photo printers", "instant prints", "passport photos",
                 "citizen", "citizon", "citzen", "ciyizon", "ctizen", "citizn",
-                "citizen printer", "citizen printers", "citizon printer", "ciyizon printer", "instant photo", "instant photo printer", "instant photo printers", "dye-sub photo", "cz-01", "cx-02", "cy-02", "cx-02w"
+                "citizen printer", "citizen printers", "citizon printer", "ciyizon printer", "instant photo", "instant photo printer", "instant photo printers", "dye-sub photo", "cz-01", "cx-02", "cy-02", "cx-02w",
+                "طابعة كشك صور", "طابعة كشك", "طابعة مناسبات", "سيتيزن", "طابعة حفلات"
             ],
             "dye_sublimation": [
                 "dye sublimation", "sublimation", "sublimation printer", "sublimation printers", "apparel printing",
                 "t-shirt printing", "textile printing", "mug printing", "sportswear printing",
-                "apparel", "t-shirt", "mug"
+                "apparel", "t-shirt", "mug",
+                "طابعة تسامي", "سبلميشن", "طباعة أقمشة", "طباعة تيشرتات"
             ],
             "scanners": [
                 "scanner", "scanners", "document scanner", "document scanners", "sheetfed", "flatbed scanner", "flatbed scanners",
                 "film scanner", "large format scanner", "book scanner", "scanning solutions",
-                "expression 12000xl", "workforce ds"
+                "expression 12000xl", "workforce ds",
+                "ماسح ضوئي", "سكانر", "ماسحات ضوئية"
             ],
             "office_workforce": [
                 "office printer", "office printers", "workforce", "business printer", "business printers", "printer for my office",
@@ -740,7 +764,8 @@ class TurnUnderstandingExtractor:
                 "office printing", "office copier", "office copiers", "enterprise mfp", "enterprise mfps", "am-c", "wf-c",
                 "office multifunction", "office enterprise", "enterprise", "enterprise printer", "enterprise printers",
                 "line-head", "line head", "line-head enterprise", "office mfp", "office mfps", "business mfp",
-                "pages daily", "pages per day", "pages/day", "pages a day"
+                "pages daily", "pages per day", "pages/day", "pages a day",
+                "طابعة مكتبية", "طابعات مكتبية", "طابعة للمكتب", "مكتبية", "daftar"
             ],
         }
         has_specific_app_match = any(e.entity_type == "category" and e.normalised_id != "category:office_workforce" for e in entities)
@@ -754,12 +779,17 @@ class TurnUnderstandingExtractor:
                 if any(w in text_l for w in ["scanner", "scanners", "scanning"]) and not any(p in text_l for p in ["printer", "printers", "plotter"]):
                     continue
             elif cat_id == "office_workforce":
-                # If user already matched a specific application (e.g. photo printing, CAD plotter, sublimation),
-                # generic prepositional location phrases like "for my office" should NOT trigger office_workforce.
+                # Prepositional location phrases (e.g. "for my office") should not trigger office_workforce
+                # when a specific printer type is already mentioned, but explicit product needs like
+                # "office printer", "office copiers", "office use", "workforce" MUST be preserved!
                 if has_specific_app_match or any(k in text_l for k in ["photo", "fine art", "cad", "blueprint", "plotter", "sublimation", "citizen"]):
-                    cat_keywords = ["workforce", "am-c", "wf-c", "enterprise mfp", "enterprise mfps", "office copier", "office copiers", "line-head", "line head"]
+                    prepositional_exclusions = {
+                        "printer for my office", "printer for office", "printers for office",
+                        "for my office", "for our office", "for the office", "in the office", "for office"
+                    }
+                    cat_keywords = [k for k in cat_keywords if k not in prepositional_exclusions]
             for kw in cat_keywords:
-                m = re.search(rf"\b{re.escape(kw)}\b", text_l)
+                m = re.search(rf"(?:^|\b){re.escape(kw)}(?:\b|$)", text_l)
                 if m:
                     is_neg = is_negated_match(text_l, m.start())
                     entities.append(EntityMention(
@@ -1009,6 +1039,35 @@ class TurnUnderstandingExtractor:
     ) -> Tuple[DialogueAct, Intent, float, List[str]]:
         text_l = text.lower().strip()
         ambiguities: List[str] = []
+
+        # Degenerate: Empty, whitespace-only, or emoji-only
+        if not text_l or not re.search(r"[\w\d]", text_l):
+            return DialogueAct.CHITCHAT, Intent.OTHER, 0.20, ["empty_or_emoji_input"]
+
+        # Degenerate bare numbers (e.g. "24", "12", "5") with no units or context
+        text_clean = text_l.replace("”", '"').replace("“", '"').replace("″", '"').replace("’", "'").replace("‘", "'")
+        if re.match(r"^\s*\d+\s*$", text_clean):
+            return DialogueAct.ANSWER_TO_MY_QUESTION, Intent.OTHER, 0.40, ["bare_number_no_context"]
+
+        # Check for model ambiguities from entities
+        for e in entities:
+            if e.match_type == "ambiguous_candidate" and e.metadata and "ambiguous_candidates" in e.metadata:
+                cand_str = "|".join(e.metadata["ambiguous_candidates"])
+                ambiguities.append(f"model:{cand_str}")
+
+        # Multiple categories ambiguity
+        cat_entities = [e for e in entities if e.entity_type == "category" and not (e.metadata and e.metadata.get("is_negated"))]
+        if len(set(e.normalised_id for e in cat_entities)) > 1:
+            ambiguities.append("multiple_categories")
+
+        # 0. Numeric, dimension, or flowchart answer (e.g. "40 ppm", "44\"", "44”", "44” wider", "44” wide production printer", "looking for fine art printer", "< 100", "300+")
+        flow_patterns = [
+            r"^\s*(?:i\s*(?:need|want)\s*(?:to\s*print\s*)?)?[<>]?\s*\d+(?:[–\-]\d+)?\s*(?:[\"”″'’]|inch|in|ppm|pages?|prints?|docs?|sheets?|mm|cm|wide|wider|width|production|mfp|roll|sheet|desktop|kiosk|daily|\/day|per\s*day|\+)(?:\s+(?:wider|wide|production|printer|plotter|scanner|mfp|roll|sheets?))*\s*$",
+            r"^\s*(?:fine\s*art|photo\s*printer|photo\s*production|production\s*printer|large\s*format|cad\s*plotter|technical\s*cad|dye[\s-]*sub|photo\s*booth|office\s*printer)\s*$",
+            r"^\s*(?:looking\s+for|i\s+need|i\s+want)\s+(?:a\s+)?(?:fine\s*art|photo|cad|office|large\s*format|production)\s*(?:printer|plotter)?\s*$",
+        ]
+        if any(re.search(pat, text_clean) for pat in flow_patterns):
+            return DialogueAct.QUESTION, Intent.RECOMMEND, 0.96, ambiguities
 
         # 1. Handoff request
         if any(p.search(text_l) for p in cls.HANDOFF_PATTERNS):
@@ -1295,6 +1354,19 @@ class TurnUnderstandingExtractor:
         )
         duration_ms = int((time.time() - t_start) * 1000)
 
+        # Fix 3: Evidence-based confidence calibration & penalties
+        penalties = 0.0
+        if len(ambiguities) > 0:
+            penalties += 0.20
+        if len(compound_intents) > 1:
+            penalties += 0.15
+        if re.search(r"\b(?:not|dont|don't|never|forget|no)\b", text.lower()):
+            penalties += 0.10
+        if text.count("?") >= 2 or " and " in text.lower():
+            penalties += 0.10
+
+        calibrated_confidence = max(0.10, round(confidence - penalties, 2))
+
         return TurnUnderstanding(
             raw_text=text,
             dialogue_act=dialogue_act,
@@ -1303,7 +1375,7 @@ class TurnUnderstandingExtractor:
             entities=entities,
             reference_expressions=refs,
             slots=slots,
-            overall_confidence=confidence,
+            overall_confidence=calibrated_confidence,
             ambiguities=ambiguities,
             buyer_pace=buyer_pace,
             is_deterministic=True,
@@ -1366,6 +1438,7 @@ def understand_turn(
                 "Classify the customer's message into the specified dialogue_act and intent.\n"
                 "Guidelines:\n"
                 "- If the customer asks off-topic questions (food, cooking, recipes, personal queries, weather, sports, general knowledge): dialogue_act='out_of_scope', intent='other'.\n"
+                "- If the customer replies with numbers, page counts, dimensions, paper sizes (A4, A3, 24\", 44\"), formats, or printer types: dialogue_act='question', intent='recommend'. NEVER classify numbers or equipment requests as out_of_scope.\n"
                 "- If the customer expresses frustration, says 'not what I asked', 'what I asked what you giving': dialogue_act='complaint', intent='other'.\n"
                 "- If the customer acknowledges or says 'thats fine', 'sounds good', 'okay', 'alright': dialogue_act='confirmation', intent='other'.\n"
                 "- If the customer asks what you supply or sell: dialogue_act='question', intent='other'.\n"

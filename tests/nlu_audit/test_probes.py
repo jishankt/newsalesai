@@ -29,7 +29,6 @@ def test_bare_numbers_not_models():
         assert turn.slots.get("target_model") is None, f"Bare number {num} set target_model to {turn.slots.get('target_model')}"
 
 
-@pytest.mark.xfail(strict=True, reason="DEFECT: understand_turn('24') assigns Intent.RECOMMEND with 0.95 confidence instead of low-confidence clarify")
 def test_bare_number_intent_not_high_confidence_recommend():
     """A bare number with no context should not produce a confident product recommendation."""
     turn = understand_turn("24", allow_llm=False)
@@ -82,14 +81,12 @@ def test_negated_model_not_filled():
 # Invariant 3: Model Ambiguity & Comparison
 # ==============================================================================
 
-@pytest.mark.xfail(strict=True, reason="DEFECT: 'cz02' typo is hardcoded to citizen-cx-02 in alias_map instead of requesting clarification")
 def test_ambiguous_typo_cz02_requests_clarification():
     """'cz02' is ambiguous between CZ-01 and CX-02; it should not silently resolve to citizen-cx-02 with 0.95 confidence."""
     turn = understand_turn("cz02 price", allow_llm=False)
     assert turn.ambiguities or turn.overall_confidence < 0.75, "cz02 silently picked model with high confidence"
 
 
-@pytest.mark.xfail(strict=True, reason="DEFECT: Spaced model names like 'p 7500' fail alias matching because alias_map only has 'p7500'")
 def test_spaced_model_name_recognition():
     """'p 7500' must resolve to epson-sc-p7500 just like 'p7500' does."""
     turn = understand_turn("price of p 7500", allow_llm=False)
@@ -142,7 +139,6 @@ def test_non_budget_daily_volume_not_parsed_as_budget():
 # Invariant 5: Category Priority Never Silently Drops Second Need
 # ==============================================================================
 
-@pytest.mark.xfail(strict=True, reason="DEFECT: CATEGORY_PRIORITY silently drops 'office_workforce' when 'technical_cad' matches in 'office printer for CAD drawings'")
 def test_category_priority_does_not_silently_drop_second_need():
     """'office printer for CAD drawings' contains both office_workforce and technical_cad."""
     turn = understand_turn("office printer for CAD drawings", allow_llm=False)
@@ -150,7 +146,6 @@ def test_category_priority_does_not_silently_drop_second_need():
     assert turn.ambiguities or len(turn.entities) >= 2, "Secondary category was silently discarded without ambiguity flag"
 
 
-@pytest.mark.xfail(strict=True, reason="DEFECT: 'photo booth for events and also office use' silently drops office use")
 def test_photo_booth_and_office_overlap():
     """'photo booth for events and also office use' contains citizen_photo and office_workforce."""
     turn = understand_turn("photo booth for events and also office use", allow_llm=False)
@@ -161,7 +156,6 @@ def test_photo_booth_and_office_overlap():
 # Invariant 6: Non-English Messages Handled
 # ==============================================================================
 
-@pytest.mark.xfail(strict=True, reason="DEFECT: Arabic printer request 'أريد طابعة فوتوغرافية احترافية' matches zero keywords, returning Intent.OTHER with no category")
 def test_arabic_category_request():
     """Arabic inquiry for professional photo printer should identify photo_fine_art category."""
     turn = understand_turn("أريد طابعة فوتوغرافية احترافية", allow_llm=False)
@@ -199,7 +193,6 @@ def test_emoji_only_does_not_crash():
     assert turn is not None
 
 
-@pytest.mark.xfail(strict=True, reason="DEFECT: Empty string defaults to DialogueAct.QUESTION instead of DialogueAct.CLARIFICATION/STATEMENT with low confidence")
 def test_empty_string_dialogue_act_not_question():
     """Empty input should not be classified as DialogueAct.QUESTION."""
     turn = understand_turn("", allow_llm=False)

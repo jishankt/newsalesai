@@ -1,176 +1,271 @@
 # Kepler Tech SalesAI — Workflow & Product Decision Flowcharts
 
-This document details the complete qualification workflow, conversational architecture, and deterministic decision trees mapping customer inquiries directly to the **41 certified hardware models** in the Kepler Tech catalogue.
+This document details the complete qualification workflow, conversational architecture, and deterministic decision trees mapping customer inquiries directly to all **43 certified hardware models** and **29 professional scanners** in the Kepler Tech catalogue.
 
 ---
 
-## 1. Product Qualification Decision Tree (with Exact Models)
+## 1. Product Qualification Flowchart: Overview
 
 ```mermaid
-flowchart TD
-    START(["👤 Customer Requirement / Prompt"]) --> CAT{"Identify Main Category"}
+flowchart LR
+    INQ["Customer Inquiry / Prompt"] --> CAT["Identify Primary Category"]
 
-    %% 1. Office Enterprise
-    CAT -->|"Office / Business / Copier"| OFF["Office Enterprise Printers"]
-    OFF --> OFF_SIZE{"Paper Size?"}
-    
-    OFF_SIZE -->|"A4 Output"| A4_TECH{"Technology & Speed"}
-    A4_TECH -->|"Standard Business MFP (34 ppm)"| M_WF5890["WorkForce Pro WF-C5890DWF"]
-    A4_TECH -->|"Compact RIPS Ink Pack (25 ppm)"| M_EMC800["WorkForce Pro EM-C800"]
-    A4_TECH -->|"Heat-Free Line-Head (40 ppm)"| M_AMC400["WorkForce Enterprise AM-C400"]
-    A4_TECH -->|"Heat-Free Line-Head (55 ppm)"| M_AMC550["WorkForce Enterprise AM-C550"]
+    CAT -->|"Office / Multifunction"| OFF["Office Enterprise<br/>A4 and A3 MFPs"]
+    CAT -->|"CAD / Blueprint / GIS"| CAD["Technical Large Format<br/>24, 36, 44 inch plotters"]
+    CAT -->|"Photo / Fine Art / Gallery"| PHO["Photography & Fine Art<br/>13 to 64 inch printers"]
+    CAT -->|"Photo Booth / Instant Photo"| CTZ["Citizen Dye-Sub Photo<br/>4, 6, 8 inch printers"]
+    CAT -->|"Apparel / T-Shirt / Mug"| DYE["Dye Sublimation<br/>A4 desktop and 24 inch roll"]
+    CAT -->|"Scanning Solutions"| SCN["Professional Scanners<br/>Fine art, hybrid, sheetfed"]
 
-    OFF_SIZE -->|"A3 Output"| A3_TECH{"Speed & Volume Class"}
-    A3_TECH -->|"Departmental RIPS (25 ppm)"| M_A3_RIPS["WorkForce Pro WF-C878R / WF-C879R"]
-    A3_TECH -->|"Enterprise Line-Head (40 ppm)"| M_AMC4000["WorkForce Enterprise AM-C4000"]
-    A3_TECH -->|"Enterprise Line-Head (50 ppm)"| M_AMC5000["WorkForce Enterprise AM-C5000"]
-    A3_TECH -->|"Enterprise Line-Head (60 ppm)"| M_AMC6000["WorkForce Enterprise AM-C6000"]
-    A3_TECH -->|"Flagship Line-Head (100 ppm)"| M_WFC21000["WorkForce Enterprise WF-C21000 D4TW"]
-
-    %% 2. Technical Large Format (CAD/GIS)
-    CAT -->|"CAD / Blueprint / GIS Plotters"| TECH["Technical Large Format (CAD/GIS)"]
-    TECH --> T_WIDTH{"Plotter Width?"}
-    
-    T_WIDTH -->|"24-inch (A1)"| T24_OPT{"Configuration"}
-    T24_OPT -->|"Desktop / Stand Entry"| M_T3100["SureColor SC-T3100"]
-    T24_OPT -->|"Compact Production Single Roll"| M_T3700E["SureColor SC-T3700E"]
-    T24_OPT -->|"Production Dual Roll"| M_T3700D["SureColor SC-T3700D / SC-T3700DE"]
-
-    T_WIDTH -->|"36-inch (A0)"| T36_SCAN{"Integrated Scanner?"}
-    T36_SCAN -->|"Print-Only"| M_T36_PRT["SureColor SC-T5100 / SC-T5405 / SC-T5700D"]
-    T36_SCAN -->|"Scan & Copy MFP"| M_T36_MFP["SureColor SC-T5100M / SC-T5400M / SC-T5700DM"]
-
-    T_WIDTH -->|"44-inch Production"| T44_SCAN{"Multifunction?"}
-    T44_SCAN -->|"Print-Only"| M_T7700D["SureColor SC-T7700D / SC-T7700DL (1.6L ink)"]
-    T44_SCAN -->|"MFP Dual-Roll"| M_T7700DM["SureColor SC-T7700DM"]
-
-    %% 3. Photography & Fine Art
-    CAT -->|"Photo / Fine Art / Gallery"| PHO["Photography & Fine Art"]
-    PHO --> P_WIDTH{"Width / Form Factor?"}
-    
-    P_WIDTH -->|"13-inch (A3+)"| M_P700["SureColor SC-P700 (10-Colour Carbon Black)"]
-    P_WIDTH -->|"17-inch (A2+)"| P17_OPT{"Roll or Heavy Duty?"}
-    P17_OPT -->|"Desktop Sheet"| M_P900["SureColor SC-P900"]
-    P17_OPT -->|"Panoramic Roll"| M_P900R["SureColor SC-P900 with Roll Unit"]
-    P17_OPT -->|"Production Heavy Duty"| M_P5300["SureColor SC-P5300"]
-
-    P_WIDTH -->|"24-inch Gallery"| P24_OPT{"Proofing / Calibration?"}
-    P24_OPT -->|"Commercial Compact"| M_P6500["SureColor SC-P6500E / D / DE"]
-    P24_OPT -->|"12-Colour Master Studio"| M_P7500["SureColor SC-P7500"]
-    P24_OPT -->|"Automated Calibration"| M_P7500S["SureColor SC-P7500 with Spectro"]
-
-    P_WIDTH -->|"44-inch Gallery"| P44_OPT{"Proofing / Calibration?"}
-    P44_OPT -->|"Production MFP"| M_P8500["SureColor SC-P8500D / SC-P8500DM"]
-    P44_OPT -->|"12-Colour Master Studio"| M_P9500["SureColor SC-P9500"]
-    P44_OPT -->|"Spectro Proofer"| M_P9500S["SureColor SC-P9500 with Spectro"]
-
-    P_WIDTH -->|"64-inch Production"| M_P20500["SureColor SC-P20500 (1.6L Bulk Inks)"]
-
-    %% 4. Citizen Dye-Sub Photo
-    CAT -->|"Photo Booth / Instant Event"| CTZ["Citizen Dye-Sublimation Photo"]
-    CTZ --> C_SIZE{"Print Format?"}
-    C_SIZE -->|"4-inch Ultra-Compact"| M_CZ01["Citizen CZ-01 (Photo Booths)"]
-    C_SIZE -->|"6-inch Standard Events"| M_CX02["Citizen CX-02 / CY-02 (700 prints)"]
-    C_SIZE -->|"8-inch Wide Event"| M_CX02W["Citizen CX-02W (8x10 & 8x12)"]
-
-    %% 5. Dye Sublimation
-    CAT -->|"Apparel / T-Shirt / Mug"| DYE["Dye Sublimation"]
-    DYE --> D_SIZE{"Volume & Format?"}
-    D_SIZE -->|"A4 Desktop Gifts"| M_F100["SureColor SC-F100 (Refillable Tanks)"]
-    D_SIZE -->|"24-inch Roll Apparel"| M_F500["SureColor SC-F500 (Textiles & Signage)"]
-
-    %% 6. Scanners
-    CAT -->|"Scanning Solutions"| SCN["Professional Scanners"]
-    SCN --> S_TYPE{"Document Type?"}
-    S_TYPE -->|"Graphic & Fine Art Film"| M_12000XL["Expression 12000XL / 12000XL Pro"]
-    S_TYPE -->|"Books & Stacks (Hybrid)"| M_HYBRID["WorkForce DS-1630 / DS-6500 / DS-60000 / DS-70000"]
-    S_TYPE -->|"High-Speed Sheetfed"| M_SHEETFED["WorkForce DS-530II / DS-790WN / DS-800WN / DS-32000"]
+    style INQ fill:#0f172a,stroke:#020617,color:#ffffff
+    style CAT fill:#fef3c7,stroke:#d97706,color:#000000
+    style OFF fill:#2563eb,stroke:#1d4ed8,color:#ffffff
+    style CAD fill:#7c3aed,stroke:#6d28d9,color:#ffffff
+    style PHO fill:#db2777,stroke:#be185d,color:#ffffff
+    style CTZ fill:#ea580c,stroke:#c2410c,color:#ffffff
+    style DYE fill:#0d9488,stroke:#0f766e,color:#ffffff
+    style SCN fill:#475569,stroke:#334155,color:#ffffff
 ```
 
 ---
 
-## 2. End-to-End Chat Turn Lifecycle
+## 2. Office / Multifunction (3 Subcategories in A4 & 3 Subcategories in A3)
 
 ```mermaid
-sequenceDiagram
-    autonumber
-    actor User as 👤 Customer
-    participant UI as 🖥️ Chat Widget (app.js)
-    participant API as 🌐 Flask API (app.py)
-    participant Lock as 🔒 Session Lock Manager
-    participant Norm as 🧠 Normalizer & Intent Resolver
-    participant LLM as 🤖 Ollama (qwen2.5:32b)
-    participant Filter as 🔍 Catalogue Filter (catalogue_filter.py)
-    participant Comp as ✍️ Response Composer
+flowchart LR
+    ROOT["Office Enterprise"] --> SIZE{"Paper Size"}
 
-    User->>UI: Types rapid sequence or single prompt
-    Note over UI: Non-blocking buffer with 1.2s debounce
-    UI->>API: POST /api/chat {messages: [...]}
-    
-    API->>Lock: force_reset(session_id) & acquire_lock()
-    Lock-->>API: Lock acquired (invalidates any superseded turns)
+    %% ================= A4 OUTPUT =================
+    SIZE -->|"A4 Output"| A4_SUB{"A4 Subcategories"}
 
-    API->>Norm: normalize_category(combined_text)
-    Note over Norm: Resolves corrections, negations & category constraints
-    
-    API->>LLM: _extract_semantic_features(prompt)
-    LLM-->>Norm: Intent, entities & confidence
-    
-    API->>Filter: filter_products(category, requirements)
-    Note over Filter: 10-Step Deterministic Filtering on 41 approved products
-    Filter-->>API: returns ranked_products & product_cards
-    
-    API->>Comp: compose_response(context, verified_candidates)
-    Comp-->>API: Grounded response + match reasons
-    API->>Lock: release_lock(session_id)
-    API-->>UI: 200 OK {reply, product_cards}
-    UI->>User: Displays coherent answer and verified cards
+    %% A4 Subcat 1: Standard Desktop MFP
+    A4_SUB -->|"1. a4_standard_mfp<br/>(Low Volume)"| A4_S1["Standard Business MFP<br/><b>< 100 pages/day</b>"]
+    A4_S1 --> M1["<b>WorkForce Pro WF-C5890DWF</b><br/>• Speed: <b>25 ISO ppm</b> (34 ppm draft)<br/>• Daily: <b>< 100 pages/day</b><br/>• Monthly: <b>500 – 5,000 pages/mo</b> (Max: 45k)"]
+
+    %% A4 Subcat 2: Compact RIPS
+    A4_SUB -->|"2. a4_compact_rips<br/>(Medium Volume)"| A4_S2["Compact RIPS MFP<br/><b>100 – 300 pages/day</b>"]
+    A4_S2 --> M2["<b>WorkForce Pro EM-C800</b><br/>• Speed: <b>25 ISO ppm</b> (High-Yield RIPS)<br/>• Daily: <b>100 – 300 pages/day</b><br/>• Monthly: <b>1,000 – 10,000 pages/mo</b> (Max: 50k)"]
+
+    %% A4 Subcat 3: Enterprise Line-Head
+    A4_SUB -->|"3. a4_enterprise_linehead<br/>(High Volume)"| A4_S3["Enterprise Line-Head MFP<br/><b>300 – 2,000+ pages/day</b>"]
+    A4_S3 --> M3["<b>WorkForce Enterprise AM-C400</b><br/>• Speed: <b>40 ISO ppm</b> Line-Head<br/>• Daily: <b>300 – 800 pages/day</b><br/>• Monthly: <b>1,500 – 15,000 pages/mo</b> (Max: 100k)"]
+    A4_S3 --> M4["<b>WorkForce Enterprise AM-C550</b><br/>• Speed: <b>55 ISO ppm</b> Line-Head<br/>• Daily: <b>800 – 2,000+ pages/day</b><br/>• Monthly: <b>2,000 – 20,000+ pages/mo</b> (Max: 150k)"]
+
+    %% ================= A3 OUTPUT =================
+    SIZE -->|"A3 Output"| A3_SUB{"A3 Subcategories"}
+
+    %% A3 Subcat 1: Departmental RIPS
+    A3_SUB -->|"1. a3_departmental_rips<br/>(Low-to-Mid Volume)"| A3_S1["Departmental RIPS MFP<br/><b>100 – 500 pages/day</b>"]
+    A3_S1 --> M5["<b>WorkForce Pro WF-C878R DWF</b><br/>• Speed: <b>25 ISO ppm</b> (45 ipm ADF scan)<br/>• Daily: <b>100 – 400 pages/day</b><br/>• Monthly: <b>1,500 – 10,000 pages/mo</b> (Max: 75k)"]
+    A3_S1 --> M6["<b>WorkForce Pro WF-C879R DWF</b><br/>• Speed: <b>26 ISO ppm</b> (100 ipm single-pass scan)<br/>• Daily: <b>200 – 500 pages/day</b><br/>• Monthly: <b>2,000 – 15,000 pages/mo</b> (Max: 75k)"]
+
+    %% A3 Subcat 2: Enterprise Line-Head
+    A3_SUB -->|"2. a3_enterprise_linehead<br/>(Departmental High Volume)"| A3_S2["Enterprise Line-Head MFP<br/><b>500 – 3,500 pages/day</b>"]
+    A3_S2 --> M7["<b>WorkForce Enterprise AM-C4000</b><br/>• Speed: <b>40 ISO ppm</b> Line-Head<br/>• Daily: <b>500 – 1,500 pages/day</b><br/>• Monthly: <b>5,000 – 30,000 pages/mo</b> (Max: 200k)"]
+    A3_S2 --> M8["<b>WorkForce Enterprise AM-C5000</b><br/>• Speed: <b>50 ISO ppm</b> Line-Head<br/>• Daily: <b>1,500 – 2,500 pages/day</b><br/>• Monthly: <b>7,000 – 40,000 pages/mo</b> (Max: 250k)"]
+    A3_S2 --> M9["<b>WorkForce Enterprise AM-C6000</b><br/>• Speed: <b>60 ISO ppm</b> Line-Head<br/>• Daily: <b>2,000 – 3,500 pages/day</b><br/>• Monthly: <b>10,000 – 60,000 pages/mo</b> (Max: 300k)"]
+
+    %% A3 Subcat 3: Flagship Ultra High-Speed
+    A3_SUB -->|"3. a3_production_flagship<br/>(Continuous Central Repro)"| A3_S3["Ultra High-Speed Flagship<br/><b>3,000 – 10,000+ pages/day</b>"]
+    A3_S3 --> M10["<b>WorkForce Enterprise WF-C21000 D4TW</b><br/>• Speed: <b>100 ISO ppm</b> Line-Head<br/>• Daily: <b>3,000 – 10,000+ pages/day</b><br/>• Monthly: <b>15,000 – 100,000+ pages/mo</b> (Max: 400k)"]
+
+    style ROOT fill:#2563eb,stroke:#1d4ed8,color:#ffffff
+    style SIZE fill:#fef3c7,stroke:#d97706,color:#000000
+    style A4_SUB fill:#fef3c7,stroke:#d97706,color:#000000
+    style A3_SUB fill:#fef3c7,stroke:#d97706,color:#000000
+    style A4_S1 fill:#dbeafe,stroke:#3b82f6,color:#1e3a8a
+    style A4_S2 fill:#dbeafe,stroke:#3b82f6,color:#1e3a8a
+    style A4_S3 fill:#dbeafe,stroke:#3b82f6,color:#1e3a8a
+    style A3_S1 fill:#dbeafe,stroke:#3b82f6,color:#1e3a8a
+    style A3_S2 fill:#dbeafe,stroke:#3b82f6,color:#1e3a8a
+    style A3_S3 fill:#dbeafe,stroke:#3b82f6,color:#1e3a8a
+```
+
+### Office Volume & Speed Calculation Reference
+
+| Format | Subcategory | Model | Speed | Daily Pages | Recommended Monthly Volume | Max Monthly Duty |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: |
+| **A4** | `a4_standard_mfp` | **WF-C5890DWF** | 25 ppm | < 100 pages | 500 – 5,000 | 45,000 |
+| **A4** | `a4_compact_rips` | **EM-C800** | 25 ppm | 100 – 300 pages | 1,000 – 10,000 | 50,000 |
+| **A4** | `a4_enterprise_linehead` | **AM-C400** | 40 ppm | 300 – 800 pages | 1,500 – 15,000 | 100,000 |
+| **A4** | `a4_enterprise_linehead` | **AM-C550** | 55 ppm | 800 – 2,000 pages | 2,000 – 20,000+ | 150,000 |
+| **A3** | `a3_departmental_rips` | **WF-C878R DWF** | 25 ppm | 100 – 400 pages | 1,500 – 10,000 | 75,000 |
+| **A3** | `a3_departmental_rips` | **WF-C879R DWF** | 26 ppm | 200 – 500 pages | 2,000 – 15,000 | 75,000 |
+| **A3** | `a3_enterprise_linehead` | **AM-C4000** | 40 ppm | 500 – 1,500 pages | 5,000 – 30,000 | 200,000 |
+| **A3** | `a3_enterprise_linehead` | **AM-C5000** | 50 ppm | 1,500 – 2,500 pages | 7,000 – 40,000 | 250,000 |
+| **A3** | `a3_enterprise_linehead` | **AM-C6000** | 60 ppm | 2,000 – 3,500 pages | 10,000 – 60,000 | 300,000 |
+| **A3** | `a3_production_flagship` | **WF-C21000 D4TW** | 100 ppm | 3,000 – 10,000+ pages | 15,000 – 100,000+ | 400,000 |
+
+---
+
+## 3. CAD / Technical Large Format (`technical_large_format` — All 13 Models)
+
+```mermaid
+flowchart LR
+    ROOT["Technical Large Format (CAD/GIS)"] --> SUB{"Select Subcategory"}
+
+    %% 1. 24-inch Print-Only
+    SUB -->|"technical_24_print_only"| S_T24["24-inch Print-Only (A1)"]
+    S_T24 --> T1["SureColor SC-T3100<br/>• Entry desktop / stand | 34s/A1 | XD2 inks"]
+    S_T24 --> T2["SureColor SC-T3700E<br/>• Compact production single roll | 16s/A1 | Red ink"]
+    S_T24 --> T3["SureColor SC-T3700D<br/>• Production dual roll auto-switching | 16s/A1"]
+    S_T24 --> T4["SureColor SC-T3700DE<br/>• Production dual roll + Adobe PostScript"]
+
+    %% 2. 36-inch Print-Only
+    SUB -->|"technical_36_print_only"| S_T36_P["36-inch Print-Only (A0)"]
+    S_T36_P --> T5["SureColor SC-T5100<br/>• Entry 36″ stand plotter | 31s/A1"]
+    S_T36_P --> T6["SureColor SC-T5405<br/>• High-speed production CAD | 22s/A1"]
+    S_T36_P --> T7["SureColor SC-T5700D<br/>• Dual roll production + Red ink | 16s/A1"]
+
+    %% 3. 36-inch Multifunction (MFP)
+    SUB -->|"technical_36_multifunction"| S_T36_M["36-inch Multifunction (MFP)"]
+    S_T36_M --> T8["SureColor SC-T5100M<br/>• Compact 36″ CIS scanner MFP"]
+    S_T36_M --> T9["SureColor SC-T5400M<br/>• Production 36″ CIS scanner MFP"]
+    S_T36_M --> T10["SureColor SC-T5700DM<br/>• Dual-roll + 36″ dual-light CIS scanner"]
+
+    %% 4. 44-inch Print-Only
+    SUB -->|"technical_44_print_only"| S_T44_P["44-inch Print-Only"]
+    S_T44_P --> T11["SureColor SC-T7700D<br/>• 44″ dual roll production (700ml cartridges)"]
+    S_T44_P --> T12["SureColor SC-T7700DL<br/>• 44″ dual roll with 1.6L bulk ink supply"]
+
+    %% 5. 44-inch Multifunction (MFP)
+    SUB -->|"technical_44_multifunction"| S_T44_M["44-inch Multifunction (MFP)"]
+    S_T44_M --> T13["SureColor SC-T7700DM<br/>• 44″ dual roll + integrated 36″ scanner"]
+
+    style ROOT fill:#7c3aed,stroke:#6d28d9,color:#ffffff
+    style SUB fill:#fef3c7,stroke:#d97706,color:#000000
+    style S_T24 fill:#ede9fe,stroke:#8b5cf6,color:#4c1d95
+    style S_T36_P fill:#ede9fe,stroke:#8b5cf6,color:#4c1d95
+    style S_T36_M fill:#ede9fe,stroke:#8b5cf6,color:#4c1d95
+    style S_T44_P fill:#ede9fe,stroke:#8b5cf6,color:#4c1d95
+    style S_T44_M fill:#ede9fe,stroke:#8b5cf6,color:#4c1d95
 ```
 
 ---
 
-## 3. Product Catalogue Matrix
+## 4. Photography & Fine Art (`photography_large_format` — All 14 Models)
 
-| Category | Model | Form Factor | Max Width / Media | Key Feature |
-| :--- | :--- | :--- | :--- | :--- |
-| **Office A4** | **WorkForce Pro WF-C5890DWF** | Desktop MFP | A4 Sheet | 25 ppm, 10,000 page ink packs |
-| **Office A4** | **WorkForce Pro EM-C800** | Desktop MFP | A4 Sheet | 25 ppm, compact RIPS |
-| **Office A4** | **WorkForce Enterprise AM-C400** | Floorstand MFP | A4 Sheet | 40 ppm Heat-Free line-head |
-| **Office A4** | **WorkForce Enterprise AM-C550** | Floorstand MFP | A4 Sheet | 55 ppm Heat-Free line-head |
-| **Office A3** | **WorkForce Pro WF-C878R DWF** | Floorstand MFP | A3+ Sheet | 25 ppm, 86k mono / 50k color yield |
-| **Office A3** | **WorkForce Pro WF-C879R DWF** | Floorstand MFP | A3+ Sheet | 26 ppm, heavy duty ADF |
-| **Office A3** | **WorkForce Enterprise AM-C4000** | Departmental MFP | A3+ Sheet | 40 ppm Heat-Free line-head |
-| **Office A3** | **WorkForce Enterprise AM-C5000** | Departmental MFP | A3+ Sheet | 50 ppm Heat-Free line-head |
-| **Office A3** | **WorkForce Enterprise AM-C6000** | Departmental MFP | A3+ Sheet | 60 ppm Heat-Free line-head |
-| **Office A3** | **WorkForce Enterprise WF-C21000**| Flagship MFP | A3+ Sheet | 100 ppm ultra-fast line-head |
-| **CAD/GIS 24″** | **SureColor SC-T3100** | Stand / Desktop | 24-inch Roll | Compact entry plotter |
-| **CAD/GIS 24″** | **SureColor SC-T3700E** | Production Plotter | 24-inch Roll | Single roll, compact flat-top |
-| **CAD/GIS 24″** | **SureColor SC-T3700D / DE** | Production Plotter | 24-inch Dual Roll | Dual roll auto-switching, Red ink |
-| **CAD/GIS 36″** | **SureColor SC-T5100** | Stand Plotter | 36-inch Roll | High accuracy 36″ line drawings |
-| **CAD/GIS 36″** | **SureColor SC-T5405** | Production Plotter | 36-inch Roll | High-speed CAD printing |
-| **CAD/GIS 36″** | **SureColor SC-T5700D** | Dual Roll Plotter | 36-inch Dual Roll | Dual roll, Red ink gamut |
-| **CAD/GIS 36″** | **SureColor SC-T5100M** | Compact MFP | 36-inch Roll | Integrated 36″ scanner |
-| **CAD/GIS 36″** | **SureColor SC-T5400M** | Production MFP | 36-inch Roll | Integrated CIS scanner for CAD |
-| **CAD/GIS 36″** | **SureColor SC-T5700DM** | Production MFP | 36-inch Dual Roll | Dual light CIS scanner + dual roll |
-| **CAD/GIS 44″** | **SureColor SC-T7700D** | Dual Roll Plotter | 44-inch Dual Roll | 44″ high capacity technical |
-| **CAD/GIS 44″** | **SureColor SC-T7700DL** | Bulk Ink Plotter | 44-inch Dual Roll | 1.6L bulk ink supply |
-| **CAD/GIS 44″** | **SureColor SC-T7700DM** | Dual Roll MFP | 44-inch Dual Roll | 44″ dual roll with 36″ scanner |
-| **Photo 13″** | **SureColor SC-P700** | Desktop Photo | 13-inch (A3+) | UltraChrome PRO10, Carbon Black |
-| **Photo 17″** | **SureColor SC-P900** | Desktop Photo | 17-inch (A2+) | 10-colour PRO10, optional roll unit |
-| **Photo 17″** | **SureColor SC-P5300** | Production Photo | 17-inch Roll | Built-in roll, 10-colour PRO10 |
-| **Photo 24″** | **SureColor SC-P6500E / D / DE**| Compact Photo | 24-inch Roll | Flat-back design, dual roll |
-| **Photo 24″** | **SureColor SC-P7500** | Master Studio | 24-inch Roll | 12-colour UltraChrome PRO12 |
-| **Photo 24″** | **SureColor SC-P7500 Spectro** | Studio Proofer | 24-inch Roll | Integrated ILS30 spectrophotometer |
-| **Photo 44″** | **SureColor SC-P8500D / DM** | Commercial Photo | 44-inch Dual Roll | 44″ dual roll photo + scanner |
-| **Photo 44″** | **SureColor SC-P9500** | Master Studio | 44-inch Roll | 12-colour UltraChrome PRO12 |
-| **Photo 44″** | **SureColor SC-P9500 Spectro** | Studio Proofer | 44-inch Roll | Integrated ILS30 spectrophotometer |
-| **Photo 64″** | **SureColor SC-P20500** | Flagship Production| 64-inch Roll | 12-colour 1.6L bulk inks |
-| **Citizen** | **Citizen CZ-01** | Photo Booth | 4-inch Roll | Ultra-lightweight (5.8 kg) |
-| **Citizen** | **Citizen CX-02** | Event Photo | 6-inch Roll | Ribbon rewind, fast event prints |
-| **Citizen** | **Citizen CY-02** | High Capacity | 6-inch Roll | 700 prints per roll capacity |
-| **Citizen** | **Citizen CX-02W** | Wide Event Photo | 8-inch Roll | 8x10″ and 8x12″ instant photos |
-| **Dye-Sub** | **SureColor SC-F100** | Desktop Sublimation| A4 Sheet | Refillable ink tanks, gifts |
-| **Dye-Sub** | **SureColor SC-F500** | 24″ Sublimation | 24-inch Roll | Textiles, apparel, jersey transfer |
-| **Scanners** | **Expression 12000XL / Pro** | Fine Art Flatbed | A3 Flatbed | 2400 x 4800 dpi, Transparency unit|
-| **Scanners** | **WorkForce DS-530II / 790WN** | Document Sheetfed | A4 Sheetfed | 35 to 45 ppm, touchscreen network|
-| **Scanners** | **WorkForce DS-60000 / 70000** | Archival Flatbed | A3 Flatbed + ADF | Heavy duty 70 ppm, 200 sheet ADF |
+```mermaid
+flowchart LR
+    ROOT["Photography & Fine Art"] --> SUB{"Select Subcategory"}
+
+    %% 1. 13-inch Desktop
+    SUB -->|"photo_13_desktop"| S_P13["13-inch Desktop (A3+)"]
+    S_P13 --> P1["SureColor SC-P700<br/>• 10-colour UltraChrome PRO10 | Carbon Black Mode"]
+
+    %% 2. 17-inch Desktop & Heavy Duty
+    SUB -->|"photo_17_desktop"| S_P17["17-inch Desktop & Production (A2+)"]
+    S_P17 --> P2["SureColor SC-P900<br/>• 17″ desktop sheet photo printer"]
+    S_P17 --> P3["SureColor SC-P900 with Roll Adapter<br/>• 17″ panoramic roll photo printer"]
+    S_P17 --> P4["SureColor SC-P5300<br/>• 17″ heavy-duty production roll (PRO10 + Violet)"]
+
+    %% 3. 24-inch Professional
+    SUB -->|"photo_24_professional"| S_P24["24-inch Professional Studio"]
+    S_P24 --> P5["SureColor SC-P6500E<br/>• 24″ 6-colour PRO6 compact single roll"]
+    S_P24 --> P6["SureColor SC-P6500D<br/>• 24″ 6-colour PRO6 compact dual roll"]
+    S_P24 --> P7["SureColor SC-P6500DE<br/>• 24″ 6-colour PRO6 dual roll + Adobe PS"]
+    S_P24 --> P8["SureColor SC-P7500<br/>• 24″ 12-colour UltraChrome PRO12 (99% Pantone)"]
+    S_P24 --> P9["SureColor SC-P7500 Spectro<br/>• 24″ automated ILS30 spectrophotometer proofer"]
+
+    %% 4. 44-inch Professional
+    SUB -->|"photo_44_professional"| S_P44["44-inch Professional Gallery"]
+    S_P44 --> P10["SureColor SC-P8500D<br/>• 44″ 6-colour PRO6 dual roll commercial photo"]
+    S_P44 --> P11["SureColor SC-P8500DM<br/>• 44″ dual roll commercial photo + 36″ scanner"]
+    S_P44 --> P12["SureColor SC-P9500<br/>• 44″ 12-colour UltraChrome PRO12 master studio"]
+    S_P44 --> P13["SureColor SC-P9500 Spectro<br/>• 44″ automated ILS30 spectrophotometer proofer"]
+
+    %% 5. 64-inch Production
+    SUB -->|"photo_64_production"| S_P64["64-inch High-Volume Production"]
+    S_P64 --> P14["SureColor SC-P20500<br/>• 64″ 12-colour PRO12 | 1.6L bulk ink packs"]
+
+    style ROOT fill:#db2777,stroke:#be185d,color:#ffffff
+    style SUB fill:#fef3c7,stroke:#d97706,color:#000000
+    style S_P13 fill:#fce7f3,stroke:#ec4899,color:#831843
+    style S_P17 fill:#fce7f3,stroke:#ec4899,color:#831843
+    style S_P24 fill:#fce7f3,stroke:#ec4899,color:#831843
+    style S_P44 fill:#fce7f3,stroke:#ec4899,color:#831843
+    style S_P64 fill:#fce7f3,stroke:#ec4899,color:#831843
+```
+
+---
+
+## 5. Photo Booth / Instant Photo (`citizen_photo` — All 4 Models)
+
+```mermaid
+flowchart LR
+    ROOT["Citizen Dye-Sub Photo"] --> SUB{"Select Subcategory"}
+
+    %% 4-inch
+    SUB -->|"citizen_4_inch"| S_C4["4-inch Ultra-Compact"]
+    S_C4 --> C1["Citizen CZ-01<br/>• 5.8 kg ultra-compact | 4x6″ and 4.5x8″ prints"]
+
+    %% 6-inch
+    SUB -->|"citizen_6_inch"| S_C6["6-inch Event Photos"]
+    S_C6 --> C2["Citizen CX-02<br/>• Fast 8.4s print | Ribbon-save rewind (4x6, 5x7, 6x8)"]
+    S_C6 --> C3["Citizen CY-02<br/>• High-capacity 700 prints/roll | Heavy duty kiosk"]
+
+    %% 8-inch
+    SUB -->|"citizen_8_inch"| S_C8["8-inch Wide Event"]
+    S_C8 --> C4["Citizen CX-02W<br/>• 8x10″ and 8x12″ pro prints | Metallic & Silver Pearl"]
+
+    style ROOT fill:#ea580c,stroke:#c2410c,color:#ffffff
+    style SUB fill:#fef3c7,stroke:#d97706,color:#000000
+    style S_C4 fill:#ffedd5,stroke:#f97316,color:#7c2d12
+    style S_C6 fill:#ffedd5,stroke:#f97316,color:#7c2d12
+    style S_C8 fill:#ffedd5,stroke:#f97316,color:#7c2d12
+```
+
+---
+
+## 6. Apparel / T-Shirt / Mug (`dye_sublimation` — All 2 Models)
+
+```mermaid
+flowchart LR
+    ROOT["Dye Sublimation"] --> SUB{"Select Subcategory"}
+
+    %% A4 Desktop
+    SUB -->|"dye_sublimation_desktop"| S_D1["A4 Desktop Gifts"]
+    S_D1 --> D1["SureColor SC-F100 Sublimation Printer<br/>• Refillable ink tanks (140ml)<br/>• For mugs, phone covers, badges, small gifts"]
+
+    %% 24-inch Roll
+    SUB -->|"dye_sublimation_24_inch"| S_D2["24-inch Roll Apparel"]
+    S_D2 --> D2["SureColor SC-F500 Sublimation Printer<br/>• 24″ continuous roll + auto sheet feeder<br/>• For sports jerseys, apparel, soft signage"]
+
+    style ROOT fill:#0d9488,stroke:#0f766e,color:#ffffff
+    style SUB fill:#fef3c7,stroke:#d97706,color:#000000
+    style S_D1 fill:#ccfbf1,stroke:#14b8a6,color:#134e4a
+    style S_D2 fill:#ccfbf1,stroke:#14b8a6,color:#134e4a
+```
+
+---
+
+## 7. Scanning Solutions (`scanners` — All 29 Models)
+
+```mermaid
+flowchart LR
+    ROOT["Professional Scanners"] --> SUB{"Select Subcategory"}
+
+    %% Photo Scanners
+    SUB -->|"photo_scanners"| S_PH["Graphic & Fine Art Film"]
+    S_PH --> SC1["Expression 12000XL (A3 Fine Art Flatbed)"]
+    S_PH --> SC2["Expression 12000XL Pro (Includes TPU Film Unit)"]
+
+    %% Hybrid Scanners
+    SUB -->|"hybrid_scanners"| S_HY["Books & Stacks (Hybrid Flatbed + ADF)"]
+    S_HY --> SC3["WorkForce DS-1630 / DS-1660W (A4 Flatbed + 50-page ADF)"]
+    S_HY --> SC4["WorkForce DS-6500 / DS-6500N / DS-7500 / DS-7500N (A4 Flatbed + 100-page ADF)"]
+    S_HY --> SC5["WorkForce DS-60000 / DS-60000N / DS-70000 / DS-70000N (A3 Flatbed + 200-page ADF)"]
+
+    %% Business Sheetfed Scanners
+    SUB -->|"business_scanners"| S_BIZ["Fast Sheetfed Business"]
+    S_BIZ --> SC6["Mobile / Portable: DS-70, DS-80W, DS-310, DS-360W"]
+    S_BIZ --> SC7["Desktop Workgroup (35–45 ppm): DS-410, DS-530II, ES-500WII, ES-580W"]
+    S_BIZ --> SC8["High-Speed Network (65–90 ppm): DS-730N, DS-770II, DS-790WN, DS-800WN, DS-870, DS-970, DS-900WN"]
+    S_BIZ --> SC9["A3 Production (70–85 ppm): DS-30000, DS-32000"]
+
+    style ROOT fill:#475569,stroke:#334155,color:#ffffff
+    style SUB fill:#fef3c7,stroke:#d97706,color:#000000
+    style S_PH fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style S_HY fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style S_BIZ fill:#e2e8f0,stroke:#64748b,color:#0f172a
+```

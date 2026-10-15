@@ -345,7 +345,7 @@ class ReferentResolver:
         if state.last_shown_chips:
             for c in state.last_shown_chips:
                 c_l = c.lower().strip()
-                if text_l == c_l or (len(text_l) > 3 and text_l in c_l):
+                if text_l == c_l or (not text_l.isdigit() and len(text_l) > 3 and text_l in c_l):
                     return {"id": c, "label": c, "value": c}
 
         if not options:
@@ -372,10 +372,10 @@ class ReferentResolver:
                 if str(opt.get("id", "")).lower() in ("no", "reject", "cancel") or "no" in str(opt.get("label", "")).lower():
                     return opt
 
-        # Exact or partial label match
+        # Exact or partial label match (never partial match bare digits)
         for opt in options:
             label = str(opt.get("label", "")).lower()
-            if text_l == label or text_l in label or label in text_l:
+            if text_l == label or (not text_l.isdigit() and len(text_l) > 3 and (text_l in label or label in text_l)):
                 return opt
 
         return None

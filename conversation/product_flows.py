@@ -55,7 +55,16 @@ def extract_flowchart_requirements(text: str, current_reqs: Optional[Dict[str, A
     Preserves existing requirements across conversational turns.
     """
     text_l = (text or "").lower()
-    text_clean = re.sub(r"(?<=\d),(?=\d)", "", text_l)
+    # Normalize unicode quotes, primes, and accents
+    text_clean = (
+        text_l.replace("”", '"')
+        .replace("“", '"')
+        .replace("″", '"')
+        .replace("’", "'")
+        .replace("‘", "'")
+    )
+    text_clean = re.sub(r"(?<=\d),(?=\d)", "", text_clean)
+    text_l = text_clean
     reqs = dict(current_reqs or {})
 
     # 0. Budget AED extraction (single source of truth from numeric_parse)
@@ -98,10 +107,11 @@ def extract_flowchart_requirements(text: str, current_reqs: Optional[Dict[str, A
             reqs["office_duty_class"] = "standard_mfp"
 
     # 2. Office Daily Volume & Technology Class
-    # Numbers: e.g. "50 pages", "100/day", "500 pages a day", "maybe 60 daily", "around 500 pic"
+    # Numbers: e.g. "50 pages", "100/day", "500 pages a day", "maybe 60 daily", "around 500 pic", or bare "40"
     vol_num_match = (
         re.search(r"\b(\d+)\s*(?:pages?|prints?|drawings?|items?|sheets?|photos?|pics?|docs?|plans?)?\s*(?:a\s*day|per\s*day|daily|\/day)\b", text_l)
         or re.search(r"\b(?:around|about|maybe|approx)?\s*(\d+)\s*(?:pages?|prints?|drawings?|items?|sheets?|photos?|pics?|docs?|plans?)\b", text_l)
+        or re.search(r"^\s*(?:around|about|maybe|approx)?\s*(\d+)\s*$", text_l)
     )
     if vol_num_match:
         pages = int(vol_num_match.group(1))
@@ -122,35 +132,33 @@ def extract_flowchart_requirements(text: str, current_reqs: Optional[Dict[str, A
             reqs["office_duty_class"] = "ultra_100"
 
     # Verbal volume & speed matching
-    if any(k in text_l for k in ["under 100", "standard mfp", "34 ppm", "wf-c5890", "c5890", "low volume", "50/day"]):
+    if any(k in text_l for k in ["under 100", "< 100", "<100", "standard mfp", "standard 25 ppm", "34 ppm", "wf-c5890", "c5890", "low volume", "50/day"]):
         reqs["office_speed_class"] = "34_ppm"
-    elif any(k in text_l for k in ["100–300", "100-300", "compact rips", "em-c800", "c800"]):
+    elif any(k in text_l for k in ["100–300", "100-300", "compact rips", "compact rips 25 ppm", "em-c800", "c800"]):
         reqs["office_speed_class"] = "25_ppm_rips"
-    elif any(k in text_l for k in ["300–800", "300-800", "40 ppm", "am-c400", "am-c4000", "c400", "c4000"]):
+    elif any(k in text_l for k in ["300+", "300 +", "enterprise line-head", "enterprise line head", "300–800", "300-800", "40 ppm", "55 ppm", "am-c400", "am-c4000", "c400", "c4000", "am-c550", "c550"]):
         reqs["office_speed_class"] = "40_ppm_linehead"
         reqs["office_duty_class"] = "linehead_40"
-    elif any(k in text_l for k in ["800+", "55 ppm", "am-c550", "c550"]):
-        reqs["office_speed_class"] = "55_ppm_linehead"
-    elif any(k in text_l for k in ["200–500", "200-500", "departmental rips", "wf-c878r", "wf-c879r", "c878", "c879"]):
+    elif any(k in text_l for k in ["100–500", "100-500", "200–500", "200-500", "departmental rips", "wf-c878r", "wf-c879r", "c878", "c879"]):
         reqs["office_duty_class"] = "departmental_rips"
-    elif any(k in text_l for k in ["1,500–3,000", "1500-3000", "50 ppm", "60 ppm", "am-c5000", "am-c6000", "c5000", "c6000"]):
+    elif any(k in text_l for k in ["500–3,500", "500-3500", "1,500–3,000", "1500-3000", "line-head 40/50/60", "50 ppm", "60 ppm", "am-c5000", "am-c6000", "c5000", "c6000"]):
         reqs["office_duty_class"] = "linehead_50_60"
-    elif any(k in text_l for k in ["3,000+", "3000+", "100 ppm", "ultra high", "wf-c21000", "c21000"]):
+    elif any(k in text_l for k in ["3,000+", "3000+", "high-volume 100 ppm", "100 ppm", "ultra high", "wf-c21000", "c21000"]):
         reqs["office_duty_class"] = "ultra_100"
 
     # 3. CAD Plotter Width (Largest size wins: e.g. A1 and A0 -> A0/36-inch)
     cad_widths = []
-    if re.search(r"\b(?:6[45][\s-]*(?:inch|in|\"|'')|6[45]inch)\b", text_l):
+    if re.search(r"(?:\b6[45][\s-]*(?:inch|in|\"|'')|6[45]inch|\b6[45]\s*(?:\"|inch|in|wide|\b))", text_l):
         cad_widths.append(64)
-    if re.search(r"\b(?:44[\s-]*(?:inch|in|\")|44inch|b0|production\s*44)\b", text_l):
+    if re.search(r"(?:\b44[\s-]*(?:inch|in|\"|'')|44inch|b0|production\s*44|\b44\s*(?:\"|inch|in|wide|\b))", text_l):
         cad_widths.append(44)
-    if re.search(r"\b(?:36[\s-]*(?:inch|in|\")|36inch|a0)\b", text_l):
+    if re.search(r"(?:\b36[\s-]*(?:inch|in|\"|'')|36inch|a0|\b36\s*(?:\"|inch|in|wide|\b))", text_l):
         cad_widths.append(36)
-    if re.search(r"\b(?:24[\s-]*(?:inch|in|\")|24inch|a1)\b", text_l):
+    if re.search(r"(?:\b24[\s-]*(?:inch|in|\"|'')|24inch|a1|\b24\s*(?:\"|inch|in|wide|\b))", text_l):
         cad_widths.append(24)
-    if re.search(r"\b(?:17[\s-]*(?:inch|in|\")|17inch|a2\+?)\b", text_l):
+    if re.search(r"(?:\b17[\s-]*(?:inch|in|\"|'')|17inch|a2\+?|\b17\s*(?:\"|inch|in|wide|\b))", text_l):
         cad_widths.append(17)
-    if re.search(r"\b(?:13[\s-]*(?:inch|in|\")|13inch|a3\+?)\b", text_l):
+    if re.search(r"(?:\b13[\s-]*(?:inch|in|\"|'')|13inch|a3\+?|\b13\s*(?:\"|inch|in|wide|\b))", text_l):
         cad_widths.append(13)
     if cad_widths:
         reqs["plotter_width"] = max(cad_widths)
@@ -185,15 +193,15 @@ def extract_flowchart_requirements(text: str, current_reqs: Optional[Dict[str, A
         reqs["cad_config_44"] = "dual_roll_print"
 
     # 4. Photo Width & Application
-    if re.search(r"\b13[\s-]*(?:inch|in|\")\b", text_l) or "a3+" in text_l or "p700" in text_l:
+    if re.search(r"(?:\b13[\s-]*(?:inch|in|\"|'')|13inch|\b13\s*(?:\"|inch|in|wide|\b))", text_l) or "a3+" in text_l or "p700" in text_l:
         reqs["photo_width"] = 13
-    elif re.search(r"\b17[\s-]*(?:inch|in|\")\b", text_l) or "a2+" in text_l or "p900" in text_l or "p5300" in text_l:
+    elif re.search(r"(?:\b17[\s-]*(?:inch|in|\"|'')|17inch|\b17\s*(?:\"|inch|in|wide|\b))", text_l) or "a2+" in text_l or "p900" in text_l or "p5300" in text_l:
         reqs["photo_width"] = 17
-    elif re.search(r"\b24[\s-]*(?:inch|in|\")\b", text_l) or "gallery 24" in text_l or "p6500" in text_l or "p7500" in text_l:
+    elif re.search(r"(?:\b24[\s-]*(?:inch|in|\"|'')|24inch|\b24\s*(?:\"|inch|in|wide|\b))", text_l) or "gallery 24" in text_l or "p6500" in text_l or "p7500" in text_l:
         reqs["photo_width"] = 24
-    elif re.search(r"\b44[\s-]*(?:inch|in|\")\b", text_l) or "p8500" in text_l or "p9500" in text_l:
+    elif re.search(r"(?:\b44[\s-]*(?:inch|in|\"|'')|44inch|production\s*44|\b44\s*(?:\"|inch|in|wide|\b))", text_l) or "p8500" in text_l or "p9500" in text_l:
         reqs["photo_width"] = 44
-    elif re.search(r"\b64[\s-]*(?:inch|in|\")\b", text_l) or "p20500" in text_l:
+    elif re.search(r"(?:\b64[\s-]*(?:inch|in|\"|'')|64inch|\b64\s*(?:\"|inch|in|wide|\b))", text_l) or "p20500" in text_l:
         reqs["photo_width"] = 64
 
     # Photo configuration
@@ -211,18 +219,20 @@ def extract_flowchart_requirements(text: str, current_reqs: Optional[Dict[str, A
     elif any(k in text_l for k in ["spectro", "spectrophotometer", "automated spectro", "spectro proofer"]):
         reqs["photo_24_type"] = "spectro"
 
-    if any(k in text_l for k in ["production mfp", "p8500d", "p8500dm"]):
+    if any(k in text_l for k in ["production mfp", "production", "p8500", "p8500d", "p8500dm"]):
         reqs["photo_44_type"] = "production_mfp"
-    elif any(k in text_l for k in ["master studio pro12", "pro12", "p9500"]):
+    elif any(k in text_l for k in ["master studio pro12", "master studio", "master", "pro12", "p9500"]):
         reqs["photo_44_type"] = "master_studio"
     elif any(k in text_l for k in ["spectro proofer"]):
         reqs["photo_44_type"] = "spectro_proofer"
 
     # 5. Citizen Photo
-    if re.search(r"\b4[\s-]*(?:inch|in|\")\b", text_l) or any(k in text_l for k in ["4x6", "cz-01", "cz01"]):
+    if re.search(r"(?:\b4[\s-]*(?:inch|in|\"|'')|\b4\s*(?:\"|inch|in|\b))", text_l) or any(k in text_l for k in ["4x6", "cz-01", "cz01"]):
         reqs["citizen_format"] = "4_inch"
-    elif re.search(r"\b6[\s-]*(?:inch|in|\")\b", text_l) or any(k in text_l for k in ["6x8", "cx-02", "cy-02", "cx02", "cy02"]):
+    elif re.search(r"(?:\b6[\s-]*(?:inch|in|\"|'')|\b6\s*(?:\"|inch|in|\b))", text_l) or any(k in text_l for k in ["6x8", "cx-02", "cy-02", "cx02", "cy02"]):
         reqs["citizen_format"] = "6_inch"
+    elif re.search(r"(?:\b8[\s-]*(?:inch|in|\"|'')|\b8\s*(?:\"|inch|in|\b))", text_l) or any(k in text_l for k in ["8x10", "8x12", "cx-02w", "cx02w"]):
+        reqs["citizen_format"] = "8_inch"
     elif re.search(r"\b8[\s-]*(?:inch|in|\")\b", text_l) or any(k in text_l for k in ["8x10", "8x12", "cx-02w", "cx02w"]):
         reqs["citizen_format"] = "8_inch"
 
@@ -341,15 +351,14 @@ def _resolve_flowchart_step_raw(
                     is_leaf=True,
                 )
             else:
-                # Ask Per-Day Volume for A4
+                # Ask 3 Subcategories for A4
                 return FlowchartStep(
                     category="office_printer",
                     question="Approximately how many pages do you print per day in the office?",
                     chips=[
-                        "Under 100 pages/day (Standard 34 ppm)",
+                        "< 100 pages/day (Standard 25 ppm)",
                         "100–300 pages/day (Compact RIPS 25 ppm)",
-                        "300–800 pages/day (Line-head 40 ppm)",
-                        "800+ pages/day (High-Speed 55 ppm)"
+                        "300+ pages/day (Enterprise Line-Head 40/55 ppm)"
                     ],
                     target_product_id=None,
                     supporting_product_ids=[],
@@ -400,14 +409,13 @@ def _resolve_flowchart_step_raw(
                     is_leaf=True,
                 )
             else:
-                # Ask Per-Day Volume for A3
+                # Ask Per-Day Volume for A3 (3 Subcategories)
                 return FlowchartStep(
                     category="office_printer",
                     question="Approximately how many pages do you print per day for your A3 workgroup or department?",
                     chips=[
-                        "200–500 pages/day (Departmental RIPS 25 ppm)",
-                        "500–1,500 pages/day (Line-head 40 ppm)",
-                        "1,500–3,000 pages/day (Line-head 50/60 ppm)",
+                        "100–500 pages/day (Departmental RIPS 25 ppm)",
+                        "500–3,500 pages/day (Enterprise Line-Head 40–60 ppm)",
                         "3,000+ pages/day (Ultra High-Speed 100 ppm)"
                     ],
                     target_product_id=None,
@@ -422,12 +430,18 @@ def _resolve_flowchart_step_raw(
     if cat_norm in ("technical_large_format", "technical_cad", "cad", "plotters"):
         width = reqs.get("plotter_width")
 
-        # Step 1: Plotter Width?
+        # Step 1: Subcategory?
         if not width:
             return FlowchartStep(
                 category="technical_large_format",
-                question="What plotter width do you require for CAD drawings, blueprints, or GIS mapping?",
-                chips=["24-inch (A1)", "36-inch (A0)", "44-inch Production"],
+                question="Which technical CAD subcategory fits your architectural and engineering requirements?",
+                chips=[
+                    "24″ Print-Only (A1)",
+                    "36″ Print-Only (A0)",
+                    "36″ Multifunction (MFP)",
+                    "44″ Print-Only",
+                    "44″ Multifunction (MFP)",
+                ],
                 target_product_id=None,
                 supporting_product_ids=[],
                 explanation="Kepler Tech supplies the Epson SureColor T-Series, engineered for line accuracy, AEC drawings, and water-resistant UltraChrome XD2/XD3 inks.",
@@ -558,12 +572,18 @@ def _resolve_flowchart_step_raw(
     if cat_norm in ("photography_large_format", "photo_fine_art", "photo", "fine_art"):
         photo_width = reqs.get("photo_width")
 
-        # Step 1: Print Width / Application?
+        # Step 1: Print Width / Subcategory?
         if not photo_width:
             return FlowchartStep(
                 category="photography_large_format",
-                question="What print width and format do you require for photography and fine art printing?",
-                chips=["13-inch (A3+)", "17-inch (A2+)", "24-inch Gallery", "44-inch Production", "64-inch Production"],
+                question="Which photography and fine art subcategory fits your requirements?",
+                chips=[
+                    "13″ Desktop (A3+)",
+                    "17″ Desktop & Production (A2+)",
+                    "24″ Professional Studio",
+                    "44″ Professional Gallery",
+                    "64″ High-Volume Production",
+                ],
                 target_product_id=None,
                 supporting_product_ids=[],
                 explanation="Epson SureColor P-Series printers feature UltraChrome PRO pigment inksets, dedicated Photo/Matte Black nozzles, and museum-grade archival stability.",

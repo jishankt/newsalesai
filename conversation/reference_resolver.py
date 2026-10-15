@@ -340,28 +340,21 @@ class ReferenceResolver:
                         mapping["the one without scanner"] = pname
                     break
 
-        # ── 4. Dimension / Width References ("the 36-inch one", "the wider one") ─
-        if re.search(r"\b(?:the\s+)?36[\s-]*(?:inch|in|\")\s*(?:one|model|printer)?\b", text_l):
-            for p in context_pool:
-                w = cls._get_product_width(p)
-                if w == 36:
-                    if p not in resolved_prods:
-                        resolved_prods.append(p)
-                        pname = p.get("display_name") or p.get("name") or p.get("id")
-                        mapping["the 36-inch one"] = pname
-                    break
+        # ── 4. Dimension / Width References ("the 36-inch one", "the 44-inch one", "the wider one") ─
+        for dim_val in [64, 44, 36, 24, 17, 13]:
+            if re.search(rf"\b(?:the\s+)?{dim_val}[\s-]*(?:inch|in|\"|”|″)\s*(?:one|model|printer)?\b", text_l):
+                for p in context_pool:
+                    w = cls._get_product_width(p)
+                    if w == dim_val:
+                        if p not in resolved_prods:
+                            resolved_prods.append(p)
+                            pname = p.get("display_name") or p.get("name") or p.get("id")
+                            mapping[f"the {dim_val}-inch one"] = pname
+                        break
 
-        if re.search(r"\b(?:the\s+)?24[\s-]*(?:inch|in|\")\s*(?:one|model|printer)?\b", text_l):
-            for p in context_pool:
-                w = cls._get_product_width(p)
-                if w == 24:
-                    if p not in resolved_prods:
-                        resolved_prods.append(p)
-                        pname = p.get("display_name") or p.get("name") or p.get("id")
-                        mapping["the 24-inch one"] = pname
-                    break
-
-        if re.search(r"\b(?:the\s+)?wider\s*(?:one|model|printer)?\b", text_l):
+        # Only resolve comparative "the wider one" if there is NO explicit dimension specified in text
+        has_explicit_dim = bool(re.search(r"\b\d+\s*(?:\"|”|″|inch|in)\b", text_l))
+        if not has_explicit_dim and re.search(r"\b(?:the\s+)?wider\s*(?:one|model|printer)?\b", text_l):
             widths = []
             for p in context_pool:
                 w = cls._get_product_width(p)
