@@ -1,0 +1,1776 @@
+{
+  "chat_01": {
+    "title": "Chat 1: A3 office, wrong volume, then correction",
+    "category": "Office printers (A4 / A3)",
+    "pass_criteria": "Turn 3 accepts 40 and doesn't re-ask. Turn 4 replaces the old value with 400. Turn 5 answers for both models shown (WF-C878R and WF-C879R).",
+    "turns": [
+      {
+        "turn": 1,
+        "user_message": "hi",
+        "reply": "Hello and welcome to Kepler Tech! Do you want a scanner, printer, or consumables?",
+        "chips": [
+          "Printer",
+          "Scanner",
+          "Consumables"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:answer",
+        "latency_ms": 509,
+        "state_category": null,
+        "state_active_product": null,
+        "state_requirements": {}
+      },
+      {
+        "turn": 2,
+        "user_message": "need a3 printer for office",
+        "reply": "For A3 commercial printing, select your daily page volume to match duty cycle and finishing options.\n\nApproximately how many pages do you print per day for your A3 workgroup or department?\n\n• 100–500 pages/day (Departmental RIPS 25 ppm)\n• 500–3,500 pages/day (Enterprise Line-Head 40–60 ppm)\n• 3,000+ pages/day (Ultra High-Speed 100 ppm)",
+        "chips": [
+          "100–500 pages/day (Departmental RIPS 25 ppm)",
+          "500–3,500 pages/day (Enterprise Line-Head 40–60 ppm)",
+          "3,000+ pages/day (Ultra High-Speed 100 ppm)"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 138,
+        "state_category": "office_printer",
+        "state_active_product": null,
+        "state_requirements": {
+          "category": "office_printer",
+          "application": "office_documents",
+          "print_size": "A3",
+          "paper_size": "a3",
+          "print_width": 13
+        }
+      },
+      {
+        "turn": 3,
+        "user_message": "its 40",
+        "reply": "Regarding your operational workflow:\n\nFor A3 commercial printing, select your daily page volume to match duty cycle and finishing options.\n\nApproximately how many pages do you print per day for your A3 workgroup or department?\n\n• 100–500 pages/day (Departmental RIPS 25 ppm)\n• 500–3,500 pages/day (Enterprise Line-Head 40–60 ppm)\n• 3,000+ pages/day (Ultra High-Speed 100 ppm)",
+        "chips": [
+          "100–500 pages/day (Departmental RIPS 25 ppm)",
+          "500–3,500 pages/day (Enterprise Line-Head 40–60 ppm)",
+          "3,000+ pages/day (Ultra High-Speed 100 ppm)"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 1519,
+        "state_category": "office_printer",
+        "state_active_product": null,
+        "state_requirements": {
+          "category": "office_printer",
+          "application": "office_documents",
+          "print_size": "A3",
+          "paper_size": "a3",
+          "print_width": 13,
+          "exact_daily_volume": 40,
+          "daily_volume": 40,
+          "monthly_volume": 1200,
+          "exact_monthly_volume": 1200,
+          "colour_mode": "colour"
+        }
+      },
+      {
+        "turn": 4,
+        "user_message": "sorry i meant 400 per day",
+        "reply": "Understood! Let's update that.",
+        "chips": [
+          "View Technical Specifications",
+          "Compatible Consumables",
+          "Request Official Quotation"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:repair",
+        "latency_ms": 142,
+        "state_category": "office_printer",
+        "state_active_product": null,
+        "state_requirements": {
+          "category": "office_printer",
+          "application": "office_documents",
+          "print_size": "A3",
+          "paper_size": "a3",
+          "print_width": 13,
+          "exact_daily_volume": 400,
+          "daily_volume": 400,
+          "monthly_volume": 12000,
+          "exact_monthly_volume": 12000,
+          "colour_mode": "colour"
+        }
+      },
+      {
+        "turn": 5,
+        "user_message": "both models have scan?",
+        "reply": "To continue with your equipment selection:\n\nFor A3 commercial printing, select your daily page volume to match duty cycle and finishing options.\n\nApproximately how many pages do you print per day for your A3 workgroup or department?\n\n• 100–500 pages/day (Departmental RIPS 25 ppm)\n• 500–3,500 pages/day (Enterprise Line-Head 40–60 ppm)\n• 3,000+ pages/day (Ultra High-Speed 100 ppm)",
+        "chips": [
+          "100–500 pages/day (Departmental RIPS 25 ppm)",
+          "500–3,500 pages/day (Enterprise Line-Head 40–60 ppm)",
+          "3,000+ pages/day (Ultra High-Speed 100 ppm)"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 1261,
+        "state_category": "office_printer",
+        "state_active_product": null,
+        "state_requirements": {
+          "category": "office_printer",
+          "application": "office_documents",
+          "print_size": "A3",
+          "paper_size": "a3",
+          "print_width": 13,
+          "exact_daily_volume": 400,
+          "daily_volume": 400,
+          "monthly_volume": 12000,
+          "exact_monthly_volume": 12000,
+          "colour_mode": "colour"
+        }
+      }
+    ]
+  },
+  "chat_02": {
+    "title": "Chat 2: A4 office, budget and comparison",
+    "category": "Office printers (A4 / A3)",
+    "pass_criteria": "Turn 3 gives no invented prices, only the catalogue price or the sales-desk referral. Turn 5 targets the right second product.",
+    "turns": [
+      {
+        "turn": 1,
+        "user_message": "i want a4 colour printer with scanner",
+        "reply": "Kepler Tech supplies specialized Epson scanners ranging from museum-grade graphic film units to heavy-duty batch document scanners.\n\nWhat type of documents or media will you be scanning?\n\n• Fast Sheetfed Business Scanners\n• Photo & Fine Art Film Scanners\n• Books & Stacks (Hybrid Flatbed+ADF)",
+        "chips": [
+          "Fast Sheetfed Business Scanners",
+          "Photo & Fine Art Film Scanners",
+          "Books & Stacks (Hybrid Flatbed+ADF)"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 141,
+        "state_category": "scanners",
+        "state_active_product": null,
+        "state_requirements": {}
+      },
+      {
+        "turn": 2,
+        "user_message": "50 pages a day",
+        "reply": "Kepler Tech provides Epson WorkForce Heat-Free printers in both compact A4 desktop workgroup and high-speed A3 departmental formats.\n\nDo you require standard A4 output or large-format A3 output for your office documents?",
+        "chips": [
+          "A4 Output",
+          "A3 Output"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 127,
+        "state_category": "office_printer",
+        "state_active_product": null,
+        "state_requirements": {}
+      },
+      {
+        "turn": 3,
+        "user_message": "which is cheaper",
+        "reply": "Is your main concern the upfront price or the running cost per print?\n\nPlease let me know whether you want to focus on upfront equipment cost or ongoing running costs.",
+        "chips": [
+          "Upfront price",
+          "Running cost",
+          "Show cheaper options"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 125,
+        "state_category": "office_printer",
+        "state_active_product": null,
+        "state_requirements": {
+          "colour_mode": "colour"
+        }
+      },
+      {
+        "turn": 4,
+        "user_message": "compare first two",
+        "reply": "How can I best assist you with Kepler Tech printing equipment?\n\n• Technical CAD Plotters\n• Professional Photo & Fine Art\n• Citizen Photo Booth / Events\n• Dye-Sublimation\n• Office Printers\n\nPlease select a category or ask a specific model question.",
+        "chips": [
+          "Technical CAD Plotters",
+          "Professional Photo & Fine Art",
+          "Citizen Photo Booth / Events",
+          "Dye-Sublimation",
+          "Office Printers"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 133,
+        "state_category": "office_printer",
+        "state_active_product": null,
+        "state_requirements": {
+          "colour_mode": "colour"
+        }
+      },
+      {
+        "turn": 5,
+        "user_message": "ok give quote for the second",
+        "reply": "Which model or application are you looking to price?\n\n• Office & Multifunction\n• CAD / Blueprint / GIS\n• Photo & Fine Art\n• Photo Booth / Instant Photo\n• Professional Scanners\n\nPlease select a category or specify a model to view verified pricing.",
+        "chips": [
+          "Office & Multifunction",
+          "CAD / Blueprint / GIS",
+          "Photo & Fine Art",
+          "Photo Booth / Instant Photo",
+          "Professional Scanners"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 133,
+        "state_category": "office_printer",
+        "state_active_product": null,
+        "state_requirements": {
+          "colour_mode": "colour"
+        }
+      }
+    ]
+  },
+  "chat_03": {
+    "title": "Chat 3: 40 ppm vs 40 pages",
+    "category": "Office printers (A4 / A3)",
+    "pass_criteria": "'40 ppm' is treated as speed, and turn 4 switches to the C878R.",
+    "turns": [
+      {
+        "turn": 1,
+        "user_message": "a3 office",
+        "reply": "For A3 commercial printing, select your daily page volume to match duty cycle and finishing options.\n\nApproximately how many pages do you print per day for your A3 workgroup or department?\n\n• 100–500 pages/day (Departmental RIPS 25 ppm)\n• 500–3,500 pages/day (Enterprise Line-Head 40–60 ppm)\n• 3,000+ pages/day (Ultra High-Speed 100 ppm)",
+        "chips": [
+          "100–500 pages/day (Departmental RIPS 25 ppm)",
+          "500–3,500 pages/day (Enterprise Line-Head 40–60 ppm)",
+          "3,000+ pages/day (Ultra High-Speed 100 ppm)"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 128,
+        "state_category": "office_printer",
+        "state_active_product": null,
+        "state_requirements": {
+          "category": "office_printer",
+          "application": "office_documents",
+          "print_size": "A3",
+          "paper_size": "a3",
+          "print_width": 13
+        }
+      },
+      {
+        "turn": 2,
+        "user_message": "40 ppm",
+        "reply": "Verified Print Speed: Rated at 40 ISO ppm black / 40 ISO ppm colour for high-productivity workflows.\n\nEpson WorkForce Enterprise AM-C4000: Enterprise line-head 40 ppm color MFP designed for medium-to-large departments printing 500–1,500 pages/day.\n\nHere is the verified 40 ppm enterprise line-head A3 MFP:",
+        "chips": [
+          "Technical Specs",
+          "Finishing Options",
+          "Official Quotation"
+        ],
+        "product_cards": [
+          "epson-am-c4000"
+        ],
+        "consumable_cards": [],
+        "source": "unified:answer",
+        "latency_ms": 139,
+        "state_category": "office_printer",
+        "state_active_product": "epson-am-c4000",
+        "state_requirements": {
+          "category": "office_printer",
+          "application": "office_documents",
+          "print_size": "A3",
+          "paper_size": "a3",
+          "print_width": 13,
+          "exact_daily_volume": 40,
+          "daily_volume": 40,
+          "monthly_volume": 1000,
+          "exact_monthly_volume": 1000,
+          "colour_mode": "colour"
+        }
+      },
+      {
+        "turn": 3,
+        "user_message": "how many pages per day is it good for",
+        "reply": "Operational volume & duty cycle: Recommended duty cycle: 5,000 to 30,000 pages per month.\n\nWould you like an official cost-per-print breakdown or formal quotation for the Epson WorkForce Enterprise AM-C4000?",
+        "chips": [
+          "Cost Per Print Breakdown",
+          "Official Quotation",
+          "Technical Specifications"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:answer",
+        "latency_ms": 134,
+        "state_category": "office_printer",
+        "state_active_product": "epson-am-c4000",
+        "state_requirements": {
+          "category": "office_printer",
+          "application": "office_documents",
+          "print_size": "A3",
+          "paper_size": "a3",
+          "print_width": 13,
+          "exact_daily_volume": 40,
+          "daily_volume": 40,
+          "monthly_volume": 1000,
+          "exact_monthly_volume": 1000,
+          "colour_mode": "colour"
+        }
+      },
+      {
+        "turn": 4,
+        "user_message": "and the c878r?",
+        "reply": "The c878r is not in our approved equipment catalogue. We specialize in authorized Epson and Citizen professional printing equipment.\n\nWhich printing application fits your workflow?",
+        "chips": [
+          "Official Quotation",
+          "Speak to Specialist"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:answer",
+        "latency_ms": 125,
+        "state_category": "office_printer",
+        "state_active_product": "epson-wf-c878r-dwf",
+        "state_requirements": {
+          "category": "office_printer",
+          "application": "office_documents",
+          "print_size": "A3",
+          "paper_size": "a3",
+          "print_width": 13,
+          "exact_daily_volume": 40,
+          "daily_volume": 40,
+          "monthly_volume": 1000,
+          "exact_monthly_volume": 1000,
+          "colour_mode": "colour"
+        }
+      }
+    ]
+  },
+  "chat_04": {
+    "title": "Chat 4: the typo case from your transcript",
+    "category": "Epson SureColor F100 (sublimation)",
+    "pass_criteria": "Turn 1 returns F100 consumables, not the spec card. Turn 2 refers to the sales desk or the published price. Turns 3 and 4 stay on the F100.",
+    "turns": [
+      {
+        "turn": 1,
+        "user_message": "i need f100 consubales",
+        "reply": "Yes, absolutely.\n\nEpson SureColor SC-F100 Sublimation Printer is an approved official equipment model in our catalogue.\n• Print speed: Approx. 65 sec per A4 sublimation transfer page\n• Resolution: 600 × 1,200 DPI\n• Supported format: a4\n\nWould you like to review full technical specifications or request an official quotation for the Epson SureColor SC-F100 Sublimation Printer?",
+        "chips": [
+          "Technical Specifications",
+          "Compatible Consumables",
+          "Official Quotation"
+        ],
+        "product_cards": [
+          "epson-sc-f100"
+        ],
+        "consumable_cards": [],
+        "source": "unified:answer",
+        "latency_ms": 124,
+        "state_category": null,
+        "state_active_product": "epson-sc-f100",
+        "state_requirements": {
+          "model": "epson-sc-f100",
+          "paper_size": "a4",
+          "print_width": 8.5,
+          "product_line": "surecolor_f"
+        }
+      },
+      {
+        "turn": 2,
+        "user_message": "price?",
+        "reply": "The Epson SureColor SC-F100 Sublimation Printer is listed at AED 1,950.00 (excl. VAT).\n\nOfficial quotations and tax invoices are issued directly at sales@keplertech.ae or +971 4 323 1008.",
+        "chips": [
+          "Request Official Quote",
+          "Compatible Consumables",
+          "View Technical Specs"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:answer",
+        "latency_ms": 123,
+        "state_category": null,
+        "state_active_product": "epson-sc-f100",
+        "state_requirements": {
+          "model": "epson-sc-f100",
+          "paper_size": "a4",
+          "print_width": 8.5,
+          "product_line": "surecolor_f"
+        }
+      },
+      {
+        "turn": 3,
+        "user_message": "any other ink for it",
+        "reply": "Found 7 verified compatible consumables for Epson SureColor SC-F100 Sublimation Printer.\n\nWould you like to order replacement supplies or review printer specifications?",
+        "chips": [
+          "Technical Specifications",
+          "Media Rolls",
+          "Official Quotation"
+        ],
+        "product_cards": [],
+        "consumable_cards": [
+          "Epson UltraChrome DS Dye-Sub Ink Bottle 140ml (Black)",
+          "Epson UltraChrome DS Dye-Sub Ink Bottle 140ml (Cyan)",
+          "Epson UltraChrome DS Dye-Sub Ink Bottle 140ml (Magenta)",
+          "Epson UltraChrome DS Dye-Sub Ink Bottle 140ml (Yellow)",
+          "Epson Maintenance Box (SC-F100)",
+          "C13S400078 DS Transfer General Purpose A4 Sheets"
+        ],
+        "source": "unified:answer",
+        "latency_ms": 124,
+        "state_category": "consumables",
+        "state_active_product": "epson-sc-f100",
+        "state_requirements": {}
+      },
+      {
+        "turn": 4,
+        "user_message": "what paper size it supports",
+        "reply": "Found 7 verified compatible consumables for Epson SureColor SC-F100 Sublimation Printer.\n\nWould you like to order replacement supplies or review printer specifications?",
+        "chips": [
+          "Technical Specifications",
+          "Media Rolls",
+          "Official Quotation"
+        ],
+        "product_cards": [],
+        "consumable_cards": [
+          "Epson UltraChrome DS Dye-Sub Ink Bottle 140ml (Black)",
+          "Epson UltraChrome DS Dye-Sub Ink Bottle 140ml (Cyan)",
+          "Epson UltraChrome DS Dye-Sub Ink Bottle 140ml (Magenta)",
+          "Epson UltraChrome DS Dye-Sub Ink Bottle 140ml (Yellow)",
+          "Epson Maintenance Box (SC-F100)",
+          "C13S400078 DS Transfer General Purpose A4 Sheets"
+        ],
+        "source": "unified:answer",
+        "latency_ms": 133,
+        "state_category": "consumables",
+        "state_active_product": "epson-sc-f100",
+        "state_requirements": {}
+      }
+    ]
+  },
+  "chat_05": {
+    "title": "Chat 5: topic switching",
+    "category": "Epson SureColor F100 (sublimation)",
+    "pass_criteria": "Turn 3 switches to A3 office. Turn 4 comes back to the F100 without losing context.",
+    "turns": [
+      {
+        "turn": 1,
+        "user_message": "sublimation printer for mugs and t-shirts",
+        "reply": "Here is the breakdown:\n\nEpson SureColor SC-F100: Compact A4 desktop dye-sub printer with refillable 140 ml ink tanks, perfect for mugs, phone cases, and small gifts.\n\nHere is the verified A4 desktop dye-sublimation printer:",
+        "chips": [
+          "SC-F100 Specs",
+          "140ml Ink Bottles (T49N)",
+          "Official Quotation"
+        ],
+        "product_cards": [
+          "epson-sc-f100"
+        ],
+        "consumable_cards": [],
+        "source": "unified:answer",
+        "latency_ms": 140,
+        "state_category": "dye_sublimation",
+        "state_active_product": "epson-sc-f100",
+        "state_requirements": {
+          "category": "dye_sublimation",
+          "application": "t_shirt_printing"
+        }
+      },
+      {
+        "turn": 2,
+        "user_message": "a4 only?",
+        "reply": "Moving forward with your request:\n\nHappy to help with that.\n\nEpson SureColor SC-F100: Compact A4 desktop dye-sub printer with refillable 140 ml ink tanks, perfect for mugs, phone cases, and small gifts.\n\nHere is the verified A4 desktop dye-sublimation printer:",
+        "chips": [
+          "SC-F100 Specs",
+          "140ml Ink Bottles (T49N)",
+          "Official Quotation"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:answer",
+        "latency_ms": 124,
+        "state_category": "dye_sublimation",
+        "state_active_product": "epson-sc-f100",
+        "state_requirements": {
+          "category": "dye_sublimation",
+          "application": "t_shirt_printing",
+          "paper_size": "a4",
+          "print_width": 8.5
+        }
+      },
+      {
+        "turn": 3,
+        "user_message": "and for the a3 office printer?",
+        "reply": "For A3 commercial printing, select your daily page volume to match duty cycle and finishing options.\n\nApproximately how many pages do you print per day for your A3 workgroup or department?\n\n• 100–500 pages/day (Departmental RIPS 25 ppm)\n• 500–3,500 pages/day (Enterprise Line-Head 40–60 ppm)\n• 3,000+ pages/day (Ultra High-Speed 100 ppm)",
+        "chips": [
+          "100–500 pages/day (Departmental RIPS 25 ppm)",
+          "500–3,500 pages/day (Enterprise Line-Head 40–60 ppm)",
+          "3,000+ pages/day (Ultra High-Speed 100 ppm)"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 135,
+        "state_category": "office_printer",
+        "state_active_product": null,
+        "state_requirements": {
+          "category": "office_printer",
+          "application": "office_documents",
+          "print_size": "A3",
+          "paper_size": "a3",
+          "print_width": 13
+        }
+      },
+      {
+        "turn": 4,
+        "user_message": "back to the f100 – ink bottle size",
+        "reply": "Here is the official specification:\n\nEpson SureColor SC-F100 Sublimation Printer — Verified Specifications:\n• Print speed: Approx. 65 sec per A4 sublimation transfer page\n• Resolution: 600 × 1,200 DPI\n• Functions: Print\n• Supported format: A4 (A4, A5, Letter)\n• Ink system: 4 Colours (Cyan, Magenta, Yellow, High-Density Black) - Epson UltraChrome DS Dye-Sublimation Ink (OEKO-TEX ECO PASSPORT)\n• Yield capacity: 140ml Refill Ink Tank System (Zero cartridge waste) (140ml Refill Ink Bottles (T49N Series))\n• Connectivity: Wi-Fi, Wi-Fi Direct, Gigabit Ethernet, USB\n• Dimensions: 375 × 347 × 187 mm (W × D × H)\n• Weight: 4.6 kg (net weight excluding inks)\n\nWould you like an official quotation or to review compatible supplies for the Epson SureColor SC-F100 Sublimation Printer?",
+        "chips": [
+          "Official Quotation",
+          "Compatible Consumables",
+          "Cost Per Page",
+          "Delivery Details"
+        ],
+        "product_cards": [],
+        "consumable_cards": [
+          "Epson UltraChrome DS Dye-Sub Ink Bottle 140ml (Black)",
+          "Epson UltraChrome DS Dye-Sub Ink Bottle 140ml (Cyan)",
+          "Epson UltraChrome DS Dye-Sub Ink Bottle 140ml (Magenta)",
+          "Epson UltraChrome DS Dye-Sub Ink Bottle 140ml (Yellow)",
+          "Epson Maintenance Box (SC-F100)",
+          "C13S400078 DS Transfer General Purpose A4 Sheets"
+        ],
+        "source": "unified:answer",
+        "latency_ms": 130,
+        "state_category": "office_printer",
+        "state_active_product": "epson-sc-f100",
+        "state_requirements": {
+          "category": "office_printer",
+          "application": "office_documents",
+          "print_size": "A3",
+          "paper_size": "a4",
+          "print_width": 8.5,
+          "model": "epson-sc-f100",
+          "product_line": "surecolor_f",
+          "colour_mode": "colour"
+        }
+      }
+    ]
+  },
+  "chat_06": {
+    "title": "Chat 6: event photographer, step by step",
+    "category": "Citizen photo booth (CX-02 / CY-02 / CZ-01)",
+    "pass_criteria": "Turn 3 keeps 4x6 and adds 6x8 (nothing is dropped). Turn 5 answers for the CY-02 and doesn't repeat the CX-02 answer.",
+    "turns": [
+      {
+        "turn": 1,
+        "user_message": "photo booth printer for events",
+        "reply": "Understood.\n\nCitizen dye-sublimation photo printers deliver high-speed, smudge-proof instant prints with gloss and matte finishes without changing paper.\n\nWhat photo print format do you need for instant event or photo booth printing?\n\n• 4-inch Ultra-Compact (CZ-01)\n• 6-inch Event Photos (CX-02 / CY-02)\n• 8-inch Wide Event (CX-02W)",
+        "chips": [
+          "4-inch Ultra-Compact (CZ-01)",
+          "6-inch Event Photos (CX-02 / CY-02)",
+          "8-inch Wide Event (CX-02W)"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 131,
+        "state_category": "citizen_photo",
+        "state_active_product": null,
+        "state_requirements": {
+          "category": "citizen_photo",
+          "application": "photo_booth",
+          "usage_environment": "photo_booth",
+          "photo_brand": "citizen",
+          "brand": "Citizen"
+        }
+      },
+      {
+        "turn": 2,
+        "user_message": "4x6 prints",
+        "reply": "Verified Compact Design: Weighs 5.8Kg (dimensions: 24 × 20.8 × 19.8 cm).\n\nCitizen CZ-01: Ultra-compact 4-inch dye-sub photo printer weighing only 5.8 kg, ideal for compact kiosks and mobile photographers.\n\nHere is the verified 4-inch ultra-compact photo printer:",
+        "chips": [
+          "Citizen CZ-01 Specs",
+          "Media Packs (4x6)",
+          "Official Quotation"
+        ],
+        "product_cards": [
+          "citizen-cz-01"
+        ],
+        "consumable_cards": [],
+        "source": "unified:answer",
+        "latency_ms": 125,
+        "state_category": "citizen_photo",
+        "state_active_product": "citizen-cz-01",
+        "state_requirements": {
+          "category": "citizen_photo",
+          "application": "photo_booth",
+          "usage_environment": "photo_booth",
+          "photo_brand": "citizen",
+          "brand": "Citizen",
+          "print_size": "4x6",
+          "size": "4x6",
+          "print_sizes": [
+            "4x6"
+          ]
+        }
+      },
+      {
+        "turn": 3,
+        "user_message": "also 6x8 sometimes",
+        "reply": "Verified Compact Design: Weighs 12 Kg (dimensions: 50 × 39 × 33.5 cm).\n\nCitizen CX-02 (Fast, lightweight) and Citizen CY-02 (High-capacity 700 prints/roll): Industry standard 6-inch dye-sub printers for photo booths.\n\nHere are the verified 6-inch event photo printers:",
+        "chips": [
+          "Citizen CX-02 (Fast)",
+          "Citizen CY-02 (700 Prints)",
+          "Media Packs (6x8/4x6)",
+          "Official Quotation"
+        ],
+        "product_cards": [
+          "citizen-cx-02",
+          "citizen-cy-02"
+        ],
+        "consumable_cards": [],
+        "source": "unified:answer",
+        "latency_ms": 132,
+        "state_category": "citizen_photo",
+        "state_active_product": "citizen-cx-02",
+        "state_requirements": {
+          "category": "citizen_photo",
+          "application": "photo_booth",
+          "usage_environment": "photo_booth",
+          "photo_brand": "citizen",
+          "brand": "Citizen",
+          "print_size": "6x8",
+          "size": "6x8",
+          "print_sizes": [
+            "6x8"
+          ]
+        }
+      },
+      {
+        "turn": 4,
+        "user_message": "cx02 yield?",
+        "reply": "Ink consumption & capacity: Cartridge capacity: CX2.4X6 (4×6″) and CX2.6X8 (6×8″) Media Packs | Ink system: Thermal Dye-Sublimation with Ribbon-Save Rewind & Glossy/Matte Control | Yield profile: 400 prints per roll (4×6″) / 200 prints per roll (6×8″); 800 prints per 2-roll box of CX2.4X6 | Actual ink consumption varies based on print coverage, media type, and resolution. Our sales desk can provide an exact TCO and cost-per-print breakdown.\n\nWould you like an official cost-per-print breakdown or formal quotation for the Citizen CX-02?",
+        "chips": [
+          "Cost Per Print Breakdown",
+          "Official Quotation",
+          "Technical Specifications"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:answer",
+        "latency_ms": 126,
+        "state_category": "citizen_photo",
+        "state_active_product": "citizen-cx-02",
+        "state_requirements": {
+          "category": "citizen_photo",
+          "application": "photo_booth",
+          "usage_environment": "photo_booth",
+          "photo_brand": "citizen",
+          "brand": "Citizen",
+          "print_size": "6x8",
+          "size": "6x8",
+          "print_sizes": [
+            "6x8"
+          ],
+          "exact_daily_volume": 2,
+          "daily_volume": 2,
+          "monthly_volume": 50,
+          "exact_monthly_volume": 50,
+          "product_line": "citizen"
+        }
+      },
+      {
+        "turn": 5,
+        "user_message": "and cy02?",
+        "reply": "Yes, absolutely.\n\nCitizen CY-02 is an approved official equipment model in our catalogue.\n• Print speed: 4×6″: 12.4 seconds (approx. 290 prints/hour); 6×8″: 21.9 seconds (approx. 164 prints/hour)\n• Resolution: 300 × 300 DPI (High-speed) / 300 × 600 DPI (High-resolution)\n• Supported format: 6-inch\n\nWould you like to review full technical specifications or request an official quotation for the Citizen CY-02?",
+        "chips": [
+          "Technical Specifications",
+          "Compatible Consumables",
+          "Official Quotation"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:answer",
+        "latency_ms": 122,
+        "state_category": "citizen_photo",
+        "state_active_product": "citizen-cy-02",
+        "state_requirements": {
+          "category": "citizen_photo",
+          "application": "photo_booth",
+          "usage_environment": "photo_booth",
+          "photo_brand": "citizen",
+          "brand": "Citizen",
+          "print_size": "6x8",
+          "size": "6x8",
+          "print_sizes": [
+            "6x8"
+          ],
+          "exact_daily_volume": 2,
+          "daily_volume": 2,
+          "monthly_volume": 50,
+          "exact_monthly_volume": 50,
+          "product_line": "citizen"
+        }
+      }
+    ]
+  },
+  "chat_07": {
+    "title": "Chat 7: ambiguous model typo",
+    "category": "Citizen photo booth (CX-02 / CY-02 / CZ-01)",
+    "pass_criteria": "Turn 1 asks which model is meant (CZ-01 or something else) instead of picking silently. Turn 2 resolves against the options shown.",
+    "turns": [
+      {
+        "turn": 1,
+        "user_message": "cz02 printer",
+        "reply": "The cz02 is not in our approved equipment catalogue. We specialize in authorized Epson and Citizen professional printing equipment.\n\nWhich printing application fits your workflow?",
+        "chips": [
+          "Official Quotation",
+          "Speak to Specialist"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:answer",
+        "latency_ms": 1515,
+        "state_category": null,
+        "state_active_product": null,
+        "state_requirements": {}
+      },
+      {
+        "turn": 2,
+        "user_message": "the first one",
+        "reply": "How can I best assist you with Kepler Tech printing equipment?\n\n• Technical CAD Plotters\n• Professional Photo & Fine Art\n• Citizen Photo Booth / Events\n• Dye-Sublimation\n• Office Printers\n\nPlease select a category or ask a specific model question.",
+        "chips": [
+          "Technical CAD Plotters",
+          "Professional Photo & Fine Art",
+          "Citizen Photo Booth / Events",
+          "Dye-Sublimation",
+          "Office Printers"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 127,
+        "state_category": null,
+        "state_active_product": null,
+        "state_requirements": {}
+      },
+      {
+        "turn": 3,
+        "user_message": "media for it",
+        "reply": "Which printer or scanner model do you need consumables for?\n\nPlease enter your model name, or select from the common options below:\n\n• Epson SC-F500\n• Epson SC-T3100\n• Citizen CX-02\n• Epson SC-P900\n\nPlease enter the model name or select from the options below.",
+        "chips": [
+          "Epson SC-F500",
+          "Epson SC-T3100",
+          "Citizen CX-02",
+          "Epson SC-P900"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 124,
+        "state_category": "consumables",
+        "state_active_product": null,
+        "state_requirements": {}
+      }
+    ]
+  },
+  "chat_08": {
+    "title": "Chat 8: pattern change",
+    "category": "Citizen photo booth (CX-02 / CY-02 / CZ-01)",
+    "pass_criteria": "Answers come from the catalogue, with 'not available' stated where there's no data.",
+    "turns": [
+      {
+        "turn": 1,
+        "user_message": "cz01 can i change print pattern",
+        "reply": "Happy to help with that.\n\nCitizen CZ-01 is an approved official equipment model in our catalogue.\n• Print speed: 4×4″: 16.3s; 4×6″: 18.8s; 4.5×4.5″: 19.5s; 4.5×8″: 23.1s\n• Resolution: 300 × 300 DPI (High-speed) / 300 × 600 DPI (High-resolution)\n• Supported format: 4.5-inch\n\nWould you like to review full technical specifications or request an official quotation for the Citizen CZ-01?",
+        "chips": [
+          "Technical Specifications",
+          "Compatible Consumables",
+          "Official Quotation"
+        ],
+        "product_cards": [
+          "citizen-cz-01"
+        ],
+        "consumable_cards": [],
+        "source": "unified:answer",
+        "latency_ms": 126,
+        "state_category": null,
+        "state_active_product": "citizen-cz-01",
+        "state_requirements": {
+          "exact_daily_volume": 1,
+          "daily_volume": 1,
+          "monthly_volume": 25,
+          "exact_monthly_volume": 25,
+          "product_line": "citizen"
+        }
+      },
+      {
+        "turn": 2,
+        "user_message": "how",
+        "reply": "Kepler Tech is an authorized distributor specializing in official Epson large-format and Citizen photo/dye-sublimation systems. We do not carry 3D printers, laser copiers, or third-party brands in our catalogue. Kepler Tech is an authorized commercial distributor specializing strictly in Epson and Citizen large-format printers, enterprise office MFPs, and professional document scanners. We do not provide non-commercial or culinary equipment.",
+        "chips": [
+          "Technical CAD Plotters",
+          "Photo & Fine Art",
+          "Citizen Photo Booth",
+          "Dye-Sublimation",
+          "Office Printers"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:out_of_scope_redirect",
+        "latency_ms": 1110,
+        "state_category": null,
+        "state_active_product": "citizen-cz-01",
+        "state_requirements": {
+          "exact_daily_volume": 1,
+          "daily_volume": 1,
+          "monthly_volume": 25,
+          "exact_monthly_volume": 25,
+          "product_line": "citizen"
+        }
+      },
+      {
+        "turn": 3,
+        "user_message": "what ribbon needed",
+        "reply": "Found 4 verified compatible consumables for Citizen CZ-01.\n\nWould you like to order replacement supplies or review printer specifications?",
+        "chips": [
+          "Technical Specifications",
+          "Media Rolls",
+          "Official Quotation"
+        ],
+        "product_cards": [],
+        "consumable_cards": [
+          "Citizen CZ-MS46 4×6″ Media Set",
+          "Citizen CZ-MS458 4.5×8″ Media Set",
+          "Citizen CZ-01 Compact Travel Carry Bag",
+          "Citizen Thermal Printhead Cleaning Pen"
+        ],
+        "source": "unified:answer",
+        "latency_ms": 128,
+        "state_category": "consumables",
+        "state_active_product": "citizen-cz-01",
+        "state_requirements": {}
+      }
+    ]
+  },
+  "chat_09": {
+    "title": "Chat 9: CAD / large format",
+    "category": "CAD / large format",
+    "pass_criteria": "Turn 2 treats '24' as inches because a size question is pending. Turn 4 updates the width and keeps 'no scanner'. Turn 5 gives rolls for the 36-inch.",
+    "turns": [
+      {
+        "turn": 1,
+        "user_message": "cad printer",
+        "reply": "Kepler Tech supplies the Epson SureColor T-Series, engineered for line accuracy, AEC drawings, and water-resistant UltraChrome XD2/XD3 inks.\n\nWhich technical CAD category fits your architectural and engineering requirements?\n\n• 24″ Print-Only (A1)\n• 36″ Print-Only (A0)\n• 36″ Multifunction (MFP)\n• 44″ Print-Only\n• 44″ Multifunction (MFP)",
+        "chips": [
+          "24″ Print-Only (A1)",
+          "36″ Print-Only (A0)",
+          "36″ Multifunction (MFP)",
+          "44″ Print-Only",
+          "44″ Multifunction (MFP)"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 130,
+        "state_category": "technical_large_format",
+        "state_active_product": null,
+        "state_requirements": {
+          "category": "technical_large_format",
+          "application": "cad"
+        }
+      },
+      {
+        "turn": 2,
+        "user_message": "24",
+        "reply": "Select between compact desktop placement or heavy-duty single/dual roll production engines.\n\nFor 24-inch CAD printing, what configuration fits your workspace?\n\n• Entry Desktop (SC-T3100)\n• Production Single Roll (SC-T3700E)\n• Production Dual Roll (SC-T3700D / DE)",
+        "chips": [
+          "Entry Desktop (SC-T3100)",
+          "Production Single Roll (SC-T3700E)",
+          "Production Dual Roll (SC-T3700D / DE)"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 1085,
+        "state_category": "technical_large_format",
+        "state_active_product": null,
+        "state_requirements": {
+          "category": "technical_large_format",
+          "application": "cad",
+          "print_size": "A1",
+          "paper_size": "A1",
+          "print_width": 24
+        }
+      },
+      {
+        "turn": 3,
+        "user_message": "no scanner needed",
+        "reply": "Happy to help with that.\n\nEpson SureColor SC-T3100: Compact 24-inch wireless desktop technical plotter, perfect for small architectural offices and project sites.\n\nHere is the verified entry desktop 24-inch CAD plotter:",
+        "chips": [
+          "SC-T3100 Specs",
+          "Compatible Inks",
+          "Official Quotation"
+        ],
+        "product_cards": [
+          "epson-sc-t3100"
+        ],
+        "consumable_cards": [],
+        "source": "unified:answer",
+        "latency_ms": 125,
+        "state_category": "technical_large_format",
+        "state_active_product": "epson-sc-t3100",
+        "state_requirements": {}
+      },
+      {
+        "turn": 4,
+        "user_message": "actually make it 36",
+        "reply": "Understood! Let's update that.",
+        "chips": [
+          "View Technical Specifications",
+          "Compatible Consumables",
+          "Request Official Quotation"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:repair",
+        "latency_ms": 123,
+        "state_category": "technical_large_format",
+        "state_active_product": "epson-sc-t3100",
+        "state_requirements": {
+          "print_size": "A0",
+          "paper_size": "A0",
+          "print_width": 36
+        }
+      },
+      {
+        "turn": 5,
+        "user_message": "roll sizes?",
+        "reply": "To continue with your equipment selection:\n\nHere is the breakdown:\n\nEpson SureColor SC-T3100: Compact 24-inch wireless desktop technical plotter, perfect for small architectural offices and project sites.\n\nHere is the verified entry desktop 24-inch CAD plotter:",
+        "chips": [
+          "SC-T3100 Specs",
+          "Compatible Inks",
+          "Official Quotation"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:answer",
+        "latency_ms": 126,
+        "state_category": "technical_large_format",
+        "state_active_product": "epson-sc-t3100",
+        "state_requirements": {
+          "print_size": "A0",
+          "paper_size": "A0",
+          "print_width": 36
+        }
+      }
+    ]
+  },
+  "chat_10": {
+    "title": "Chat 10: photography large format",
+    "category": "CAD / large format",
+    "pass_criteria": "Turn 2 adds the scanner requirement. Turn 4 resets the width and keeps photography.",
+    "turns": [
+      {
+        "turn": 1,
+        "user_message": "professional photo printer 44 inch",
+        "reply": "Select high-throughput commercial poster production (SC-P8500) or 12-color master gallery proofing (SC-P9500).\n\nWhat configuration do you require for 44-inch fine art production?\n\n• Production MFP (SC-P8500D)\n• Master Studio PRO12 (SC-P9500)\n• Spectro Proofer (SC-P9500 Spectro)",
+        "chips": [
+          "Production MFP (SC-P8500D)",
+          "Master Studio PRO12 (SC-P9500)",
+          "Spectro Proofer (SC-P9500 Spectro)"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 134,
+        "state_category": "photography_large_format",
+        "state_active_product": null,
+        "state_requirements": {}
+      },
+      {
+        "turn": 2,
+        "user_message": "with scanner",
+        "reply": "Kepler Tech supplies specialized Epson scanners ranging from museum-grade graphic film units to heavy-duty batch document scanners.\n\nWhat type of documents or media will you be scanning?\n\n• Fast Sheetfed Business Scanners\n• Photo & Fine Art Film Scanners\n• Books & Stacks (Hybrid Flatbed+ADF)",
+        "chips": [
+          "Fast Sheetfed Business Scanners",
+          "Photo & Fine Art Film Scanners",
+          "Books & Stacks (Hybrid Flatbed+ADF)"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 127,
+        "state_category": "scanners",
+        "state_active_product": null,
+        "state_requirements": {}
+      },
+      {
+        "turn": 3,
+        "user_message": "dual roll?",
+        "reply": "Regarding your operational workflow:\n\nKepler Tech supplies specialized Epson scanners ranging from museum-grade graphic film units to heavy-duty batch document scanners.\n\nWhat type of documents or media will you be scanning?\n\n• Fast Sheetfed Business Scanners\n• Photo & Fine Art Film Scanners\n• Books & Stacks (Hybrid Flatbed+ADF)",
+        "chips": [
+          "Fast Sheetfed Business Scanners",
+          "Photo & Fine Art Film Scanners",
+          "Books & Stacks (Hybrid Flatbed+ADF)"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 125,
+        "state_category": "scanners",
+        "state_active_product": null,
+        "state_requirements": {}
+      },
+      {
+        "turn": 4,
+        "user_message": "show only 24 inch",
+        "reply": "To help guide you to the right system:\n\nKepler Tech supplies specialized Epson scanners ranging from museum-grade graphic film units to heavy-duty batch document scanners.\n\nWhat type of documents or media will you be scanning?\n\n• Fast Sheetfed Business Scanners\n• Photo & Fine Art Film Scanners\n• Books & Stacks (Hybrid Flatbed+ADF)",
+        "chips": [
+          "Fast Sheetfed Business Scanners",
+          "Photo & Fine Art Film Scanners",
+          "Books & Stacks (Hybrid Flatbed+ADF)"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 133,
+        "state_category": "scanners",
+        "state_active_product": null,
+        "state_requirements": {}
+      }
+    ]
+  },
+  "chat_11": {
+    "title": "Chat 11: wrong spellings",
+    "category": "Consumables only",
+    "pass_criteria": "The yellow price comes from the catalogue. Turn 4 sums the right items and doesn't invent prices.",
+    "turns": [
+      {
+        "turn": 1,
+        "user_message": "need ink for epson c878",
+        "reply": "The c878 is not in our approved equipment catalogue. We specialize in authorized Epson and Citizen professional printing equipment.\n\nWhich printing application fits your workflow?",
+        "chips": [
+          "Official Quotation",
+          "Speak to Specialist"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:answer",
+        "latency_ms": 130,
+        "state_category": null,
+        "state_active_product": null,
+        "state_requirements": {
+          "photo_brand": "epson",
+          "brand": "Epson"
+        }
+      },
+      {
+        "turn": 2,
+        "user_message": "yellow one price",
+        "reply": "Which model or application are you looking to price?\n\n• Office & Multifunction\n• CAD / Blueprint / GIS\n• Photo & Fine Art\n• Photo Booth / Instant Photo\n• Professional Scanners\n\nPlease select a category or specify a model to view verified pricing.",
+        "chips": [
+          "Office & Multifunction",
+          "CAD / Blueprint / GIS",
+          "Photo & Fine Art",
+          "Photo Booth / Instant Photo",
+          "Professional Scanners"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 143,
+        "state_category": null,
+        "state_active_product": null,
+        "state_requirements": {
+          "photo_brand": "epson",
+          "brand": "Epson"
+        }
+      },
+      {
+        "turn": 3,
+        "user_message": "maintainence box also",
+        "reply": "How can I best assist you with Kepler Tech printing equipment?\n\n• Technical CAD Plotters\n• Professional Photo & Fine Art\n• Citizen Photo Booth / Events\n• Dye-Sublimation\n• Office Printers\n\nPlease select a category or ask a specific model question.",
+        "chips": [
+          "Technical CAD Plotters",
+          "Professional Photo & Fine Art",
+          "Citizen Photo Booth / Events",
+          "Dye-Sublimation",
+          "Office Printers"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 1513,
+        "state_category": null,
+        "state_active_product": null,
+        "state_requirements": {
+          "photo_brand": "epson",
+          "brand": "Epson"
+        }
+      },
+      {
+        "turn": 4,
+        "user_message": "total for all 4 colors",
+        "reply": "To help guide you to the right system:\n\nHow can I best assist you with Kepler Tech printing equipment?\n\n• Technical CAD Plotters\n• Professional Photo & Fine Art\n• Citizen Photo Booth / Events\n• Dye-Sublimation\n• Office Printers\n\nPlease select a category or ask a specific model question.",
+        "chips": [
+          "Technical CAD Plotters",
+          "Professional Photo & Fine Art",
+          "Citizen Photo Booth / Events",
+          "Dye-Sublimation",
+          "Office Printers"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 141,
+        "state_category": null,
+        "state_active_product": null,
+        "state_requirements": {
+          "photo_brand": "epson",
+          "brand": "Epson",
+          "exact_daily_volume": 4,
+          "daily_volume": 4,
+          "monthly_volume": 100,
+          "exact_monthly_volume": 100,
+          "colour_mode": "colour"
+        }
+      }
+    ]
+  },
+  "chat_12": {
+    "title": "Chat 12: two inputs at once",
+    "category": "Consumables only",
+    "pass_criteria": "Turn 1 answers both parts. Turn 2 compares only the two items from turn 1.",
+    "turns": [
+      {
+        "turn": 1,
+        "user_message": "ink for f100 and also maintenance box for c878r",
+        "reply": "Found 7 verified compatible consumables for Epson SureColor SC-F100 Sublimation Printer.\n\nWould you like to order replacement supplies or review printer specifications?",
+        "chips": [
+          "Technical Specifications",
+          "Media Rolls",
+          "Official Quotation"
+        ],
+        "product_cards": [
+          "epson-sc-f100"
+        ],
+        "consumable_cards": [
+          "Epson UltraChrome DS Dye-Sub Ink Bottle 140ml (Black)",
+          "Epson UltraChrome DS Dye-Sub Ink Bottle 140ml (Cyan)",
+          "Epson UltraChrome DS Dye-Sub Ink Bottle 140ml (Magenta)",
+          "Epson UltraChrome DS Dye-Sub Ink Bottle 140ml (Yellow)",
+          "Epson Maintenance Box (SC-F100)",
+          "C13S400078 DS Transfer General Purpose A4 Sheets"
+        ],
+        "source": "unified:answer",
+        "latency_ms": 126,
+        "state_category": "consumables",
+        "state_active_product": "epson-sc-f100",
+        "state_requirements": {}
+      },
+      {
+        "turn": 2,
+        "user_message": "which one is cheaper",
+        "reply": "Is your main concern the upfront price or the running cost per print?\n\nPlease let me know whether you want to focus on upfront equipment cost or ongoing running costs.",
+        "chips": [
+          "Upfront price",
+          "Running cost",
+          "Show cheaper options"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 125,
+        "state_category": "consumables",
+        "state_active_product": "epson-sc-f100",
+        "state_requirements": {}
+      }
+    ]
+  },
+  "chat_13": {
+    "title": "Chat 13: Hinglish",
+    "category": "Other languages and messy input",
+    "pass_criteria": "The same flow works as in English, and 'dono' resolves to both products.",
+    "turns": [
+      {
+        "turn": 1,
+        "user_message": "mujhe office ke liye a3 printer chahiye",
+        "reply": "For A3 commercial printing, select your daily page volume to match duty cycle and finishing options.\n\nApproximately how many pages do you print per day for your A3 workgroup or department?\n\n• 100–500 pages/day (Departmental RIPS 25 ppm)\n• 500–3,500 pages/day (Enterprise Line-Head 40–60 ppm)\n• 3,000+ pages/day (Ultra High-Speed 100 ppm)",
+        "chips": [
+          "100–500 pages/day (Departmental RIPS 25 ppm)",
+          "500–3,500 pages/day (Enterprise Line-Head 40–60 ppm)",
+          "3,000+ pages/day (Ultra High-Speed 100 ppm)"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 142,
+        "state_category": "office_printer",
+        "state_active_product": null,
+        "state_requirements": {
+          "category": "office_printer",
+          "application": "office_documents",
+          "print_size": "A3",
+          "paper_size": "a3",
+          "print_width": 13
+        }
+      },
+      {
+        "turn": 2,
+        "user_message": "roz 100 pages",
+        "reply": "Verified Format Handling: Engineered for A4, A3, A3+, Letter, Legal, Tabloid media.\n\nEpson WorkForce Pro WF-C878R / WF-C879R: Departmental A3 RIPS (25 ppm) delivering up to 86,000 black pages, ideal for workloads up to 500 pages/day.\n\nHere are the verified A3 departmental RIPS MFPs:",
+        "chips": [
+          "WF-C878R DWF",
+          "WF-C879R DWF",
+          "RIPS Inks",
+          "Official Quotation"
+        ],
+        "product_cards": [
+          "epson-wf-c878r-dwf",
+          "epson-wf-c879r-dwf"
+        ],
+        "consumable_cards": [],
+        "source": "unified:answer",
+        "latency_ms": 153,
+        "state_category": "office_printer",
+        "state_active_product": "epson-wf-c878r-dwf",
+        "state_requirements": {
+          "category": "office_printer",
+          "application": "office_documents",
+          "print_size": "A3",
+          "paper_size": "a3",
+          "print_width": 13,
+          "exact_daily_volume": 100,
+          "daily_volume": 100,
+          "monthly_volume": 2500,
+          "exact_monthly_volume": 2500,
+          "colour_mode": "colour"
+        }
+      },
+      {
+        "turn": 3,
+        "user_message": "dono ka spec batao",
+        "reply": "Here is the breakdown:\n\nEpson WorkForce Pro WF-C878R DWF — Verified Specifications:\n• Print speed: 25 ISO ppm black / 24 ISO ppm colour\n• Resolution: 4,800 × 1,200 DPI\n• Functions: Print, Scan, Copy, Fax\n• Supported format: A3 (A4, A3, A3+, Letter, Legal, Tabloid)\n• Ink system: 4 Colours (Black, Cyan, Magenta, Yellow) - Epson DURABrite Pro Pigment Inks (Archival & quick-drying)\n• Yield capacity: Up to 86,000 pages Black / 50,000 pages Colour (XL / XXL Replaceable High-Capacity Ink Supply Bags)\n• Connectivity: Wi-Fi, Wi-Fi Direct, Gigabit Ethernet, USB\n• Dimensions: 621 × 652 × 641 mm (W × D × H)\n• Weight: 59.7 kg (net printer weight excluding ink packs)\n\nWould you like an official quotation or to review compatible supplies for the Epson WorkForce Pro WF-C878R DWF?",
+        "chips": [
+          "Official Quotation",
+          "Compatible Consumables",
+          "Cost Per Page",
+          "Delivery Details"
+        ],
+        "product_cards": [],
+        "consumable_cards": [
+          "Epson Maintenance box - C13T671400",
+          "C13T05A100 Epson WorkForce Pro WF-C87xR Black XL Ink",
+          "C13T05A200 Epson WorkForce Pro WF-C87xR Cyan XL Ink",
+          "C13T05A300 Epson WorkForce Pro WF-C87xR Magenta XL Ink",
+          "C13T05A400 Epson WorkForce Pro WF-C87xR Yellow XL Ink"
+        ],
+        "source": "unified:answer",
+        "latency_ms": 146,
+        "state_category": "office_printer",
+        "state_active_product": "epson-wf-c878r-dwf",
+        "state_requirements": {
+          "category": "office_printer",
+          "application": "office_documents",
+          "print_size": "A3",
+          "paper_size": "a3",
+          "print_width": 13,
+          "exact_daily_volume": 100,
+          "daily_volume": 100,
+          "monthly_volume": 2500,
+          "exact_monthly_volume": 2500,
+          "colour_mode": "colour"
+        }
+      }
+    ]
+  },
+  "chat_14": {
+    "title": "Chat 14: Arabic",
+    "category": "Other languages and messy input",
+    "pass_criteria": "The category is office printer, A3 is kept, and the price answer follows your price guardrail.",
+    "turns": [
+      {
+        "turn": 1,
+        "user_message": "أريد طابعة مكتبية",
+        "reply": "Kepler Tech provides Epson WorkForce Heat-Free printers in both compact A4 desktop workgroup and high-speed A3 departmental formats.\n\nDo you require standard A4 output or large-format A3 output for your office documents?",
+        "chips": [
+          "A4 Output",
+          "A3 Output"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 126,
+        "state_category": "office_printer",
+        "state_active_product": null,
+        "state_requirements": {}
+      },
+      {
+        "turn": 2,
+        "user_message": "A3",
+        "reply": "For A3 commercial printing, select your daily page volume to match duty cycle and finishing options.\n\nApproximately how many pages do you print per day for your A3 workgroup or department?\n\n• 100–500 pages/day (Departmental RIPS 25 ppm)\n• 500–3,500 pages/day (Enterprise Line-Head 40–60 ppm)\n• 3,000+ pages/day (Ultra High-Speed 100 ppm)",
+        "chips": [
+          "100–500 pages/day (Departmental RIPS 25 ppm)",
+          "500–3,500 pages/day (Enterprise Line-Head 40–60 ppm)",
+          "3,000+ pages/day (Ultra High-Speed 100 ppm)"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 120,
+        "state_category": "office_printer",
+        "state_active_product": null,
+        "state_requirements": {
+          "print_size": "A3",
+          "paper_size": "a3",
+          "print_width": 13,
+          "colour_mode": "colour"
+        }
+      },
+      {
+        "turn": 3,
+        "user_message": "كم السعر؟",
+        "reply": "Regarding your operational workflow:\n\nFor A3 commercial printing, select your daily page volume to match duty cycle and finishing options.\n\nApproximately how many pages do you print per day for your A3 workgroup or department?\n\n• 100–500 pages/day (Departmental RIPS 25 ppm)\n• 500–3,500 pages/day (Enterprise Line-Head 40–60 ppm)\n• 3,000+ pages/day (Ultra High-Speed 100 ppm)",
+        "chips": [
+          "100–500 pages/day (Departmental RIPS 25 ppm)",
+          "500–3,500 pages/day (Enterprise Line-Head 40–60 ppm)",
+          "3,000+ pages/day (Ultra High-Speed 100 ppm)"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 1454,
+        "state_category": "office_printer",
+        "state_active_product": null,
+        "state_requirements": {
+          "print_size": "A3",
+          "paper_size": "a3",
+          "print_width": 13,
+          "colour_mode": "colour"
+        }
+      }
+    ]
+  },
+  "chat_15": {
+    "title": "Chat 15: Malayalam",
+    "category": "Other languages and messy input",
+    "pass_criteria": "The photo category and size are understood, and the consumables answer is correct.",
+    "turns": [
+      {
+        "turn": 1,
+        "user_message": "enikku photo printer venam",
+        "reply": "Here is what the manufacturer specifies:\n\nEpson SureColor P-Series printers feature UltraChrome PRO pigment inksets, dedicated Photo/Matte Black nozzles, and museum-grade archival stability.\n\nWhich photography and fine art category fits your requirements?\n\n• 13″ Desktop (A3+)\n• 17″ Desktop & Production (A2+)\n• 24″ Professional Studio\n• 44″ Professional Gallery\n• 64″ High-Volume Production",
+        "chips": [
+          "13″ Desktop (A3+)",
+          "17″ Desktop & Production (A2+)",
+          "24″ Professional Studio",
+          "44″ Professional Gallery",
+          "64″ High-Volume Production"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 131,
+        "state_category": "photography_large_format",
+        "state_active_product": null,
+        "state_requirements": {}
+      },
+      {
+        "turn": 2,
+        "user_message": "4x6",
+        "reply": "Moving forward with your request:\n\nHere is the official specification:\n\nEpson SureColor P-Series printers feature UltraChrome PRO pigment inksets, dedicated Photo/Matte Black nozzles, and museum-grade archival stability.\n\nWhich photography and fine art category fits your requirements?\n\n• 13″ Desktop (A3+)\n• 17″ Desktop & Production (A2+)\n• 24″ Professional Studio\n• 44″ Professional Gallery\n• 64″ High-Volume Production",
+        "chips": [
+          "13″ Desktop (A3+)",
+          "17″ Desktop & Production (A2+)",
+          "24″ Professional Studio",
+          "44″ Professional Gallery",
+          "64″ High-Volume Production"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 126,
+        "state_category": "photography_large_format",
+        "state_active_product": null,
+        "state_requirements": {
+          "print_size": "4x6",
+          "size": "4x6",
+          "print_sizes": [
+            "4x6"
+          ],
+          "photo_brand": "citizen",
+          "brand": "Citizen"
+        }
+      },
+      {
+        "turn": 3,
+        "user_message": "ink evide kittum?",
+        "reply": "Happy to help with that.\n\nEpson SureColor SC-P900: 17-inch (A2+) desktop photo printer with 10-color UltraChrome PRO10 ink for gallery-quality sheet prints.\n\nHere is the verified 17-inch desktop photo printer:",
+        "chips": [
+          "SC-P900 Specs",
+          "Inks & Media",
+          "Official Quotation"
+        ],
+        "product_cards": [
+          "epson-sc-p900"
+        ],
+        "consumable_cards": [],
+        "source": "unified:answer",
+        "latency_ms": 1264,
+        "state_category": "photography_large_format",
+        "state_active_product": "epson-sc-p900",
+        "state_requirements": {
+          "print_size": "4x6",
+          "size": "4x6",
+          "print_sizes": [
+            "4x6"
+          ],
+          "photo_brand": "citizen",
+          "brand": "Citizen"
+        }
+      }
+    ]
+  },
+  "chat_16": {
+    "title": "Chat 16: policy and refusals",
+    "category": "Guardrails and bad input",
+    "pass_criteria": "No invented prices, discounts or models. The refusals are polite, and the bot steers back to the catalogue.",
+    "turns": [
+      {
+        "turn": 1,
+        "user_message": "what are your prices?",
+        "reply": "How can I best assist you with Kepler Tech printing equipment?\n\n• Technical CAD Plotters\n• Professional Photo & Fine Art\n• Citizen Photo Booth / Events\n• Dye-Sublimation\n• Office Printers\n\nPlease select a category or ask a specific model question.",
+        "chips": [
+          "Technical CAD Plotters",
+          "Professional Photo & Fine Art",
+          "Citizen Photo Booth / Events",
+          "Dye-Sublimation",
+          "Office Printers"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 1259,
+        "state_category": null,
+        "state_active_product": null,
+        "state_requirements": {}
+      },
+      {
+        "turn": 2,
+        "user_message": "give me 20% discount",
+        "reply": "I note your request for a discount. Discounts, formal quotations, and custom configurations are handled directly by our sales team, as I cannot approve a discount or confirm a quote.\n\nOur sales specialists are available now to prepare this for you.\n\nPlease provide your name and phone number or email address so our sales team can send your quotation.",
+        "chips": [
+          "Leave Phone Number",
+          "Leave Email Address",
+          "Showroom Hours & Location"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:answer",
+        "latency_ms": 151,
+        "state_category": null,
+        "state_active_product": null,
+        "state_requirements": {
+          "exact_daily_volume": 20,
+          "daily_volume": 20,
+          "monthly_volume": 500,
+          "exact_monthly_volume": 500
+        }
+      },
+      {
+        "turn": 3,
+        "user_message": "do you sell HP LaserJet?",
+        "reply": "Kepler Tech is an authorized distributor specializing in official Epson large-format and Citizen photo/dye-sublimation systems. We do not carry 3D printers, laser copiers, or third-party brands in our catalogue. Kepler Tech is an authorized commercial distributor specializing strictly in Epson and Citizen large-format printers, enterprise office MFPs, and professional document scanners. We do not provide non-commercial or culinary equipment.",
+        "chips": [
+          "Technical CAD Plotters",
+          "Photo & Fine Art",
+          "Citizen Photo Booth",
+          "Dye-Sublimation",
+          "Office Printers"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:out_of_scope_redirect",
+        "latency_ms": 126,
+        "state_category": null,
+        "state_active_product": null,
+        "state_requirements": {
+          "exact_daily_volume": 20,
+          "daily_volume": 20,
+          "monthly_volume": 500,
+          "exact_monthly_volume": 500
+        }
+      },
+      {
+        "turn": 4,
+        "user_message": "ok then recommend something",
+        "reply": "Understood! What equipment specifications or quotation would you like to review next?",
+        "chips": [
+          "Technical CAD Plotters",
+          "Photo & Fine Art",
+          "Office Printers",
+          "Document Scanners"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:answer",
+        "latency_ms": 134,
+        "state_category": null,
+        "state_active_product": null,
+        "state_requirements": {
+          "exact_daily_volume": 20,
+          "daily_volume": 20,
+          "monthly_volume": 500,
+          "exact_monthly_volume": 500
+        }
+      }
+    ]
+  },
+  "chat_17": {
+    "title": "Chat 17: junk and fragments",
+    "category": "Guardrails and bad input",
+    "pass_criteria": "There are no wrong guesses, only clarification. Turn 5 closes cleanly.",
+    "turns": [
+      {
+        "turn": 1,
+        "user_message": "😀",
+        "reply": "Kepler Tech is an authorized distributor specializing in official Epson large-format and Citizen photo/dye-sublimation systems. We do not carry 3D printers, laser copiers, or third-party brands in our catalogue. Kepler Tech is an authorized commercial distributor specializing strictly in Epson and Citizen large-format printers, enterprise office MFPs, and professional document scanners. We do not provide non-commercial or culinary equipment.",
+        "chips": [
+          "Technical CAD Plotters",
+          "Photo & Fine Art",
+          "Citizen Photo Booth",
+          "Dye-Sublimation",
+          "Office Printers"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:out_of_scope_redirect",
+        "latency_ms": 1184,
+        "state_category": null,
+        "state_active_product": null,
+        "state_requirements": {}
+      },
+      {
+        "turn": 2,
+        "user_message": "24",
+        "reply": "How can I best assist you with Kepler Tech printing equipment?\n\n• Technical CAD Plotters\n• Professional Photo & Fine Art\n• Citizen Photo Booth / Events\n• Dye-Sublimation\n• Office Printers\n\nPlease select a category or ask a specific model question.",
+        "chips": [
+          "Technical CAD Plotters",
+          "Professional Photo & Fine Art",
+          "Citizen Photo Booth / Events",
+          "Dye-Sublimation",
+          "Office Printers"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 1112,
+        "state_category": null,
+        "state_active_product": null,
+        "state_requirements": {
+          "print_size": "A1",
+          "paper_size": "A1",
+          "print_width": 24,
+          "photo_form_factor": "large"
+        }
+      },
+      {
+        "turn": 3,
+        "user_message": "?",
+        "reply": "Regarding your operational workflow:\n\nKepler Tech is an authorized distributor specializing in official Epson large-format and Citizen photo/dye-sublimation systems. We do not carry 3D printers, laser copiers, or third-party brands in our catalogue. Kepler Tech is an authorized commercial distributor specializing strictly in Epson and Citizen large-format printers, enterprise office MFPs, and professional document scanners. We do not provide non-commercial or culinary equipment.",
+        "chips": [
+          "Technical CAD Plotters",
+          "Photo & Fine Art",
+          "Citizen Photo Booth",
+          "Dye-Sublimation",
+          "Office Printers"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:out_of_scope_redirect",
+        "latency_ms": 1136,
+        "state_category": null,
+        "state_active_product": null,
+        "state_requirements": {
+          "print_size": "A1",
+          "paper_size": "A1",
+          "print_width": 24,
+          "photo_form_factor": "large"
+        }
+      },
+      {
+        "turn": 4,
+        "user_message": "a3",
+        "reply": "To help guide you to the right system:\n\nHow can I best assist you with Kepler Tech printing equipment?\n\n• Technical CAD Plotters\n• Professional Photo & Fine Art\n• Citizen Photo Booth / Events\n• Dye-Sublimation\n• Office Printers\n\nPlease select a category or ask a specific model question.",
+        "chips": [
+          "Technical CAD Plotters",
+          "Professional Photo & Fine Art",
+          "Citizen Photo Booth / Events",
+          "Dye-Sublimation",
+          "Office Printers"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 121,
+        "state_category": null,
+        "state_active_product": null,
+        "state_requirements": {
+          "print_size": "A3",
+          "paper_size": "a3",
+          "print_width": 13,
+          "photo_form_factor": "large"
+        }
+      },
+      {
+        "turn": 5,
+        "user_message": "thanks bye",
+        "reply": "Afwan! You are very welcome. Let me know if you need any further specifications, delivery details, or an official quotation.\n\nHow else can I assist with your printing requirements?",
+        "chips": [
+          "Request Official Quote",
+          "Showroom Location",
+          "Browse Catalogue"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:answer",
+        "latency_ms": 119,
+        "state_category": null,
+        "state_active_product": null,
+        "state_requirements": {
+          "print_size": "A3",
+          "paper_size": "a3",
+          "print_width": 13,
+          "photo_form_factor": "large"
+        }
+      }
+    ]
+  },
+  "chat_18": {
+    "title": "Chat 18: customer changes mind mid-way",
+    "category": "Guardrails and bad input",
+    "pass_criteria": "Customer changes category mid-way from A4 office to photo booth 4x6; bot respects change.",
+    "turns": [
+      {
+        "turn": 1,
+        "user_message": "a4 office printer",
+        "reply": "For A4 office printing, choosing the right per-day volume ensures optimal consumable yields and print speeds.\n\nApproximately how many pages do you print per day in the office?\n\n• < 100 pages/day (Standard 25 ppm)\n• 100–300 pages/day (Compact RIPS 25 ppm)\n• 300+ pages/day (Enterprise Line-Head 40/55 ppm)",
+        "chips": [
+          "< 100 pages/day (Standard 25 ppm)",
+          "100–300 pages/day (Compact RIPS 25 ppm)",
+          "300+ pages/day (Enterprise Line-Head 40/55 ppm)"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 132,
+        "state_category": "office_printer",
+        "state_active_product": null,
+        "state_requirements": {
+          "category": "office_printer",
+          "application": "office_documents",
+          "paper_size": "a4"
+        }
+      },
+      {
+        "turn": 2,
+        "user_message": "100 pages",
+        "reply": "Verified Print Speed: Rated at 25 ISO ppm black / 25 ISO ppm colour (simplex); 16 ipm duplex for high-productivity workflows.\n\nEpson WorkForce Pro WF-C5890 DWF: Standard 34 ppm color MFP with low energy consumption and high-yield ink packs for up to 100 pages/day.\n\nHere is the verified standard A4 WorkForce Pro MFP:",
+        "chips": [
+          "Technical Specs",
+          "Replaceable Ink Packs",
+          "Official Quotation"
+        ],
+        "product_cards": [
+          "epson-wf-c5890-dwf"
+        ],
+        "consumable_cards": [],
+        "source": "unified:answer",
+        "latency_ms": 150,
+        "state_category": "office_printer",
+        "state_active_product": "epson-wf-c5890-dwf",
+        "state_requirements": {
+          "category": "office_printer",
+          "application": "office_documents",
+          "paper_size": "a4",
+          "exact_daily_volume": 100,
+          "daily_volume": 100,
+          "monthly_volume": 2500,
+          "exact_monthly_volume": 2500,
+          "colour_mode": "colour"
+        }
+      },
+      {
+        "turn": 3,
+        "user_message": "no wait not office, photo booth",
+        "reply": "Understood! Let's update that.",
+        "chips": [
+          "View Technical Specifications",
+          "Compatible Consumables",
+          "Request Official Quotation"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:repair",
+        "latency_ms": 141,
+        "state_category": "office_printer",
+        "state_active_product": null,
+        "state_requirements": {}
+      },
+      {
+        "turn": 4,
+        "user_message": "4x6",
+        "reply": "Verified Compact Design: Weighs 18.7 kg (net printer weight excluding inks) (dimensions: 425 × 535 × 357 mm (W × D × H)).\n\nEpson WorkForce Pro WF-C5890 DWF: Standard 34 ppm color MFP with low energy consumption and high-yield ink packs for up to 100 pages/day.\n\nHere is the verified standard A4 WorkForce Pro MFP:",
+        "chips": [
+          "Technical Specs",
+          "Replaceable Ink Packs",
+          "Official Quotation"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:answer",
+        "latency_ms": 120,
+        "state_category": "office_printer",
+        "state_active_product": "epson-wf-c5890-dwf",
+        "state_requirements": {
+          "print_size": "4x6",
+          "size": "4x6",
+          "print_sizes": [
+            "4x6"
+          ],
+          "colour_mode": "colour",
+          "photo_brand": "citizen",
+          "brand": "Citizen"
+        }
+      },
+      {
+        "turn": 5,
+        "user_message": "cheapest one?",
+        "reply": "How can I best assist you with Kepler Tech printing equipment?\n\n• Technical CAD Plotters\n• Professional Photo & Fine Art\n• Citizen Photo Booth / Events\n• Dye-Sublimation\n• Office Printers\n\nPlease select a category or ask a specific model question.",
+        "chips": [
+          "Technical CAD Plotters",
+          "Professional Photo & Fine Art",
+          "Citizen Photo Booth / Events",
+          "Dye-Sublimation",
+          "Office Printers"
+        ],
+        "product_cards": [],
+        "consumable_cards": [],
+        "source": "unified:clarify",
+        "latency_ms": 1255,
+        "state_category": "office_printer",
+        "state_active_product": "epson-wf-c5890-dwf",
+        "state_requirements": {
+          "print_size": "4x6",
+          "size": "4x6",
+          "print_sizes": [
+            "4x6"
+          ],
+          "colour_mode": "colour",
+          "photo_brand": "citizen",
+          "brand": "Citizen"
+        }
+      }
+    ]
+  }
+}

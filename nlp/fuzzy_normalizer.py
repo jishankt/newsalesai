@@ -33,8 +33,8 @@ DOMAIN_TYPOS = {
     "plotter": ["ploter", "plottr", "poltter", "plter"],
     "scanner": ["scaner", "scannr", "scnr", "skanner", "skaner"],
     "cartridge": ["catridge", "cartrige", "cartidge", "catridg", "cartrdige"],
-    "ribbon": ["ribon", "ribbn", "riben", "riboon"],
-    "consumable": ["consumble", "consumables", "consumbles", "consumabels"],
+    "consumable": ["consumble", "consumables", "consumbles", "consumabels", "consubales", "consumbales"],
+    "maintenance": ["maintainence", "maintanance", "maintence", "maintenence"],
     
     # Sublimation & Apparel
     "sublimation": ["sublimtion", "sublimaton", "sublimashun", "sublimatn", "sublim"],
@@ -170,6 +170,13 @@ class UniversalFuzzyNormalizer:
                 color_cand = self.normalize_color(w_lower)
                 if color_cand and color_cand != w_lower:
                     replacement = color_cand
+                elif len(w_lower) >= 5 and w_lower not in self.COMMON_WORDS:
+                    for canonical in ("consumables", "consumable", "maintenance"):
+                        if abs(len(w_lower) - len(canonical)) <= 2:
+                            dist = _levenshtein_distance(w_lower, canonical)
+                            if dist <= 2:
+                                replacement = "consumables" if canonical in ("consumables", "consumable") else "maintenance"
+                                break
 
             if replacement:
                 corrections.append({"original": word, "normalized": replacement})

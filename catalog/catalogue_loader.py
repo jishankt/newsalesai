@@ -132,6 +132,9 @@ class CatalogueLoader:
     def get_all(self) -> List[Dict]:
         return list(self.products)
 
+    def get_all_products(self) -> List[Dict]:
+        return list(self.products)
+
     def get_by_id(self, product_id: str) -> Optional[Dict]:
         return self.products_by_id.get(product_id)
 

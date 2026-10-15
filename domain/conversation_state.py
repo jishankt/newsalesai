@@ -62,10 +62,11 @@ class ConversationState:
     last_intent: Optional[str] = None
     last_dialogue_act: Optional[str] = None
     last_assistant_response: Optional[str] = None
-    pending_question: Optional[str] = None
+    pending_question: Optional[Any] = None
     pending_field: Optional[str] = None
     interrupted_field: Optional[str] = None
     frustration_count: int = 0
+    shown_entities: List[str] = field(default_factory=list)
 
     # ── Qualification & Product Memory ───────────────────────────────────
     category: Optional[str] = None  # office_printer | technical_large_format | photography_large_format | citizen_photo
@@ -241,6 +242,7 @@ class ConversationState:
             "last_pricing_index": self.last_pricing_index,
             "pending_agent_messages": self.pending_agent_messages,
             "unified_dialogue_state": self.unified_dialogue_state,
+            "shown_entities": self.shown_entities,
         }
 
     @classmethod
@@ -318,6 +320,7 @@ class ConversationState:
             last_pricing_index=data.get("last_pricing_index"),
             pending_agent_messages=data.get("pending_agent_messages", []),
             unified_dialogue_state=data.get("unified_dialogue_state"),
+            shown_entities=data.get("shown_entities", []),
         )
 
     # ── State Mutations ──────────────────────────────────────────────────
@@ -356,30 +359,59 @@ class ConversationState:
             self.candidate_products = []
             self.active_product = None
 
-    def reset_category(self, new_category: Optional[str]):
+    def switch_category(self, new_category: Optional[str], reason: str = ""):
         """
-        Resets only incompatible requirements when the customer changes categories.
-        Preserves common fields like daily_volume if applicable.
+        The authoritative single function where category changes.
+        Clears dependent slots (e.g. leaving office_printer clears daily_volume,
+        paper_size, colour requirement) and resets state.category.
         """
-        if self.category == new_category and new_category is not None:
+        old_cat = self.category
+        if old_cat == new_category and new_category is not None:
             return
-        if self.category is None and new_category is not None:
-            self.category = new_category
-            return
-        
-        # Incompatible requirements are cleared
-        preserved_volume = self.requirements.get("daily_volume")
-        self.category = new_category
-        self.subcategory = None
-        self.requirements = {}
-        if preserved_volume is not None:
-            self.requirements["daily_volume"] = preserved_volume
 
+        dependent_slots = {
+            "office_printer": [
+                "daily_volume", "exact_daily_volume", "monthly_volume", "exact_monthly_volume",
+                "paper_size", "print_size", "colour_mode", "colour_requirement",
+                "functions", "speed_priority", "duplex", "scanner_required", "scan_required",
+                "application", "category"
+            ],
+            "technical_large_format": [
+                "print_width", "format", "cad_precision", "dual_roll_required",
+                "scanner_required", "scan_required", "category"
+            ],
+            "photography_large_format": [
+                "print_width", "format", "dual_roll", "dual_roll_required",
+                "spectro", "spectro_required", "scanner_required", "scan_required", "category"
+            ],
+            "citizen_photo": [
+                "print_size", "print_sizes", "ribbon_rewind", "portable", "category"
+            ],
+            "dye_sublimation": [
+                "application", "t_shirt", "mug", "apparel", "category"
+            ],
+            "scanners": [
+                "scanner_type", "scan_type", "scanner_intent", "category"
+            ],
+        }
+
+        # Clear dependent slots
+        if old_cat in dependent_slots:
+            for s in dependent_slots[old_cat]:
+                self.requirements.pop(s, None)
+        else:
+            self.requirements.clear()
+
+        self.category = new_category
+        if new_category:
+            self.requirements["category"] = new_category
+        self.subcategory = None
         self.qualification_complete = False
         self.results_loaded = False
         self.stage = "qualifying"
         self.matched_product_ids = []
         self.displayed_product_ids = []
+        self.shown_entities = []
         self.candidate_products = []
         self.compared_products = []
         self.compared_product_ids = []
@@ -390,6 +422,13 @@ class ConversationState:
         self.pending_question = None
         self.pending_field = None
         self.unresolved_field_turns = 0
+
+        if getattr(self, "question_ledger", None):
+            self.question_ledger.invalidate_for_topic_switch()
+
+    def reset_category(self, new_category: Optional[str]):
+        """Delegates directly to switch_category to ensure single point of truth."""
+        self.switch_category(new_category, reason="reset_category")
 
     def reset_subcategory(self, new_subcategory: Optional[str] = None):
         """
@@ -410,11 +449,120 @@ class ConversationState:
         self.awaiting_field = None
         self.unresolved_field_turns = 0
 
-    def save_pending_question(self, question: str, field_name: str):
-        self.pending_question = question
-        self.pending_field = field_name
+    def apply_state_change(self) -> Dict[str, Any]:
+        """
+        After any slot fill, correction or category switch, RE-RUNS recommendation
+        with the new state in the same turn.
+        """
+        from catalog.subcategory_resolver import resolve_subcategory
+        from catalog.catalogue_filter import catalogue_filter
+        from validation.catalogue_validator import validate_product_cards
+        from conversation.qualification_schema import get_missing_mandatory_fields, get_next_question
 
-    def consume_pending_question(self) -> Optional[str]:
+        if not self.category:
+            return {
+                "reply": "How can I best assist you with Kepler Tech printing equipment?",
+                "cards": [],
+                "consumable_cards": [],
+                "chips": ["Technical CAD Plotters", "Photo & Fine Art", "Citizen Photo Booth", "Office Printers"],
+                "source": "qualification:category_prompt"
+            }
+
+        missing = get_missing_mandatory_fields(self.category, self.requirements)
+        if missing:
+            next_q = get_next_question(self.category, missing)
+            self.save_pending_question(
+                question=next_q.get("question", ""),
+                field_name=missing[0],
+                expected_type="number" if "volume" in missing[0] or "width" in missing[0] else "choice",
+                valid_range=(100, 10000) if "volume" in missing[0] else None,
+                options=next_q.get("chips", []),
+            )
+            return {
+                "reply": next_q.get("question", ""),
+                "cards": [],
+                "consumable_cards": [],
+                "chips": next_q.get("chips", []),
+                "source": "qualification:next_question",
+            }
+
+        self.qualification_complete = True
+        self.stage = "recommending"
+        self.awaiting_field = None
+        self.pending_question = None
+
+        subcategory = resolve_subcategory(self.category, self.requirements)
+        self.subcategory = subcategory
+
+        cards, no_match = catalogue_filter.filter_and_rank(self.category, subcategory, self.requirements)
+        if no_match:
+            reply_text = f"{no_match.get('message', '')} {no_match.get('relaxation_question', '')}".strip()
+            return {
+                "reply": reply_text,
+                "cards": [],
+                "consumable_cards": [],
+                "chips": no_match.get("chips", []),
+                "source": "recommendation:no_match",
+            }
+
+        valid_cards = validate_product_cards(cards)
+        self.results_loaded = True
+        card_ids = [c["id"] for c in valid_cards]
+        self.displayed_product_ids = list(card_ids)
+        self.shown_entities = list(card_ids)
+        if valid_cards:
+            self.active_product = valid_cards[0]
+            self.active_product_id = valid_cards[0]["id"]
+
+        cat_name = self.category.replace('_', ' ').title()
+        vol = self.requirements.get("daily_volume") or self.requirements.get("exact_daily_volume")
+        width = self.requirements.get("print_width")
+
+        if vol and "office" in self.category:
+            reply_text = f"Understood, I've updated your daily volume to {vol} pages per day. Here are our recommended {cat_name} models tailored to your specifications:"
+        elif width and "technical" in self.category:
+            reply_text = f"Understood, I've updated your requirement to {width}-inch width. Here are our recommended {cat_name} plotters:"
+        else:
+            reply_text = f"Based on your updated requirements, here are our recommended {cat_name} models:"
+
+        bullets = []
+        for c in valid_cards[:4]:
+            title = c.get("title") or c.get("name") or c.get("model") or c.get("id")
+            bullets.append(f"• **{title}**")
+        if bullets:
+            reply_text += "\n\n" + "\n".join(bullets)
+
+        chips = ["Compare Matching Models", "View Detailed Specifications", "Official Quotation"]
+        return {
+            "reply": reply_text,
+            "cards": valid_cards,
+            "consumable_cards": [],
+            "chips": chips,
+            "source": "recommendation:catalogue_list",
+        }
+
+    def save_pending_question(
+        self,
+        question: Any,
+        field_name: Optional[str] = None,
+        expected_type: str = "text",
+        valid_range: Optional[Any] = None,
+        options: Optional[List[Any]] = None,
+    ):
+        if isinstance(question, dict):
+            self.pending_question = question
+            self.pending_field = question.get("slot") or field_name
+        else:
+            self.pending_question = {
+                "text": str(question),
+                "slot": field_name or "",
+                "expected_type": expected_type,
+                "valid_range": valid_range,
+                "options": options or [],
+            }
+            self.pending_field = field_name
+
+    def consume_pending_question(self) -> Optional[Any]:
         q = self.pending_question
         self.pending_question = None
         self.pending_field = None

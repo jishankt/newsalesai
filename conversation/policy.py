@@ -547,6 +547,44 @@ class PolicyEngine:
         unlisted_entities = [e for e in und.entities if e.entity_type == "unlisted_model" and not re.search(r"^\d+$", e.surface_text)]
         if unlisted_entities:
             unlisted = unlisted_entities[0]
+            from catalog.alias_index import alias_index
+            alias_match = alias_index.resolve(unlisted.surface_text)
+            if alias_match.is_exact:
+                p = alias_match.product
+                state.set_canonical_focus(p["id"])
+                p_name = p.get("display_name") or p.get("name") or p["id"]
+                rec = EvidenceRecord(
+                    claim=f"The **{p_name}** is an approved catalogue product ({p.get('model', '')}).",
+                    verified=True,
+                    status=CompatibilityStatus.VERIFIED_YES,
+                    source_file="data/catalogue_products.json",
+                    field="overview",
+                    entity_ids=[p["id"]],
+                )
+                return PolicyDecision(
+                    action=PolicyAction.ANSWER,
+                    reason=f"Model alias '{unlisted.surface_text}' resolved to approved product '{p_name}'.",
+                    target_entity_id=p["id"],
+                    options_or_chips=["Technical Specifications", "Compatible Consumables", "Official Quotation"],
+                    evidence_records=[rec],
+                    next_step=f"Would you like to review full specifications or request an official quotation for the {p_name}?",
+                )
+            elif alias_match.is_candidates:
+                cand_names = [c.get("display_name") or c.get("name") or c["id"] for c in alias_match.candidates]
+                clarify_q = f"Did you mean {' or '.join(cand_names)}?"
+                state.save_pending_question(
+                    question=clarify_q,
+                    field_name="disambiguation",
+                    expected_type="product_choice",
+                    options=cand_names,
+                )
+                return PolicyDecision(
+                    action=PolicyAction.CLARIFY,
+                    reason=f"Ambiguous model alias '{unlisted.surface_text}' matched candidates: {cand_names}",
+                    clarification_question=clarify_q,
+                    options_or_chips=cand_names,
+                )
+
             alts = find_unlisted_alternatives(unlisted.surface_text)
             alt_names = [a.get("display_name") or a.get("id") for a in alts]
             if alt_names:
@@ -756,16 +794,39 @@ class PolicyEngine:
 
         # 4. Repair / Correction Handling
         if act == DialogueAct.CORRECTION or any(w in und.raw_text.lower() for w in ["i meant", "no, i said", "not that", "changed my mind"]):
-            # Record in corrections history
             state.corrections_history.append({"turn": state.turn_count, "raw": und.raw_text})
-            # Acknowledge correction once, reuse stored answer, do not loop
+            cat = getattr(state, "category", None)
+            from catalog.catalogue_filter import catalogue_filter
+            from catalog.subcategory_resolver import resolve_subcategory
+            from conversation.product_flows import extract_flowchart_requirements
+
+            # Update requirements from correction text
+            new_reqs = extract_flowchart_requirements(und.raw_text)
+            if hasattr(state, "requirements"):
+                state.requirements.update(new_reqs)
+            if hasattr(state, "confirmed_slots"):
+                state.confirmed_slots.update(new_reqs)
+            reqs = getattr(state, "requirements", None)
+            if reqs is None:
+                reqs = getattr(state, "confirmed_slots", {})
+
+            subcat = resolve_subcategory(cat, reqs) if cat else None
+            cards, _ = catalogue_filter.filter_and_rank(cat, subcat, reqs) if cat and subcat else ([], None)
+            target_id = cards[0]["id"] if cards else (resolved.resolved_target_product.id if resolved.resolved_target_product else None)
+            supp_ids = [c["id"] for c in cards[1:3]] if len(cards) > 1 else []
+
+            cat_title = cat.replace('_', ' ').title() if cat else "matching"
+            rec_claim = f"Understood! Here are our recommended {cat_title} models matching your updated specifications:"
+            if cards:
+                rec_claim += "\n\n" + "\n".join([f"• **{c.get('title') or c.get('name') or c.get('id')}**" for c in cards[:3]])
+
             return PolicyDecision(
-                action=PolicyAction.REPAIR,
-                reason="Correction detected from customer.",
-                target_entity_id=resolved.resolved_target_product.id if resolved.resolved_target_product else None,
-                active_item_id=resolved.resolved_active_item.id if resolved.resolved_active_item else None,
+                action=PolicyAction.ANSWER,
+                reason="Correction detected from customer; re-running recommendation with updated state.",
+                target_entity_id=target_id,
+                supporting_product_ids=supp_ids,
                 options_or_chips=["View Technical Specifications", "Compatible Consumables", "Request Official Quotation"],
-                next_step="Understood! Let's update that.",
+                next_step=rec_claim,
             )
 
         # 4. Anti-Looping & Clarification Limit Enforcement

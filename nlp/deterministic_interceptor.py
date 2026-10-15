@@ -10,7 +10,7 @@ always produce the same output regardless of conversation context.
 """
 
 import re
-from typing import Optional
+from typing import Optional, Any
 from domain.conversation_types import InterceptResult
 from guardrails import (
     check_user_intent_for_pricing_or_discount,
@@ -70,7 +70,11 @@ _UNRELATED_PATTERNS = [
 _EMPTY_THRESHOLD = 2  # Messages with <= this many non-whitespace chars are "empty"
 
 
-def intercept(message: str, raw_message: Optional[str] = None) -> InterceptResult:
+def intercept(
+    message: str,
+    raw_message: Optional[str] = None,
+    state: Optional[Any] = None,
+) -> InterceptResult:
     """
     Fast-path deterministic interception. Returns InterceptResult.
 
@@ -83,6 +87,45 @@ def intercept(message: str, raw_message: Optional[str] = None) -> InterceptResul
     If matched=False, proceed normally.
     """
     text = (message or "").strip()
+    msg_l = text.lower()
+
+    # ── Category Attribute Gating & Model Alias Handling (Step 3) ────────
+    # 1. "a4 colour printer with scanner" or "printer with scanner" must stay in printer category
+    if re.search(r"\b(?:a4|a3|colour|color|office)?\s*printer\s+with\s+scann?er\b", msg_l):
+        if state is not None:
+            if state.category != "office_printer":
+                state.category = "office_printer"
+            state.requirements["scanner_required"] = True
+            state.requirements["scan_required"] = True
+        return InterceptResult(matched=False)
+
+    # 2. Category words act as attributes when category is active or pending question exists
+    if state is not None and (getattr(state, "category", None) or getattr(state, "pending_question", None)):
+        if re.search(r"\b(?:with\s+scann?er|scanner\s+included|\+\s*scann?er)\b", msg_l) and not re.search(r"\b(?:switch|instead|no\s+wait)\b", msg_l):
+            state.requirements["scanner_required"] = True
+            state.requirements["scan_required"] = True
+            return InterceptResult(matched=False)
+
+    # 3. Explicit switches call switch_category() and keep the new need
+    if state is not None and re.search(r"\b(?:no\s+wait\s+not\s+office|switch\s+to|back\s+to|instead\s+of)\b", msg_l):
+        if "photo booth" in msg_l or "photobooth" in msg_l:
+            state.switch_category("citizen_photo", reason="Explicit switch to photo booth")
+        elif "office" in msg_l:
+            state.switch_category("office_printer", reason="Explicit switch to office")
+        elif "cad" in msg_l or "plotter" in msg_l:
+            state.switch_category("technical_large_format", reason="Explicit switch to CAD")
+        elif "photo" in msg_l:
+            state.switch_category("photography_large_format", reason="Explicit switch to photo")
+        elif "sublimation" in msg_l:
+            state.switch_category("dye_sublimation", reason="Explicit switch to dye_sublimation")
+
+    # 4. Model alias wins over the active flow
+    from catalog.alias_index import alias_index
+    alias_match = alias_index.resolve(text)
+    if alias_match.is_exact and state is not None:
+        state.set_canonical_focus(alias_match.product["id"])
+        state.shown_entities = [alias_match.product["id"]]
+
 
     # ── 1. Simple greetings (check before empty threshold since "hi" = 2 chars) ──
     if _GREETING_PATTERN.match(text) and len(text.split()) <= 5:

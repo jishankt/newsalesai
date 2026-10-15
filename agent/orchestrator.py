@@ -248,6 +248,40 @@ class Orchestrator:
             if len(explicitly_named) == 1:
                 state.last_explicit_product_id = explicitly_named[0]["id"]
 
+        # ── Step 4: Compound Request Processing ───────────────────────────
+        from conversation.compound_request import process_compound_request
+        compound_res = process_compound_request(raw_message, state)
+        if compound_res:
+            state.last_assistant_response = compound_res["reply"]
+            state.increment_turn()
+            return self._build_response(
+                reply=compound_res["reply"],
+                source=compound_res.get("source", "compound_request:split_execution"),
+                product_cards=compound_res.get("product_cards", []),
+                consumable_cards=compound_res.get("consumable_cards", []),
+                suggested_chips=compound_res.get("suggested_chips", []),
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        # ── Step 2 & 3: Pre-Classification Resolver ──────────────────────
+        from conversation.pre_classification_resolver import PreClassificationResolver
+        pre_res = PreClassificationResolver.resolve(normalized_msg, raw_message, state)
+        if pre_res.handled:
+            state.last_assistant_response = pre_res.reply
+            state.increment_turn()
+            return self._build_response(
+                reply=pre_res.reply,
+                source=pre_res.source,
+                product_cards=pre_res.product_cards,
+                consumable_cards=pre_res.consumable_cards,
+                suggested_chips=pre_res.suggested_chips,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
         # ── 1b. Canonical Turn Understanding (node_understand) ───────────
         t_under_start = time.time()
         if getattr(state, "question_ledger", None) is None:
@@ -3124,7 +3158,7 @@ class Orchestrator:
                 )
 
         # ── 2. Deterministic Intercept (Commercial Guardrails & Greetings) ─
-        intercept_result = intercept(normalized_msg, raw_message)
+        intercept_result = intercept(normalized_msg, raw_message, state=state)
 
         if intercept_result.matched and not intercept_result.should_continue:
             nlp_result["intent"] = intercept_result.intent or ""
@@ -7280,6 +7314,61 @@ class Orchestrator:
             dict(card) if isinstance(card, dict) else card
             for card in (consumable_cards or [])
         ]
+
+        # Record ordered list of product codes in the last reply (hardware cards & consumable cards)
+        new_shown = []
+        for c in product_cards:
+            if isinstance(c, dict):
+                cid = c.get("id") or c.get("sku") or c.get("model")
+                if cid and str(cid) not in new_shown:
+                    new_shown.append(str(cid))
+        for c in consumable_cards:
+            if isinstance(c, dict):
+                cid = c.get("id") or c.get("sku") or c.get("name")
+                if cid and str(cid) not in new_shown:
+                    new_shown.append(str(cid))
+        if new_shown:
+            state.shown_entities = new_shown
+
+        # Track pending_question whenever bot asks a question
+        rep_l = (reply or "").lower()
+        if "pages do you print per day" in rep_l or "daily page volume" in rep_l or "select your daily" in rep_l:
+            state.save_pending_question(
+                question=reply,
+                field_name="daily_volume",
+                expected_type="number",
+                valid_range=(100, 10000),
+                options=suggested_chips,
+            )
+        elif "which technical cad subcategory" in rep_l or "print width" in rep_l:
+            state.save_pending_question(
+                question=reply,
+                field_name="print_width",
+                expected_type="number",
+                valid_range=(24, 44),
+                options=suggested_chips,
+            )
+        elif "did you mean" in rep_l:
+            state.save_pending_question(
+                question=reply,
+                field_name="disambiguation",
+                expected_type="choice",
+                options=suggested_chips,
+            )
+        elif "what print format do you require" in rep_l or "format do you require" in rep_l:
+            state.save_pending_question(
+                question=reply,
+                field_name="print_size",
+                expected_type="choice",
+                options=suggested_chips,
+            )
+        elif state.awaiting_field and not state.pending_question:
+            state.save_pending_question(
+                question=reply,
+                field_name=state.awaiting_field,
+                expected_type="number" if any(k in state.awaiting_field for k in ["volume", "width", "speed"]) else "choice",
+                options=suggested_chips,
+            )
 
         state.last_suggested_chips = list(suggested_chips or [])
         if consumable_cards:
