@@ -252,6 +252,7 @@ class Orchestrator:
         from conversation.compound_request import process_compound_request
         compound_res = process_compound_request(raw_message, state)
         if compound_res:
+            state._current_turn_understanding = None
             state.last_assistant_response = compound_res["reply"]
             state.increment_turn()
             return self._build_response(
@@ -269,6 +270,7 @@ class Orchestrator:
         from conversation.pre_classification_resolver import PreClassificationResolver
         pre_res = PreClassificationResolver.resolve(normalized_msg, raw_message, state)
         if pre_res.handled:
+            state._current_turn_understanding = None
             state.last_assistant_response = pre_res.reply
             state.increment_turn()
             return self._build_response(
@@ -7552,19 +7554,20 @@ class Orchestrator:
 
         # Section 22: Answer Relevance Validator & Clean WhatsApp Formatting
         canonical_turn = getattr(state, "_current_turn_understanding", None)
-        if canonical_turn and getattr(canonical_turn, "questions", None) and not source.startswith("guardrail:") and not source.startswith("unified:"):
-            from validation.answer_relevance_validator import answer_relevance_validator
-            is_valid, repaired_text, failure_reasons = answer_relevance_validator.validate_and_repair(
-                understanding=canonical_turn,
-                response_text=reply,
-                target_product_id=state.get_canonical_focus_id(),
-                product_data=state.active_product,
-                session_id=getattr(state, "session_id", ""),
-            )
-            if not is_valid:
-                logger.info(f"Answer Relevance Validator repaired response: {failure_reasons}")
-                reply = repaired_text
-                state.last_assistant_response = reply
+        if canonical_turn and getattr(canonical_turn, "questions", None):
+            if not source.startswith("guardrail:") and not source.startswith("unified:"):
+                from validation.answer_relevance_validator import answer_relevance_validator
+                is_valid, repaired_text, failure_reasons = answer_relevance_validator.validate_and_repair(
+                    understanding=canonical_turn,
+                    response_text=reply,
+                    target_product_id=state.get_canonical_focus_id(),
+                    product_data=state.active_product,
+                    session_id=getattr(state, "session_id", ""),
+                )
+                if not is_valid:
+                    logger.info(f"Answer Relevance Validator repaired response: {failure_reasons}")
+                    reply = repaired_text
+                    state.last_assistant_response = reply
             if getattr(state, "question_ledger", None):
                 for q in canonical_turn.questions:
                     state.question_ledger.mark_answered(q.semantic_key, state.turn_count, reply)

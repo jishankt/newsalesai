@@ -438,10 +438,10 @@ class TurnUnderstandingExtractor:
     ]
 
     CONSUMABLES_PATTERNS = [
-        re.compile(r"\b(?:what\s+inks?|which\s+inks?|consumables?|cartridges?|ribbons?|maintenance\s*box(?:es)?|supplies(?:\s+for)?|sublimation\s+inks?|print\s+supplies)\b", re.I),
-        re.compile(r"\b(?:(?:what|which|need|want|buy|order|get|looking\s+for)\s+(?:some|more|replacement|extra|new|compatible|original|the|these)?\s*(?:350ml|700ml|roll|paper)?\s*(?:ink|inks|cartridge|cartridges|ribbon|ribbons|maintenance\s*box|supplies|paper|media))\b", re.I),
-        re.compile(r"\b(?!(?:our|the|my|this|that|their|its|more|less|high|low|zero|no)\s+)(?:[a-z0-9\-]+\s+(?:ink|inks|cartridge|cartridges|ribbon|ribbons|paper|media|supplies))\b", re.I),
-        re.compile(r"\b(?:ink|inks|cartridge|cartridges|ribbon|ribbons|supplies|paper|media)\s+(?:for|of)\s+[a-z0-9\-]+\b", re.I),
+        re.compile(r"\b(?:what\s+inks?|which\s+inks?|consumables?|consubles?|consumbales?|cartridges?|ribbons?|maintenance\s*box(?:es)?|supplies(?:\s+for)?|sublimation\s+inks?|print\s+supplies)\b", re.I),
+        re.compile(r"\b(?:(?:what|which|need|want|buy|order|get|looking\s+for|list|show|all|give)\s+(?:all\s+)?(?:some|more|replacement|extra|new|compatible|original|the|these)?\s*(?:350ml|700ml|roll|paper)?\s*(?:ink|inks|cartridge|cartridges|ribbon|ribbons|maintenance\s*box|supplies|paper|media|consumables?|consubles?|consumbales?))\b", re.I),
+        re.compile(r"\b(?!(?:our|the|my|this|that|their|its|more|less|high|low|zero|no)\s+)(?:[a-z0-9\-]+\s+(?:ink|inks|cartridge|cartridges|ribbon|ribbons|paper|media|supplies|consumables?|consubles?|consumbales?))\b", re.I),
+        re.compile(r"\b(?:ink|inks|cartridge|cartridges|ribbon|ribbons|supplies|paper|media|consumables?|consubles?|consumbales?)\s+(?:for|of)\s+[a-z0-9\-]+\b", re.I),
     ]
 
     COMPARE_PATTERNS = [
@@ -521,7 +521,8 @@ class TurnUnderstandingExtractor:
         re.compile(
             r"\b(?:delivery|deliver|shipping|ship|dispatch|courier|do you deliver|can you deliver|"
             r"delivery service|deliver to|delivering|pickup|pick up|store pickup|return policy|returns?\b|"
-            r"refunds?\b|cancel(?:lation)?|cancel order|customs duty|import tax|import duty|tracking|track my order|track order)\b",
+            r"refunds?\b|cancel(?:lation)?|cancel order|customs duty|import tax|import duty|tracking|track my order|track order|"
+            r"dubai|abu\s*dhabi|sharjah|ajman|al\s*ain|ras\s*al\s*khaimah|fujairah|uae|oman|saudi|qatar|kuwait|bahrain|gcc)\b",
             re.I
         ),
     ]
@@ -1475,6 +1476,26 @@ def understand_turn(
             det_understanding.is_deterministic = False
             det_understanding.used_llm = True
             det_understanding.ambiguities = res.get("ambiguities", [])
+
+            # Guard against LLM false-positive OUT_OF_SCOPE
+            if det_understanding.dialogue_act == DialogueAct.OUT_OF_SCOPE:
+                t_lower = text.lower()
+                is_valid_topic = any(
+                    k in t_lower for k in [
+                        "dubai", "abu dhabi", "sharjah", "uae", "oman", "saudi", "gcc",
+                        "delivery", "ship", "pickup", "order", "price", "quote",
+                        "ink", "inks", "consumable", "consuble", "consumbales", "cartridge", "ribbon",
+                        "printer", "scanner", "plotter", "epson", "citizen", "f100", "c878", "cz01", "cx02"
+                    ]
+                )
+                if is_valid_topic:
+                    det_understanding.dialogue_act = DialogueAct.QUESTION
+                    if any(k in t_lower for k in ["dubai", "abu dhabi", "sharjah", "uae", "oman", "delivery", "ship"]):
+                        det_understanding.intent = Intent.SHIPPING_OR_DELIVERY
+                    elif any(k in t_lower for k in ["ink", "inks", "consumable", "consuble", "consumbales", "cartridge", "ribbon"]):
+                        det_understanding.intent = Intent.CONSUMABLES_LOOKUP
+                    else:
+                        det_understanding.intent = Intent.PRODUCT_INFO
     except Exception as e:
         logger.warning(f"Ollama structured understanding error: {e}. Falling back to deterministic result.")
 

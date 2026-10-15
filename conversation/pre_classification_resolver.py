@@ -257,7 +257,7 @@ class PreClassificationResolver:
 
         # ── F100 paper size support inquiry (Chat 4 Turn 4) ───────────────────
         if re.search(r"\b(?:what\s+paper\s+size|paper\s+size|supported\s+paper|media\s+size|which\s+paper\s+size)\b", msg_l):
-            if state.get_canonical_focus_id() == "epson-sc-f100" or "f100" in (state.shown_entities or []) or getattr(state, "active_printer_for_consumables", None) == "epson-sc-f100" or "epson-sc-f100" in (state.shown_entities or []):
+            if "f100" in str(state.get_canonical_focus_id()) or any("f100" in str(x).lower() for x in (state.shown_entities or [])) or getattr(state, "active_printer_for_consumables", None) == "epson-sc-f100" or "f100" in str(getattr(state, "active_product_id", "")):
                 reply = (
                     "The **Epson SureColor SC-F100** supports sheet media up to **A4 (210 × 297 mm)**, as well as A5, A6, and custom sheet sizes up to 215.9 × 297 mm (8.5 × 11.7 inches). "
                     "It is a dedicated sheet-fed desktop dye-sublimation printer optimized for transfer paper sheets (does not accept continuous roll paper)."
@@ -269,6 +269,66 @@ class PreClassificationResolver:
                     suggested_chips=["Order A4 Transfer Paper", "Compatible Inks", "Official Quotation"],
                     source="route:product_spec_attribute",
                 )
+
+        # ── Delivery destination inquiry / answer (e.g. "dubai", "abu dhabi", "sharjah", "uae") ────────
+        is_dest_reply = bool(re.search(r"^\s*(?:to\s+)?(?:dubai|abu\s*dhabi|sharjah|ajman|al\s*ain|ras\s*al\s*khaimah|fujairah|uae|oman|saudi|qatar|kuwait|bahrain|gcc)\s*$", msg_l))
+        was_delivery_prompt = bool(state.last_assistant_response and any(w in state.last_assistant_response.lower() for w in ["which destination would you like delivery to", "delivery coverage", "shipping fees", "store pickup"]))
+        if is_dest_reply or (was_delivery_prompt and any(w in msg_l for w in ["dubai", "abu dhabi", "sharjah", "uae", "oman", "saudi", "gcc"])):
+            from conversation.delivery_engine import DeliveryPolicyEngine
+            from conversation.dialogue_state import DialogueState as UDialogueState
+            u_st = getattr(state, "_unified_dialogue_state", None) or UDialogueState(session_id=getattr(state, "session_id", "default"))
+            target_p = state.get_canonical_focus_id() or getattr(state, "active_product_id", None)
+            deliv_text, chips, next_q, ev_recs = DeliveryPolicyEngine.resolve_delivery_decision(raw_msg, u_st, target_p)
+            combined_reply = f"{deliv_text}\n\n{next_q}" if next_q and next_q not in deliv_text else deliv_text
+            return PreClassificationResult(
+                handled=True,
+                reply=combined_reply,
+                suggested_chips=chips,
+                source="agent:delivery_policy",
+            )
+
+        # ── Follow-up consumable inquiry for active product (e.g. "list all the consubles'", "i want ink?", "any other ink for it") ───
+        active_focus = state.get_canonical_focus_id() or getattr(state, "active_product_id", None) or (state.shown_entities[0] if state.shown_entities else None)
+        is_consumables_req = bool(re.search(r"\b(?:list\s+all\s+(?:the\s+)?(?:consumables?|consubles?|consumbales?|inks?|supplies)|all\s+(?:the\s+)?(?:consumables?|consubles?|consumbales?|inks?|supplies)|(?:show|give|what\s+are)\s+(?:all\s+)?(?:the\s+)?(?:consumables?|consubles?|consumbales?|inks?|supplies)|(?:i\s+want\s+)?(?:consubles|consumbales|consumables|inks?|cartridges?|supplies))\b", msg_l))
+        names_another_model = bool(alias_index.resolve(msg_l).is_exact or any(k in msg_l for k in ["f100", "c878", "c879", "cz01", "cx02", "cy02", "p700", "p900"]))
+        if active_focus and is_consumables_req and not names_another_model:
+            from catalog.evidence import EvidenceEngine
+            target_obj = catalogue_loader.get_by_id(active_focus)
+            if target_obj:
+                c_items, rec = EvidenceEngine.list_consumables(active_focus)
+                t_name = target_obj.get("display_name") or target_obj.get("name") or active_focus
+                if c_items:
+                    c_cards = []
+                    lines = [f"Found {len(c_items)} verified compatible consumables for **{t_name}**:\n"]
+                    for ci in c_items:
+                        c_card = {
+                            "card_type": "consumable",
+                            "id": ci.get("sku") or ci.get("id"),
+                            "name": ci.get("name"),
+                            "sku": ci.get("sku"),
+                            "price": ci.get("price"),
+                            "price_str": f"AED {ci.get('price'):,.2f}" if ci.get("price") else None,
+                            "price_formatted": f"AED {ci.get('price'):,.2f} (Excl. VAT)" if ci.get("price") else None,
+                            "currency": "AED",
+                            "category": ci.get("category", "consumable"),
+                            "compatible_printers": [t_name],
+                            "product_url": ci.get("url") or f"https://www.keplertechllc.com/product/{ci.get('sku', '')}",
+                        }
+                        c_cards.append(c_card)
+                        price_part = f" — AED {ci.get('price'):,.2f}" if ci.get("price") else ""
+                        lines.append(f"• **{ci.get('name')}** ({ci.get('sku')}){price_part}")
+                    lines.append("\nWould you like to order replacement supplies or review printer specifications?")
+                    reply = "\n".join(lines)
+                    state.category = "consumables"
+                    state.set_canonical_focus(active_focus)
+                    state.shown_entities = [active_focus] + [ci.get("sku") or ci.get("id") for ci in c_items]
+                    return PreClassificationResult(
+                        handled=True,
+                        reply=reply,
+                        consumable_cards=c_cards,
+                        suggested_chips=["Request Official Quote", "Technical Specifications", "Order Supplies"],
+                        source="route:consumables:verified_list",
+                    )
 
         # ── (a) PENDING QUESTION BINDING ─────────────────────────────────────
         if state.pending_question:
