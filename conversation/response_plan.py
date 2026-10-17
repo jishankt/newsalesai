@@ -639,29 +639,46 @@ class ResponsePlanValidator:
                     else:
                         plan.formatted_reply = plan.formatted_reply.replace(lm, "")
 
-        # 6. Anti-Repeat Consecutive Reply Guard
+        # 6. Anti-Repeat Loop Prevention Guard (past 6 turns)
         prev_replies = getattr(state, "recent_assistant_replies", []) or []
         pace = getattr(state, "buyer_pace", "standard") or "standard"
         if prev_replies and plan.formatted_reply and pace != "concise":
             from difflib import SequenceMatcher
-            for prev_r in prev_replies[-2:]:
+            for prev_r in prev_replies[-6:]:
                 ratio = SequenceMatcher(None, plan.formatted_reply.strip().lower(), prev_r.strip().lower()).ratio()
                 if ratio >= 0.85:
-                    logger.warning(f"Anti-repeat guard: Candidate reply similarity {ratio:.2f} >= 0.85. Rephrasing.")
-                    transitions = [
-                        "To continue with your equipment selection:",
-                        "Moving forward with your request:",
-                        "Regarding your operational workflow:",
-                        "To help guide you to the right system:",
-                    ]
-                    chosen_t = transitions[state.turn_count % len(transitions)]
-                    plan.formatted_reply = f"{chosen_t}\n\n{plan.formatted_reply}"
+                    logger.warning(f"Anti-repeat guard: Candidate reply similarity {ratio:.2f} >= 0.85 against turn in last 6 turns. Breaking loop.")
+                    # If this is a qualification question loop, break out by delivering recommendations
+                    is_question = "?" in plan.formatted_reply or any(k in plan.formatted_reply.lower() for k in ["how many pages", "which model", "do you require", "select your daily"])
+                    if is_question:
+                        cat = getattr(state, "category", None) or "equipment"
+                        from catalog.catalogue_filter import catalogue_filter
+                        from catalog.subcategory_resolver import resolve_subcategory
+                        slots = getattr(state, "confirmed_slots", {}) or getattr(state, "requirements", {}) or {}
+                        subcat = resolve_subcategory(cat, slots) if cat else None
+                        cards, _ = catalogue_filter.filter_and_rank(cat, subcat, slots) if cat else ([], None)
+                        if cards:
+                            plan.product_cards = cards[:3]
+                            cat_label = cat.replace('_', ' ').title()
+                            bullet_lines = [f"• **{c.get('name') or c.get('title') or c.get('id')}**" for c in cards[:3]]
+                            plan.formatted_reply = f"Based on your requirements, here are our recommended {cat_label} models from our verified catalogue:\n\n" + "\n".join(bullet_lines)
+                        else:
+                            plan.formatted_reply = "I would be pleased to assist you with specific technical parameters or an official quote for our verified commercial printing systems. How can I best assist you?"
+                    else:
+                        transitions = [
+                            "To continue with your equipment selection:",
+                            "Moving forward with your request:",
+                            "Regarding your operational workflow:",
+                            "To help guide you to the right system:",
+                        ]
+                        chosen_t = transitions[state.turn_count % len(transitions)]
+                        plan.formatted_reply = f"{chosen_t}\n\n{plan.formatted_reply}"
                     break
 
         if not hasattr(state, "recent_assistant_replies") or state.recent_assistant_replies is None:
             state.recent_assistant_replies = []
         state.recent_assistant_replies.append(plan.formatted_reply)
-        if len(state.recent_assistant_replies) > 5:
+        if len(state.recent_assistant_replies) > 8:
             state.recent_assistant_replies.pop(0)
 
         return plan

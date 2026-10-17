@@ -44,6 +44,8 @@ SEMANTIC_EQUIVALENCE_RULES = [
     (r"\b(?:warranty|guarantee|coverplus|amc|maintenance\s*contract|repair|service)\b", "warranty"),
     # Application / Use Case
     (r"\b(?:photo\s*booth|wedding|cad|blueprints?|studio|event|office\s*documents?|sublimation|mugs|t-shirts?)\b", "application"),
+    # Daily / Monthly Page Volume & Duty Cycle
+    (r"\b(?:how\s*many\s*pages|pages?\s*(?:per|a)\s*day|daily\s*(?:pages?|volume)|monthly\s*(?:pages?|volume)|duty\s*cycle|pages\/day)\b", "daily_volume"),
 ]
 
 

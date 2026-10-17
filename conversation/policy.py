@@ -1289,22 +1289,41 @@ class PolicyEngine:
                     state.last_shown_consumables.clear()
             canonical_cat = state.category
 
-            # Accumulate extracted requirements into state.confirmed_slots
+            # Accumulate extracted requirements into state.confirmed_slots and state.requirements
             req_text = und.raw_text
             if resolved.bound_pending_option:
                 b_lbl = str(resolved.bound_pending_option.get("label", ""))
                 req_text = f"{req_text} {b_lbl}".strip()
-            new_reqs = extract_flowchart_requirements(req_text, state.confirmed_slots)
-            state.confirmed_slots.update(new_reqs)
+            
+            combined_slots = dict(getattr(state, "requirements", {}))
+            combined_slots.update(getattr(state, "confirmed_slots", {}))
+            new_reqs = extract_flowchart_requirements(req_text, combined_slots)
+            combined_slots.update(new_reqs)
+            state.confirmed_slots.update(combined_slots)
+            if hasattr(state, "requirements"):
+                state.requirements.update(combined_slots)
 
             # Qualification Budget: Track qualification questions count
             turns_on_flow = state.confirmed_slots.get("_qualification_turns", 0) + 1
             state.confirmed_slots["_qualification_turns"] = turns_on_flow
 
-            step = resolve_flowchart_step(canonical_cat, state.confirmed_slots, req_text)
+            # Guard: If paper_size and (daily_volume or daily_pages) exist, forbid re-asking qualification questions
+            has_paper_size = bool(state.confirmed_slots.get("paper_size"))
+            has_volume = bool(state.confirmed_slots.get("daily_volume") or state.confirmed_slots.get("daily_pages") or state.confirmed_slots.get("office_duty_class") or state.confirmed_slots.get("office_speed_class"))
+            if has_paper_size and has_volume:
+                # Force leaf resolution if not explicitly set
+                step = resolve_flowchart_step(canonical_cat, state.confirmed_slots, req_text)
+                if not step.is_leaf:
+                    # Provide default office technology class based on known volume or standard duty
+                    v = state.confirmed_slots.get("daily_volume") or state.confirmed_slots.get("daily_pages") or 200
+                    state.confirmed_slots.setdefault("office_speed_class", "25_ppm_rips" if v <= 300 else "40_ppm_linehead")
+                    state.confirmed_slots.setdefault("office_duty_class", "departmental_rips" if v <= 500 else "linehead_40")
+                    step = resolve_flowchart_step(canonical_cat, state.confirmed_slots, req_text)
+            else:
+                step = resolve_flowchart_step(canonical_cat, state.confirmed_slots, req_text)
 
-            # Budget Gate: At max 3 questions before delivering leaf recommendations with product cards
-            if not step.is_leaf and turns_on_flow >= 3:
+            # Budget Gate: At max 2 questions before delivering leaf recommendations with product cards
+            if not step.is_leaf and turns_on_flow >= 2:
                 if canonical_cat in ("technical_large_format", "technical_cad", "cad"):
                     state.confirmed_slots.setdefault("plotter_width", 24)
                     state.confirmed_slots.setdefault("cad_config_24", "entry_desktop")
@@ -1315,6 +1334,12 @@ class PolicyEngine:
                     state.confirmed_slots.setdefault("scanner_type", "business_sheetfed")
                 elif canonical_cat == "dye_sublimation":
                     state.confirmed_slots.setdefault("sublimation_format", "desktop")
+                elif canonical_cat in ("office_printer", "office_enterprise", "office_workforce", "office"):
+                    state.confirmed_slots.setdefault("paper_size", "A4")
+                    state.confirmed_slots.setdefault("daily_pages", 200)
+                    state.confirmed_slots.setdefault("daily_volume", 200)
+                    state.confirmed_slots.setdefault("office_speed_class", "25_ppm_rips")
+                    state.confirmed_slots.setdefault("office_duty_class", "departmental_rips")
                 step = resolve_flowchart_step(canonical_cat, state.confirmed_slots, req_text)
 
             # If a specific product or leaf was reached

@@ -145,6 +145,7 @@ def extract_flowchart_requirements(text: str, current_reqs: Optional[Dict[str, A
     if vol_num_match:
         pages = int(vol_num_match.group(1))
         reqs["daily_pages"] = pages
+        reqs["daily_volume"] = pages
         if pages < 100:
             reqs["office_speed_class"] = "34_ppm"
             reqs["office_duty_class"] = "standard_mfp"
@@ -342,7 +343,7 @@ def _resolve_flowchart_step_raw(
         # Step 2 for A4: Per-Day Printing Volume & Technology Class
         if paper_size == "A4":
             speed_class = reqs.get("office_speed_class")
-            daily_pages = reqs.get("daily_pages")
+            daily_pages = reqs.get("daily_pages") if reqs.get("daily_pages") is not None else reqs.get("daily_volume")
             if speed_class == "34_ppm" or (daily_pages is not None and daily_pages <= 100):
                 return FlowchartStep(
                     category="office_printer",
@@ -398,7 +399,7 @@ def _resolve_flowchart_step_raw(
         # Step 2 for A3: Duty & Volume Class (Per-Day Printing)
         if paper_size == "A3":
             duty_class = reqs.get("office_duty_class")
-            daily_pages = reqs.get("daily_pages")
+            daily_pages = reqs.get("daily_pages") if reqs.get("daily_pages") is not None else reqs.get("daily_volume")
             if duty_class in ("departmental_rips", "standard_mfp") or (daily_pages is not None and daily_pages <= 500):
                 return FlowchartStep(
                     category="office_printer",
