@@ -217,6 +217,13 @@ class Orchestrator:
 
         # ── 1. Normalize Text (node_receive) ──────────────────────────────
         t_recv_start = time.time()
+        from nlp.multilingual import detect_language, translate_to_language
+        inbound_lang = detect_language(raw_message)
+        if inbound_lang != "en":
+            state.preferred_language = inbound_lang
+            if hasattr(state, "detected_language"):
+                state.detected_language = inbound_lang
+
         norm_result = normalize_text(raw_message)
         normalized_msg = norm_result["normalized_text"]
 
@@ -7578,6 +7585,10 @@ class Orchestrator:
         from agent.response_composer import ResponseComposer
         if reply:
             reply = ResponseComposer._clean_unwanted_stars(reply)
+            pref_lang = getattr(state, "preferred_language", "en") or "en"
+            if pref_lang in ("ar", "hi", "ml"):
+                from nlp.multilingual import translate_to_language
+                reply = translate_to_language(reply, pref_lang)
             state.last_assistant_response = reply
 
         is_grounded = (reply != STATIC_SAFE_REFUSAL and not source.endswith("safe_refusal"))
