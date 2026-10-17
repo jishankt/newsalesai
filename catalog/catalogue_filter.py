@@ -254,6 +254,28 @@ class CatalogueFilter:
                         is_match = False
                         reasons.append("not high media capacity model")
 
+            # Budget Ceiling Gate (Hardware Price)
+            budget_ceiling = requirements.get("budget_ceiling") or requirements.get("budget_aed")
+            if budget_ceiling is not None:
+                try:
+                    b_ceil = float(budget_ceiling)
+                    if b_ceil > 0:
+                        from catalog.price_resolver import price_resolver
+                        p_info = price_resolver.get_price_info(p.get("id"), prod=p)
+                        p_price = p_info.get("price")
+                        if p_price is not None and p_price > b_ceil:
+                            is_match = False
+                            reasons.append(f"price AED {p_price:,.2f} exceeds budget AED {b_ceil:,.0f}")
+                        elif p_price is None and b_ceil < 5000 and (
+                            p.get("product_line") == "workforce_enterprise"
+                            or p.get("main_category") == "office_enterprise"
+                            or "enterprise" in str(p.get("subcategory", "")).lower()
+                        ):
+                            is_match = False
+                            reasons.append(f"enterprise linehead series exceeds budget limit AED {b_ceil:,.0f}")
+                except (ValueError, TypeError):
+                    pass
+
             if is_match:
                 candidates.append(p)
             else:

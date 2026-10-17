@@ -94,6 +94,13 @@ def extract_budget(text: str) -> Optional[BudgetParseResult]:
         or re.search(r"\b(?:qty|quantity)\s*[:=]?\s*(\d+)\b", norm)
     )
 
+    if has_quantity:
+        detected_scope = "unspecified"
+    elif bool(re.search(r"\b(?:cartridges?|inks?|toners?|ribbons?|rolls?|papers?|medias?|consumables?)\b", norm)):
+        detected_scope = "consumable"
+    else:
+        detected_scope = "hardware"
+
     # Helper regex for a number with optional 'k'
     num_k = r"(\d+(?:\.\d+)?\s*(?:k|lakhs?|lacs?)?)"
 
@@ -130,7 +137,7 @@ def extract_budget(text: str) -> Optional[BudgetParseResult]:
                         return BudgetParseResult(
                             budget_ceiling=upper,
                             budget_floor=lower,
-                            budget_scope="unspecified" if has_quantity else None,
+                            budget_scope=detected_scope,
                             raw_match=range_match.group(0),
                         )
 
@@ -148,7 +155,7 @@ def extract_budget(text: str) -> Optional[BudgetParseResult]:
             if val is not None:
                 return BudgetParseResult(
                     budget_ceiling=val,
-                    budget_scope="unspecified" if has_quantity else None,
+                    budget_scope=detected_scope,
                     raw_match=kw_pattern.group(0),
                 )
 
@@ -165,7 +172,7 @@ def extract_budget(text: str) -> Optional[BudgetParseResult]:
         if val is not None and not is_disqualified(after):
             return BudgetParseResult(
                 budget_ceiling=val,
-                budget_scope="unspecified" if has_quantity else None,
+                budget_scope=detected_scope,
                 raw_match=num_kw_pattern.group(0),
             )
 
@@ -183,7 +190,7 @@ def extract_budget(text: str) -> Optional[BudgetParseResult]:
             if val is not None:
                 return BudgetParseResult(
                     budget_ceiling=val,
-                    budget_scope="unspecified" if has_quantity else None,
+                    budget_scope=detected_scope,
                     raw_match=curr_prefix.group(0),
                 )
 
@@ -196,7 +203,7 @@ def extract_budget(text: str) -> Optional[BudgetParseResult]:
         if val is not None:
             return BudgetParseResult(
                 budget_ceiling=val,
-                budget_scope="unspecified" if has_quantity else None,
+                budget_scope=detected_scope,
                 raw_match=curr_suffix.group(0),
             )
 
@@ -209,7 +216,7 @@ def extract_budget(text: str) -> Optional[BudgetParseResult]:
             val = float(k_bare.group(1)) * 1000.0
             return BudgetParseResult(
                 budget_ceiling=val,
-                budget_scope="unspecified" if has_quantity else None,
+                budget_scope=detected_scope,
                 raw_match=k_bare.group(0),
             )
 

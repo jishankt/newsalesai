@@ -72,8 +72,10 @@ def extract_flowchart_requirements(text: str, current_reqs: Optional[Dict[str, A
     b_res = extract_budget(text)
     if b_res and b_res.budget_ceiling is not None:
         reqs["budget_aed"] = b_res.budget_ceiling
+        reqs["budget_ceiling"] = b_res.budget_ceiling
         if b_res.budget_floor is not None:
             reqs["budget_floor_aed"] = b_res.budget_floor
+            reqs["budget_floor"] = b_res.budget_floor
         if b_res.budget_scope:
             reqs["budget_scope"] = b_res.budget_scope
 
@@ -918,7 +920,7 @@ def _apply_budget_filter(step: FlowchartStep, reqs: Dict[str, Any]) -> Flowchart
     if not step.is_leaf or not step.target_product_id:
         return step
 
-    budget_aed = reqs.get("budget_aed")
+    budget_aed = reqs.get("budget_ceiling") or reqs.get("budget_aed")
     if budget_aed is None:
         return step
 

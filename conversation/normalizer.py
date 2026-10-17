@@ -577,6 +577,23 @@ def extract_deterministic_requirements(text: str, category: Optional[str] = None
             reqs["scanner_intent"] = "business"
             reqs["subcategory"] = "business_scanners"
 
+    # ── 8. Budget Extraction & Normalization ──────────────────────────────
+    from conversation.numeric_parse import extract_budget
+    b_res = extract_budget(text_l)
+    if b_res and b_res.budget_ceiling is not None:
+        reqs["budget_ceiling"] = b_res.budget_ceiling
+        reqs["budget_aed"] = b_res.budget_ceiling
+        if b_res.budget_floor is not None:
+            reqs["budget_floor"] = b_res.budget_floor
+            reqs["budget_floor_aed"] = b_res.budget_floor
+        if b_res.budget_scope:
+            reqs["budget_scope"] = b_res.budget_scope
+        if is_correction:
+            corrections["budget_ceiling"] = b_res.budget_ceiling
+            corrections["budget_aed"] = b_res.budget_ceiling
+            if b_res.budget_floor is not None:
+                corrections["budget_floor"] = b_res.budget_floor
+
     return reqs, corrections
 
 
