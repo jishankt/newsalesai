@@ -141,10 +141,20 @@ class StateReconciler:
         if "application" in corrections:
             state.requirements["application"] = corrections["application"]
 
-        # 3. Format / Size Correction
-        if "format" in corrections:
-            state.requirements["format"] = corrections["format"]
-            state.requirements["print_width"] = corrections["format"]
+        # 3. Format / Size / Paper Size Correction
+        if "format" in corrections or "paper_size" in corrections or "size" in corrections:
+            size_val = corrections.get("paper_size") or corrections.get("format") or corrections.get("size")
+            state.requirements["paper_size"] = size_val
+            state.requirements["format"] = size_val
+            state.requirements["print_width"] = size_val
+
+            # Purge stale shortlists and candidates to prevent shortlist bleed
+            state.candidate_products.clear()
+            if hasattr(state, "shortlisted_products"):
+                state.shortlisted_products.clear()
+            state.active_product = None
+            state.active_product_id = None
+            state.canonical_focus = None
 
     @classmethod
     def _apply_topic_switch(cls, understanding: CanonicalTurnUnderstanding, state: ConversationState) -> None:

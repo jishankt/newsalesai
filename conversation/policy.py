@@ -802,6 +802,20 @@ class PolicyEngine:
 
             # Update requirements from correction text
             new_reqs = extract_flowchart_requirements(und.raw_text)
+
+            # Purge stale shortlists and candidates if a core requirement changed
+            core_keys = {"paper_size", "category", "brand", "daily_pages", "office_duty_class", "colour_mode"}
+            if any(k in new_reqs for k in core_keys):
+                if hasattr(state, "candidate_products"):
+                    state.candidate_products = []
+                if hasattr(state, "shortlisted_products"):
+                    state.shortlisted_products = []
+                if hasattr(state, "last_shown_products"):
+                    state.last_shown_products = []
+                state.active_product_id = None
+                if hasattr(state, "active_product"):
+                    state.active_product = None
+
             if hasattr(state, "requirements"):
                 state.requirements.update(new_reqs)
             if hasattr(state, "confirmed_slots"):
@@ -814,6 +828,17 @@ class PolicyEngine:
             cards, _ = catalogue_filter.filter_and_rank(cat, subcat, reqs) if cat and subcat else ([], None)
             target_id = cards[0]["id"] if cards else (resolved.resolved_target_product.id if resolved.resolved_target_product else None)
             supp_ids = [c["id"] for c in cards[1:3]] if len(cards) > 1 else []
+
+            # Populate state with refreshed cards
+            if cards:
+                card_ids = [c["id"] for c in cards]
+                if hasattr(state, "candidate_products"):
+                    state.candidate_products = card_ids
+                if hasattr(state, "shortlisted_products"):
+                    state.shortlisted_products = card_ids
+                if hasattr(state, "last_shown_products"):
+                    state.last_shown_products = cards
+                state.active_product_id = target_id
 
             cat_title = cat.replace('_', ' ').title() if cat else "matching"
             rec_claim = f"Understood! Here are our recommended {cat_title} models matching your updated specifications:"

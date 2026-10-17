@@ -39,21 +39,7 @@ class DialogueAct(str, Enum):
     OUT_OF_SCOPE = "out_of_scope"
 
 
-class Intent(str, Enum):
-    PRODUCT_INFO = "product_info"
-    COMPATIBILITY_CHECK = "compatibility_check"
-    CONSUMABLES_LOOKUP = "consumables_lookup"
-    COMPARE = "compare"
-    RECOMMEND = "recommend"
-    ALTERNATIVES = "alternatives"
-    AVAILABILITY_OR_PRICE_POLICY = "availability_or_price_policy"
-    DISCOUNT_REQUEST = "discount_request"
-    QUOTE_REQUEST = "quote_request"
-    CUSTOM_CONFIG_REQUEST = "custom_config_request"
-    COMPETITOR_MENTION = "competitor_mention"
-    CONTACT_SHOWROOM = "contact_showroom"
-    SHIPPING_OR_DELIVERY = "shipping_or_delivery"
-    OTHER = "other"
+from domain.conversation_types import Intent
 
 
 # ── Typed Turn Understanding Schema ───────────────────────────────────────────

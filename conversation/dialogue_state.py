@@ -43,6 +43,8 @@ class PendingQuestion(BaseModel):
 
 
 class DialogueState(BaseModel):
+    model_config = {"extra": "allow"}
+
     session_id: str
     turn_count: int = 0
     category: Optional[str] = None
@@ -53,6 +55,13 @@ class DialogueState(BaseModel):
     last_shown_chips: List[str] = Field(default_factory=list)
     pending_question: Optional[PendingQuestion] = None
     confirmed_slots: Dict[str, Any] = Field(default_factory=dict)
+    requirements: Dict[str, Any] = Field(default_factory=dict)
+    candidate_products: List[str] = Field(default_factory=list)
+    shortlisted_products: List[str] = Field(default_factory=list)
+    active_product_id: Optional[str] = None
+    active_product: Optional[Dict[str, Any]] = None
+    active_consumable: Optional[Dict[str, Any]] = None
+    canonical_focus: Optional[str] = None
     corrections_history: List[Dict[str, Any]] = Field(default_factory=list)
     clarifications_asked: Dict[str, int] = Field(default_factory=dict)  # topic -> count
     last_intent: Optional[Intent] = None

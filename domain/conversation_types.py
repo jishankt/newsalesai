@@ -12,7 +12,8 @@ from typing import Optional, Dict, Any, List
 # Intent Taxonomy
 # ---------------------------------------------------------------------------
 class Intent(str, Enum):
-    """All recognized customer intents. The LLM must return one of these."""
+    """All recognized customer intents. Canonical unified taxonomy."""
+    # Social & Conversational
     GREETING = "greeting"
     CUSTOMER_INTRODUCTION = "customer_introduction"
     SMALL_TALK = "small_talk"
@@ -25,14 +26,32 @@ class Intent(str, Enum):
     CONVERSATION_ENDING = "conversation_ending"
     CONVERSATION_HELP = "conversation_help"
     LANGUAGE_CHANGE = "language_change"
-    PRODUCT_DISCOVERY = "product_discovery"
-    PRODUCT_QUESTION = "product_question"
-    PRODUCT_COMPARISON = "product_comparison"
-    CONSUMABLES_QUERY = "consumables_query"
     BUSINESS_INFORMATION = "business_information"
     TROUBLESHOOTING = "troubleshooting"
     UNCLEAR = "unclear"
     OUT_OF_SCOPE = "out_of_scope"
+
+    # Core Product & Discovery
+    PRODUCT_DISCOVERY = "product_discovery"
+    PRODUCT_QUESTION = "product_question"
+    PRODUCT_COMPARISON = "product_comparison"
+    CONSUMABLES_QUERY = "consumables_query"
+
+    # Fine-Grained Commerce & Action Intents
+    PRODUCT_INFO = "product_info"
+    COMPATIBILITY_CHECK = "compatibility_check"
+    CONSUMABLES_LOOKUP = "consumables_lookup"
+    COMPARE = "compare"
+    RECOMMEND = "recommend"
+    ALTERNATIVES = "alternatives"
+    AVAILABILITY_OR_PRICE_POLICY = "availability_or_price_policy"
+    DISCOUNT_REQUEST = "discount_request"
+    QUOTE_REQUEST = "quote_request"
+    CUSTOM_CONFIG_REQUEST = "custom_config_request"
+    COMPETITOR_MENTION = "competitor_mention"
+    CONTACT_SHOWROOM = "contact_showroom"
+    SHIPPING_OR_DELIVERY = "shipping_or_delivery"
+    OTHER = "other"
 
 
 # Grouped intent sets for decision engine routing
@@ -51,6 +70,19 @@ PRODUCT_INTENTS = frozenset({
     Intent.PRODUCT_QUESTION,
     Intent.PRODUCT_COMPARISON,
     Intent.CONSUMABLES_QUERY,
+    Intent.PRODUCT_INFO,
+    Intent.COMPATIBILITY_CHECK,
+    Intent.CONSUMABLES_LOOKUP,
+    Intent.COMPARE,
+    Intent.RECOMMEND,
+    Intent.ALTERNATIVES,
+    Intent.AVAILABILITY_OR_PRICE_POLICY,
+    Intent.DISCOUNT_REQUEST,
+    Intent.QUOTE_REQUEST,
+    Intent.CUSTOM_CONFIG_REQUEST,
+    Intent.COMPETITOR_MENTION,
+    Intent.CONTACT_SHOWROOM,
+    Intent.SHIPPING_OR_DELIVERY,
 })
 
 

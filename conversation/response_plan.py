@@ -530,6 +530,41 @@ class ResponsePlanValidator:
                     if not (in_cat or in_cards or in_ev):
                         errors.append(f"Accuracy violation: Model '{mm}' mentioned without verified evidence.")
 
+        # 5b-2. Hard Constraint Validation (Paper Size against Confirmed Slots)
+        confirmed_paper_size = None
+        if hasattr(state, "confirmed_slots") and isinstance(state.confirmed_slots, dict):
+            confirmed_paper_size = state.confirmed_slots.get("paper_size")
+        if not confirmed_paper_size and hasattr(state, "requirements") and isinstance(state.requirements, dict):
+            confirmed_paper_size = state.requirements.get("paper_size")
+
+        if confirmed_paper_size:
+            req_size = str(confirmed_paper_size).strip().upper()
+            if req_size == "A3":
+                invalid_cards = []
+                for card in plan.product_cards:
+                    cid = str(card.get("id", "")).lower()
+                    cname = str(card.get("name", "")).lower()
+                    csize = str(card.get("max_paper_size", "")).upper()
+                    is_a4 = (csize == "A4") or any(k in cid or k in cname for k in ["c5890", "c5390", "c800", "c400", "m5799", "c529"])
+                    is_a3 = any(k in cid or k in cname for k in ["c878", "c879", "c4000", "c5000", "c6000", "c21000", "a3"])
+                    if is_a4 and not is_a3:
+                        invalid_cards.append(card)
+                if invalid_cards:
+                    errors.append(f"Hard constraint violation: plan includes A4 models {[c.get('id') for c in invalid_cards]} when user confirmed A3.")
+                    plan.product_cards = [c for c in plan.product_cards if c not in invalid_cards]
+            elif req_size == "A4":
+                invalid_cards = []
+                for card in plan.product_cards:
+                    cid = str(card.get("id", "")).lower()
+                    cname = str(card.get("name", "")).lower()
+                    csize = str(card.get("max_paper_size", "")).upper()
+                    is_a3 = (csize == "A3") or any(k in cid or k in cname for k in ["c878", "c879", "c4000", "c5000", "c6000", "c21000"])
+                    if is_a3:
+                        invalid_cards.append(card)
+                if invalid_cards:
+                    errors.append(f"Hard constraint violation: plan includes A3 models {[c.get('id') for c in invalid_cards]} when user confirmed A4.")
+                    plan.product_cards = [c for c in plan.product_cards if c not in invalid_cards]
+
         # 5c. Banned Corporate Cliches Filter
         BANNED_PHRASE_REPLACEMENTS = [
             (r"\bCertainly!\s*", ""),

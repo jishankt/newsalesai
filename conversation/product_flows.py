@@ -94,16 +94,40 @@ def extract_flowchart_requirements(text: str, current_reqs: Optional[Dict[str, A
         elif re.search(r"\b(?:easy\s*to\s*use|ease\s*of\s*use|simple|touchscreen|user\s*friendly|plug\s*and\s*play)\b", text_clean):
             reqs["primary_concern"] = "ease_of_use"
 
-    # 1. Paper Size
-    if (
-        re.search(r"\ba4\b", text_l)
-        or "desktop sheet" in text_l
-        or "a4 output" in text_l
-        or re.search(r"\b(?:invoices?|bills?|receipts?|office\s*documents?|general\s*documents?)\b", text_l)
-    ):
-        reqs["paper_size"] = "A4"
-    elif re.search(r"\ba3\b", text_l) or "departmental" in text_l or "a3 output" in text_l:
+    # 1. Paper Size (with strict negation and correction awareness)
+    neg_a4_pattern = r"\b(?:not|no|never|instead\s*of|rather\s*than|don't\s*want|dont\s*want|opposed\s*to)\s+(?:an?\s*)?a4\b"
+    neg_a3_pattern = r"\b(?:not|no|never|instead\s*of|rather\s*than|don't\s*want|dont\s*want|opposed\s*to)\s+(?:an?\s*)?a3\b"
+    pos_a3_pattern = r"\b(?:meant|mean|prefer|want|need|looking\s*for|switch\s*to|change\s*to|actually|make\s*it|require)\s+(?:an?\s*)?a3\b"
+    pos_a4_pattern = r"\b(?:meant|mean|prefer|want|need|looking\s*for|switch\s*to|change\s*to|actually|make\s*it|require)\s+(?:an?\s*)?a4\b"
+
+    has_a4 = bool(re.search(r"\ba4\b", text_l) or "desktop sheet" in text_l or "a4 output" in text_l)
+    has_a3 = bool(re.search(r"\ba3\b", text_l) or "departmental" in text_l or "a3 output" in text_l)
+    is_neg_a4 = bool(re.search(neg_a4_pattern, text_l))
+    is_neg_a3 = bool(re.search(neg_a3_pattern, text_l))
+    is_pos_a3 = bool(re.search(pos_a3_pattern, text_l))
+    is_pos_a4 = bool(re.search(pos_a4_pattern, text_l))
+
+    if is_neg_a4 and (has_a3 or is_pos_a3):
         reqs["paper_size"] = "A3"
+    elif is_neg_a3 and (has_a4 or is_pos_a4):
+        reqs["paper_size"] = "A4"
+    elif is_pos_a3:
+        reqs["paper_size"] = "A3"
+    elif is_pos_a4:
+        reqs["paper_size"] = "A4"
+    elif has_a3 and not has_a4:
+        reqs["paper_size"] = "A3"
+    elif has_a4 and not has_a3:
+        reqs["paper_size"] = "A4"
+    elif has_a3 and has_a4:
+        m3 = re.search(r"\ba3\b", text_l)
+        m4 = re.search(r"\ba4\b", text_l)
+        if m3 and m4 and m3.start() > m4.start():
+            reqs["paper_size"] = "A3"
+        else:
+            reqs["paper_size"] = "A4"
+    elif re.search(r"\b(?:invoices?|bills?|receipts?|office\s*documents?|general\s*documents?)\b", text_l) and not (is_neg_a4 or has_a3):
+        reqs["paper_size"] = "A4"
 
     # If customer specified A4 office printer with a standard budget <= 2500 AED and omitted volume
     if reqs.get("paper_size") == "A4" and not reqs.get("office_speed_class") and reqs.get("daily_pages") is None:
