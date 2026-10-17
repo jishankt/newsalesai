@@ -369,6 +369,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     ensureTypingIndicator();
     isAwaitingReply = true;
+    if (sendBtn) sendBtn.disabled = true;
 
     const companyContext = {
       company_name: (companyNameInput && companyNameInput.value ? companyNameInput.value.trim() : '') || 'Kepler Tech LLC',
@@ -380,10 +381,12 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const combinedMessage = messagesToSend.join('\n');
+    const clientMessageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     const payload = {
       message: combinedMessage,
       messages: messagesToSend,
       session_id: sessionId,
+      message_id: clientMessageId,
       company_context: companyContext,
       model: (ollamaModelInput && ollamaModelInput.value ? ollamaModelInput.value.trim() : 'qwen2.5:32b'),
       ollama_base_url: (ollamaUrlInput && ollamaUrlInput.value ? ollamaUrlInput.value.trim() : '')
@@ -441,6 +444,7 @@ document.addEventListener('DOMContentLoaded', () => {
       appendMessage('bot', "I'm having trouble connecting to the backend right now. Please ensure the server is active.", "Offline", [], null, null, [], [], [], DEFAULT_AGENT);
       return;
     } finally {
+      if (sendBtn) sendBtn.disabled = false;
       if (!activeAbortController || !activeAbortController.signal.aborted) {
         activeAbortController = null;
       }

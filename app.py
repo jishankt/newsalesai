@@ -297,6 +297,8 @@ def poll_chat():
 
 _session_active_turns: Dict[str, str] = {}
 _session_turn_mutex = threading.Lock()
+_idempotency_cache: Dict[str, Dict[str, Any]] = {}
+_idempotency_mutex = threading.Lock()
 
 
 @app.route("/api/chat/cancel", methods=["POST"])
@@ -330,6 +332,17 @@ def chat():
     if not data or not isinstance(data, dict):
         return jsonify({"error": "Missing or invalid JSON body"}), 400
 
+    # Idempotency check with client-provided message_id
+    message_id = data.get("message_id")
+    if message_id and isinstance(message_id, str):
+        with _idempotency_mutex:
+            if message_id in _idempotency_cache:
+                cached = _idempotency_cache[message_id]
+                if time.time() - cached.get("timestamp", 0) < 600:
+                    resp_body = dict(cached["body"])
+                    resp_body["idempotent_replay"] = True
+                    return jsonify(resp_body), cached.get("status", 200)
+
     # Security: Model allowlist enforcement — do not leak full allowed model list in error
     if data.get("model") and data["model"] not in ALLOWED_MODELS:
         return jsonify({"error": f"Model not allowed: '{data['model']}'"}), 400
@@ -361,17 +374,16 @@ def chat():
     else:
         session_id = str(uuid.uuid4())
 
-    # Rapid Consecutive WhatsApp Message Aggregation
+    # Add message to session buffer for rapid consecutive message aggregation
     try:
         from conversation.message_buffer import message_buffer
-        raw_message = message_buffer.get_combined_prompt(session_id, raw_message)
+        message_buffer.add_message(session_id, raw_message)
     except Exception:
         pass
 
     turn_token = str(uuid.uuid4())
     with _session_turn_mutex:
         _session_active_turns[session_id] = turn_token
-    session_lock_manager.force_reset(session_id)
 
     # Rate Limiting Guard: check IP and session limits
     client_ip = get_client_ip(request)
@@ -390,7 +402,7 @@ def chat():
     turn_start_time = time.time()
 
     # Per-session lock around read-state -> process -> save-state critical section
-    acquired = session_lock_manager.acquire(session_id)
+    acquired = session_lock_manager.acquire(session_id, timeout=30.0)
     if not acquired:
         return jsonify({
             "success": False,
@@ -399,20 +411,39 @@ def chat():
         }), 429
 
     try:
-        return _process_chat_turn(raw_message, session_id, model_name, request_id, session_prefix, turn_start_time, turn_token=turn_token, input_messages=input_messages)
+        # Once lock is acquired, combine any rapid buffered messages into a single prompt
+        try:
+            from conversation.message_buffer import message_buffer
+            raw_message = message_buffer.get_combined_prompt(session_id, raw_message)
+        except Exception:
+            pass
+        return _process_chat_turn(raw_message, session_id, model_name, request_id, session_prefix, turn_start_time, turn_token=turn_token, input_messages=input_messages, message_id=message_id)
     finally:
         session_lock_manager.release(session_id)
 
 
-def _process_chat_turn(raw_message, session_id, model_name, request_id, session_prefix, turn_start_time, turn_token=None, input_messages=None):
+def _process_chat_turn(raw_message, session_id, model_name, request_id, session_prefix, turn_start_time, turn_token=None, input_messages=None, message_id=None):
+    # Retrieve canonical state via unified state_manager
+    state = state_manager.get_or_create(session_id)
+
+    # Session ownership security guard: verify customer session ownership
+    if CUSTOMER_LOGIN_ENABLED and getattr(state, "customer_id", None):
+        current_cust = session.get("customer_id")
+        if not current_cust or current_cust != state.customer_id:
+            logger.warning(f"[{session_prefix}] Unauthorized access attempt to session owned by {state.customer_id}")
+            return jsonify({
+                "success": False,
+                "error": "Forbidden: You do not have permission to access this session.",
+                "code": "FORBIDDEN"
+            }), 403
+
     # 1. NLP Analysis: Normalization, Intent Classification, Entity Extraction
     nlp_result = analyze_input(raw_message)
     normalized_msg = nlp_result["normalized_text"]
     detected_intent = nlp_result["intent"]
 
-    # Retrieve canonical state and history via unified state_manager
-    state = state_manager.get_or_create(session_id)
-    history = state_manager.get_history(session_id)
+    # Bound history to last 15 turns to prevent unbounded transcript growth
+    history = state_manager.get_history(session_id, max_turns=15)
 
     # Attach logged-in customer profile to state if present in session
     if CUSTOMER_LOGIN_ENABLED:
@@ -556,29 +587,43 @@ def _process_chat_turn(raw_message, session_id, model_name, request_id, session_
         )
     except Exception as e:
         is_timeout = isinstance(e, (TimeoutError, requests.exceptions.Timeout, requests.exceptions.ReadTimeout)) or "timeout" in str(e).lower()
+        logger.warning(f"[{session_prefix}] Orchestrator / LLM error (is_timeout={is_timeout}): {e}")
+        try:
+            from ollama_client import ollama_client
+            ollama_client.circuit_breaker.record_failure(e)
+        except Exception:
+            pass
+
+        state.handover_triggered = True
+        state.handover_reason = "service_unavailable_ollama"
+        state.handover_timestamp = time.time()
+
         if is_timeout:
-            logger.warning(f"[{session_prefix}] LLM call timed out after {LLM_TIMEOUT_SECONDS}s: {e}")
             fallback_msg = (
                 "I apologize for the delay, but our assistant is taking longer than expected to process your request. "
-                "Please try asking again, or let me know if you would like me to connect you with our sales team."
+                "A live sales specialist from Kepler Tech has been notified to assist you directly."
             )
-            orchestrator_res = {
-                "reply": fallback_msg,
-                "message": fallback_msg,
-                "llm_generated_message": fallback_msg,
-                "is_llm_generated": False,
-                "source": "fallback:llm_timeout",
-                "product_cards": [],
-                "consumable_cards": [],
-                "suggested_chips": ["View Technical Specifications", "Talk to Sales Specialist"],
-                "grounding": {"status": "timeout_fallback", "is_grounded": True, "notes": ["LLM timeout fallback"]},
-                "nlp": {"intent": detected_intent, "normalized_text": normalized_msg},
-                "state": state,
-                "retrieved_items": [],
-                "active_agent": "Front Desk",
-            }
         else:
-            raise e
+            fallback_msg = (
+                "I apologize, but our sales assistant is currently experiencing a temporary service interruption. "
+                "A live sales specialist from Kepler Tech has been notified and will assist you directly."
+            )
+
+        orchestrator_res = {
+            "reply": fallback_msg,
+            "message": fallback_msg,
+            "llm_generated_message": fallback_msg,
+            "is_llm_generated": False,
+            "source": "fallback:llm_error",
+            "product_cards": [],
+            "consumable_cards": [],
+            "suggested_chips": ["Talk to Sales Specialist", "Showroom Hours & Location"],
+            "grounding": {"status": "error_fallback", "is_grounded": True, "notes": ["LLM error fallback"]},
+            "nlp": {"intent": detected_intent, "normalized_text": normalized_msg},
+            "state": state,
+            "retrieved_items": [],
+            "active_agent": "Front Desk",
+        }
 
     assistant_reply = orchestrator_res["reply"]
     source = orchestrator_res["source"]
@@ -698,6 +743,19 @@ def _process_chat_turn(raw_message, session_id, model_name, request_id, session_
     # Debug state isolation: canonical_state is strictly omitted in production
     if EXPOSE_DEBUG_STATE:
         response_payload["canonical_state"] = state.to_dict()
+
+    if message_id and isinstance(message_id, str):
+        with _idempotency_mutex:
+            if len(_idempotency_cache) > 2000:
+                now_t = time.time()
+                to_del = [k for k, v in _idempotency_cache.items() if (now_t - v.get("timestamp", 0)) > 600]
+                for k in to_del:
+                    _idempotency_cache.pop(k, None)
+            _idempotency_cache[message_id] = {
+                "body": response_payload,
+                "status": 200,
+                "timestamp": time.time()
+            }
 
     return jsonify(response_payload)
 

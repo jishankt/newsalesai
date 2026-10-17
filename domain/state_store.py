@@ -14,12 +14,32 @@ import hashlib
 import uuid
 import threading
 import logging
+import re
 from typing import Optional, Dict, Any
 
 from domain.conversation_state import ConversationState
 from config import SECRET_KEY
 
 logger = logging.getLogger("state_store")
+
+
+def mask_pii(text: str) -> str:
+    """Masks emails and phone numbers in stored message transcripts."""
+    if not text or not isinstance(text, str):
+        return text
+    # Mask emails: e.g. j***@example.com
+    masked = re.sub(
+        r'\b([a-zA-Z0-9_.+-])[a-zA-Z0-9_.+-]*@([a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)\b',
+        r'\1***@\2',
+        text
+    )
+    # Mask phone numbers: e.g. +971 50 *** 1234
+    masked = re.sub(
+        r'(\+?971\s*5[0-9]|\b05[0-9])[\s\-]?[0-9]{3}[\s\-]?[0-9]{4}\b',
+        r'\1***XXXX',
+        masked
+    )
+    return masked
 
 
 class StateManager:
@@ -135,26 +155,31 @@ class StateManager:
             }
             return new_state
 
-    def get_history(self, session_id: str) -> list:
-        """Returns the conversation history for a session."""
+    def get_history(self, session_id: str, max_turns: Optional[int] = None) -> list:
+        """Returns the conversation history for a session, bounded by max_turns if specified."""
         cleaned_id = (session_id or "").strip()
         if not cleaned_id:
             return []
+        res = []
         with self._lock:
             if cleaned_id in self._store:
-                return list(self._store[cleaned_id].get("history", []))
-        try:
-            from persistence.state_repository import state_repository
-            persisted = state_repository.get_session(cleaned_id)
-            if persisted:
-                _, p_history = persisted
-                return p_history
-        except Exception:
-            pass
-        return []
+                res = list(self._store[cleaned_id].get("history", []))
+        if not res:
+            try:
+                from persistence.state_repository import state_repository
+                persisted = state_repository.get_session(cleaned_id)
+                if persisted:
+                    _, p_history = persisted
+                    res = p_history or []
+            except Exception:
+                pass
+
+        if max_turns and len(res) > max_turns:
+            return res[-max_turns:]
+        return res
 
     def save(self, state: ConversationState, history: Optional[list] = None) -> None:
-        """Persists the state to memory, Redis, and SQLite with TTL renewal."""
+        """Persists the state to memory, Redis, and SQLite with TTL renewal and PII masking."""
         if not state or not state.session_id:
             return
 
@@ -175,7 +200,16 @@ class StateManager:
             existing_history = self._store.get(sid, {}).get("history", [])
             from persistence.state_repository import state_repository
             incoming = history if history is not None else (state.history_turns or [])
-            saved_history = state_repository.merge_histories(existing_history, incoming)
+            # Mask PII in incoming turns
+            masked_incoming = []
+            for item in incoming:
+                if isinstance(item, dict) and "content" in item:
+                    item_copy = dict(item)
+                    item_copy["content"] = mask_pii(item_copy["content"])
+                    masked_incoming.append(item_copy)
+                else:
+                    masked_incoming.append(item)
+            saved_history = state_repository.merge_histories(existing_history, masked_incoming)
             self._store[sid] = {
                 "state": state,
                 "history": saved_history,
