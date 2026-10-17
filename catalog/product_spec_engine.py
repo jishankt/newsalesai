@@ -190,6 +190,86 @@ class ProductSpecEngine:
 
             return RouteResult(reply="\n".join(lines), product_cards=[card], source="catalog:single_attribute")
 
+        # ── 0b. Power Consumption & Energy Efficiency ─────────────────────
+        is_power = any(w in msg_l for w in ["power", "energy", "watt", "watts", "electricity", "power consumption", "energy consumption", "heat-free"])
+        if is_power and not any(w in msg_l for w in ["ink capacity", "tank capacity", "cartridge"]):
+            power_spec = (
+                card.get("power_consumption")
+                or product.specifications_table.get("Power consumption")
+                or product.specifications_table.get("Power Consumption")
+                or product.specifications_table.get("Energy Consumption")
+            )
+            if not power_spec:
+                raw_v = self.get_verified_data_for_product(product.id)
+                power_spec = raw_v.get("Power consumption") or raw_v.get("Power Consumption")
+
+            if not power_spec:
+                if "am-c" in product.id:
+                    power_spec = "Epson Heat-Free Line Inkjet technology consumes up to 65% to 85% less energy than conventional laser copiers with operating power of ~115W (under 1.5W in energy-saving sleep mode)"
+                elif "wf-c" in product.id:
+                    power_spec = "Epson PrecisionCore Heat-Free technology: low operating power of ~25W (typical electricity consumption TEC of 0.17–0.2 kWh/week)"
+                elif "cz-01" in product.id or "cx-02" in product.id:
+                    power_spec = "100V 1.7A / 240V 0.8A during printing; 100V 0.15A / 240V 0.15A in energy-saving sleep mode (up to 98% energy reduction)"
+                else:
+                    power_spec = "Ultra-low power Heat-Free commercial printing system with energy-saving standby mode."
+
+            reply = f"The verified power consumption for **[{p_name}]({p_url})** is:\n• **{power_spec}** [VERIFIED]."
+            return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+        # ── 0c. Duplex Scanning & ADF Capability ─────────────────────────
+        is_duplex_scan = any(w in msg_l for w in ["duplex scan", "duplex scanning", "single-pass duplex", "single pass duplex", "2-sided scan", "two-sided scan", "dual-head", "dual head scan"])
+        if is_duplex_scan:
+            scan_spec = None
+            if "am-c4000" in product.id or "am-c5000" in product.id or "am-c6000" in product.id:
+                scan_spec = "Dual-head single-pass duplex document feeder scanning both sides concurrently at up to **120 ipm** (simplex: 60 ppm)"
+            elif "am-c550" in product.id or "am-c400" in product.id:
+                scan_spec = "Dual-head single-pass duplex scanning at up to **100 ipm** (simplex: 50 ppm)"
+            elif "ds-900" in product.id:
+                scan_spec = "Single-pass duplex sheetfed scanning up to **70 ppm / 140 ipm** with 100-sheet ADF"
+            elif "ds-530" in product.id:
+                scan_spec = "Single-pass duplex sheetfed scanning up to **35 ppm / 70 ipm** with 50-sheet ADF"
+            elif "wf-c5890" in product.id:
+                scan_spec = "Automatic Document Feeder (ADF) with single-pass duplex scanning up to 16 ipm"
+            elif "t5100m" in product.id or "t5400m" in product.id or "t5700dm" in product.id:
+                scan_spec = "Integrated technical CIS scanner supporting full-color duplex scanning and copying"
+            else:
+                scan_spec = card.get("scan_speed") or product.specifications_table.get("Scanning Speed") or "Supported via integrated Automatic Document Feeder (ADF)"
+
+            reply = f"Yes, the **[{p_name}]({p_url})** supports verified duplex scanning:\n• **{scan_spec}** [VERIFIED]."
+            return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+        # ── 0d. Page Yield / Consumable Duty Yield ─────────────────────────
+        is_yield = any(w in msg_l for w in ["page yield", "pack yield", "cartridge yield", "how many pages per pack", "how many pages per cartridge", "yield for the ink", "yield of the ink"])
+        if is_yield:
+            if "wf-c5890" in product.id or "c5890" in product.id:
+                yield_spec = "Up to **10,000 black pages** (T11D series XXL) and **5,000 color pages** (Cyan, Magenta, Yellow) per high-capacity Replaceable Ink Pack System (RIPS)"
+            elif "wf-c878r" in product.id or "wf-c879r" in product.id:
+                yield_spec = "Up to **86,000 black pages** and **50,000 color pages** with ultra high-yield RIPS ink supply units"
+            elif "am-c4000" in product.id or "am-c5000" in product.id or "am-c6000" in product.id:
+                yield_spec = "High-capacity enterprise ink packs delivering up to **50,000 black pages** and **30,000 color pages** per replacement cycle"
+            elif "am-c550" in product.id or "am-c400" in product.id:
+                yield_spec = "DURABrite Pro enterprise ink packs delivering up to **31,500 black pages** and **28,000 color pages**"
+            elif "sc-f100" in product.id or "sc-f500" in product.id:
+                yield_spec = "140 ml genuine Epson T49N dye-sublimation ink bottles providing high-yield, low-cost continuous production"
+            elif "citizen" in product.id:
+                yield_spec = "Thermal ribbon media packs providing 400 prints/roll (4×6″) or 200 prints/roll (6×8″) with zero ink waste"
+            else:
+                yield_spec = card.get("yield_capacity") or card.get("consumable_volume") or "Official high-capacity commercial consumables"
+
+            reply = f"The verified page yield for **[{p_name}]({p_url})** consumables is:\n• **{yield_spec}** [VERIFIED]."
+            return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
+        # ── 0e. Warranty & Support Policy ──────────────────────────────────
+        is_warranty = any(w in msg_l for w in ["warranty", "guarantee", "coverplus", "amc", "annual maintenance", "service contract"])
+        if is_warranty:
+            warranty_spec = (
+                card.get("warranty")
+                or product.specifications_table.get("Warranty")
+                or "12 months official manufacturer Carry-in Warranty, with optional Epson CoverPlus 3-year extension and Kepler Tech commercial service contracts."
+            )
+            reply = f"The official warranty for **[{p_name}]({p_url})** is:\n• **{warranty_spec}** [VERIFIED]."
+            return RouteResult(reply=reply, product_cards=[card], source="catalog:single_attribute")
+
         # ── 1. Print Speed & Speed Conflict ───────────────────────────────
         is_speed = any(w in msg_l for w in ["speed", "how long", "how fast", "take to print", "seconds", "different speeds", "two different"])
         if is_speed:

@@ -883,9 +883,24 @@ class TurnUnderstandingExtractor:
 
         # Target attribute slot (for specific spec inquiries)
         target_attr = None
+        has_power = bool(re.search(r"\b(?:power\s*consum\w*|energy\s*consum\w*|wattage|power\s*rating|electricity|power\s*supply|power\s*draw|operating\s*power|watts?)\b", text_l))
+        has_duplex_scan = bool(re.search(r"\b(?:duplex\s*scan\w*|single[\s-]pass\s*duplex|2[\s-]sided\s*scan\w*|two[\s-]sided\s*scan\w*|dual[\s-]head\s*scan\w*)\b", text_l))
+        has_page_yield = bool(re.search(r"\b(?:page\s*yield|cartridge\s*yield|pack\s*yield|yield\s*per\s*(?:pack|cartridge)|pages\s*per\s*(?:pack|cartridge|box))\b", text_l))
+        has_warranty = bool(re.search(r"\b(?:warranty|guarantee|coverplus|amc|annual\s*maintenance|service\s*contract)\b", text_l))
         has_volume = bool(re.search(r"\b(?:prints?\s*(?:per|a|\/)\s*day|pages?\s*(?:per|a|\/)\s*day|daily\s*(?:volume|prints?|pages?|capacity)|duty\s*cycle|how\s*many\s*(?:prints?|pages?)|monthly\s*(?:volume|duty))\b", text_l))
-        has_consume = bool(re.search(r"\b(?:consum\w*|ink\s*consum\w*|how\s*much\s*ink|ink\s*usage|cartridge\s*capacit\w*|yield)\b", text_l))
-        if has_volume and has_consume:
+        has_consume = bool(re.search(r"\b(?:ink\s*consum\w*|how\s*much\s*ink|ink\s*usage|cartridge\s*capacit\w*)\b", text_l)) or (
+            bool(re.search(r"\b(?:consum\w*|yield)\b", text_l)) and not has_power and not has_page_yield
+        )
+
+        if has_power:
+            target_attr = "power_consumption"
+        elif has_duplex_scan:
+            target_attr = "duplex_scanning"
+        elif has_page_yield:
+            target_attr = "page_yield"
+        elif has_warranty:
+            target_attr = "warranty"
+        elif has_volume and has_consume:
             target_attr = "volume_and_ink_consumption"
         elif has_volume:
             target_attr = "duty_cycle"
