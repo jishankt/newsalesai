@@ -66,6 +66,9 @@ class TestAllCatalogFlowsTwice(unittest.TestCase):
         self.assertEqual(t2.target_entity_id, "epson-wf-c5890-dwf")
         self.assertIn("WF-C5890", plan.formatted_reply)
 
+
+        
+
     def test_flow_office_a4_run_2(self):
         """Office Flow Run 2: Customer asks for A4 workforce printer, high volume 400 pages."""
         t1, t2, plan = self.run_two_turn_flow("off_a4_2", "looking for a4 workforce printer for office", "400 pages daily", "office_printer")

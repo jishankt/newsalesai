@@ -49,6 +49,11 @@ class ConversationState:
     customer_id: Optional[str] = None
     lead_prompt_status: Optional[str] = None
     customer_phone_or_email: Optional[str] = None
+    customer_phone: Optional[str] = None
+    customer_address: Optional[str] = None
+    lead_id: Optional[int] = None
+    order_status: Optional[str] = None
+    order_quantity: Optional[int] = 1
     preferred_language: str = "en"
     customer_behavior: str = "exploring"  # exploring, technical, comparing, frustrated, closing, high_intent, etc.
     customer_goal: str = "explore"

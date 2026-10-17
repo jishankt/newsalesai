@@ -95,7 +95,12 @@ def extract_flowchart_requirements(text: str, current_reqs: Optional[Dict[str, A
             reqs["primary_concern"] = "ease_of_use"
 
     # 1. Paper Size
-    if re.search(r"\ba4\b", text_l) or "desktop sheet" in text_l or "a4 output" in text_l:
+    if (
+        re.search(r"\ba4\b", text_l)
+        or "desktop sheet" in text_l
+        or "a4 output" in text_l
+        or re.search(r"\b(?:invoices?|bills?|receipts?|office\s*documents?|general\s*documents?)\b", text_l)
+    ):
         reqs["paper_size"] = "A4"
     elif re.search(r"\ba3\b", text_l) or "departmental" in text_l or "a3 output" in text_l:
         reqs["paper_size"] = "A3"
@@ -482,12 +487,12 @@ def _resolve_flowchart_step_raw(
             else:
                 return FlowchartStep(
                     category="technical_large_format",
-                    question="For 24-inch CAD printing, what configuration fits your workspace?",
-                    chips=["Entry Desktop (SC-T3100)", "Production Single Roll (SC-T3700E)", "Production Dual Roll (SC-T3700D / DE)"],
-                    target_product_id=None,
-                    supporting_product_ids=[],
-                    explanation="Select between compact desktop placement or heavy-duty single/dual roll production engines.",
-                    is_leaf=False,
+                    question="Here are our verified 24-inch CAD plotters. Which configuration best fits your workspace?",
+                    chips=["SC-T3100 (Desktop)", "SC-T3700E (Single Roll)", "SC-T3700D (Dual Roll)", "Official Quotation"],
+                    target_product_id="epson-sc-t3100",
+                    supporting_product_ids=["epson-sc-t3700d", "epson-sc-t3700e", "epson-sc-t3700de"],
+                    explanation="**24-inch Technical CAD Plotters (SureColor T-Series)**:\n• **SureColor SC-T3100**: Compact 24-inch wireless entry desktop/stand technical plotter (34s/A1) using water-resistant UltraChrome XD2 inks.\n• **SureColor SC-T3700E**: 24-inch high-speed compact production single-roll plotter (16s/A1) with dedicated red ink for AEC drawings.\n• **SureColor SC-T3700D / SC-T3700DE**: 24-inch heavy-duty dual-roll production engine with auto-switching and Adobe PostScript.",
+                    is_leaf=True,
                 )
 
         # Step 2 for 36-inch (A0): Integrated Scanner?
@@ -516,12 +521,12 @@ def _resolve_flowchart_step_raw(
             else:
                 return FlowchartStep(
                     category="technical_large_format",
-                    question="Do you require a dedicated print-only 36-inch plotter or an integrated scan & copy MFP?",
-                    chips=["Print-Only (SC-T5405 / SC-T5700D)", "Scan & Copy MFP (SC-T5400M / SC-T5700DM)"],
-                    target_product_id=None,
-                    supporting_product_ids=[],
-                    explanation="36-inch plotters are available as dedicated high-speed printers or integrated multifunction workstations with wide-format scanners.",
-                    is_leaf=False,
+                    question="Here are our verified 36-inch CAD plotters. Do you require a dedicated printer or integrated scanner?",
+                    chips=["SC-T5405 (Print-Only)", "SC-T5400M (Scan & Copy MFP)", "SC-T5700D (Dual Roll)", "Official Quotation"],
+                    target_product_id="epson-sc-t5405",
+                    supporting_product_ids=["epson-sc-t5100", "epson-sc-t5700d", "epson-sc-t5400m", "epson-sc-t5100m", "epson-sc-t5700dm"],
+                    explanation="**36-inch Technical CAD Plotters (SureColor T-Series)**:\n• **Dedicated Print-Only**: SureColor SC-T5100 (entry 31s/A1), SC-T5405 (production 22s/A1), and SC-T5700D (dual roll).\n• **Integrated Scan & Copy MFP**: SureColor SC-T5100M, SC-T5400M, and SC-T5700DM with high-precision CIS scanners.",
+                    is_leaf=True,
                 )
 
         # Step 2 for 44-inch Production: Multifunction?
@@ -558,12 +563,12 @@ def _resolve_flowchart_step_raw(
             else:
                 return FlowchartStep(
                     category="technical_large_format",
-                    question="Do you require dedicated 44-inch print-only or dual-roll multifunction scanning?",
-                    chips=["Print-Only Dual Roll (SC-T7700D)", "1.6L Bulk Inks (SC-T7700DL)", "MFP Dual-Roll (SC-T7700DM)"],
-                    target_product_id=None,
-                    supporting_product_ids=[],
-                    explanation="The 44-inch SureColor T-Series provides dual-roll automatic feeding, compact flat-top design, and 6-color Adobe PostScript engines.",
-                    is_leaf=False,
+                    question="Here are our verified 44-inch CAD plotters. Which configuration matches your production requirements?",
+                    chips=["SC-T7700D (Dual Roll)", "SC-T7700DL (1.6L Bulk)", "SC-T7700DM (MFP)", "Official Quotation"],
+                    target_product_id="epson-sc-t7700d",
+                    supporting_product_ids=["epson-sc-t7700dm", "epson-sc-t7700dl"],
+                    explanation="**44-inch Technical CAD Plotters (SureColor T-Series)**:\n• **SureColor SC-T7700D**: 44-inch dual-roll production plotter with flat-top design and 6-color Adobe PostScript engine.\n• **SureColor SC-T7700DL**: 44-inch high-speed plotter with 1.6L bulk ink supply system.\n• **SureColor SC-T7700DM**: 44-inch dual-roll multifunction production plotter with integrated 36-inch 600 dpi scanner.",
+                    is_leaf=True,
                 )
 
     # ─────────────────────────────────────────────────────────────────────────────
@@ -632,12 +637,12 @@ def _resolve_flowchart_step_raw(
             else:
                 return FlowchartStep(
                     category="photography_large_format",
-                    question="For 17-inch printing, do you need desktop sheet feeding, roll support, or heavy-duty production?",
-                    chips=["Desktop Sheet (SC-P900)", "Panoramic Roll Unit (SC-P900)", "10-Colour Heavy Duty (SC-P5300)"],
-                    target_product_id=None,
-                    supporting_product_ids=[],
-                    explanation="Choose between the sleek SC-P900 (with optional roll unit) or the heavy-duty production workhorse SC-P5300.",
-                    is_leaf=False,
+                    question="Here are our verified 17-inch photo printers. Which model fits your workflow?",
+                    chips=["Desktop Sheet (SC-P900)", "Panoramic Roll Unit (SC-P900)", "10-Colour Heavy Duty (SC-P5300)", "Official Quotation"],
+                    target_product_id="epson-sc-p900",
+                    supporting_product_ids=["epson-sc-p5300"],
+                    explanation="**17-inch Professional Photo Printers (SureColor P-Series)**:\n• **SureColor SC-P900**: 17-inch desktop photo printer with 10-color UltraChrome PRO10 ink for gallery sheet and panoramic roll prints.\n• **SureColor SC-P5300**: 17-inch heavy-duty production photo printer with 200 ml bulk cartridges and Violet ink for maximum colour gamut.",
+                    is_leaf=True,
                 )
 
         if photo_width == 24:
@@ -673,12 +678,12 @@ def _resolve_flowchart_step_raw(
             else:
                 return FlowchartStep(
                     category="photography_large_format",
-                    question="What proofing and calibration capability do you require for 24-inch gallery production?",
-                    chips=["Commercial Compact (SC-P6500D)", "12-Colour Master (SC-P7500)", "Automated Spectro (SC-P7500 Spectro)"],
-                    target_product_id=None,
-                    supporting_product_ids=[],
-                    explanation="Choose between commercial production speed (SC-P6500) or master 12-color fine art reproduction with optional spectrophotometer (SC-P7500).",
-                    is_leaf=False,
+                    question="Here are our verified 24-inch photo printers. Which model fits your production volume and colour fidelity requirements?",
+                    chips=["Commercial Compact (SC-P6500D)", "12-Colour Master (SC-P7500)", "Automated Spectro (SC-P7500 Spectro)", "Official Quotation"],
+                    target_product_id="epson-sc-p6500d",
+                    supporting_product_ids=["epson-sc-p7500", "epson-sc-p6500e", "epson-sc-p6500de"],
+                    explanation="**24-inch Professional Photo Printers (SureColor P-Series)**:\n• **SureColor SC-P6500 Series (D / E / DE)**: 24-inch commercial compact photo printer with 6-colour UltraChrome PRO6 ink, dual-roll feeding, and flat-top design for high-speed production.\n• **SureColor SC-P7500 / SC-P7500 Spectro**: 24-inch 12-colour UltraChrome PRO12 master studio printer delivering 99% Pantone coverage (optional ILS30 spectrophotometer).",
+                    is_leaf=True,
                 )
 
         if photo_width == 44:
@@ -714,12 +719,12 @@ def _resolve_flowchart_step_raw(
             else:
                 return FlowchartStep(
                     category="photography_large_format",
-                    question="What configuration do you require for 44-inch fine art production?",
-                    chips=["Production MFP (SC-P8500D)", "Master Studio PRO12 (SC-P9500)", "Spectro Proofer (SC-P9500 Spectro)"],
-                    target_product_id=None,
-                    supporting_product_ids=[],
-                    explanation="Select high-throughput commercial poster production (SC-P8500) or 12-color master gallery proofing (SC-P9500).",
-                    is_leaf=False,
+                    question="Here are our verified 44-inch fine art and gallery printers:",
+                    chips=["Production MFP (SC-P8500D)", "Master Studio PRO12 (SC-P9500)", "Spectro Proofer (SC-P9500 Spectro)", "Official Quotation"],
+                    target_product_id="epson-sc-p8500d",
+                    supporting_product_ids=["epson-sc-p9500", "epson-sc-p8500dm"],
+                    explanation="**44-inch Professional Gallery Printers (SureColor P-Series)**:\n• **SureColor SC-P8500D / SC-P8500DM**: 44-inch dual-roll production photo printer with optional 36-inch integrated scanner.\n• **SureColor SC-P9500 / SC-P9500 Spectro**: 44-inch 12-colour UltraChrome PRO12 master studio proofer with 99% Pantone coverage.",
+                    is_leaf=True,
                 )
 
         if photo_width == 64:
@@ -737,6 +742,16 @@ def _resolve_flowchart_step_raw(
     # ─────────────────────────────────────────────────────────────────────────────
     if cat_norm in ("citizen_photo", "photo_booth", "instant_photo", "citizen"):
         cit_format = reqs.get("citizen_format")
+        if re.search(r"\b(?:24|36|44|64)[\s-]*(?:inch|in|\"|'')\b", text_l) or reqs.get("photo_width") in (24, 36, 44, 64):
+            return FlowchartStep(
+                category="citizen_photo",
+                question="Citizen dye-sublimation photo printers are compact event models available up to 8 inches (CZ-01 4″, CX-02/CY-02 6″, CX-02W 8″). For 24-inch large-format photo printing, Kepler Tech supplies the Epson SureColor P-Series (SC-P6500D / SC-P7500). Which solution would you like to explore?",
+                chips=["Epson 24″ Photo (SC-P6500D)", "Epson 24″ Master (SC-P7500)", "Citizen 4″–8″ Event", "Official Quotation"],
+                target_product_id="epson-sc-p6500d",
+                supporting_product_ids=["epson-sc-p7500", "citizen-cx-02w"],
+                explanation="**Format Notice**: Citizen dye-sub photo printers are designed for portable events (up to 8×12″). For 24-inch gallery and studio production, we supply the **Epson SureColor SC-P6500 Series** and **SC-P7500**.",
+                is_leaf=True,
+            )
         if cit_format == "4_inch":
             return FlowchartStep(
                 category="citizen_photo",

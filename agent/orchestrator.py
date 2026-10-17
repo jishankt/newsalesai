@@ -6787,6 +6787,9 @@ class Orchestrator:
             or source.startswith("route:comparison")
             or source.startswith("route:model_detail")
             or source.startswith("route:product_spec_attribute")
+            or source.startswith("route:order_")
+            or source.startswith("route:payment_")
+            or source.startswith("security:")
             or source.startswith("qualification:")
             or source.startswith("agent:")
             or "safe_refusal" in source
@@ -7183,7 +7186,7 @@ class Orchestrator:
         # Strict flow buttons enforcement:
         # Only permit suggestion chips that are part of the active qualification flow,
         # category selection, or guest login. Strip all generic ad-hoc/unwanted buttons.
-        is_flow_source = source.startswith(("qualification:category_prompt", "qualification:next_question", "qualification:consumables_prompt", "unified:")) or any("guest" in str(ch).lower() for ch in (suggested_chips or []))
+        is_flow_source = source.startswith(("qualification:category_prompt", "qualification:next_question", "qualification:consumables_prompt", "route:product_or_consumable", "unified:")) or any("guest" in str(ch).lower() for ch in (suggested_chips or []))
         if not is_flow_source:
             suggested_chips = []
         else:
@@ -7450,16 +7453,16 @@ class Orchestrator:
 
         # Section 21: Clean internal database terms from customer-facing reply
         if reply:
-            if not source.startswith(("route:cost_per_print", "route:product_price", "route:consumable_price", "route:general_price", "route:purchase", "agent:purchase", "agent:price_objection", "agent:investment_cost_comparison", "agent:dye_sublimation_recommendation", "agent:direct_answer", "agent:delivery_policy", "agent:for_each_spec_query", "unified:")):
+            if not source.startswith(("route:cost_per_print", "route:product_price", "route:consumable_price", "route:general_price", "route:purchase", "agent:purchase", "agent:price_objection", "agent:investment_cost_comparison", "agent:dye_sublimation_recommendation", "agent:direct_answer", "agent:delivery_policy", "agent:for_each_spec_query", "route:order_", "route:payment_", "unified:")):
                 reply = re.sub(r":\s*\*\*(?:AED\s*[\d,.]+|Price on Request)[^*]*\*\*", "", reply, flags=re.I)
                 reply = re.sub(r"\*\*(?:AED\s*[\d,.]+|Price on Request)[^*]*\*\*", "", reply, flags=re.I)
                 reply = re.sub(r"\bAED\s*[\d,.]+(?:\s*\(Excl\. VAT\))?\b", "", reply, flags=re.I)
                 reply = re.sub(r"\bPrice on Request\b", "", reply, flags=re.I)
-            if not source.startswith(("route:purchase", "agent:purchase", "route:support", "route:business_info", "route:contact", "guardrail:", "route:product_price", "route:consumable_price", "route:general_price", "agent:price_objection", "agent:delivery_policy", "unified:")):
+            if not source.startswith(("route:purchase", "agent:purchase", "route:support", "route:business_info", "route:contact", "guardrail:", "route:product_price", "route:consumable_price", "route:general_price", "agent:price_objection", "agent:delivery_policy", "route:order_", "route:payment_", "unified:")):
                 reply = re.sub(r"\b[\w.+-]+@(?:keplertech\.ae|keplertechllc\.com)\b", "", reply, flags=re.I)
                 if not source.startswith(("customer_flow:", "route:customer_flow")):
                     reply = re.sub(r"\+971[\d\s-]{7,16}", "", reply)
-            if not source.startswith(("route:purchase", "agent:purchase", "guardrail:", "route:product_price", "route:consumable_price", "route:general_price", "route:support", "route:contact", "route:business_info", "agent:price_objection", "agent:delivery_policy", "unified:")):
+            if not source.startswith(("route:purchase", "agent:purchase", "guardrail:", "route:product_price", "route:consumable_price", "route:general_price", "route:support", "route:contact", "route:business_info", "agent:price_objection", "agent:delivery_policy", "route:order_", "route:payment_", "unified:")):
                 reply = "\n".join(
                     line for line in reply.splitlines()
                     if not re.search(r"\b(?:contact (?:our|the) (?:sales|support)|sales desk|commercial quotation|bulk delivery quotes|ask for (?:a )?quote|commercial sales|corporate financing|verified pricing|phone:|email:)\b", line, re.I)

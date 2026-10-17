@@ -126,7 +126,7 @@ class ReferenceResolver:
     @classmethod
     def is_topic_switch(cls, text: str) -> bool:
         text_l = text.lower()
-        return bool(re.search(r"\b(?:forget\s+(?:this|that)|never\s*mind|switch\s+to|now\s+i\s+need|actually\s+now|start\s+over|different\s+printer)\b", text_l))
+        return bool(re.search(r"\b(?:forget\s+(?:this|that)|never\s*mind|switch\s+to|change\s+to|now\s+i\s+(?:need|want|prefer|look)|how\s+about|what\s+about\s+(?:a\s+)?(?:citizen|epson|photo|cad|scanner)|actually\s+now|start\s+over|different\s+(?:printer|model|category))\b", text_l))
 
     @classmethod
     def _get_product_width(cls, p: Dict[str, Any]) -> int:

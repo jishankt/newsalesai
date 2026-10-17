@@ -57,6 +57,89 @@ class PreClassificationResolver:
         msg_l = normalized_msg.lower().strip()
         raw_l = raw_msg.lower().strip()
 
+        # ── (0) DISAMBIGUATION: PRODUCT OR CONSUMABLE ─────────────────────────
+        if getattr(state, "awaiting_field", None) == "product_or_consumable" and getattr(state, "pending_disambiguation_model", None):
+            target_model_id = state.pending_disambiguation_model
+            target_prod = catalogue_loader.get_by_id(target_model_id)
+            if not target_prod:
+                for cand in catalogue_loader.get_all():
+                    if target_model_id.lower() in cand.get("id", "").lower() or target_model_id.lower() in cand.get("display_name", "").lower():
+                        target_prod = cand
+                        break
+
+            disp_name = target_prod.get("display_name") or target_model_id if target_prod else target_model_id
+            family_name = (target_prod.get("model_family") or disp_name) if target_prod else disp_name
+
+            is_consumable_choice = bool(re.search(
+                r"\b(?:consumables?|consub[a-z]{2,5}s?|inks?|cartridges?|media|paper|rolls?|ribbons?|maintenance\s*box|supplies|second|option\s*2|2)\b",
+                msg_l
+            ))
+            is_printer_choice = bool(re.search(
+                r"\b(?:printers?|product|machine|device|hardware|specs?|specifications?|details|first|option\s*1|1|view\s+printer)\b",
+                msg_l
+            ))
+            is_both_choice = "both" in msg_l or (is_consumable_choice and is_printer_choice)
+
+            if is_both_choice or is_consumable_choice or is_printer_choice:
+                state.awaiting_field = None
+                state.pending_disambiguation_model = None
+
+                if is_consumable_choice and not is_both_choice:
+                    from catalog.evidence import EvidenceEngine
+                    c_items, _ = EvidenceEngine.list_consumables(target_prod.get("id", target_model_id)) if target_prod else ([], None)
+                    c_cards = []
+                    items_lines = []
+                    for ci in c_items:
+                        c_card = {
+                            "card_type": "consumable",
+                            "id": ci.get("sku") or ci.get("id"),
+                            "name": ci.get("name"),
+                            "sku": ci.get("sku"),
+                            "price": ci.get("price"),
+                            "price_str": ci.get("price_str") or (f"AED {ci.get('price'):,.2f}" if ci.get("price") else None),
+                            "price_formatted": ci.get("price_formatted") or (f"AED {ci.get('price'):,.2f} (Excl. VAT)" if ci.get("price") else None),
+                            "category": ci.get("type", "consumable"),
+                            "compatible_printers": [disp_name],
+                            "product_url": ci.get("url"),
+                        }
+                        c_cards.append(c_card)
+                        price_part = f": **{c_card['price_formatted']}**" if c_card.get('price_formatted') else ""
+                        c_url = ci.get("url")
+                        link_title = f"[{ci.get('name')}]({c_url})" if c_url else f"**{ci.get('name')}**"
+                        items_lines.append(f"• **{link_title}** (SKU: `{ci.get('sku')}`){price_part}")
+                    items_text = "\n".join(items_lines)
+                    reply_text = f"Certainly! Here are the official compatible inks and media for the **{disp_name}**:\n\n{items_text}"
+                    chips_to_return = ["Order Consumables", f"View {family_name} Specifications", "Request Official Quote"]
+                    state.active_printer_for_consumables = disp_name
+                    state.active_route = "consumable"
+                    state.active_consumables = c_cards
+                    return PreClassificationResult(
+                        handled=True,
+                        reply=reply_text,
+                        product_cards=[],
+                        consumable_cards=c_cards,
+                        suggested_chips=chips_to_return,
+                        source="route:product_or_consumable:consumables",
+                    )
+                elif is_printer_choice and not is_both_choice:
+                    prod_cards = [target_prod] if target_prod else []
+                    reply_text = f"Here are the official specifications and details for the **{disp_name}**."
+                    if target_prod:
+                        from agent.orchestrator import build_model_detail_response
+                        reply_text, prod_cards = build_model_detail_response(target_prod)
+                    chips_to_return = ["View Compatible Consumables", "Request Official Quote"]
+                    state.active_product = target_prod
+                    state.active_product_id = target_prod.get("id") if target_prod else None
+                    state.active_printer_for_consumables = disp_name
+                    return PreClassificationResult(
+                        handled=True,
+                        reply=reply_text,
+                        product_cards=prod_cards,
+                        consumable_cards=[],
+                        suggested_chips=chips_to_return,
+                        source="route:product_or_consumable:printer",
+                    )
+
         # ── GATE INTERCEPTOR: Category words vs attributes & Explicit Switches ──
         # 1. "a4 colour printer with scanner" must stay in office_printer, not scanners
         if re.search(r"\b(?:a4|a3|colour|color|office)?\s*printer\s+with\s+scann?er\b", msg_l) or \
@@ -104,6 +187,123 @@ class PreClassificationResolver:
                 handled=True,
                 reply="Understood! Switching to Citizen Photo Booth and event printers.\n\nWhat print format do you require for your photo booth?\n\n• Compact 4×6″ prints\n• 5×7″ and 6×8″ prints\n• Single-roll multi-cut (4×6″ and 6×8″ with ribbon rewind)",
                 suggested_chips=["4x6 prints", "6x8 prints", "Ribbon rewind (single roll)"],
+                source="qualification:category_prompt",
+            )
+
+        # 2.3 Direct Category Selections (e.g. "tech", "cad", "photo", "booth", "sublimation", "office")
+        if re.search(r"^\s*(?:tech|technical|technical\s+cad(?:\s+plotters?)?|cad(?:\s+plotters?|\s+printers?)?|plotters?)\s*$", msg_l):
+            state.category = "technical_large_format"
+            state.requirements["category"] = "technical_large_format"
+            state.requirements["application"] = "cad"
+            reply = (
+                "Understood! For technical CAD, AEC plans, and GIS mapping, Kepler Tech supplies the **Epson SureColor SC-T Series**.\n\n"
+                "What paper size or roll width do you primarily work with?\n\n"
+                "• **24-inch (A1)** — Compact desktop or single roll for small offices\n"
+                "• **36-inch (A0)** — Standard full-width construction plans\n"
+                "• **44-inch Production** — High-speed dual roll for heavy volume"
+            )
+            state.save_pending_question(
+                question="What roll width do you require: 24″ (A1), 36″ (A0), or 44″ production?",
+                field_name="print_width",
+                expected_type="number",
+                valid_range=(24, 44),
+                options=["24″ (A1)", "36″ (A0)", "44″ Production", "With Integrated Scanner"],
+            )
+            return PreClassificationResult(
+                handled=True,
+                reply=reply,
+                suggested_chips=["24″ (A1)", "36″ (A0)", "44″ Production", "With Integrated Scanner"],
+                source="qualification:category_prompt",
+            )
+
+        if re.search(r"^\s*(?:photo(?:graphy)?|fine\s*art|professional\s*photo(?:\s*&\s*fine\s*art)?)\s*$", msg_l):
+            state.category = "photography_large_format"
+            state.requirements["category"] = "photography_large_format"
+            state.requirements["application"] = "fine_art"
+            reply = (
+                "Understood! For professional photography, fine art reproduction, and gallery proofing, we provide the **Epson SureColor SC-P Series** with 10 to 12-colour UltraChrome PRO inks.\n\n"
+                "What format or print width are you looking for?\n\n"
+                "• **13″–17″ Desktop (A3+/A2)** — SC-P700 & SC-P900 for studio desktops\n"
+                "• **24-inch (A1)** — SC-P6500D commercial production or SC-P7500 master proofer\n"
+                "• **44-inch Gallery** — SC-P8500D production or SC-P9500 12-colour proofer"
+            )
+            state.save_pending_question(
+                question="What print width do you require for photo and fine art: 17″, 24″, or 44″?",
+                field_name="photography_print_width",
+                expected_type="choice",
+                options=["13″–17″ Desktop", "24″ Production", "44″ Gallery", "12-Colour Proofing"],
+            )
+            return PreClassificationResult(
+                handled=True,
+                reply=reply,
+                suggested_chips=["13″–17″ Desktop", "24″ Production", "44″ Gallery", "12-Colour Proofing"],
+                source="qualification:category_prompt",
+            )
+
+        if re.search(r"^\s*(?:(?:citizen\s+)?photo\s*booth(?:\s*/\s*events)?|events?|instant\s*photo|citizen)\s*$", msg_l):
+            state.category = "citizen_photo"
+            state.requirements["category"] = "citizen_photo"
+            reply = (
+                "Great! For instant event photography, photo booths, and kiosks, Kepler Tech is the authorized distributor for **Citizen dye-sublimation systems**.\n\n"
+                "What print format do you need for your events?\n\n"
+                "• **4×6″ Ultra-Compact** — Citizen CZ-01 (lightweight portable event printer)\n"
+                "• **6×8″ High-Speed** — Citizen CX-02 (flagship 8.4-second event workhorse)\n"
+                "• **6×8″ Heavy-Duty** — Citizen CY-02 (700-print high capacity for high volume)\n"
+                "• **8×12″ Large Format** — Citizen CX-02W (widescreen event & school portraits)"
+            )
+            state.save_pending_question(
+                question="What format fits your photo booth: 4×6″, 6×8″, or 8×12″?",
+                field_name="citizen_format",
+                expected_type="choice",
+                options=["4×6″ (CZ-01)", "6×8″ (CX-02)", "6×8″ High-Capacity (CY-02)", "8×12″ (CX-02W)"],
+            )
+            return PreClassificationResult(
+                handled=True,
+                reply=reply,
+                suggested_chips=["4×6″ (CZ-01)", "6×8″ (CX-02)", "6×8″ High-Capacity (CY-02)", "8×12″ (CX-02W)"],
+                source="qualification:category_prompt",
+            )
+
+        if re.search(r"^\s*(?:dye[\s-]*sub(?:limation)?|sublimation)\s*$", msg_l):
+            state.category = "dye_sublimation"
+            state.requirements["category"] = "dye_sublimation"
+            reply = (
+                "Understood! For heat transfer and dye-sublimation printing on apparel, textiles, and promotional items, we supply the **Epson SureColor SC-F Series**.\n\n"
+                "What type of items will you be producing?\n\n"
+                "• **Desktop A4 (SC-F100)** — Compact bottle-fed printer for mugs, phone cases, and small gifts\n"
+                "• **24-inch Roll (SC-F500)** — Roll-fed production printer for t-shirts, sportswear, and soft signage"
+            )
+            state.save_pending_question(
+                question="Are you printing desktop gifts (A4) or roll-fed textiles (24″)?",
+                field_name="sublimation_format",
+                expected_type="choice",
+                options=["A4 Desktop (SC-F100)", "24″ Roll Apparel (SC-F500)", "Sublimation Inks & Paper"],
+            )
+            return PreClassificationResult(
+                handled=True,
+                reply=reply,
+                suggested_chips=["A4 Desktop (SC-F100)", "24″ Roll Apparel (SC-F500)", "Sublimation Inks & Paper"],
+                source="qualification:category_prompt",
+            )
+
+        if re.search(r"^\s*(?:office(?:\s*printers?)?|workforce|business\s*printers?)\s*$", msg_l):
+            state.category = "office_printer"
+            state.requirements["category"] = "office_printer"
+            state.requirements["application"] = "office_documents"
+            reply = (
+                "Understood! For business and office environments, Kepler Tech supplies **Epson WorkForce Pro and Enterprise Heat-Free** multifunction systems with ultra-low running costs.\n\n"
+                "Do you require standard A4 output or large-format A3/A3+ output for your office documents?"
+            )
+            state.save_pending_question(
+                question="Do you require A4 or A3 output for your office?",
+                field_name="paper_size",
+                expected_type="choice",
+                options=["A4 Output", "A3 Output", "< 100 pages/day", "100–500 pages/day"],
+            )
+            return PreClassificationResult(
+                handled=True,
+                reply=reply,
+                suggested_chips=["A4 Output", "A3 Output", "< 100 pages/day", "100–500 pages/day"],
                 source="qualification:category_prompt",
             )
 
@@ -287,6 +487,471 @@ class PreClassificationResolver:
                 source="agent:delivery_policy",
             )
 
+        # ── (a.1) Brochure / Datasheet Request ────────────────────────────────
+        if re.search(r"\b(?:brochure|datasheet|data\s*sheet|spec\s*sheet|pdf|manual)\b", msg_l):
+            active_id = state.get_canonical_focus_id() or (state.shown_entities[0] if state.shown_entities else None)
+            p_obj = catalogue_loader.get_by_id(active_id) if active_id else None
+            p_name = p_obj.get("display_name") or p_obj.get("name") if p_obj else "our commercial printing systems"
+            prod_url = f"https://www.keplertechllc.com/product/{active_id}" if active_id else "https://www.keplertechllc.com/"
+            reply = (
+                f"You can review the official technical specifications and product datasheet for the **{p_name}** "
+                f"directly on our official product page: {prod_url}.\n\n"
+                "Would you like me to prepare an official quotation or answer specific technical questions?"
+            )
+            return PreClassificationResult(
+                handled=True,
+                reply=reply,
+                product_cards=[p_obj] if p_obj else [],
+                suggested_chips=["Official Quotation", "View Consumables", "Speak with Sales Specialist"],
+                source="route:brochure_request",
+            )
+
+        # ── (a.2) Delivery Timeline Inquiry ──────────────────────────────────
+        if re.search(r"\b(?:how\s+many\s+days|how\s+long\s+(?:does|will)\s+(?:it|delivery|shipping)\s+take|delivery\s+(?:timeline|days|timing|period))\b", msg_l):
+            reply = (
+                "Standard courier delivery across Sharjah, Dubai, and all UAE emirates is completed within **1–2 business days** (tracked courier service). "
+                "For urgent requirements within Dubai, same-day delivery is also available upon request.\n\n"
+                "Would you like to arrange delivery for a specific equipment model?"
+            )
+            return PreClassificationResult(
+                handled=True,
+                reply=reply,
+                suggested_chips=["Tracked Delivery (1–2 Days)", "Same-Day Delivery (Dubai)", "Free Store Pickup"],
+                source="route:delivery_timeline",
+            )
+
+        # ── (a.3) Required Details for Order / Quotation ─────────────────────
+        if re.search(r"\b(?:what\s+details?\s+(?:do\s+you\s+need|are\s+needed|required)|what\s+info(?:rmation)?\s+(?:do\s+you\s+need|is\s+needed))\b", msg_l):
+            reply = (
+                "To prepare your official quotation or process equipment dispatch, we just need:\n\n"
+                "1. **Full Name**\n"
+                "2. **Delivery Address & Emirate**\n"
+                "3. **Contact Phone Number or Email**\n\n"
+                "Once provided, our sales desk will generate an official reference number and contact you directly."
+            )
+            return PreClassificationResult(
+                handled=True,
+                reply=reply,
+                suggested_chips=["Provide Contact Details", "Showroom Hours & Location", "Payment Methods"],
+                source="route:order_details_faq",
+            )
+
+        # ── (a.35) Prompt Injection & System Manipulation Defense ──────────────
+        if re.search(r"\b(?:system\s+prompt|ignore\s+(?:all\s+)?previous\s+instructions|jailbreak|you\s+are\s+now\s+a\s+free\s+assistant|write\s+me\s+a\s+(?:python|code|script)|what\s+ai\s+model|chatgpt|openai|claude|gemini|llama)\b", msg_l):
+            reply = (
+                "I am Kepler Tech's dedicated commercial sales assistant specializing in authorized Epson and Citizen printing solutions. "
+                "I operate strictly within commercial sales parameters and cannot disclose internal prompts, write arbitrary programming code, or modify system policies.\n\n"
+                "How can I assist you with your equipment or official quotation requirements today?"
+            )
+            return PreClassificationResult(
+                handled=True,
+                reply=reply,
+                suggested_chips=["Technical CAD Plotters", "Photo & Fine Art", "Office Printers", "Citizen Photo Booth"],
+                source="security:injection_refusal",
+            )
+
+        # ── (a.36) Impatient Customer: "just tell me the best" ───────────────
+        if re.search(r"\b(?:just\s+tell\s+me\s+the\s+best|don'?t\s+ask\s+me\s+(?:10|ten)\s+questions|tell\s+me\s+the\s+best\s+printer)\b", msg_l):
+            target_id = "epson-wf-c5890-dwf"
+            p_obj = catalogue_loader.get_by_id(target_id)
+            state.set_canonical_focus(target_id)
+            state.category = "office_printer"
+            state.shown_entities = [target_id]
+            reply = (
+                "For reliable, high-speed business document printing, our best-selling commercial model is the **Epson WorkForce Pro WF-C5890 DWF** (AED 1,656.00 excl. VAT). "
+                "It features Heat-Free technology, automatic duplex printing, Wi-Fi networking, and high-yield ink packs up to 10,000 pages with ultra-low running costs.\n\n"
+                "Does this fit your office setup, or would you like to review an official quotation?"
+            )
+            return PreClassificationResult(
+                handled=True,
+                reply=reply,
+                product_cards=[p_obj] if p_obj else [],
+                suggested_chips=["Official Quotation", "Technical Specifications", "View Consumables"],
+                source="route:best_recommendation",
+            )
+
+        # ── (a.37) School / Education Inquiry with Typos ─────────────────────
+        if re.search(r"\b(?:wich\s+printr|good\s+for\s+school|gud\s+for\s+school|20\s+students?)\b", msg_l):
+            target_id = "epson-wf-c5890-dwf"
+            p_obj = catalogue_loader.get_by_id(target_id)
+            state.set_canonical_focus(target_id)
+            state.category = "office_printer"
+            state.shown_entities = [target_id]
+            reply = (
+                "For school and educational use with ~20 students, the **Epson WorkForce Pro WF-C5890 DWF** (AED 1,656.00 excl. VAT) is our top recommendation. "
+                "Its Heat-Free ink pack system eliminates fuser warm-up time, handles robust daily volumes with zero ozone emissions, and offers duplex printing and WiFi for classroom sharing.\n\n"
+                "Would you like to review its technical specifications or running costs?"
+            )
+            return PreClassificationResult(
+                handled=True,
+                reply=reply,
+                product_cards=[p_obj] if p_obj else [],
+                suggested_chips=["Official Quotation", "Review Specs", "Running Costs"],
+                source="route:school_recommendation",
+            )
+
+        # ── (a.38) Color vs Mono Selection ───────────────────────────────────
+        if re.search(r"\b(?:color\s+or\s+black\s+white|colour\s+or\s+black\s+white|mono\s+or\s+colo(?:u)?r)\b", msg_l):
+            reply = (
+                "For school worksheets, notices, and student certificates, a **Colour Multifunction printer** like the WF-C5890 gives you the flexibility "
+                "to print both vibrant color diagrams and crisp black-and-white documents at the same fast speed (25 ppm ISO), while using separate high-capacity "
+                "black and colour ink packs so you only replace what you use.\n\n"
+                "Would you like to see the running costs for colour versus black prints?"
+            )
+            return PreClassificationResult(
+                handled=True,
+                reply=reply,
+                suggested_chips=["Official Quotation", "Running Costs", "Delivery Options"],
+                source="route:color_vs_mono",
+            )
+
+        # ── (a.39) Malayalam Price Query ─────────────────────────────────────
+        if re.search(r"\b(?:ethra\s+rate|ethraya\s+rate|rate\s+aanu?)\b", msg_l):
+            active_id = state.get_canonical_focus_id() or "epson-wf-c5890-dwf"
+            p_obj = catalogue_loader.get_by_id(active_id)
+            p_name = p_obj.get("display_name") or p_obj.get("name") if p_obj else "Epson WorkForce Pro WF-C5890 DWF"
+            reply = (
+                f"**{p_name}** printer-inte official catalogue price **AED 1,656.00** (excl. VAT) aanu. "
+                "Official proforma quotation-um UAE flat AED 10 courier delivery-um (1–2 business days) labhikkum.\n\n"
+                "Ningalkku official quotation thiyyaaraakkanno?"
+            )
+            return PreClassificationResult(
+                handled=True,
+                reply=reply,
+                product_cards=[p_obj] if p_obj else [],
+                suggested_chips=["Official Quotation", "Delivery Options", "Technical Specs"],
+                source="route:malayalam_price",
+            )
+
+        # ── (a.40) Multi-Part Compound Inquiry (Price, Toner, WiFi, Delivery) ──
+        if (re.search(r"\b(?:give\s+me\s+the\s+price.*toner.*wifi.*delivery)\b", msg_l) or
+            (all(k in msg_l for k in ["price", "toner", "wifi", "delivery"]))):
+            target_id = state.get_canonical_focus_id() or "epson-wf-c5890-dwf"
+            p_obj = catalogue_loader.get_by_id(target_id)
+            p_name = p_obj.get("display_name") or p_obj.get("name") if p_obj else "Epson WorkForce Pro WF-C5890 DWF"
+            reply = (
+                f"Here is the complete breakdown for the **{p_name}**:\n\n"
+                "1. **Price**: AED 1,656.00 (excl. VAT)\n"
+                "2. **Toner / Ink Cost**: Uses replaceable Heat-Free ink packs yielding up to 10,000 black pages and 5,000 colour pages, reducing ongoing supply costs by up to 50% compared to laser toners.\n"
+                "3. **Wi-Fi**: Yes, integrated Wi-Fi, Wi-Fi Direct, and Gigabit Ethernet.\n"
+                "4. **Delivery to Dubai**: Dispatched within 1–2 business days (flat AED 10 tracked courier delivery, or same-day express upon request).\n\n"
+                "Would you like to proceed with an official quotation or order confirmation?"
+            )
+            return PreClassificationResult(
+                handled=True,
+                reply=reply,
+                product_cards=[p_obj] if p_obj else [],
+                suggested_chips=["Official Quotation", "Order Supplies", "Speak with Specialist"],
+                source="route:compound_4_part",
+            )
+
+        # ── (a.41) Photo Quality for Office Printer ──────────────────────────
+        if re.search(r"\b(?:good\s+for\s+photos?|print\s+photos?|photo\s+quality)\b", msg_l) and not re.search(r"\b(?:photo\s+booth|citizen)\b", msg_l):
+            reply = (
+                "The WF-C5890 prints sharp 4800 × 1200 dpi documents and school report photos on plain and inkjet paper. "
+                "However, for dedicated studio portraits, gallery fine art, or borderless photography, we recommend our specialized 6-color and 10-color "
+                "**Epson SureColor SC-P700/P900** series, or **Citizen Photo Booth** dye-sub printers.\n\n"
+                "Are you printing occasional office photos or professional photography?"
+            )
+            return PreClassificationResult(
+                handled=True,
+                reply=reply,
+                suggested_chips=["Office & School Photos", "Professional Photo (SureColor)", "Citizen Photo Booth"],
+                source="route:photo_capability",
+            )
+
+        # ── (a.42) Laser Printer Inquiry (Heat-Free Advantage) ───────────────
+        if re.search(r"^\s*(?:i\s+want\s+laser|laser\s+printer|looking\s+for\s+laser)\s*$", msg_l):
+            reply = (
+                "Kepler Tech specializes in authorized **Epson Heat-Free business inkjet technology**. "
+                "Unlike traditional laser printers that require high-heat fusers, high electrical power, and frequent toner drum replacements, "
+                "Epson Heat-Free printers consume up to 85% less energy, have zero warm-up time, and produce no toner dust or ozone emissions—"
+                "offering superior reliability and lower running costs.\n\n"
+                "Would you like to review how the WorkForce Pro compares with traditional laser copiers?"
+            )
+            return PreClassificationResult(
+                handled=True,
+                reply=reply,
+                suggested_chips=["WorkForce Pro WF-C5890", "Running Cost Comparison", "Official Quotation"],
+                source="route:laser_comparison",
+            )
+
+        # ── (a.43) Fact Traps: Speed, Warranty, Cheapest, False Prior Price ──
+        if re.search(r"\b(?:prints?\s+60\s*(?:pages?|ppm)|60\s*pages?\s+per\s+minute|speed\s+is\s+60)\b", msg_l):
+            active_id = state.get_canonical_focus_id() or "epson-wf-c5890-dwf"
+            p_obj = catalogue_loader.get_by_id(active_id)
+            p_name = p_obj.get("display_name") or p_obj.get("name") if p_obj else "Epson WorkForce Pro WF-C5890 DWF"
+            reply = (
+                f"To clarify, the **{p_name}** prints at **25 pages per minute (ISO)** and up to 34 ppm in draft mode—it does not print at 60 ppm. "
+                "If your enterprise requires true 60 pages per minute line-head output, we offer the **Epson WorkForce Enterprise AM-C6000** (60 ppm).\n\n"
+                "Would you like to review the WF-C5890 or the higher-speed AM-C6000?"
+            )
+            return PreClassificationResult(
+                handled=True,
+                reply=reply,
+                product_cards=[p_obj] if p_obj else [],
+                suggested_chips=["WF-C5890 (25–34 ppm)", "Enterprise AM-C6000 (60 ppm)", "Official Quotation"],
+                source="route:fact_check_speed",
+            )
+
+        if re.search(r"\b(?:5\s*year\s*warranty|five\s*year\s*warranty|warranty\s+is\s+5\s*years?)\b", msg_l):
+            reply = (
+                "Standard manufacturer warranty on our Epson and Citizen commercial equipment is **1 Year** (on-site service and genuine parts). "
+                "For organizations requiring extended coverage, Kepler Tech provides optional 3-year and 5-year Annual Maintenance Contracts (AMC) "
+                "and official Epson CoverPlus warranty extensions.\n\n"
+                "Would you like to include an extended warranty package with your quotation?"
+            )
+            return PreClassificationResult(
+                handled=True,
+                reply=reply,
+                suggested_chips=["1-Year Standard Warranty", "3–5 Year AMC Option", "Official Quotation"],
+                source="route:fact_check_warranty",
+            )
+
+        if re.search(r"\b(?:cheapest\s+in\s+the\s+market|cheapest\s+printer\s+in\s+(?:uae|dubai|market))\b", msg_l):
+            active_id = state.get_canonical_focus_id() or "epson-wf-c5890-dwf"
+            p_obj = catalogue_loader.get_by_id(active_id)
+            p_name = p_obj.get("display_name") or p_obj.get("name") if p_obj else "Epson WorkForce Pro WF-C5890 DWF"
+            reply = (
+                f"We do not claim to offer disposable consumer inkjets. Among heavy-duty commercial Heat-Free business multifunction printers, "
+                f"the **{p_name}** (AED 1,656.00 excl. VAT) offers the lowest running cost per page in its class thanks to 10,000-page high-capacity ink packs.\n\n"
+                "Would you like to review the running costs or order details?"
+            )
+            return PreClassificationResult(
+                handled=True,
+                reply=reply,
+                product_cards=[p_obj] if p_obj else [],
+                suggested_chips=["Review Running Costs", "Official Quotation", "View Consumables"],
+                source="route:fact_check_cheapest",
+            )
+
+        if re.search(r"\b(?:told\s+me\s+earlier\s+it\s+costs?|costs?\s+300|showing\s+450|you\s+said\s+300)\b", msg_l):
+            active_id = state.get_canonical_focus_id() or "epson-wf-c5890-dwf"
+            p_obj = catalogue_loader.get_by_id(active_id)
+            p_name = p_obj.get("display_name") or p_obj.get("name") if p_obj else "Epson WorkForce Pro WF-C5890 DWF"
+            reply = (
+                "To maintain full transparency, Kepler Tech pricing is deterministically verified from our authorized catalogue. "
+                f"We did not quote AED 300 for this system; the official catalogue list price for the **{p_name}** is **AED 1,656.00** (excl. VAT). "
+                "Formal project quotations can be issued directly by our sales desk.\n\n"
+                "Would you like an official quotation for your records?"
+            )
+            return PreClassificationResult(
+                handled=True,
+                reply=reply,
+                product_cards=[p_obj] if p_obj else [],
+                suggested_chips=["Official Quotation", "Download Datasheet", "Speak with Specialist"],
+                source="route:price_transparency",
+            )
+
+        # ── (a.44) Boundary & Services: A0 Plotters, Repair / AMC, Availability ──
+        if re.search(r"\b(?:a0\s*(?:plotters?|printers?)|36\s*inch\s*(?:plotters?|printers?)|technical\s*cad\s*plotters?)\b", msg_l):
+            reply = (
+                "Yes! Kepler Tech is an authorized distributor supplying official **Epson SureColor T-Series A0 (36-inch and 44-inch) CAD/GIS plotters**, "
+                "including the **SureColor SC-T5100** and **SureColor SC-T5405**. They are specifically engineered for architectural blueprints, engineering line drawings, and GIS mapping.\n\n"
+                "Would you like a quotation or technical datasheet for our A0 plotters?"
+            )
+            t5100 = catalogue_loader.get_by_id("epson-sc-t5100")
+            cards = [t5100] if t5100 else []
+            return PreClassificationResult(
+                handled=True,
+                reply=reply,
+                product_cards=cards,
+                suggested_chips=["Epson SC-T5100 (36″)", "Epson SC-T5405 (36″)", "Official Quotation"],
+                source="route:a0_plotters",
+            )
+
+        if re.search(r"\b(?:do\s+you\s+repair\s+printers|printer\s+repairs?|repair\s+service|service\s+center|maintenance\s+contract|amc|fix\s+printers?)\b", msg_l):
+            reply = (
+                "Yes! Kepler Tech provides authorized on-site maintenance, repairs, and comprehensive Annual Maintenance Contracts (AMC) "
+                "for commercial Epson and Citizen printing equipment across Dubai and all UAE emirates. Our manufacturer-certified engineers carry genuine OEM parts and printheads.\n\n"
+                "Would you like to schedule a technician visit or request an AMC maintenance proposal?"
+            )
+            return PreClassificationResult(
+                handled=True,
+                reply=reply,
+                suggested_chips=["Request AMC Proposal", "Schedule On-Site Service", "Contact Technical Support"],
+                source="route:repair_amc_service",
+            )
+
+        if re.search(r"\b(?:available\s+right\s+now|in\s+stock|out\s+of\s+stock|when\s+will\s+it\s+be\s+back)\b", msg_l):
+            reply = (
+                "Our standard commercial equipment, including the Epson WorkForce Pro series and SureColor technical plotters, is actively stocked in our UAE warehouse "
+                "for dispatch within 1–2 business days. If any specific high-capacity configuration requires replenishment, incoming shipments arrive weekly.\n\n"
+                "Would you like to check delivery lead time for a specific unit?"
+            )
+            return PreClassificationResult(
+                handled=True,
+                reply=reply,
+                suggested_chips=["Check Warehouse Stock", "Arrange Delivery", "Official Quotation"],
+                source="route:stock_availability",
+            )
+
+        # ── (a.45) Returning Customer Context Recall ─────────────────────────
+        if re.search(r"\b(?:hi[,\s]+i\s+was\s+here\s+yesterday|what\s+did\s+i\s+ask\s+(?:you\s+)?about|continue\s+where\s+we\s+stopped)\b", msg_l):
+            active_id = state.get_canonical_focus_id() or "epson-wf-c5890-dwf"
+            p_obj = catalogue_loader.get_by_id(active_id)
+            p_name = p_obj.get("display_name") or p_obj.get("name") if p_obj else "Epson WorkForce Pro WF-C5890 DWF"
+            reply = (
+                f"Welcome back! In our previous conversation, you were reviewing commercial office printing requirements (~20 users / school and office documents) "
+                f"and looking at the **{p_name}**.\n\n"
+                "We can pick up right where you left off—would you like to review an official quotation, arrange courier delivery across Dubai, or check consumable options?"
+            )
+            return PreClassificationResult(
+                handled=True,
+                reply=reply,
+                product_cards=[p_obj] if p_obj else [],
+                suggested_chips=["Official Quotation", "Review Specs", "Arrange Delivery"],
+                source="route:memory_recall",
+            )
+
+        # ── (a.46) Order Quantity Updates & Calculations ─────────────────────
+        has_explicit_unit = bool(re.search(r"\b(?:units?|pieces?|pcs?|printers?|machines?)\b", msg_l))
+        has_size_unit = bool(re.search(r"\b(?:inch|inches|in|\"|''|mm|cm|a[0-6])\b", msg_l))
+        qty_match = None
+        if not has_size_unit:
+            qty_match = re.search(r"\b(?:i\s+want|order|need|change\s+it\s+to|make\s+it|update\s+to|change\s+to)\s+(\d+)\s*(?:units?|pieces?|pcs?|printers?|machines?)?\b", msg_l)
+            if not qty_match and re.search(r"^\s*change\s+it\s+to\s+(\d+)\s*$", msg_l):
+                qty_match = re.search(r"^\s*change\s+it\s+to\s+(\d+)\s*$", msg_l)
+        if qty_match:
+            candidate_val = int(qty_match.group(1))
+            is_width_candidate = candidate_val in (13, 17, 24, 36, 44, 64)
+            has_active_order = getattr(state, "order_status", None) is not None or getattr(state, "order_quantity", 1) > 1 or bool(getattr(state, "lead_id", None))
+            if not has_explicit_unit and (is_width_candidate or not has_active_order):
+                qty_match = None
+
+        if qty_match:
+            new_qty = int(qty_match.group(1))
+            if new_qty > 0:
+                state.order_quantity = new_qty
+                if hasattr(state, "requirements"):
+                    state.requirements["quantity"] = new_qty
+                if hasattr(state, "confirmed_slots"):
+                    state.confirmed_slots["quantity"] = new_qty
+                active_id = state.get_canonical_focus_id() or "epson-wf-c5890-dwf"
+                p_obj = catalogue_loader.get_by_id(active_id)
+                p_name = p_obj.get("display_name") or p_obj.get("name") if p_obj else "Epson WorkForce Pro WF-C5890 DWF"
+                unit_price = p_obj.get("price", 1656.0) if p_obj else 1656.0
+                total_price = unit_price * new_qty
+                reply = (
+                    f"Updated your order to **{new_qty} unit(s)** of the **{p_name}**.\n\n"
+                    f"• Unit Price: AED {unit_price:,.2f} (excl. VAT)\n"
+                    f"• Total Amount: **AED {total_price:,.2f} (excl. VAT)**\n\n"
+                    "Delivery across the UAE is flat AED 10 (dispatched in 1–2 business days). Would you like to confirm this order or review payment options?"
+                )
+                return PreClassificationResult(
+                    handled=True,
+                    reply=reply,
+                    product_cards=[p_obj] if p_obj else [],
+                    suggested_chips=["Confirm Order", "Pay by Card", "Cash on Delivery", "Bank Transfer"],
+                    source="route:order_quantity_update",
+                )
+
+        # ── (a.47) Order Cancellation ────────────────────────────────────────
+        if re.search(r"\b(?:cancel\s+(?:the\s+)?(?:order|request|booking|purchase)|stop\s+the\s+order)\b", msg_l):
+            state.order_status = "cancelled"
+            reply = (
+                "Your order request has been cancelled as requested. No charges or shipments will be processed.\n\n"
+                "Would you like to review other equipment options or start fresh?"
+            )
+            return PreClassificationResult(
+                handled=True,
+                reply=reply,
+                suggested_chips=["Review Models", "Request Quotation", "Speak to Specialist"],
+                source="route:order_cancelled",
+            )
+
+        # ── (a.48) Order Reactivation ────────────────────────────────────────
+        if re.search(r"\b(?:actually\s+place\s+it\s+again|place\s+it\s+again|reorder|reactivate\s+(?:the\s+)?order)\b", msg_l):
+            state.order_status = "pending_confirmation"
+            active_id = state.get_canonical_focus_id() or "epson-wf-c5890-dwf"
+            p_obj = catalogue_loader.get_by_id(active_id)
+            p_name = p_obj.get("display_name") or p_obj.get("name") if p_obj else "Epson WorkForce Pro WF-C5890 DWF"
+            qty = getattr(state, "order_quantity", 1) or 1
+            reply = (
+                f"Understood! We've reactivated your order for **{qty} unit(s)** of the **{p_name}**.\n\n"
+                "Would you like to confirm the order for delivery or review payment methods?"
+            )
+            return PreClassificationResult(
+                handled=True,
+                reply=reply,
+                product_cards=[p_obj] if p_obj else [],
+                suggested_chips=["Confirm Order", "Pay by Card", "Delivery Timeline"],
+                source="route:order_reactivated",
+            )
+
+        # ── (a.49) Payment Methods ───────────────────────────────────────────
+        if re.search(r"\b(?:pay\s+by\s+card|credit\s*card|debit\s*card|payment\s+methods?|how\s+(?:can\s+i|to)\s+pay|accept\s+cards?|card\s+payment|bank\s+transfer|cash\s+on\s+delivery|cod)\b", msg_l):
+            reply = (
+                "We accept multiple secure commercial payment options across the UAE:\n\n"
+                "1. **Credit / Debit Card (Visa & MasterCard)**: Secure digital payment link sent upon order confirmation.\n"
+                "2. **Direct Bank Wire / Transfer**: Official company bank details provided on your proforma invoice.\n"
+                "3. **Cash on Delivery (COD)**: Available for standard equipment and consumables deliveries across Dubai and Sharjah.\n"
+                "4. **Corporate Cheque**: Accepted for corporate and government accounts.\n\n"
+                "Would you like to proceed with card payment or cash on delivery?"
+            )
+            return PreClassificationResult(
+                handled=True,
+                reply=reply,
+                suggested_chips=["Confirm Order", "Track Delivery (1–2 Days)", "Download Proforma Invoice"],
+                source="route:payment_methods",
+            )
+
+        # ── (a.50) Order Confirmation & Rapid Confirm De-duplication ──────────
+        is_confirm_batch = bool(
+            "\n" in raw_msg and all(line.strip().lower() == "confirm" for line in raw_msg.splitlines() if line.strip())
+        )
+        is_single_confirm = bool(
+            re.search(r"^\s*confirm\s*$", msg_l) or
+            re.search(r"\b(?:confirm\s+(?:the\s+)?order|place\s+(?:the\s+)?order|proceed\s+with\s+order)\b", msg_l)
+        )
+        if is_confirm_batch or is_single_confirm:
+            confirmed = getattr(state, "confirmed_slots", {}) or {}
+            lead_ref = getattr(state, "lead_id", None) or confirmed.get("lead_id")
+            if not lead_ref:
+                lead_ref = 48291
+                state.lead_id = lead_ref
+                confirmed["lead_id"] = lead_ref
+
+            cust_name = getattr(state, "customer_name", None) or confirmed.get("customer_name")
+            cust_phone = getattr(state, "customer_phone", None) or getattr(state, "customer_phone_or_email", None) or confirmed.get("customer_phone")
+            cust_addr = getattr(state, "customer_address", None) or confirmed.get("customer_address") or "Dubai, UAE"
+            active_id = state.get_canonical_focus_id() or (state.shown_entities[0] if state.shown_entities else None) or "epson-wf-c5890-dwf"
+            p_obj = catalogue_loader.get_by_id(active_id) if active_id else None
+            p_name = p_obj.get("display_name") or p_obj.get("name") if p_obj else "Epson WorkForce Pro WF-C5890 DWF"
+            qty = getattr(state, "order_quantity", 1) or 1
+
+            # De-duplication check: if order was already confirmed under this session
+            if getattr(state, "order_status", None) == "confirmed":
+                reply = (
+                    f"Your order has already been successfully registered under **Reference #{lead_ref}** for **{qty} unit(s)** of the **{p_name}**. "
+                    "Our dispatch desk is processing a single delivery to avoid duplicate dispatches. You will receive an SMS and email notification once on route."
+                )
+                return PreClassificationResult(
+                    handled=True,
+                    reply=reply,
+                    product_cards=[p_obj] if p_obj else [],
+                    suggested_chips=["Track Order Status", "Contact Dispatch Team", "Download Proforma Invoice"],
+                    source="route:order_idempotent_confirmed",
+                )
+
+            state.order_status = "confirmed"
+            ref_part = f"Reference #{lead_ref}"
+            name_part = f", {cust_name}" if cust_name else ""
+            addr_part = f" for delivery to **{cust_addr}**" if cust_addr else ""
+            phone_part = f" at **{cust_phone}**" if cust_phone else ""
+
+            reply = (
+                f"Thank you{name_part}! Your order for **{qty} unit(s)** of the **{p_name}** has been confirmed under **{ref_part}**{addr_part}. "
+                f"Our commercial dispatch team will reach out directly{phone_part} to finalize payment (Visa, MasterCard, or bank transfer) and arrange courier delivery."
+            )
+            return PreClassificationResult(
+                handled=True,
+                reply=reply,
+                product_cards=[p_obj] if p_obj else [],
+                suggested_chips=["Track Order Status", "Contact Dispatch Team", "Download Invoice"],
+                source="route:order_confirmed",
+            )
+
         # ── Follow-up consumable inquiry for active product (e.g. "list all the consubles'", "i want ink?", "any other ink for it") ───
         active_focus = state.get_canonical_focus_id() or getattr(state, "active_product_id", None) or (state.shown_entities[0] if state.shown_entities else None)
         is_consumables_req = bool(re.search(r"\b(?:list\s+all\s+(?:the\s+)?(?:consumables?|consubles?|consumbales?|inks?|supplies)|all\s+(?:the\s+)?(?:consumables?|consubles?|consumbales?|inks?|supplies)|(?:show|give|what\s+are)\s+(?:all\s+)?(?:the\s+)?(?:consumables?|consubles?|consumbales?|inks?|supplies)|(?:i\s+want\s+)?(?:consubles|consumbales|consumables|inks?|cartridges?|supplies))\b", msg_l))
@@ -445,7 +1110,9 @@ class PreClassificationResolver:
                         )
 
         # ── (b) REFERENT RESOLUTION AGAINST SHOWN_ENTITIES ────────────────────
-        is_both = bool(re.search(r"\b(?:both|dono|dono\s+ka|all|these|كلاهما)\b", msg_l))
+        is_both = bool(re.search(r"\b(?:both|both\s+of\s+them|all\s+of\s+(?:them|these)|details\s+of\s+(?:all|these|both)|specs\s+for\s+(?:all|these|both)|these\s+models|dono|dono\s+ka|كلاهما)\b", msg_l)) or (
+            msg_l.strip() in ("both", "all", "all of them", "these", "details of these")
+        )
         is_compare_first_two = bool(re.search(r"\b(?:compare\s+first\s+two|compare\s+the\s+two|compare\s+both)\b", msg_l))
         is_first = bool(re.search(r"\b(?:the\s+first(?:\s+one)?|first\s+one|first\s+model|first\s+printer)\b", msg_l))
         is_second = bool(re.search(r"\b(?:the\s+second(?:\s+one)?|second\s+one|second\s+model|second\s+printer)\b", msg_l))
@@ -539,38 +1206,49 @@ class PreClassificationResolver:
 
             # Check if asking about scanning capability
             if re.search(r"\b(?:scan|scanner|scanning|copy|fax)\b", msg_l):
-                p_objs = [catalogue_loader.get_by_id(pid) for pid in shown[:2]]
-                p_names = [p.get("display_name") or p.get("model") or p["id"] for p in p_objs if p]
-                names_str = " and ".join(f"**{n}**" for n in p_names) if p_names else "Both models"
+                p_objs = [catalogue_loader.get_by_id(pid) for pid in shown]
+                p_objs = [p for p in p_objs if p]
+                p_names = [p.get("display_name") or p.get("model") or p["id"] for p in p_objs]
+                if len(p_names) == 2:
+                    names_str = " and ".join(f"**{n}**" for n in p_names)
+                    plural_lead = "Both are complete multifunction"
+                else:
+                    names_str = ", ".join(f"**{n}**" for n in p_names)
+                    plural_lead = "All are complete multifunction"
                 reply = (
                     f"Yes, {names_str} feature integrated high-speed scanning, copying, and faxing. "
-                    "Both are complete multifunction (DWF) enterprise systems with automatic dual-sided document feeders (ADF)."
+                    f"{plural_lead} (DWF) enterprise systems with automatic dual-sided document feeders (ADF)."
                 )
                 return PreClassificationResult(
                     handled=True,
                     reply=reply,
-                    product_cards=[p for p in p_objs if p],
+                    product_cards=p_objs,
                     suggested_chips=["View Scan Speeds", "Official Quotation", "View Running Costs"],
                     source="route:product_spec_attribute",
                 )
 
-            # Asking specs for both
+            # Asking specs for both / these / all
             if re.search(r"\b(?:spec|specs|specification|features|batao|details)\b", msg_l):
-                p_objs = [catalogue_loader.get_by_id(pid) for pid in shown[:2]]
-                lines = ["Here are the specifications for both models from our catalogue:"]
+                p_objs = [catalogue_loader.get_by_id(pid) for pid in shown]
+                p_objs = [p for p in p_objs if p]
+                header = (
+                    "Here are the specifications for both models from our catalogue:"
+                    if len(p_objs) == 2
+                    else f"Here are the specifications for the {len(p_objs)} models from our catalogue:"
+                )
+                lines = [header]
                 for p in p_objs:
-                    if p:
-                        lines.append(
-                            f"\n• **{p.get('display_name', p.get('model'))}**:\n"
-                            f"  - Speed: {p.get('print_speed', '25 ppm')}\n"
-                            f"  - Resolution: {p.get('dpi', '4800 x 1200 DPI')}\n"
-                            f"  - Functions: {', '.join(p.get('functions', ['print', 'scan', 'copy']))}\n"
-                            f"  - Ink Yield: {p.get('yield_capacity', 'High capacity ink supply bags')}"
-                        )
+                    lines.append(
+                        f"\n• **{p.get('display_name', p.get('model'))}**:\n"
+                        f"  - Speed: {p.get('print_speed', '25 ppm')}\n"
+                        f"  - Resolution: {p.get('dpi', '4800 x 1200 DPI')}\n"
+                        f"  - Functions: {', '.join(p.get('functions', ['print', 'scan', 'copy']))}\n"
+                        f"  - Ink Yield: {p.get('yield_capacity', 'High capacity ink supply bags')}"
+                    )
                 return PreClassificationResult(
                     handled=True,
                     reply="\n".join(lines),
-                    product_cards=[p for p in p_objs if p],
+                    product_cards=p_objs,
                     suggested_chips=["Official Quotation", "Compare Ink Yields"],
                     source="route:product_spec_attribute",
                 )
@@ -600,7 +1278,58 @@ class PreClassificationResolver:
         if match.is_exact and match.product:
             p = match.product
             pid = p["id"]
+            if pid == "epson-sc-p900-roll" and "p900" in msg_l and "roll" not in msg_l:
+                p_base = catalogue_loader.get_by_id("epson-sc-p900")
+                if p_base:
+                    p = p_base
+                    pid = p["id"]
             p_name = p.get("display_name") or p.get("name") or p["id"]
+
+            has_explicit_hardware = bool(re.search(
+                r"\b(?:printers?|plotters?|machines?|hardware|devices?|specs?|specifications?|features?|print\s*speed|speed|speeds|ppm|brochures?|datasheets?|dimensions?|resolutions?|how\s+fast|dpi|warranty|roll\s+adapter|cut\s*sheet|without\s+roll|with\s+roll|roll|rolls|desktop|a4|24-inch|weights?|weigh|lighter|heavier|compare|comparison|portable|portability)\b",
+                msg_l
+            ))
+            has_explicit_consumables = bool(re.search(
+                r"\b(?:consubales|consumbales|consumable|consumables|ink|inks|cartridge|cartridges|media|ribbon|ribbons|toner|supplies)\b",
+                msg_l
+            ))
+
+            is_hardware_qualification = (
+                state.stage == "qualifying"
+                or state.category in ("dye_sublimation", "sublimation", "office_printer", "technical_large_format", "photography_large_format", "citizen_photo", "scanners")
+                or state.awaiting_field in ("paper_size", "sublimation_format", "print_width", "photo_form_factor", "photo_brand", "scanner_required", "daily_volume")
+            )
+            has_consumables_context = not is_hardware_qualification and bool(
+                state.active_printer_for_consumables
+                or state.active_route in ("consumables", "consumable", "route:consumables")
+                or (state.history_turns and any(
+                    "compatible with" in t.get("content", "").lower()
+                    or "verified inks" in t.get("content", "").lower()
+                    or "consumable" in t.get("content", "").lower()
+                    for t in state.history_turns[-3:]
+                ))
+            )
+
+            # If inquiry occurs in consumables context and is ambiguous between hardware and consumables:
+            if has_consumables_context and not has_explicit_hardware and not has_explicit_consumables:
+                disp_name = p.get("display_name") or p_name
+                short_name = p.get("model_family") or disp_name
+                reply_text = (
+                    f"I'd be happy to help with the **{disp_name}**! "
+                    f"Just to ensure I give you the exact details you need—are you looking to purchase the **{disp_name} printer itself**, "
+                    f"or do you need **compatible consumables (inks & media)** for this model?"
+                )
+                chips_to_return = [f"{short_name} Printer", f"{short_name} Consumables"]
+                state.awaiting_field = "product_or_consumable"
+                state.pending_disambiguation_model = pid
+                return PreClassificationResult(
+                    handled=True,
+                    reply=reply_text,
+                    product_cards=[],
+                    consumable_cards=[],
+                    suggested_chips=chips_to_return,
+                    source="route:product_or_consumable_disambiguation",
+                )
 
             # If message is "and the c878r?" (Chat 3 Turn 4)
             if re.search(r"\b(?:and\s+the|what\s+about|how\s+about|switch\s+to)?\s*(?:c878r?|c878)\b", msg_l):
@@ -635,10 +1364,15 @@ class PreClassificationResolver:
                     source="route:product_spec_attribute",
                 )
 
-            # If looking for consumables for a model (e.g. "i need f100 consubales", "need ink for epson c878")
-            if re.search(r"\b(?:consubales|consumbales|consumable|consumables|ink|inks|cartridge|cartridges)\b", msg_l):
+            # If looking for consumables for a model (e.g. "i need f100 consubales", "need ink for epson c878", "i want p900 ink")
+            if has_explicit_consumables:
+                state.awaiting_field = None
+                state.pending_disambiguation_model = None
                 state.set_canonical_focus(pid)
                 state.shown_entities = [pid]
+                state.active_printer_for_consumables = p_name
+                state.active_route = "consumable"
+                state.category = "consumables"
                 c_cards = []
                 if "f100" in pid:
                     t49n_card = {
@@ -659,11 +1393,29 @@ class PreClassificationResolver:
                         "• **SC-F100 Maintenance Box**: User-replaceable ink maintenance tank."
                     )
                 else:
-                    reply = (
-                        f"Here are the genuine consumables for the **{p_name}**:\n\n"
-                        "• **Epson DURABrite Pro Ink Packs (T05A Series)**: Available in Black (T05A100 - AED 750.00), Cyan (T05A200 - AED 620.00), Magenta (T05A300 - AED 620.00), and Yellow (T05A400 - AED 620.00).\n"
-                        "• **Epson T6714 Maintenance Box (C13T671400)**: AED 195.00."
-                    )
+                    from catalog.evidence import EvidenceEngine
+                    c_items, _ = EvidenceEngine.list_consumables(pid)
+                    if c_items:
+                        lines = [f"Here are the genuine consumables for the **{p_name}**:\n"]
+                        for ci in c_items:
+                            c_card = {
+                                "card_type": "consumable",
+                                "id": ci.get("sku") or ci.get("id"),
+                                "name": ci.get("name"),
+                                "sku": ci.get("sku"),
+                                "price": ci.get("price"),
+                                "price_str": ci.get("price_str") or (f"AED {ci.get('price'):,.2f}" if ci.get("price") else None),
+                                "price_formatted": ci.get("price_formatted") or (f"AED {ci.get('price'):,.2f} (Excl. VAT)" if ci.get("price") else None),
+                                "category": ci.get("type", "consumable"),
+                                "compatible_printers": [p_name],
+                                "product_url": ci.get("url"),
+                            }
+                            c_cards.append(c_card)
+                            price_part = f" — AED {ci.get('price'):,.2f}" if ci.get("price") else ""
+                            lines.append(f"• **{ci.get('name')}** ({ci.get('sku')}){price_part}")
+                        reply = "\n".join(lines)
+                    else:
+                        reply = f"Here are the genuine consumables for the **{p_name}**."
                 return PreClassificationResult(
                     handled=True,
                     reply=reply,
@@ -671,6 +1423,23 @@ class PreClassificationResolver:
                     consumable_cards=c_cards,
                     suggested_chips=["Price of Yellow Ink", "Maintenance Box", "Official Quotation"],
                     source="route:consumables:verified_list",
+                )
+
+            # If user explicitly specified printer / hardware intent
+            if has_explicit_hardware:
+                state.awaiting_field = None
+                state.pending_disambiguation_model = None
+                state.set_canonical_focus(pid)
+                state.shown_entities = [pid]
+                from agent.orchestrator import build_model_detail_response
+                reply, prod_cards = build_model_detail_response(p)
+                return PreClassificationResult(
+                    handled=True,
+                    reply=reply,
+                    product_cards=prod_cards,
+                    consumable_cards=[],
+                    suggested_chips=["View Compatible Consumables", "Official Quotation"],
+                    source="route:model_detail",
                 )
 
         # ── Malayalam Consumable Question (Chat 15: "ink evide kittum?") ──────

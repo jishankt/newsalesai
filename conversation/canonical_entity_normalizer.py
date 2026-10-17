@@ -214,7 +214,7 @@ class CanonicalEntityNormalizer:
         elif re.search(r"\b(?:a3|tabloid|ledger)\b", text_l):
             res["paper_size"] = "a3"
         # A4
-        elif re.search(r"\b(?:a4|standard\s*a4)\b", text_l):
+        elif re.search(r"\b(?:a4|standard\s*a4|invoices?|bills?|receipts?|office\s*documents?|general\s*documents?|standard\s*documents?)\b", text_l):
             res["paper_size"] = "a4"
             if category == "dye_sublimation":
                 res["print_width"] = 8.5

@@ -68,6 +68,12 @@ class DialogueState(BaseModel):
     handover_timestamp: Optional[float] = None
     buyer_pace: str = "standard"  # "concise" | "standard" | "technical"
     buyer_pace_turn: int = 0
+    lead_id: Optional[int] = None
+    customer_name: Optional[str] = None
+    customer_phone: Optional[str] = None
+    customer_address: Optional[str] = None
+    order_status: Optional[str] = None
+    order_quantity: Optional[int] = 1
 
     def get_current_focus(self, entity_type: Optional[str] = None) -> Optional[SalientEntity]:
         """Returns the top entity from the focus stack matching entity_type if specified."""

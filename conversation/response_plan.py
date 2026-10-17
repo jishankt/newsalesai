@@ -178,8 +178,8 @@ class ResponsePlanBuilder:
         # 4. Out of Scope Flow
         elif decision.action == PolicyAction.OUT_OF_SCOPE_REDIRECT:
             direct_answer = (
-                "Kepler Tech is an authorized distributor specializing in official Epson large-format "
-                "and Citizen photo/dye-sublimation systems. We do not carry 3D printers, laser copiers, or third-party brands in our catalogue."
+                "We don't have information about that in our catalogue, but we specialize in official "
+                "Epson commercial printers, large-format plotters, and Citizen photo systems."
             )
 
         # 5. Default Answer Flow
@@ -277,67 +277,78 @@ class ResponsePlanBuilder:
                     "badges": ["Genuine Kepler Tech Consumable"],
                 })
 
-        # Also attach consumable cards from evidence records supporting data (e.g. list_consumables)
-        for rec_item in decision.evidence_records:
-            if rec_item.supporting_data and "consumables" in rec_item.supporting_data:
-                for c_item in rec_item.supporting_data["consumables"][:6]:
-                    if isinstance(c_item, dict):
-                        c_sku = c_item.get("sku") or c_item.get("id")
-                        c_name = c_item.get("name") or f"Genuine Consumable {c_sku}"
-                        c_cat = c_item.get("category") or "consumable"
-                        c_col = c_item.get("color")
-                        c_url = c_item.get("product_url") or c_item.get("url") or c_item.get("website_url") or c_item.get("source_url")
-                        c_img = c_item.get("image_url") or c_item.get("image")
-                        c_price = c_item.get("price")
-                        c_price_str = c_item.get("price_str") or c_item.get("price_formatted")
-                    else:
-                        c_sku = str(c_item)
-                        c_name = f"Genuine Consumable {c_sku}"
-                        c_cat = "consumable"
-                        c_col = None
-                        c_url = None
-                        c_img = None
-                        c_price = None
-                        c_price_str = None
+        # Only attach consumable cards if customer explicitly inquired about consumables / supplies
+        is_consumables_inquiry = (
+            und.intent in (Intent.CONSUMABLES_LOOKUP, Intent.COMPATIBILITY_CHECK)
+            or bool(decision.active_item_id)
+            or any(k in und.raw_text.lower() for k in [
+                "ink", "inks", "consumable", "consumables", "cartridge", "cartridges",
+                "ribbon", "ribbons", "toner", "paper", "roll", "media", "supplies", "supply", "maintenance box"
+            ])
+            or any(getattr(r, "field", "") == "consumables" for r in decision.evidence_records)
+        )
 
-                    # If image or url is missing, lookup from knowledge_graph node
-                    if c_sku:
-                        knode = knowledge_graph.nodes.get(c_sku.upper()) or knowledge_graph.nodes.get(c_sku)
-                        if knode:
-                            if not c_img or c_img == "/static/img/products/default.png":
-                                c_img = knode.attributes.get("image_url") or knode.attributes.get("image")
-                            if not c_url or c_url.endswith("#") or c_url.endswith("/product/"):
-                                c_url = knode.attributes.get("product_url") or knode.attributes.get("url") or knode.attributes.get("website_url") or knode.attributes.get("source_url")
-                            if c_price is None:
-                                c_price = knode.attributes.get("price")
-                                c_price_str = knode.attributes.get("price_str") or knode.attributes.get("price_formatted")
-                            if not c_name or c_name == f"Genuine Consumable {c_sku}":
-                                c_name = knode.name or c_name
+        if is_consumables_inquiry:
+            for rec_item in decision.evidence_records:
+                if rec_item.supporting_data and "consumables" in rec_item.supporting_data:
+                    for c_item in rec_item.supporting_data["consumables"][:6]:
+                        if isinstance(c_item, dict):
+                            c_sku = c_item.get("sku") or c_item.get("id")
+                            c_name = c_item.get("name") or f"Genuine Consumable {c_sku}"
+                            c_cat = c_item.get("category") or "consumable"
+                            c_col = c_item.get("color")
+                            c_url = c_item.get("product_url") or c_item.get("url") or c_item.get("website_url") or c_item.get("source_url")
+                            c_img = c_item.get("image_url") or c_item.get("image")
+                            c_price = c_item.get("price")
+                            c_price_str = c_item.get("price_str") or c_item.get("price_formatted")
+                        else:
+                            c_sku = str(c_item)
+                            c_name = f"Genuine Consumable {c_sku}"
+                            c_cat = "consumable"
+                            c_col = None
+                            c_url = None
+                            c_img = None
+                            c_price = None
+                            c_price_str = None
 
-                    if not c_url:
-                        c_url = f"https://www.keplertechllc.com/product/{c_sku.lower()}"
+                        # If image or url is missing, lookup from knowledge_graph node
+                        if c_sku:
+                            knode = knowledge_graph.nodes.get(c_sku.upper()) or knowledge_graph.nodes.get(c_sku)
+                            if knode:
+                                if not c_img or c_img == "/static/img/products/default.png":
+                                    c_img = knode.attributes.get("image_url") or knode.attributes.get("image")
+                                if not c_url or c_url.endswith("#") or c_url.endswith("/product/"):
+                                    c_url = knode.attributes.get("product_url") or knode.attributes.get("url") or knode.attributes.get("website_url") or knode.attributes.get("source_url")
+                                if c_price is None:
+                                    c_price = knode.attributes.get("price")
+                                    c_price_str = knode.attributes.get("price_str") or knode.attributes.get("price_formatted")
+                                if not c_name or c_name == f"Genuine Consumable {c_sku}":
+                                    c_name = knode.name or c_name
 
-                    if not c_img:
-                        c_img = "https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png"
+                        if not c_url:
+                            c_url = f"https://www.keplertechllc.com/product/{c_sku.lower()}"
 
-                    if c_sku and not any(cc.get("sku") == c_sku for cc in c_cards):
-                        c_cards.append({
-                            "card_type": "consumable",
-                            "sku": c_sku,
-                            "name": c_name,
-                            "title": c_name,
-                            "category": c_cat,
-                            "color": c_col,
-                            "product_url": c_url,
-                            "url": c_url,
-                            "source_url": c_url,
-                            "website_url": c_url,
-                            "image_url": c_img,
-                            "image": c_img,
-                            "price": c_price,
-                            "price_str": c_price_str,
-                            "badges": ["Genuine Kepler Tech Consumable"],
-                        })
+                        if not c_img:
+                            c_img = "https://www.keplertechllc.com/wp-content/uploads/2023/05/Kepler-Logo-.png"
+
+                        if c_sku and not any(cc.get("sku") == c_sku for cc in c_cards):
+                            c_cards.append({
+                                "card_type": "consumable",
+                                "sku": c_sku,
+                                "name": c_name,
+                                "title": c_name,
+                                "category": c_cat,
+                                "color": c_col,
+                                "product_url": c_url,
+                                "url": c_url,
+                                "source_url": c_url,
+                                "website_url": c_url,
+                                "image_url": c_img,
+                                "image": c_img,
+                                "price": c_price,
+                                "price_str": c_price_str,
+                                "badges": ["Genuine Kepler Tech Consumable"],
+                            })
 
         # Determine effective buyer pace
         pace = getattr(state, "buyer_pace", "standard") or "standard"

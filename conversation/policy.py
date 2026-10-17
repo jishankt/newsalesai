@@ -832,7 +832,21 @@ class PolicyEngine:
         # 4. Anti-Looping & Clarification Limit Enforcement
         current_topic = intent.value
         topic_clarifications = state.clarifications_asked.get(current_topic, 0)
-        if topic_clarifications >= cls.MAX_CLARIFICATIONS_PER_TOPIC:
+        has_substantive_input = (
+            bool(resolved.resolved_target_product)
+            or bool(resolved.resolved_active_item)
+            or any(e.entity_type in ("model", "sku", "category", "brand") for e in und.entities)
+            or bool(resolved.resolved_referents)
+            or bool(und.slots)
+            or any(w in und.raw_text.lower() for w in [
+                "citizen", "epson", "plotter", "printer", "ink", "scanner", "cad", "photo", "booth", "sublimation",
+                "a4", "a3", "24", "36", "44", "4 inch", "6 inch", "8 inch", "black", "cyan", "magenta", "yellow"
+            ])
+        )
+        if has_substantive_input:
+            state.clarifications_asked[current_topic] = 0
+
+        if not has_substantive_input and topic_clarifications >= cls.MAX_CLARIFICATIONS_PER_TOPIC:
             # Prevent looping: Give best-effort verified answer plus specialist handoff
             return PolicyDecision(
                 action=PolicyAction.NOT_VERIFIED_HANDOFF,
@@ -903,6 +917,39 @@ class PolicyEngine:
         # 6. Consumables Lookup Intent (or follow-up to consumables clarification)
         if intent == Intent.CONSUMABLES_LOOKUP or (state.clarifications_asked.get("consumables_lookup", 0) > 0 and resolved.resolved_target_product):
             state.category = "consumables"
+
+            # If customer specifically selected an individual consumable (e.g. "black", "cyan", "the black one", SKU)
+            if resolved.resolved_active_item:
+                item = resolved.resolved_active_item
+                target = resolved.resolved_target_product
+                c_data = item.metadata or {}
+                c_price = c_data.get("price")
+                c_price_str = f"AED {float(c_price):,.2f} (excl. VAT)" if c_price else "Commercial Quote on Request"
+                target_str = f" for the **{target.name}**" if target else ""
+                claim = (
+                    f"**{item.name}** (SKU: `{item.id}`):\n"
+                    f"• Official genuine consumable{target_str}.\n"
+                    f"• **Pricing:** {c_price_str}."
+                )
+                rec = EvidenceRecord(
+                    claim=claim,
+                    verified=True,
+                    status=CompatibilityStatus.VERIFIED_YES,
+                    source_file="data/catalogue_products.json",
+                    field="consumable_item",
+                    entity_ids=[item.id],
+                    supporting_data={"consumables": [c_data] if c_data else []},
+                )
+                return PolicyDecision(
+                    action=PolicyAction.ANSWER,
+                    reason=f"Customer selected specific consumable {item.name} ({item.id}).",
+                    target_entity_id=target.id if target else None,
+                    active_item_id=item.id,
+                    options_or_chips=["Request Official Quotation", "All Compatible Supplies", "Delivery Options"],
+                    evidence_records=[rec],
+                    next_step=f"Would you like an official quotation or order confirmation for the {item.name}?",
+                )
+
             target = resolved.resolved_target_product
             if target:
                 state.clarifications_asked["consumables_lookup"] = 0
@@ -1159,8 +1206,8 @@ class PolicyEngine:
             if leaf_pid:
                 raw_l = und.raw_text.lower().strip()
                 is_specs_query = (
-                    any(k in raw_l for k in ["spec", "specs", "technical", "detail", "details", "feature", "features", "see", "show", "yes", "sure", "ok", "okay", "fine", "give full", "want to see", "what", "tell me", "explain"])
-                    or und.dialogue_act == DialogueAct.CONFIRMATION
+                    any(k in raw_l for k in ["spec", "specs", "technical", "detail", "details", "feature", "features", "give full", "want to see", "full specs"])
+                    or (und.dialogue_act == DialogueAct.CONFIRMATION and any(c.lower() in raw_l for c in state.last_shown_chips if "spec" in c.lower()))
                     or intent == Intent.PRODUCT_INFO
                 )
                 if is_specs_query:

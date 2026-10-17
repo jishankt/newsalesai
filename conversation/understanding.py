@@ -348,7 +348,8 @@ class TurnUnderstandingExtractor:
         (re.compile(r"\b(the\s+faster\s+one|the\s+wider\s+one|the\s+smaller\s+one|the\s+larger\s+one)\b", re.I), "comparative"),
         # Color / Consumable specific references
         (re.compile(r"\b(same\s+ink|same\s+cartridge|same\s+paper|same\s+media)\b", re.I), "attribute_ref"),
-        (re.compile(r"\b(the\s+yellow\s+one|the\s+yellow\s+ink|the\s+black\s+one|the\s+cyan\s+one|the\s+magenta\s+one)\b", re.I), "color_ref"),
+        (re.compile(r"\b(?:the\s+)?(yellow|cyan|magenta|black|photo\s+black|matte\s+black|light\s+cyan|light\s+magenta|grey|gray)(?:\s+(?:one|ink|cartridge|color|colour))?\b", re.I), "color_ref"),
+        (re.compile(r"\b(maintenance\s*box|waste\s*ink\s*box|maintenance\s*tank)\b", re.I), "attribute_ref"),
         # Ellipsis ("for the f100?", "and for f500?", "what about cx-02?")
         (re.compile(r"(?:^|[,;]|\band\b)\s*(?:for\s+(?:the\s+)?|what\s+about\s+(?:the\s+)?|how\s+about\s+(?:the\s+)?)([a-z0-9\-]+)(?:\s*\?)?\s*$", re.I), "ellipsis"),
     ]
@@ -356,7 +357,7 @@ class TurnUnderstandingExtractor:
     CONFIRMATION_PATTERNS = [
         re.compile(
             r"^\s*(?:yes|yep|yeah|sure|ok|okay|correct|that'?s\s+right|affirmative|absolutely|indeed|proceed|agree|"
-            r"that'?s\s+(?:fine|good|ok|okay|great|cool|clear)|fine|sounds\s+good|alright|all\s+right|okey|noted)\b",
+            r"that'?s\s+(?:fine|good|ok|okay|great|cool|clear)|fine(?!\s+art)|sounds\s+good|alright|all\s+right|okey|noted)\b",
             re.I
         ),
         re.compile(r"^\s*(?:1|first|option\s*1)\s*$", re.I),
@@ -389,7 +390,7 @@ class TurnUnderstandingExtractor:
     ]
 
     HANDOFF_PATTERNS = [
-        re.compile(r"\b(?:speak\s+to\s+(?:a\s+)?(?:human|sales\s*rep|person|specialist)|talk\s+to\s+(?:a\s+)?human|agent|customer\s+support|call\s+me|phone\s+number)\b", re.I),
+        re.compile(r"\b(?:speak\s+to\s+(?:a\s+)?(?:human|sales\s*rep|person|specialist)|talk\s+to\s+(?:a\s+)?(?:human|sales\s*specialist|specialist|sales\s*rep|person)|agent|customer\s+support|call\s+me|phone\s+number)\b", re.I),
     ]
 
     OUT_OF_SCOPE_PATTERNS = [
@@ -478,7 +479,14 @@ class TurnUnderstandingExtractor:
     ]
 
     QUOTE_PATTERNS = [
-        re.compile(r"\b(?:quotation|formal\s*quote|request\s*(?:a\s*)?quote|send\s*(?:me\s*)?(?:a\s*)?quote|need\s*(?:a\s*)?quote|official\s*quote|tax\s*invoice\s*quote)\b", re.I),
+        re.compile(
+            r"\b(?:quotations?|quatations?|formal\s*quotes?|request\s*(?:a\s*)?quotes?|send\s*(?:me\s*)?(?:a\s*)?quotes?|"
+            r"need\s*(?:a\s*)?quotes?|official\s*quotes?|official\s*quotations?|tax\s*invoice\s*quotes?|"
+            r"i\s*want\s*(?:to\s*)?buy|want\s*to\s*buy|want\s*buy|how\s*to\s*buy|where\s*to\s*buy|"
+            r"can\s*i\s*buy|order\s*this|purchase\s*this|ready\s*to\s*buy|buy\s*this|buy\s*it|purchase\s*it|"
+            r"how\s*can\s*i\s*buy|proceed\s*with\s*(?:order|purchase|quote))\b",
+            re.I
+        ),
     ]
 
     COMPETITOR_PATTERNS = [
@@ -564,8 +572,9 @@ class TurnUnderstandingExtractor:
     ]
 
     LEAD_INFO_PATTERNS = [
-        re.compile(r"\b(?:my name is|number is|phone is|call me at|reach me at|contact me at)\b", re.I),
-        re.compile(r"(?:\+971|00971|0)(?:5[0124568]|4|2|3|6|7|9)\d{7}\b"),
+        re.compile(r"\b(?:my name is|name is|i am|this is|number is|phone is|call me at|reach me at|contact me at)\b", re.I),
+        re.compile(r"(?:\+\d{1,4}[-.\s]*)?\b\d{7,14}\b"),
+        re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"),
     ]
 
     @classmethod
@@ -728,27 +737,27 @@ class TurnUnderstandingExtractor:
         # Specific application domains are evaluated first so specific requirements take precedence
         categories = {
             "technical_cad": [
-                "cad", "technical cad", "technical drawing", "technical drawings", "engineering", "blueprints", "line drawings", "architectural",
+                "tech", "technical", "technical cad", "technical cad plotters", "cad", "technical drawing", "technical drawings", "engineering", "blueprints", "line drawings", "architectural",
                 "architect", "archtect", "architecture", "drawing", "drawings", "architect drawings",
-                "gis", "cad plotter", "cad plotters", "blueprint", "plotter", "plotters", "large format plotter",
+                "gis", "cad plotter", "cad plotters", "cad printer", "cad printers", "blueprint", "plotter", "plotters", "large format plotter",
                 "large format plotters", "technical plotter", "technical plotters", "technical printer", "technical printers",
                 "مخططات", "طابعة مخططات", "طابعة كاد", "طابعة هندسية", "بلوتر", "بلاتر", "رسومات هندسية", "naksha"
             ],
             "photo_fine_art": [
                 "fine art", "photo printer", "photo printers", "gallery", "photography", "photo printing", "photo studio",
                 "photo machine", "photo machines", "master studio", "spectro", "pro10", "pro12", "fine art gallery",
-                "photography printer", "photography printers", "fine art printer", "fine art printers",
+                "photography printer", "photography printers", "fine art printer", "fine art printers", "professional photo", "photo & fine art",
                 "فوتوغرافية", "طابعة فوتوغرافية", "طابعة صور", "طباعة فوتوغرافية", "طباعة صور", "طابعات صور", "طابعات فوتوغرافية", "صور احترافية", "tasveer"
             ],
             "citizen_photo": [
                 "photo booth", "photo booth printer", "photo booth printers", "event photography", "event photo", "event photos",
-                "event photo printer", "event photo printers", "instant prints", "passport photos",
+                "event photo printer", "event photo printers", "instant prints", "passport photos", "citizen photo booth / events", "citizen photo booth",
                 "citizen", "citizon", "citzen", "ciyizon", "ctizen", "citizn",
                 "citizen printer", "citizen printers", "citizon printer", "ciyizon printer", "instant photo", "instant photo printer", "instant photo printers", "dye-sub photo", "cz-01", "cx-02", "cy-02", "cx-02w",
                 "طابعة كشك صور", "طابعة كشك", "طابعة مناسبات", "سيتيزن", "طابعة حفلات"
             ],
             "dye_sublimation": [
-                "dye sublimation", "sublimation", "sublimation printer", "sublimation printers", "apparel printing",
+                "dye sublimation", "sublimation", "dye-sublimation", "dye-sub", "sublimation printer", "sublimation printers", "apparel printing",
                 "t-shirt printing", "textile printing", "mug printing", "sportswear printing",
                 "apparel", "t-shirt", "mug",
                 "طابعة تسامي", "سبلميشن", "طباعة أقمشة", "طباعة تيشرتات"
@@ -825,7 +834,10 @@ class TurnUnderstandingExtractor:
         if cats_neg:
             excluded["target_category"] = cats_neg[0] if len(cats_neg) == 1 else cats_neg
         if cats_pos:
-            cats_sorted = sorted(cats_pos, key=lambda c: CATEGORY_PRIORITY.get(c, 99))
+            if any(k in text_l for k in ["citizen", "event", "booth", "kiosk", "wedding"]) and "citizen_photo" in cats_pos:
+                cats_sorted = ["citizen_photo"] + [c for c in cats_pos if c != "citizen_photo"]
+            else:
+                cats_sorted = sorted(cats_pos, key=lambda c: CATEGORY_PRIORITY.get(c, 99))
             slots["target_category"] = SlotValue(
                 slot_name="target_category",
                 value=cats_sorted[0],
@@ -958,7 +970,10 @@ class TurnUnderstandingExtractor:
                 source="said_now"
             )
         elif cats_pos:
-            cats_sorted = sorted(cats_pos, key=lambda c: CATEGORY_PRIORITY.get(c, 99))
+            if any(k in text_l for k in ["citizen", "event", "booth", "kiosk", "wedding"]) and "citizen_photo" in cats_pos:
+                cats_sorted = ["citizen_photo"] + [c for c in cats_pos if c != "citizen_photo"]
+            else:
+                cats_sorted = sorted(cats_pos, key=lambda c: CATEGORY_PRIORITY.get(c, 99))
             slots["quote_product"] = SlotValue(
                 slot_name="quote_product",
                 value=cats_sorted[0],
@@ -1064,8 +1079,8 @@ class TurnUnderstandingExtractor:
         # 0. Numeric, dimension, or flowchart answer (e.g. "40 ppm", "44\"", "44”", "44” wider", "44” wide production printer", "looking for fine art printer", "< 100", "300+")
         flow_patterns = [
             r"^\s*(?:i\s*(?:need|want)\s*(?:to\s*print\s*)?)?[<>]?\s*\d+(?:[–\-]\d+)?\s*(?:[\"”″'’]|inch|in|ppm|pages?|prints?|docs?|sheets?|mm|cm|wide|wider|width|production|mfp|roll|sheet|desktop|kiosk|daily|\/day|per\s*day|\+)(?:\s+(?:wider|wide|production|printer|plotter|scanner|mfp|roll|sheets?))*\s*$",
-            r"^\s*(?:fine\s*art|photo\s*printer|photo\s*production|production\s*printer|large\s*format|cad\s*plotter|technical\s*cad|dye[\s-]*sub|photo\s*booth|office\s*printer)\s*$",
-            r"^\s*(?:looking\s+for|i\s+need|i\s+want)\s+(?:a\s+)?(?:fine\s*art|photo|cad|office|large\s*format|production)\s*(?:printer|plotter)?\s*$",
+            r"^\s*(?:tech|technical|technical\s*cad|cad|fine\s*art|photo\s*printer|photo\s*production|production\s*printer|large\s*format|cad\s*plotter|technical\s*cad|dye[\s-]*sub|sublimation|photo\s*booth|office\s*printer|office)\s*$",
+            r"^\s*(?:looking\s+for|i\s+need|i\s+want)\s+(?:a\s+)?(?:tech|technical|fine\s*art|photo|cad|office|large\s*format|production)\s*(?:printer|plotter)?\s*$",
         ]
         if any(re.search(pat, text_clean) for pat in flow_patterns):
             return DialogueAct.QUESTION, Intent.RECOMMEND, 0.96, ambiguities
@@ -1114,10 +1129,23 @@ class TurnUnderstandingExtractor:
             or any(p.search(text_l) for p in cls.COMPATIBILITY_PATTERNS)
             or any(p.search(text_l) for p in cls.CONSUMABLES_PATTERNS)
             or any(p.search(text_l) for p in cls.COMPARE_PATTERNS)
-            or any(e.entity_type in ("model", "sku") for e in entities)
+            or any(e.entity_type in ("model", "sku", "category") for e in entities)
+            or bool(refs)
+            or bool(re.search(r"\b(?:now\s+i\s+(?:want|need|prefer|look)|i\s+(?:want|need|look)|switch\s+to|show\s+me|tell\s+me|how\s+about|what\s+about)\b", text_l))
         )
         if any(p.search(text_l) for p in cls.CONFIRMATION_PATTERNS) and not has_substantive_query:
             return DialogueAct.CONFIRMATION, Intent.OTHER, 0.95, ambiguities
+
+        is_hardware_req = any(
+            re.search(p, text_l) for p in [
+                r"\b(?:need|want|looking for|buy|recommend|suggest)\s+(?:an?\s+)?(?:office\s+)?(?:printer|plotter|scanner|copier|mfp)\b",
+                r"\b(?:printer|plotter|scanner)\s+for\b",
+            ]
+        )
+
+        # Consumable color or attribute reference follow-up (e.g. "black", "cyan", "maintenance box", "the yellow one")
+        if any(r.reference_type in ("color_ref", "attribute_ref") for r in refs) and not is_hardware_req:
+            return DialogueAct.REFERENCE_FOLLOW_UP, Intent.CONSUMABLES_LOOKUP, 0.98, ambiguities
 
         # 5. Rejection
         if any(p.search(text_l) for p in cls.REJECTION_PATTERNS):
@@ -1130,12 +1158,6 @@ class TurnUnderstandingExtractor:
             return act, Intent.COMPATIBILITY_CHECK, 0.96, ambiguities
 
         # 7. Consumables lookup ("what inks does f500 use", "cartridges for sc-t3100")
-        is_hardware_req = any(
-            re.search(p, text_l) for p in [
-                r"\b(?:need|want|looking for|buy|recommend|suggest)\s+(?:an?\s+)?(?:office\s+)?(?:printer|plotter|scanner|copier|mfp)\b",
-                r"\b(?:printer|plotter|scanner)\s+for\b",
-            ]
-        )
         is_volume_or_consumption_query = bool(re.search(
             r"\b(?:"
             r"consum\w*|usage|yield|prints?\s*(?:per|a|\/)\s*day|pages?\s*(?:per|a|\/)\s*day|"
@@ -1192,8 +1214,8 @@ class TurnUnderstandingExtractor:
             return DialogueAct.QUESTION, Intent.CONSUMABLES_LOOKUP, 0.96, ambiguities
 
         # 8d. Quotation chip clicks
-        if any(k in text_l for k in ["official quotation", "request official quote", "request quotation"]):
-            return DialogueAct.QUESTION, Intent.AVAILABILITY_OR_PRICE_POLICY, 0.96, ambiguities
+        if any(k in text_l for k in ["official quotation", "request official quote", "request quotation", "i want buy this", "i want to buy this", "i wantquatation", "i want quotation"]):
+            return DialogueAct.QUESTION, Intent.QUOTE_REQUEST, 0.96, ambiguities
 
         # 9. Alternatives
         if any(p.search(text_l) for p in cls.ALTERNATIVES_PATTERNS):
@@ -1479,20 +1501,32 @@ def understand_turn(
 
             # Guard against LLM false-positive OUT_OF_SCOPE
             if det_understanding.dialogue_act == DialogueAct.OUT_OF_SCOPE:
-                t_lower = text.lower()
-                is_valid_topic = any(
+                has_contact_info = bool(
+                    re.search(r"(?:\+\d{1,4}[-.\s]*)?\b\d{7,14}\b", text)
+                    or re.search(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b", text)
+                )
+                if has_contact_info:
+                    det_understanding.dialogue_act = DialogueAct.ANSWER_TO_MY_QUESTION
+                    det_understanding.intent = Intent.CONTACT_SHOWROOM
+                else:
+                    t_lower = text.lower()
+                    is_valid_topic = any(
                     k in t_lower for k in [
                         "dubai", "abu dhabi", "sharjah", "uae", "oman", "saudi", "gcc",
                         "delivery", "ship", "pickup", "order", "price", "quote",
                         "ink", "inks", "consumable", "consuble", "consumbales", "cartridge", "ribbon",
-                        "printer", "scanner", "plotter", "epson", "citizen", "f100", "c878", "cz01", "cx02"
+                        "black", "cyan", "magenta", "yellow", "grey", "gray", "maintenance box",
+                        "printer", "scanner", "plotter", "plotters", "epson", "citizen", "f100", "c878", "cz01", "cx02",
+                        "tech", "technical", "cad", "photo", "booth", "sublimation", "office", "print",
+                        "pay", "payment", "card", "bank transfer", "transfer", "cod", "cash", "cheque",
+                        "repair", "service", "maintenance", "amc", "units", "quantity", "cancel", "warranty", "speed", "ppm"
                     ]
                 )
                 if is_valid_topic:
                     det_understanding.dialogue_act = DialogueAct.QUESTION
                     if any(k in t_lower for k in ["dubai", "abu dhabi", "sharjah", "uae", "oman", "delivery", "ship"]):
                         det_understanding.intent = Intent.SHIPPING_OR_DELIVERY
-                    elif any(k in t_lower for k in ["ink", "inks", "consumable", "consuble", "consumbales", "cartridge", "ribbon"]):
+                    elif any(k in t_lower for k in ["ink", "inks", "consumable", "consuble", "consumbales", "cartridge", "ribbon", "black", "cyan", "magenta", "yellow"]):
                         det_understanding.intent = Intent.CONSUMABLES_LOOKUP
                     else:
                         det_understanding.intent = Intent.PRODUCT_INFO
