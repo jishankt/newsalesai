@@ -76,6 +76,22 @@ def handle(understanding: LLMUnderstanding, state: ConversationState, raw_messag
     model_code = entities.get("model_code")
     raw_lower = (raw_message or "").lower().strip()
 
+    # ── Unsupported Competitor Brands Guardrail ───────────────────────────
+    unsupported = [b for b in ["canon", "hp", "designjet", "imageprograf", "brother", "xerox", "ricoh", "kyocera", "konica"] if re.search(rf"\b{b}\b", raw_lower)]
+    if unsupported and not any(k in raw_lower for k in ["epson", "citizen", "innova", "olmec"]):
+        brand_name = unsupported[0].title()
+        if brand_name.lower() == "hp":
+            brand_name = "HP"
+        return RouteResult(
+            reply=(
+                f"I don’t have verified consumable options for {brand_name} equipment, as Kepler Tech LLC is an authorized "
+                "distributor and partner specializing in Epson and Citizen commercial printing hardware and genuine consumables. "
+                "We carry authentic inks, toner packs, ribbons, and certified media for all supported Epson and Citizen models!"
+            ),
+            suggested_chips=["Epson Genuine Inks", "Citizen Media Packs", "View Supported Printers"],
+            source="route:consumables:unsupported_brand"
+        )
+
     # ── Dedicated Citizen Consumables & Compatibility Handlers ────────────
     # 1. Can CX-02 media (or CX2.4x6) be used in CX-02W?
     if any(k in raw_lower for k in ["cx-02w", "cx02w"]) and any(k in raw_lower for k in ["cx2.4x6", "cx2-ms46", "cx-02 media", "cx02 media", "4x6 media"]):
