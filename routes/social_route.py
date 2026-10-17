@@ -15,7 +15,7 @@ from domain.conversation_state import ConversationState
 logger = logging.getLogger("route:social")
 
 
-def handle(understanding: LLMUnderstanding, state: ConversationState) -> RouteResult:
+def handle(understanding: LLMUnderstanding, state: ConversationState, raw_message: str = "") -> RouteResult:
     """Handle social intents. Never touches product state."""
     intent = understanding.intent
     entities = understanding.entities
@@ -88,7 +88,18 @@ def handle(understanding: LLMUnderstanding, state: ConversationState) -> RouteRe
         state.record_frustration()
 
         if state.frustration_count >= 3:
-            reply = "I sincerely apologize for the inconvenience. Let me skip the formalities and focus directly on solving this for you."
+            state.handover_triggered = True
+            state.handover_reason = "customer_frustration_escalation"
+            reply = (
+                "I sincerely apologize for the frustration. I have alerted our Live Sales Desk so a Kepler Tech sales specialist "
+                "can join this conversation momentarily and assist you directly.\n\n"
+                "In the meantime, please feel free to share any details, preferred configurations, or project requirements you'd like our team to prepare."
+            )
+            return RouteResult(
+                reply=reply,
+                suggested_chips=["Contact Sales Desk", "Leave Contact Details", "Showroom Hours & Location"],
+                source="route:social:escalation"
+            )
         elif "repeat" in (understanding.entities.get("complaint", "") or "").lower() or \
              state.frustration_count >= 2:
             reply = "You're completely right, and I apologize for repeating myself. Moving forward with what you've shared so far:"
