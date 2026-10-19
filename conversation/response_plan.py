@@ -620,6 +620,11 @@ class ResponsePlanValidator:
                         "To help guide you to the right system:",
                     ]
                     chosen_t = transitions[state.turn_count % len(transitions)]
+                    # Strip any existing opening phrase so we never produce double openers
+                    for op in OPENERS_POOL:
+                        if plan.formatted_reply.startswith(op):
+                            plan.formatted_reply = plan.formatted_reply[len(op):].lstrip("\n ")
+                            break
                     plan.formatted_reply = f"{chosen_t}\n\n{plan.formatted_reply}"
                     break
 

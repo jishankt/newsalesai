@@ -358,7 +358,9 @@ class ReferentResolver:
         options: List[Dict[str, Any]] = []
         if state.pending_question and state.pending_question.options:
             options = list(state.pending_question.options)
-        elif state.last_shown_products:
+        elif state.last_shown_chips and any(k in str(state.last_shown_chips).lower() for k in ["quotation", "quote", "specs", "consumables", "details"]):
+            options = [{"id": c, "label": c, "value": c} for c in state.last_shown_chips]
+        elif state.last_shown_products and len(state.last_shown_products) > 1:
             options = [
                 {
                     "id": p.get("id") or p.get("model_family"),
@@ -370,6 +372,16 @@ class ReferentResolver:
             ]
         elif state.last_shown_chips:
             options = [{"id": c, "label": c, "value": c} for c in state.last_shown_chips]
+        elif state.last_shown_products:
+            options = [
+                {
+                    "id": p.get("id") or p.get("model_family"),
+                    "label": p.get("display_name") or p.get("name") or p.get("id"),
+                    "value": p.get("id"),
+                    "product": p,
+                }
+                for p in state.last_shown_products
+            ]
 
         text_l = text.lower().strip()
 
@@ -392,7 +404,11 @@ class ReferentResolver:
             return options[2] if len(options) > 2 else None
 
         # Yes / Affirmative binding
-        if text_l in ("yes", "yep", "sure", "ok", "correct", "affirmative", "that's right", "thats right"):
+        if text_l in ("yes", "yep", "sure", "ok", "okay", "correct", "affirmative", "that's right", "thats right", "yes please", "please"):
+            # If a quotation chip exists in chips or options, bind affirmative directly to quotation
+            for opt in options:
+                if any(k in str(opt.get("label", opt.get("id", ""))).lower() for k in ["quote", "quotation"]):
+                    return opt
             for opt in options:
                 if str(opt.get("id", "")).lower() in ("yes", "confirm", "proceed") or "yes" in str(opt.get("label", "")).lower():
                     return opt

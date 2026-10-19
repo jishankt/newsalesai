@@ -7631,12 +7631,12 @@ class Orchestrator:
             agent_name = "Technical RAG & Comparison"
             agent_badge = "Tech & Comparison"
             agent_color = "#8b5cf6"
-        elif "purchase" in source or "order" in source or "lead" in source or "quote" in source:
+        elif "purchase" in source or "order" in source or "lead" in source or "quote" in source or getattr(state, "handover_triggered", False):
             agent_id = "sales_lead"
             agent_name = "Sales & Lead Generation"
             agent_badge = "Sales & Quotes"
             agent_color = "#f59e0b"
-        elif "product" in source or "catalogue" in source or "model_detail" in source or product_cards:
+        elif "product" in source or "catalogue" in source or "model_detail" in source or product_cards or state.category or state.active_product:
             agent_id = "product_specialist"
             agent_name = "Product & Catalog Specialist"
             agent_badge = "Product Specialist"

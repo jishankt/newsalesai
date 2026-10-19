@@ -506,16 +506,117 @@ class PolicyEngine:
                 target = resolved.resolved_target_product
                 t_name = target.name if target else opt_label
                 t_id = target.id if target else b_opt.get("id")
-
                 raw_u = und.raw_text.lower().strip()
-                is_affirm_or_spec = (
-                    any(k in opt_label.lower() for k in ["spec", "technical", "detail"])
-                    or any(k in raw_u for k in ["yes", "sure", "ok", "okay", "fine", "show", "see", "spec", "detail", "i want to see", "give full", "what", "tell me", "explain"])
-                    or und.dialogue_act == DialogueAct.CONFIRMATION
+                opt_l = opt_label.lower()
+
+                # 1. Quotation request via chip or affirmation to quotation offer
+                is_quote = (
+                    any(k in opt_l for k in ["quotation", "quote"])
+                    or any(k in raw_u for k in ["quote", "quotation"])
+                    or (any(k in raw_u for k in ["yes", "sure", "ok", "okay", "yep", "yes please", "confirm"]) and any(k in opt_l for k in ["quote", "quotation"]))
                 )
-                if is_affirm_or_spec and t_id:
+                if is_quote and t_id:
+                    state.handover_triggered = True
+                    state.handover_reason = "quote_request"
+                    state.handover_timestamp = time.time()
+                    bot_limitation = (
+                        "Discounts, formal quotations, and custom configurations are handled directly "
+                        "by our sales team, as I cannot approve a discount or confirm a quote."
+                    )
+                    from config import is_within_business_hours
+                    timing_msg = (
+                        "Our sales specialists are available now to prepare this for you."
+                        if is_within_business_hours()
+                        else "Our sales office in Dubai is currently closed outside regular business hours (Monday–Friday 8:30 AM–5:30 PM, Saturday 8:30 AM–1:00 PM GST). Our team will review your inquiry on the next working day."
+                    )
+                    has_contact = bool(
+                        state.confirmed_slots.get("phone")
+                        or state.confirmed_slots.get("email")
+                        or state.confirmed_slots.get("contact_phone")
+                        or state.confirmed_slots.get("contact_email")
+                        or state.confirmed_slots.get("contact_details")
+                    )
+                    if not has_contact:
+                        contact_action = "Please provide your name, phone number, and delivery city so our sales team can prepare and send your official quotation."
+                        chips = ["Leave Phone Number", "Leave Email Address", "Showroom Hours & Location"]
+                    else:
+                        contact_action = "We have your contact details on file and a specialist will follow up with your quotation."
+                        chips = ["Showroom Hours & Location", "View Technical Specs"]
+
+                    claim = f"I note your request for an official quotation for the **{t_name}**. {bot_limitation}\n\n{timing_msg}\n\n{contact_action}"
+                    rec = EvidenceRecord(
+                        claim=claim,
+                        verified=True,
+                        status=CompatibilityStatus.VERIFIED_YES,
+                        source_file="conversation/policy.py",
+                        field="formal_quotation",
+                        entity_ids=[t_id] if t_id else [],
+                    )
+                    return PolicyDecision(
+                        action=PolicyAction.ANSWER,
+                        reason=f"Customer requested official quotation for {t_name}.",
+                        target_entity_id=t_id,
+                        options_or_chips=chips,
+                        evidence_records=[rec],
+                        next_step="Please share your contact details and required quantity for your official quotation.",
+                    )
+
+                # 2. Consumables request via chip
+                is_consumables = any(k in opt_l for k in ["consumable", "supplies", "ink", "ribbon", "media"]) or any(k in raw_u for k in ["consumables", "supplies", "inks", "ribbons"])
+                if is_consumables and t_id:
+                    recs = EvidenceEngine.get_verified_consumables(t_id)
+                    if recs:
+                        return PolicyDecision(
+                            action=PolicyAction.ANSWER,
+                            reason=f"Compatible consumables requested for {t_name}.",
+                            target_entity_id=t_id,
+                            options_or_chips=["Official Quotation", "View Technical Specs", "Cost Per Page"],
+                            evidence_records=recs,
+                            next_step=f"Would you like an official quotation for these genuine supplies?",
+                        )
+
+                # 3. Cost per page / print via chip
+                is_cpp = any(k in opt_l for k in ["cost per page", "cost per print", "cpp", "running cost"]) or any(k in raw_u for k in ["cost per page", "cost per print", "cpp", "running cost"])
+                if is_cpp and t_id:
+                    from catalog.cost_per_print_calculator import cost_per_print_calculator
+                    res = cost_per_print_calculator.calculate_cost_per_print(t_id, print_format="4x6", printer_name=t_name)
+                    if res.status == "verified" and res.explanation:
+                        claim_text = res.explanation
+                    else:
+                        claim_text = f"Running cost and consumable yield data for the **{t_name}** depend on media format and ink coverage. Our sales desk can calculate tailored yield costs for your volume."
+                    rec = EvidenceRecord(
+                        claim=claim_text,
+                        verified=True,
+                        status=CompatibilityStatus.VERIFIED_YES,
+                        source_file="catalog/cost_per_print_calculator.py",
+                        field="cost_per_print",
+                        entity_ids=[t_id],
+                    )
+                    return PolicyDecision(
+                        action=PolicyAction.ANSWER,
+                        reason=f"Cost per print requested for {t_name}.",
+                        target_entity_id=t_id,
+                        options_or_chips=["Official Quotation", "Compatible Consumables", "View Technical Specs"],
+                        evidence_records=[rec],
+                        next_step=f"Would you like an official quotation for the {t_name}?",
+                    )
+
+                # 4. Specifications request
+                is_spec = (
+                    any(k in opt_l for k in ["spec", "technical", "detail"])
+                    or any(k in raw_u for k in ["spec", "specs", "specification", "specifications", "detail", "details", "technical"])
+                    or (any(k in raw_u for k in ["yes", "sure", "ok", "okay", "yep", "fine", "show", "see"]) and any(k in opt_l for k in ["spec", "technical", "detail"]))
+                )
+                if is_spec and t_id:
                     full_rec = EvidenceEngine.get_full_specs(t_id)
                     if full_rec:
+                        if hasattr(state, "save_pending_question"):
+                            state.save_pending_question(
+                                question=f"Would you like an official quotation or to review compatible supplies for the {t_name}?",
+                                field_name="quotation_or_supplies",
+                                expected_type="choice",
+                                options=["Official Quotation", "Compatible Consumables", "Cost Per Page", "Delivery Details"],
+                            )
                         return PolicyDecision(
                             action=PolicyAction.ANSWER,
                             reason=f"Technical specifications requested via option for {t_name}.",
@@ -1218,6 +1319,13 @@ class PolicyEngine:
                         from catalog.catalogue_loader import catalogue_loader
                         p_info = catalogue_loader.get_by_id(leaf_pid) or {}
                         p_name = p_info.get("display_name") or p_info.get("name") or leaf_pid
+                        if hasattr(state, "save_pending_question"):
+                            state.save_pending_question(
+                                question=f"Would you like an official quotation or to review compatible supplies for the {p_name}?",
+                                field_name="quotation_or_supplies",
+                                expected_type="choice",
+                                options=["Official Quotation", "Compatible Consumables", "Cost Per Page", "Delivery Details"],
+                            )
                         return PolicyDecision(
                             action=PolicyAction.ANSWER,
                             reason=f"Verified technical specifications delivered for {p_name}.",

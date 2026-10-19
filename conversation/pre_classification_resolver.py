@@ -658,22 +658,20 @@ class PreClassificationResolver:
                     state.confirmed_slots.pop("_flowchart_leaf_reached", None)
                     state.confirmed_slots.pop("_leaf_product_id", None)
                 cz01 = catalogue_loader.get_by_id("citizen-cz-01")
-                cx02 = catalogue_loader.get_by_id("citizen-cx-02")
-                cy02 = catalogue_loader.get_by_id("citizen-cy-02")
-                cards = [c for c in [cz01, cx02, cy02] if c]
+                cards = [cz01] if cz01 else []
+                state.set_canonical_focus("citizen-cz-01")
                 state.shown_entities = [c["id"] for c in cards]
                 state.consume_pending_question()
                 reply = (
-                    "For 4×6″ event and photo booth printing, here are our recommended Citizen dye-sublimation printers:\n\n"
-                    "• **Citizen CZ-01**: Ultra-compact and lightweight (5.8 kg) 4×6″ printer, ideal for portable booths.\n"
-                    "• **Citizen CX-02**: Premium photo booth printer supporting 4×6″ and 6×8″ with ribbon rewind.\n"
-                    "• **Citizen CY-02**: High-capacity event printer producing up to 700 4×6″ prints per roll."
+                    "For 4-inch ultra-compact event and portable photo booth printing, our recommended model is the **Citizen CZ-01**:\n\n"
+                    "• **Citizen CZ-01**: Ultra-compact and lightweight (5.8 kg) 4-inch dye-sublimation printer producing 4×6″ and 4.5×8″ instant prints. Ideal for compact and mobile photo booths.\n\n"
+                    "*(Note: If you also need larger 6×8″ prints, our 6-inch Citizen CX-02 and CY-02 can print both 4×6″ and 6×8″ from a single roll).*"
                 )
                 return PreClassificationResult(
                     handled=True,
                     reply=reply,
                     product_cards=cards,
-                    suggested_chips=["Cheapest one?", "Compare CX-02 and CZ-01", "Official Quotation"],
+                    suggested_chips=["CZ-01 Specifications", "Compare with CX-02", "Official Quotation"],
                     source="recommendation:catalogue_list",
                 )
             elif is_6_in:
