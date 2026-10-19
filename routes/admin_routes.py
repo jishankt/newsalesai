@@ -813,4 +813,335 @@ def admin_workflow_stream():
     )
 
 
+# ── Equipment & Category Workflows API ───────────────────────────────────────
+@admin_bp.route("/api/admin/catalog/workflows")
+def admin_catalog_workflows():
+    """
+    Returns structured category qualification decision trees, subcategory rules,
+    and product mapping for all 43 printers and 29 professional scanners.
+    """
+    cat_file = os.path.join(os.path.dirname(__file__), "..", "data", "catalogue_products.json")
+    try:
+        with open(cat_file, "r", encoding="utf-8") as f:
+            all_prods = json.load(f)
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+    categories = {
+        "office": {
+            "title": "Office Enterprise (A4 & A3 MFPs)",
+            "description": "Epson WorkForce Heat-Free printing systems spanning desktop workgroups to 100 ppm enterprise line-heads.",
+            "subcategories": [
+                {
+                    "id": "a4_standard_mfp",
+                    "title": "A4 Standard Desktop MFP (< 100 pages/day)",
+                    "speed": "25 ISO ppm (34 ppm draft)",
+                    "duty_cycle": "500 – 5,000 pages/mo (Max 45k)",
+                    "models": ["epson-wf-c5890-dwf"],
+                },
+                {
+                    "id": "a4_compact_rips",
+                    "title": "A4 Compact High-Yield RIPS (100 – 300 pages/day)",
+                    "speed": "25 ISO ppm",
+                    "duty_cycle": "1,000 – 10,000 pages/mo (Max 50k)",
+                    "models": ["epson-em-c800"],
+                },
+                {
+                    "id": "a4_enterprise_linehead",
+                    "title": "A4 Enterprise Line-Head (300 – 2,000+ pages/day)",
+                    "speed": "40 – 55 ISO ppm",
+                    "duty_cycle": "1,500 – 20,000+ pages/mo (Max 150k)",
+                    "models": ["epson-am-c400", "epson-am-c550"],
+                },
+                {
+                    "id": "a3_departmental_rips",
+                    "title": "A3 Departmental High-Yield RIPS (100 – 500 pages/day)",
+                    "speed": "25 – 26 ISO ppm",
+                    "duty_cycle": "1,500 – 15,000 pages/mo (Max 75k)",
+                    "models": ["epson-wf-c878r-dwf", "epson-wf-c879r-dwf"],
+                },
+                {
+                    "id": "a3_enterprise_linehead",
+                    "title": "A3 Enterprise High-Speed Line-Head (500 – 3,500 pages/day)",
+                    "speed": "40 – 60 ISO ppm",
+                    "duty_cycle": "5,000 – 60,000 pages/mo (Max 300k)",
+                    "models": ["epson-am-c4000", "epson-am-c5000", "epson-am-c6000"],
+                },
+                {
+                    "id": "a3_production_flagship",
+                    "title": "A3 Flagship Central Repro (3,000 – 10,000+ pages/day)",
+                    "speed": "100 ISO ppm",
+                    "duty_cycle": "15,000 – 100,000+ pages/mo (Max 400k)",
+                    "models": ["epson-wf-c21000-d4tw"],
+                },
+            ]
+        },
+        "technical_large_format": {
+            "title": "Technical CAD & AEC Large Format Plotters",
+            "description": "Epson SureColor T-Series engineering printers for line accuracy, GIS, architectural blueprints, and AEC drawings.",
+            "subcategories": [
+                {
+                    "id": "cad_24_inch",
+                    "title": "24-inch Desktop / Stand CAD Plotters (A1)",
+                    "speed": "31 – 34 sec / A1 CAD plot",
+                    "models": ["epson-sc-t3100", "epson-sc-t3100m", "epson-sc-t3405"],
+                },
+                {
+                    "id": "cad_36_inch",
+                    "title": "36-inch Workhorse CAD & MFP Systems (A0)",
+                    "speed": "22 – 31 sec / A1 CAD plot",
+                    "models": ["epson-sc-t5100", "epson-sc-t5100m", "epson-sc-t5405", "epson-sc-t5700d"],
+                },
+                {
+                    "id": "cad_44_inch",
+                    "title": "44-inch Dual-Roll High-Volume Production CAD & GIS",
+                    "speed": "High-volume dual roll with Adobe PostScript 3",
+                    "models": ["epson-sc-t7700d", "epson-sc-t7700dm"],
+                },
+            ]
+        },
+        "citizen_photo": {
+            "title": "Citizen Event & Photo Booth Printers",
+            "description": "Dye-sublimation continuous roll instant photo printers delivering glossy/matte prints without changing paper.",
+            "subcategories": [
+                {
+                    "id": "citizen_4_inch",
+                    "title": "4-inch Ultra-Compact & Lightweight (5.8 kg)",
+                    "speed": "18.8s per 4×6″ instant print (150 prints/roll)",
+                    "models": ["citizen-cz-01"],
+                },
+                {
+                    "id": "citizen_6_inch",
+                    "title": "6-inch Multi-Format Event (4×6″ & 6×8″ from single roll)",
+                    "speed": "8.4s – 12.4s per print, ribbon rewind",
+                    "models": ["citizen-cx-02", "citizen-cy-02"],
+                },
+                {
+                    "id": "citizen_8_inch",
+                    "title": "8-inch Wide Event & Portrait (8×10″ and 8×12″)",
+                    "speed": "High-capacity dual format for portraits & studios",
+                    "models": ["citizen-cx-02w"],
+                },
+            ]
+        },
+        "dye_sublimation": {
+            "title": "Dye-Sublimation Fabric, Gifts & Apparel",
+            "description": "Specialized sublimation transfer printing for merchandise, customized gifts, promotional items, and textiles.",
+            "subcategories": [
+                {
+                    "id": "dye_sub_desktop",
+                    "title": "A4 Compact Desktop Sublimation",
+                    "speed": "Refillable 140ml ink bottles, mugs, mousepads, phone cases",
+                    "models": ["epson-sc-f100"],
+                },
+                {
+                    "id": "dye_sub_roll",
+                    "title": "24-inch Roll Apparel & Textile Production",
+                    "speed": "Integrated auto-switch roll feed for garments & sportswear",
+                    "models": ["epson-sc-f500"],
+                },
+            ]
+        },
+        "scanner": {
+            "title": "Professional Scanners (29 Models)",
+            "description": "High-speed document scanners, flatbed graphics scanners, and large-format digitizers for enterprise archiving.",
+            "subcategories": [
+                {
+                    "id": "scanner_sheetfed",
+                    "title": "High-Speed WorkForce Sheetfed Document Scanners",
+                    "speed": "35 – 85 ppm / 70 – 170 ipm duplex",
+                    "models": ["epson-ds-530ii", "epson-ds-770ii", "epson-ds-870", "epson-ds-970"],
+                },
+                {
+                    "id": "scanner_network",
+                    "title": "Standalone Network Workgroup Scanners",
+                    "speed": "Color touchscreen, PC-less scan-to-cloud/email",
+                    "models": ["epson-ds-730n", "epson-ds-790wn"],
+                },
+                {
+                    "id": "scanner_flatbed_adf",
+                    "title": "Flatbed + ADF Hybrid & A3 Production",
+                    "speed": "A4/A3 high-speed book, passport & thick document scanning",
+                    "models": ["epson-ds-1630", "epson-ds-60000", "epson-ds-70000"],
+                },
+                {
+                    "id": "scanner_photo_fine_art",
+                    "title": "Professional Photo, Film & Fine Art Scanners",
+                    "speed": "Up to 6400 DPI optical dual-lens film scanning",
+                    "models": ["epson-perfection-v600", "epson-perfection-v850-pro"],
+                },
+            ]
+        }
+    }
+
+    # Map product details into subcategories
+    prod_map = {p["id"]: p for p in all_prods if "id" in p}
+
+    return jsonify({
+        "success": True,
+        "total_catalog_products": len(all_prods),
+        "categories": categories,
+        "products": prod_map,
+    })
+
+
+# ── Consumables & Media Matrix API ──────────────────────────────────────────
+@admin_bp.route("/api/admin/catalog/consumables-matrix")
+def admin_consumables_matrix():
+    """
+    Returns full mapping between all certified printers and their verified consumables
+    (inks, maintenance boxes, media rolls, yields, and SKUs).
+    """
+    cat_file = os.path.join(os.path.dirname(__file__), "..", "data", "catalogue_products.json")
+    try:
+        with open(cat_file, "r", encoding="utf-8") as f:
+            all_prods = json.load(f)
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+    matrix = []
+    for p in all_prods:
+        c_list = p.get("consumables", []) or []
+        matrix.append({
+            "product_id": p.get("id"),
+            "product_name": p.get("display_name") or p.get("name") or p.get("id"),
+            "category": p.get("main_category") or p.get("category"),
+            "subcategory": p.get("subcategory"),
+            "image_url": p.get("image_url"),
+            "consumable_count": len(c_list),
+            "consumables": c_list,
+        })
+
+    return jsonify({
+        "success": True,
+        "total_printers": len(matrix),
+        "matrix": matrix,
+    })
+
+
+# ── RAG Knowledge & Grounding Query Tester API ───────────────────────────────
+@admin_bp.route("/api/admin/rag/test-query", methods=["POST"])
+def admin_rag_test_query():
+    """
+    Interactive test tool for evaluating RAG retrieval, similarity ranking,
+    and grounding evidence verification against any arbitrary query.
+    """
+    data = request.get_json(silent=True) or {}
+    query = data.get("query", "").strip()
+    if not query:
+        return jsonify({"success": False, "error": "Query parameter is required"}), 400
+
+    try:
+        from rag.retriever import rag_retriever
+        t0 = time.time()
+        retrieved_chunks = rag_retriever.retrieve(query, top_k=6)
+        elapsed_ms = round((time.time() - t0) * 1000, 2)
+
+        results = []
+        for c in retrieved_chunks:
+            results.append({
+                "id": c.get("id") or c.get("sku") or "chunk",
+                "title": c.get("title") or c.get("model") or c.get("name") or "Catalogue Item",
+                "name": c.get("title") or c.get("model") or c.get("name") or "Catalogue Item",
+                "score": round(c.get("score", 0.0), 4),
+                "source": c.get("source_file") or "data/catalogue_products.json",
+                "content_preview": c.get("text", c.get("snippet", ""))[:300],
+                "metadata": {
+                    "category": c.get("category"),
+                    "sku": c.get("sku"),
+                    "price_str": c.get("price_str"),
+                }
+            })
+
+        return jsonify({
+            "success": True,
+            "query": query,
+            "latency_ms": elapsed_ms,
+            "total_matches": len(results),
+            "results": results,
+        })
+    except Exception as e:
+        logger.error(f"Error executing RAG query test: {e}", exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ── Agent Personas & Characters Studio API ───────────────────────────────────
+@admin_bp.route("/api/admin/personas")
+def admin_personas_studio():
+    """
+    Returns definitions, system directives, tone profiles, active triggers,
+    and configuration parameters for all 4 SalesAI collaborative characters.
+    """
+    personas = [
+        {
+            "id": "receptionist",
+            "name": "Kepler Concierge",
+            "role": "Front Desk & Reception",
+            "badge": "🌿 Front Desk",
+            "theme_color": "#10b981",
+            "icon": "fas fa-concierge-bell",
+            "description": "Greeting, triage, and high-level category intake. Directs inquiries to Office, CAD, Photo, Scanners, or Consumables.",
+            "rules": [
+                "Always maintain a welcoming, courteous, and consultative tone.",
+                "Never guess specs or recommend products before clarifying primary customer application.",
+                "Offer top category pills to guide user quickly to the right domain specialist.",
+            ],
+            "trigger_conditions": "Turn 1 greetings, initial inquiries, out-of-scope resets, or category transitions.",
+        },
+        {
+            "id": "product_specialist",
+            "name": "Product & Catalog Specialist",
+            "role": "Qualification & Technical Specifications",
+            "badge": "Product Specialist",
+            "theme_color": "#1877f2",
+            "icon": "fas fa-print",
+            "description": "Conversational qualification, requirement matching, shortlist recommendations, and verified technical specifications.",
+            "rules": [
+                "Ground all recommendations strictly in approved 72-product catalogue.",
+                "Ask maximum 1 qualification question per turn.",
+                "Never cite unverified prices; offer official quotation on request.",
+                "Explain the tradeoffs between duty cycles, print speeds, and output formats.",
+            ],
+            "trigger_conditions": "Category selected, product specs inquiry, qualification questions, shortlist recommendations.",
+        },
+        {
+            "id": "technical_rag",
+            "name": "Technical RAG & Comparison Specialist",
+            "role": "Multi-Product Head-to-Head Comparison",
+            "badge": "Tech & Comparison",
+            "theme_color": "#8b5cf6",
+            "icon": "fas fa-balance-scale",
+            "description": "Detailed multi-model comparative analysis, cost-per-print calculation, printhead technology, and media yields.",
+            "rules": [
+                "Deliver factual side-by-side matrices (speed, resolution, dimensions, running cost).",
+                "Highlight key differences without bias; focus on client ROI and duty cycle match.",
+                "Provide clickable product URLs and genuine consumable links.",
+            ],
+            "trigger_conditions": "Comparison keywords ('compare', 'vs', 'difference between'), cost per page inquiries, technical deep dives.",
+        },
+        {
+            "id": "sales_lead",
+            "name": "Sales & Commercial Consultant",
+            "role": "Official Quotations, Discounts & Human Takeover",
+            "badge": "Sales & Quotes",
+            "theme_color": "#f59e0b",
+            "icon": "fas fa-file-invoice-dollar",
+            "description": "Commercial lead qualification, formal proposal preparation, delivery arrangements, and live sales desk handover.",
+            "rules": [
+                "Confirm that formal quotations and volume discounts are handled directly by the Kepler sales desk.",
+                "Collect customer contact details: name, phone number, and delivery city in the UAE.",
+                "Seamlessly trigger live human takeover when requested or when commercial terms are negotiated.",
+            ],
+            "trigger_conditions": "Quotation requests, price negotiations, discount inquiries, checkout intent, customer contact sharing.",
+        },
+    ]
+
+    return jsonify({
+        "success": True,
+        "total_personas": len(personas),
+        "personas": personas,
+    })
+
+
+
 

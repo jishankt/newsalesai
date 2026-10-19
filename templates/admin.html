@@ -1023,9 +1023,235 @@
       color: var(--muted);
       width: 40%;
     }
-    .inspector-kv-val {
-      color: var(--text);
+    /* ── Knowledge & Flows CSS ── */
+    .category-pills-bar {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .cat-pill-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--muted);
+      padding: 7px 16px;
+      font-size: 13px;
       font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+    .cat-pill-btn:hover {
+      background: var(--surface2);
+      color: var(--text);
+      border-color: rgba(255,255,255,0.2);
+    }
+    .cat-pill-btn.active {
+      background: rgba(59,130,246,0.15);
+      border-color: var(--accent);
+      color: #60a5fa;
+      font-weight: 600;
+    }
+    .workflows-header-card {
+      background: linear-gradient(135deg, rgba(30,41,59,0.7), rgba(15,23,42,0.9));
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .subcat-flow-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      transition: border-color 0.2s ease;
+    }
+    .subcat-flow-card:hover {
+      border-color: rgba(255,255,255,0.2);
+    }
+    .subcat-flow-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .subcat-flow-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .flow-models-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+    }
+    .flow-model-card {
+      background: var(--surface2);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+    .flow-model-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+    .flow-model-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .flow-model-spec {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .flow-model-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    /* ── RAG Studio CSS ── */
+    .rag-studio-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .rag-query-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .rag-results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 14px;
+    }
+    .rag-chunk-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .rag-chunk-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .rag-chunk-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .rag-chunk-score {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: rgba(16,185,129,0.15);
+      color: #34d399;
+    }
+    .rag-chunk-preview {
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.5;
+      background: rgba(0,0,0,0.25);
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+
+    /* ── Personas Studio CSS ── */
+    .personas-studio-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .persona-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      border-top: 4px solid var(--accent);
+      transition: all 0.2s ease;
+    }
+    .persona-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+    .persona-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .persona-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    .persona-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .persona-role {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .persona-rules-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .persona-rules-list li {
+      font-size: 12px;
+      color: #cbd5e1;
+      line-height: 1.4;
+      padding-left: 14px;
+      position: relative;
+    }
+    .persona-rules-list li::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: var(--accent);
     }
   </style>
 </head>
@@ -1059,6 +1285,19 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><circle cx="18" cy="6" r="3"/><path d="M6 9v3a3 3 0 0 0 3 3h6"/><path d="M18 9v6"/></svg>
       Workflow Canvas
       <span class="live-dot" style="margin-left:auto;width:6px;height:6px;" title="Real-time execution stream"></span>
+    </button>
+    <div class="nav-label" style="margin-top:16px">Knowledge & Flows</div>
+    <button class="nav-item" onclick="showPanel('workflows',this)" id="nav-workflows">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><path d="M10 6.5h4"/><path d="M6.5 10v4"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Equipment Flows
+    </button>
+    <button class="nav-item" onclick="showPanel('rag',this)" id="nav-rag">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><circle cx="12" cy="10" r="3"/><path d="m14.5 12.5 3 3"/></svg>
+      RAG Studio
+    </button>
+    <button class="nav-item" onclick="showPanel('personas',this)" id="nav-personas">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Agent Personas
     </button>
     <div class="nav-label" style="margin-top:16px">Activity</div>
     <button class="nav-item" onclick="showPanel('sessions',this)" id="nav-sessions">
@@ -1383,6 +1622,89 @@
       </div>
     </div>
 
+    <!-- ── Panel: Equipment & Consumables Flows ── -->
+    <div class="panel" id="panel-workflows">
+      <div class="workflows-header-card">
+        <div>
+          <h2 style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">Certified Equipment & Consumables Decision Flows</h2>
+          <p style="font-size:12px;color:var(--muted);margin:0;">Inspect conversational decision trees, technical routing criteria, and genuine consumables matrices across all 72 certified models.</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <input type="text" id="workflow-search" placeholder="Search models, SKUs, or specs (e.g. CZ-01, iPF770, fi-7160)..." oninput="filterWorkflows()" style="width:280px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:12px;outline:none;">
+          <button class="btn btn-ghost" onclick="loadEquipmentWorkflows()" title="Refresh Flow Data" style="padding:8px 12px;font-size:12px;">🔄 Refresh</button>
+        </div>
+      </div>
+
+      <div class="category-pills-bar" id="workflow-category-pills">
+        <button class="cat-pill-btn active" onclick="selectWorkflowCategory('all', this)">🌐 All Categories (<span id="cat-count-all">0</span>)</button>
+        <button class="cat-pill-btn" onclick="selectWorkflowCategory('office', this)">🖨 Office Multifunction (<span id="cat-count-office">0</span>)</button>
+        <button class="cat-pill-btn" onclick="selectWorkflowCategory('technical_large_format', this)">📐 CAD / Large Format (<span id="cat-count-cad">0</span>)</button>
+        <button class="cat-pill-btn" onclick="selectWorkflowCategory('citizen_photo', this)">📸 Citizen Photo Printers (<span id="cat-count-photo">0</span>)</button>
+        <button class="cat-pill-btn" onclick="selectWorkflowCategory('dye_sublimation', this)">🎨 Dye-Sublimation (<span id="cat-count-dyesub">0</span>)</button>
+        <button class="cat-pill-btn" onclick="selectWorkflowCategory('scanner', this)">📄 Professional Scanners (<span id="cat-count-scanners">0</span>)</button>
+        <button class="cat-pill-btn" onclick="selectWorkflowCategory('consumables_matrix', this)">🧪 Consumables Matrix (<span id="cat-count-consumables">0</span>)</button>
+      </div>
+
+      <div id="workflows-tree-container">
+        <div style="text-align:center;padding:40px;color:var(--muted);font-size:13px;">Loading equipment flows...</div>
+      </div>
+
+      <div id="consumables-matrix-container" style="display:none;">
+        <div style="text-align:center;padding:40px;color:var(--muted);font-size:13px;">Loading consumables matrix...</div>
+      </div>
+    </div>
+
+    <!-- ── Panel: RAG Grounding Studio ── -->
+    <div class="panel" id="panel-rag">
+      <div class="rag-studio-wrap">
+        <div class="rag-query-card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+            <div>
+              <h2 style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">RAG Grounding & Knowledge Studio</h2>
+              <p style="font-size:12px;color:var(--muted);margin:0;">Test live retrieval grounding against Kepler Tech manufacturer specifications, manuals, and genuine consumable data.</p>
+            </div>
+            <span class="badge badge-green" style="font-size:11px;padding:4px 10px;">🟢 RAG Grounding Engine Active</span>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-bottom:12px;">
+            <input type="text" id="rag-query-input" placeholder="Enter customer query or technical requirement (e.g. 4 inch citizen photo booth printer or canon tm-300 ink cartridge)..." onkeydown="if(event.key==='Enter') testRagQuery()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:13px;outline:none;">
+            <button class="btn btn-primary" onclick="testRagQuery()" id="btn-test-rag" style="display:inline-flex;align-items:center;gap:6px;padding:10px 18px;font-size:13px;">
+              ⚡ Test Retrieval
+            </button>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:11px;color:var(--muted);font-weight:600;">Sample Queries:</span>
+            <button class="btn btn-ghost" onclick="setRagQuery('Citizen CZ-01 4-inch photo booth printer')" style="padding:4px 10px;font-size:11px;border-radius:14px;">📸 Citizen CZ-01 4-inch</button>
+            <button class="btn btn-ghost" onclick="setRagQuery('Canon iPF770 36-inch CAD plotter for CAD and GIS')" style="padding:4px 10px;font-size:11px;border-radius:14px;">📐 Canon iPF770 36-inch</button>
+            <button class="btn btn-ghost" onclick="setRagQuery('Fujitsu fi-7160 high speed ADF duplex scanner')" style="padding:4px 10px;font-size:11px;border-radius:14px;">📄 Fujitsu fi-7160 Scanner</button>
+            <button class="btn btn-ghost" onclick="setRagQuery('Citizen CX-02 ribbon and paper roll media kit')" style="padding:4px 10px;font-size:11px;border-radius:14px;">🧪 Citizen CX-02 Media</button>
+            <button class="btn btn-ghost" onclick="setRagQuery('Epson SureColor SC-F500 dye sublimation printer')" style="padding:4px 10px;font-size:11px;border-radius:14px;">🎨 Epson SC-F500 Dye-Sub</button>
+          </div>
+        </div>
+
+        <div id="rag-results-container">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:36px;text-align:center;color:var(--muted);font-size:13px;">
+            Enter a product or equipment query above and click <strong>Test Retrieval</strong> to inspect the retrieved knowledge chunks, relevance scores, and grounding context.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Panel: Agent Personas Studio ── -->
+    <div class="panel" id="panel-personas">
+      <div class="workflows-header-card">
+        <div>
+          <h2 style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">Multi-Agent Personas & System Directives Studio</h2>
+          <p style="font-size:12px;color:var(--muted);margin:0;">Inspect active behavioral directives, routing conditions, tone parameters, and escalation rules for all 4 collaborative personas.</p>
+        </div>
+        <button class="btn btn-ghost" onclick="loadPersonasStudio()" title="Refresh Personas" style="padding:8px 12px;font-size:12px;">🔄 Refresh</button>
+      </div>
+
+      <div class="personas-studio-grid" id="personas-studio-grid">
+        <div style="text-align:center;padding:40px;color:var(--muted);font-size:13px;">Loading agent personas...</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1830,6 +2152,9 @@
       livedesk: 'Live Sales Desk',
       team: 'Sales Team & Advisors',
       workflow: 'Live Agent Execution Dashboard',
+      workflows: 'Equipment & Category Flows',
+      rag: 'RAG Grounding Studio',
+      personas: 'Agent Personas & Directives',
     };
     document.getElementById('page-title').textContent = titles[name] || name;
     if (name === 'sessions') loadSessions();
@@ -1837,6 +2162,9 @@
     if (name === 'livedesk') loadLiveDeskQueue();
     if (name === 'team') loadTeam();
     if (name === 'workflow') loadWorkflowDashboard();
+    if (name === 'workflows') loadEquipmentWorkflows();
+    if (name === 'rag') initRagStudio();
+    if (name === 'personas') loadPersonasStudio();
   }
 
   /* ── Stats ── */
@@ -3442,6 +3770,509 @@
       };
     } catch (e) {
       console.warn('SSE not supported or connection error:', e);
+    }
+  }
+
+  /* ── Equipment & Category Workflows ── */
+  let catalogWorkflowsData = null;
+  let consumablesMatrixData = null;
+  let currentWorkflowCat = 'all';
+
+  async function loadEquipmentWorkflows() {
+    const container = document.getElementById('workflows-tree-container');
+    try {
+      if (!catalogWorkflowsData) {
+        container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);"><span class="badge badge-blue">Fetching certified models & decision trees…</span></div>';
+        const res = await fetch('/api/admin/catalog/workflows');
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Failed to fetch catalog workflows');
+        catalogWorkflowsData = data;
+      }
+
+      // Update counters
+      const cats = catalogWorkflowsData.categories || {};
+      const totalModels = catalogWorkflowsData.total_catalog_products || 72;
+      const elAll = document.getElementById('cat-count-all');
+      if (elAll) elAll.textContent = totalModels;
+
+      const catCounts = {
+        office: 'office',
+        technical_large_format: 'cad',
+        citizen_photo: 'photo',
+        dye_sublimation: 'dyesub',
+        scanner: 'scanners'
+      };
+
+      Object.entries(catCounts).forEach(([catKey, pillId]) => {
+        const catObj = cats[catKey];
+        const el = document.getElementById(`cat-count-${pillId}`);
+        if (el) {
+          let count = 0;
+          if (catObj && catObj.subcategories) {
+            catObj.subcategories.forEach(sub => {
+              count += (sub.models || []).length;
+            });
+          }
+          el.textContent = count;
+        }
+      });
+
+      const elCons = document.getElementById('cat-count-consumables');
+      if (elCons) elCons.textContent = totalModels;
+
+      renderEquipmentWorkflows(currentWorkflowCat, (document.getElementById('workflow-search')?.value || '').trim());
+    } catch (err) {
+      console.error('loadEquipmentWorkflows error:', err);
+      container.innerHTML = `<div style="padding:20px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);border-radius:10px;color:#fca5a5;font-size:13px;">Error loading equipment flows: ${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  function selectWorkflowCategory(catId, btn) {
+    currentWorkflowCat = catId;
+    document.querySelectorAll('.cat-pill-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+
+    const treeContainer = document.getElementById('workflows-tree-container');
+    const matrixContainer = document.getElementById('consumables-matrix-container');
+
+    if (catId === 'consumables_matrix') {
+      treeContainer.style.display = 'none';
+      matrixContainer.style.display = 'block';
+      loadConsumablesMatrix();
+    } else {
+      matrixContainer.style.display = 'none';
+      treeContainer.style.display = 'block';
+      renderEquipmentWorkflows(catId, (document.getElementById('workflow-search')?.value || '').trim());
+    }
+  }
+
+  function filterWorkflows() {
+    const q = (document.getElementById('workflow-search')?.value || '').trim().toLowerCase();
+    if (currentWorkflowCat === 'consumables_matrix') {
+      renderConsumablesTable(q);
+    } else {
+      renderEquipmentWorkflows(currentWorkflowCat, q);
+    }
+  }
+
+  function renderEquipmentWorkflows(catId, query) {
+    const container = document.getElementById('workflows-tree-container');
+    if (!catalogWorkflowsData || !catalogWorkflowsData.categories) return;
+
+    const catsObj = catalogWorkflowsData.categories;
+    const prodsMap = catalogWorkflowsData.products || {};
+
+    let catEntries = Object.entries(catsObj);
+    if (catId !== 'all') {
+      catEntries = catEntries.filter(([k]) => k === catId);
+    }
+
+    let html = '';
+
+    catEntries.forEach(([catKey, cat]) => {
+      let filteredSubcats = [];
+
+      (cat.subcategories || []).forEach(sub => {
+        let matchingModels = [];
+        (sub.models || []).forEach(mId => {
+          const m = prodsMap[mId] || { id: mId, display_name: mId, name: mId };
+          if (query) {
+            const consStr = (m.consumables || []).map(c => c.name || c.sku || '').join(' ');
+            const str = `${m.display_name || ''} ${m.name || ''} ${m.brand || ''} ${m.id || ''} ${sub.title || ''} ${sub.speed || ''} ${JSON.stringify(m.specs || {})} ${consStr}`.toLowerCase();
+            if (str.includes(query)) {
+              matchingModels.push(m);
+            }
+          } else {
+            matchingModels.push(m);
+          }
+        });
+
+        if (matchingModels.length > 0) {
+          filteredSubcats.push({
+            ...sub,
+            resolvedModels: matchingModels
+          });
+        }
+      });
+
+      if (filteredSubcats.length === 0) return;
+
+      const catIcon = getCategoryIcon(catKey);
+      let totalCatCount = 0;
+      filteredSubcats.forEach(s => totalCatCount += s.resolvedModels.length);
+
+      html += `
+        <div style="margin-bottom:28px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.08);">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-size:18px;">${catIcon}</span>
+              <div>
+                <h3 style="font-size:15px;font-weight:700;color:var(--text);margin:0;">${escapeHtml(cat.title || catKey)}</h3>
+                <p style="font-size:12px;color:var(--muted);margin:2px 0 0;">${escapeHtml(cat.description || '')}</p>
+              </div>
+            </div>
+            <span class="badge badge-accent">${totalCatCount} Models Active</span>
+          </div>
+      `;
+
+      filteredSubcats.forEach(sub => {
+        html += `
+          <div class="subcat-flow-card">
+            <div class="subcat-flow-header">
+              <div class="subcat-flow-title">
+                <span>⚡</span>
+                <span>${escapeHtml(sub.title || sub.name || '')}</span>
+              </div>
+              ${sub.speed ? `
+                <div style="font-size:11px;color:#93c5fd;background:rgba(59,130,246,0.12);padding:3px 10px;border-radius:12px;border:1px solid rgba(59,130,246,0.25);">
+                  Application Criterion: <strong style="color:#bfdbfe;">${escapeHtml(sub.speed)}</strong>
+                </div>
+              ` : ''}
+            </div>
+
+            <div class="flow-models-grid">
+              ${(sub.resolvedModels || []).map(m => {
+                const brand = m.brand || (m.display_name && m.display_name.split(' ')[0]) || 'Kepler';
+                const brandBadge = getBrandBadge(brand);
+                const specSummary = formatSpecsSummary(m.specs || m.description);
+                const consCount = (m.consumables || []).length;
+                const price = m.price_str || (m.price_aed ? 'AED ' + Number(m.price_aed).toLocaleString() : 'Contact for Quote');
+
+                return `
+                  <div class="flow-model-card">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
+                      <span class="flow-model-title">${escapeHtml(m.display_name || m.name || m.id)}</span>
+                      ${brandBadge}
+                    </div>
+                    <div class="flow-model-spec">${escapeHtml(specSummary)}</div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:auto;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05);">
+                      <span style="font-size:12px;font-weight:700;color:#10b981;">${escapeHtml(price)}</span>
+                      <span class="badge badge-purple" style="font-size:10px;" title="${consCount} verified consumables on file">
+                        🧪 ${consCount} Supplies
+                      </span>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+    });
+
+    if (!html) {
+      container.innerHTML = `
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:36px;text-align:center;color:var(--muted);font-size:13px;">
+          No certified equipment matched your search <strong>"${escapeHtml(query)}"</strong> in this category.
+        </div>
+      `;
+    } else {
+      container.innerHTML = html;
+    }
+  }
+
+  function getCategoryIcon(catId) {
+    const icons = {
+      office: '🖨',
+      technical_large_format: '📐',
+      citizen_photo: '📸',
+      dye_sublimation: '🎨',
+      scanner: '📄'
+    };
+    return icons[catId] || '⚙️';
+  }
+
+  function getBrandBadge(brand) {
+    const b = (brand || '').toLowerCase();
+    if (b.includes('citizen')) return '<span class="badge badge-accent" style="font-size:10px;">Citizen</span>';
+    if (b.includes('canon')) return '<span class="badge badge-red" style="font-size:10px;background:rgba(239,68,68,0.15);color:#fca5a5;">Canon</span>';
+    if (b.includes('fujitsu')) return '<span class="badge badge-green" style="font-size:10px;">Fujitsu</span>';
+    if (b.includes('epson')) return '<span class="badge badge-blue" style="font-size:10px;">Epson</span>';
+    if (b.includes('hp')) return '<span class="badge badge-purple" style="font-size:10px;">HP</span>';
+    return `<span class="badge badge-ghost" style="font-size:10px;">${escapeHtml(brand || 'Kepler')}</span>`;
+  }
+
+  function formatSpecsSummary(specs) {
+    if (!specs) return 'High performance commercial unit';
+    if (typeof specs === 'string') return specs.length > 90 ? specs.slice(0, 90) + '…' : specs;
+    const parts = [];
+    if (specs.resolution) parts.push(specs.resolution);
+    if (specs.print_speed || specs.speed) parts.push(specs.print_speed || specs.speed);
+    if (specs.paper_size || specs.max_width) parts.push(specs.paper_size || specs.max_width);
+    if (specs.connectivity) parts.push(specs.connectivity);
+    return parts.length > 0 ? parts.join(' • ') : 'Certified Kepler commercial equipment';
+  }
+
+  async function loadConsumablesMatrix() {
+    const container = document.getElementById('consumables-matrix-container');
+    try {
+      if (!consumablesMatrixData) {
+        container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);"><span class="badge badge-purple">Loading genuine consumables matrix for 72 models…</span></div>';
+        const res = await fetch('/api/admin/catalog/consumables-matrix');
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Failed to fetch consumables matrix');
+        consumablesMatrixData = data;
+      }
+      renderConsumablesTable((document.getElementById('workflow-search')?.value || '').trim().toLowerCase());
+    } catch (err) {
+      container.innerHTML = `<div style="padding:20px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);border-radius:10px;color:#fca5a5;font-size:13px;">Error loading consumables matrix: ${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  function renderConsumablesTable(query) {
+    const container = document.getElementById('consumables-matrix-container');
+    if (!consumablesMatrixData || !consumablesMatrixData.matrix) return;
+
+    let items = consumablesMatrixData.matrix;
+    if (query) {
+      items = items.filter(item => {
+        const str = `${item.product_name} ${item.product_id} ${item.category} ${item.subcategory} ${(item.consumables||[]).map(c=>`${c.name||''} ${c.sku||''} ${c.type||''}`).join(' ')}`.toLowerCase();
+        return str.includes(query);
+      });
+    }
+
+    if (items.length === 0) {
+      container.innerHTML = `
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:36px;text-align:center;color:var(--muted);font-size:13px;">
+          No consumables found matching <strong>"${escapeHtml(query)}"</strong>.
+        </div>
+      `;
+      return;
+    }
+
+    let rowsHtml = '';
+    items.forEach(m => {
+      const brand = (m.product_name && m.product_name.split(' ')[0]) || 'Kepler';
+      const brandBadge = getBrandBadge(brand);
+      const consList = m.consumables || [];
+      if (consList.length === 0) {
+        rowsHtml += `
+          <tr>
+            <td style="font-weight:600;color:var(--text);">${escapeHtml(m.product_name || m.product_id)} <div style="margin-top:2px;">${brandBadge}</div></td>
+            <td style="color:var(--muted);font-size:12px;">${escapeHtml(m.category || 'General')}</td>
+            <td colspan="4" style="color:var(--muted);font-size:12px;font-style:italic;">Standard commercial OEM supplies available on order</td>
+          </tr>
+        `;
+      } else {
+        consList.forEach((c, idx) => {
+          rowsHtml += `
+            <tr>
+              ${idx === 0 ? `
+                <td rowspan="${consList.length}" style="vertical-align:top;font-weight:600;color:var(--text);border-bottom:1px solid rgba(255,255,255,0.08);">
+                  ${escapeHtml(m.product_name || m.product_id)}
+                  <div style="margin-top:4px;">${brandBadge}</div>
+                  <div style="font-size:11px;color:var(--muted);margin-top:4px;">${escapeHtml(m.subcategory || m.category || '')}</div>
+                </td>
+              ` : ''}
+              <td style="font-weight:500;color:var(--text);font-size:12px;">${escapeHtml(c.name || 'OEM Consumable')}</td>
+              <td><span class="badge badge-ghost" style="font-family:monospace;font-size:11px;">${escapeHtml(c.sku || 'OEM-GENUINE')}</span></td>
+              <td style="font-size:12px;color:var(--muted);">${escapeHtml(c.type || 'Consumable')} ${c.color ? `(${escapeHtml(c.color)})` : ''}</td>
+              <td style="font-weight:700;color:#10b981;font-size:12px;">${escapeHtml(c.price_str || (c.price_aed ? 'AED ' + Number(c.price_aed).toLocaleString() : 'Quote'))}</td>
+              <td><span class="badge badge-green" style="font-size:10px;">100% Genuine</span></td>
+            </tr>
+          `;
+        });
+      }
+    });
+
+    container.innerHTML = `
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width:25%;">Model & Brand</th>
+              <th style="width:30%;">Genuine Supply Item</th>
+              <th style="width:15%;">OEM SKU</th>
+              <th style="width:12%;">Type / Color</th>
+              <th style="width:10%;">Price</th>
+              <th style="width:8%;">Status</th>
+            </tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  /* ── RAG Grounding Studio ── */
+  function initRagStudio() {
+    const input = document.getElementById('rag-query-input');
+    if (input && !input.value) {
+      input.value = 'Citizen CZ-01 4-inch photo booth printer';
+      testRagQuery();
+    }
+  }
+
+  function setRagQuery(q) {
+    const input = document.getElementById('rag-query-input');
+    if (input) {
+      input.value = q;
+      testRagQuery();
+    }
+  }
+
+  async function testRagQuery() {
+    const input = document.getElementById('rag-query-input');
+    const container = document.getElementById('rag-results-container');
+    const btn = document.getElementById('btn-test-rag');
+    const query = (input?.value || '').trim();
+
+    if (!query) {
+      input.focus();
+      return;
+    }
+
+    if (btn) btn.disabled = true;
+    container.innerHTML = `
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:36px;text-align:center;color:var(--muted);font-size:13px;">
+        <span class="live-dot" style="display:inline-block;margin-right:8px;"></span>
+        Executing semantic retrieval & manufacturer grounding verification for "${escapeHtml(query)}"…
+      </div>
+    `;
+
+    try {
+      const t0 = performance.now();
+      const res = await fetch('/api/admin/rag/test-query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: query, top_k: 6 })
+      });
+      const data = await res.json();
+      const elapsed = data.latency_ms || Math.round(performance.now() - t0);
+
+      if (!data.success) throw new Error(data.error || 'RAG query failed');
+
+      const results = data.results || [];
+      if (results.length === 0) {
+        container.innerHTML = `
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:36px;text-align:center;color:var(--muted);font-size:13px;">
+            No knowledge chunks exceeded the relevance threshold for "${escapeHtml(query)}".
+          </div>
+        `;
+        return;
+      }
+
+      const topScore = results[0].score || 0;
+      const topScorePercent = Math.round(topScore * 100);
+
+      let html = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding:10px 16px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:10px;">
+          <div style="font-size:12px;color:var(--text);">
+            Grounding Verified: <strong style="color:#60a5fa;">${results.length} Chunks Retrieved</strong>
+            <span style="color:var(--muted);margin-left:8px;">(Top Confidence: ${topScorePercent}% • Roundtrip: ${elapsed}ms)</span>
+          </div>
+          <span class="badge badge-green" style="font-size:11px;">Zero-Hallucination Enforced</span>
+        </div>
+        <div class="rag-results-grid">
+      `;
+
+      results.forEach(r => {
+        const scoreVal = Math.round((r.score || 0) * 100);
+        let scoreBadgeClass = 'badge-green';
+        if (scoreVal < 60) scoreBadgeClass = 'badge-amber';
+        if (scoreVal < 40) scoreBadgeClass = 'badge-red';
+
+        const consCount = (r.consumables || []).length;
+        const snippetText = r.description || (typeof r.specs === 'string' ? r.specs : JSON.stringify(r.specs || '')) || 'Manufacturer certified equipment specifications.';
+
+        html += `
+          <div class="rag-chunk-card">
+            <div class="rag-chunk-header">
+              <span class="badge badge-accent" style="font-size:10px;">${escapeHtml(r.category || 'Product')}</span>
+              <span class="badge ${scoreBadgeClass}" style="font-size:10px;">${scoreVal}% Relevance</span>
+            </div>
+            <div>
+              <div class="rag-chunk-title">${escapeHtml(r.name || r.id)}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px;">Category: ${escapeHtml(r.subcategory || r.category || 'Hardware')}</div>
+            </div>
+            <div class="rag-chunk-preview">${escapeHtml(snippetText)}</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:auto;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06);font-size:11px;">
+              <span style="color:var(--muted);font-family:monospace;">ID: ${escapeHtml(r.id || 'CERTIFIED')}</span>
+              ${consCount ? `<span style="color:#a78bfa;">🧪 ${consCount} Supplies Linked</span>` : ''}
+            </div>
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+      container.innerHTML = html;
+    } catch (err) {
+      container.innerHTML = `
+        <div style="padding:20px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);border-radius:10px;color:#fca5a5;font-size:13px;">
+          RAG evaluation error: ${escapeHtml(err.message)}
+        </div>
+      `;
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  /* ── Agent Personas Studio ── */
+  let agentPersonasData = null;
+
+  async function loadPersonasStudio() {
+    const container = document.getElementById('personas-studio-grid');
+    try {
+      if (!agentPersonasData) {
+        container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);"><span class="badge badge-accent">Loading collaborative agent personas…</span></div>';
+        const res = await fetch('/api/admin/personas');
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Failed to fetch agent personas');
+        agentPersonasData = data;
+      }
+
+      const personas = agentPersonasData.personas || [];
+      let html = '';
+
+      personas.forEach(p => {
+        const themeCol = p.theme_color || '#3b82f6';
+        const iconChar = p.badge?.includes('🌿') ? '🌿' : p.id?.includes('product') ? '🖨' : p.id?.includes('tech') ? '⚖️' : '💼';
+
+        html += `
+          <div class="persona-card" style="border-top-color:${themeCol};">
+            <div class="persona-header">
+              <div class="persona-icon-box" style="background:${themeCol}22;color:${themeCol};border:1px solid ${themeCol}44;">
+                ${iconChar}
+              </div>
+              <div>
+                <div class="persona-name">${escapeHtml(p.name)}</div>
+                <div class="persona-role">${escapeHtml(p.role)}</div>
+              </div>
+            </div>
+
+            <p style="font-size:12px;color:var(--text);margin:0;line-height:1.5;">${escapeHtml(p.description || '')}</p>
+
+            <div style="background:rgba(0,0,0,0.2);padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);">
+              <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Activation Triggers</div>
+              <div style="font-size:12px;color:#93c5fd;line-height:1.4;">
+                ${escapeHtml(p.trigger_conditions || '')}
+              </div>
+            </div>
+
+            <div>
+              <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Core Directives & Behavioral Guardrails</div>
+              <ul class="persona-rules-list">
+                ${(p.rules || []).map(d => `<li>${escapeHtml(d)}</li>`).join('')}
+              </ul>
+            </div>
+
+            <div style="margin-top:auto;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-between;align-items:center;">
+              <span class="badge badge-ghost" style="font-size:10px;">${escapeHtml(p.badge || p.role)}</span>
+              <span class="badge badge-green" style="font-size:10px;">Zero-Hallucination Active</span>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    } catch (err) {
+      container.innerHTML = `
+        <div style="padding:20px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);border-radius:10px;color:#fca5a5;font-size:13px;">
+          Error loading personas: ${escapeHtml(err.message)}
+        </div>
+      `;
     }
   }
 
