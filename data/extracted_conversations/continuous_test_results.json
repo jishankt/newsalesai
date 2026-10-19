@@ -1,7 +1,7 @@
 {
-  "total_sessions": 20,
-  "total_turns": 103,
-  "passed_turns": 103,
+  "total_sessions": 50,
+  "total_turns": 261,
+  "passed_turns": 261,
   "failed_turns": 0,
   "pass_rate": 100.0,
   "sessions": [
@@ -15,7 +15,7 @@
           "turn_number": 1,
           "user_question": "i want to buy aprinter",
           "status": "PASS",
-          "elapsed_sec": 2.786,
+          "elapsed_sec": 2.802,
           "source": "unified:answer",
           "category": "None",
           "awaiting_field": "None",
@@ -31,7 +31,7 @@
           "turn_number": 2,
           "user_question": "printers",
           "status": "PASS",
-          "elapsed_sec": 1.345,
+          "elapsed_sec": 2.218,
           "source": "unified:clarify",
           "category": "None",
           "awaiting_field": "None",
@@ -49,7 +49,7 @@
           "turn_number": 3,
           "user_question": "what are the companiees printers are you provide",
           "status": "PASS",
-          "elapsed_sec": 1.326,
+          "elapsed_sec": 1.334,
           "source": "unified:clarify",
           "category": "None",
           "awaiting_field": "None",
@@ -67,7 +67,7 @@
           "turn_number": 4,
           "user_question": "my name is jishan",
           "status": "PASS",
-          "elapsed_sec": 0.179,
+          "elapsed_sec": 0.172,
           "source": "unified:answer",
           "category": "None",
           "awaiting_field": "None",
@@ -91,12 +91,12 @@
           "turn_number": 1,
           "user_question": "i want f100",
           "status": "PASS",
-          "elapsed_sec": 0.158,
+          "elapsed_sec": 0.179,
           "source": "unified:answer",
           "category": "None",
           "awaiting_field": "None",
           "active_product": "epson-sc-f100",
-          "reply_preview": "Understood.  Epson SureColor SC-F100 Sublimation Printer is an approved official equipment model in ",
+          "reply_preview": "Here is the breakdown:  Epson SureColor SC-F100 Sublimation Printer is an approved official equipmen",
           "chips": [
             "Technical Specifications",
             "Compatible Consumables",
@@ -107,7 +107,7 @@
           "turn_number": 2,
           "user_question": "What consumables and inks are compatible with Epson SureColor SC F100 Printer?",
           "status": "PASS",
-          "elapsed_sec": 21.889,
+          "elapsed_sec": 15.001,
           "source": "compound_request:split_execution",
           "category": "None",
           "awaiting_field": "None",
@@ -119,7 +119,7 @@
           "turn_number": 3,
           "user_question": "can you provide delivery service",
           "status": "PASS",
-          "elapsed_sec": 0.177,
+          "elapsed_sec": 0.18,
           "source": "unified:answer",
           "category": "None",
           "awaiting_field": "None",
@@ -136,7 +136,7 @@
           "turn_number": 4,
           "user_question": "what isthis",
           "status": "PASS",
-          "elapsed_sec": 2.098,
+          "elapsed_sec": 2.084,
           "source": "unified:out_of_scope_redirect",
           "category": "None",
           "awaiting_field": "None",
@@ -162,7 +162,7 @@
           "turn_number": 1,
           "user_question": "what ink does SC-F100 use",
           "status": "PASS",
-          "elapsed_sec": 0.085,
+          "elapsed_sec": 0.086,
           "source": "route:consumables:verified_list",
           "category": "consumables",
           "awaiting_field": "None",
@@ -177,7 +177,7 @@
           "turn_number": 2,
           "user_question": "can you provide delivery service",
           "status": "PASS",
-          "elapsed_sec": 0.188,
+          "elapsed_sec": 0.174,
           "source": "unified:answer",
           "category": "consumables",
           "awaiting_field": "None",
@@ -194,7 +194,7 @@
           "turn_number": 3,
           "user_question": "hello my name is jishan",
           "status": "PASS",
-          "elapsed_sec": 0.183,
+          "elapsed_sec": 0.167,
           "source": "unified:answer",
           "category": "consumables",
           "awaiting_field": "None",
@@ -210,7 +210,7 @@
           "turn_number": 4,
           "user_question": "i want buy cx02",
           "status": "PASS",
-          "elapsed_sec": 9.233,
+          "elapsed_sec": 9.074,
           "source": "route:product_or_consumable:consumables",
           "category": "citizen_photo",
           "awaiting_field": "None",
@@ -225,7 +225,7 @@
           "turn_number": 5,
           "user_question": "What consumables and inks are compatible with Citizen CX02 Digital Photo Printer?",
           "status": "PASS",
-          "elapsed_sec": 13.144,
+          "elapsed_sec": 12.968,
           "source": "compound_request:split_execution",
           "category": "citizen_photo",
           "awaiting_field": "None",
@@ -237,7 +237,7 @@
           "turn_number": 6,
           "user_question": "i want buy cx02",
           "status": "PASS",
-          "elapsed_sec": 0.079,
+          "elapsed_sec": 0.076,
           "source": "recommendation:catalogue_list",
           "category": "citizen_photo",
           "awaiting_field": "None",
@@ -252,7 +252,7 @@
           "turn_number": 7,
           "user_question": "What consumables and inks are compatible with Citizen CX02 Digital Photo Printer?",
           "status": "PASS",
-          "elapsed_sec": 14.726,
+          "elapsed_sec": 14.569,
           "source": "compound_request:split_execution",
           "category": "citizen_photo",
           "awaiting_field": "None",
@@ -264,7 +264,7 @@
           "turn_number": 8,
           "user_question": "i want another one",
           "status": "PASS",
-          "elapsed_sec": 0.169,
+          "elapsed_sec": 0.174,
           "source": "unified:clarify",
           "category": "citizen_photo",
           "awaiting_field": "None",
@@ -297,7 +297,7 @@
           "turn_number": 10,
           "user_question": "multitasking",
           "status": "PASS",
-          "elapsed_sec": 2.306,
+          "elapsed_sec": 2.29,
           "source": "unified:out_of_scope_redirect",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -323,7 +323,7 @@
           "turn_number": 1,
           "user_question": "i want buy a scanner",
           "status": "PASS",
-          "elapsed_sec": 0.169,
+          "elapsed_sec": 0.181,
           "source": "unified:clarify",
           "category": "scanners",
           "awaiting_field": "None",
@@ -339,7 +339,7 @@
           "turn_number": 2,
           "user_question": "just for office use",
           "status": "PASS",
-          "elapsed_sec": 0.176,
+          "elapsed_sec": 0.166,
           "source": "unified:clarify",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -354,7 +354,7 @@
           "turn_number": 3,
           "user_question": "documents",
           "status": "PASS",
-          "elapsed_sec": 1.222,
+          "elapsed_sec": 1.197,
           "source": "unified:out_of_scope_redirect",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -372,7 +372,7 @@
           "turn_number": 4,
           "user_question": "What consumables and inks are compatible with Epson WorkForce WF DS-7500N Color Document Scanner?",
           "status": "PASS",
-          "elapsed_sec": 4.85,
+          "elapsed_sec": 4.8,
           "source": "compound_request:split_execution",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -392,12 +392,12 @@
           "turn_number": 1,
           "user_question": "i want CX02",
           "status": "PASS",
-          "elapsed_sec": 0.168,
+          "elapsed_sec": 0.17,
           "source": "unified:answer",
           "category": "None",
           "awaiting_field": "None",
           "active_product": "citizen-cx-02",
-          "reply_preview": "Here is the official specification:  Citizen CX-02 is an approved official equipment model in our ca",
+          "reply_preview": "Let's look at the specifications:  Citizen CX-02 is an approved official equipment model in our cata",
           "chips": [
             "Technical Specifications",
             "Compatible Consumables",
@@ -408,7 +408,7 @@
           "turn_number": 2,
           "user_question": "i wany cx02",
           "status": "PASS",
-          "elapsed_sec": 0.089,
+          "elapsed_sec": 0.077,
           "source": "recommendation:catalogue_list",
           "category": "citizen_photo",
           "awaiting_field": "None",
@@ -423,7 +423,7 @@
           "turn_number": 3,
           "user_question": "What consumables and inks are compatible with Citizen CX02 Digital Photo Printer?",
           "status": "PASS",
-          "elapsed_sec": 13.868,
+          "elapsed_sec": 13.756,
           "source": "compound_request:split_execution",
           "category": "citizen_photo",
           "awaiting_field": "None",
@@ -435,7 +435,7 @@
           "turn_number": 4,
           "user_question": "thank you",
           "status": "PASS",
-          "elapsed_sec": 0.162,
+          "elapsed_sec": 0.161,
           "source": "unified:answer",
           "category": "citizen_photo",
           "awaiting_field": "None",
@@ -451,7 +451,7 @@
           "turn_number": 5,
           "user_question": "do you provide deluvery service",
           "status": "PASS",
-          "elapsed_sec": 2.187,
+          "elapsed_sec": 2.21,
           "source": "unified:clarify",
           "category": "citizen_photo",
           "awaiting_field": "None",
@@ -468,7 +468,7 @@
           "turn_number": 6,
           "user_question": "delivery service?",
           "status": "PASS",
-          "elapsed_sec": 0.175,
+          "elapsed_sec": 0.174,
           "source": "unified:answer",
           "category": "citizen_photo",
           "awaiting_field": "None",
@@ -485,7 +485,7 @@
           "turn_number": 7,
           "user_question": "okey",
           "status": "PASS",
-          "elapsed_sec": 0.156,
+          "elapsed_sec": 0.158,
           "source": "unified:answer",
           "category": "citizen_photo",
           "awaiting_field": "None",
@@ -502,12 +502,12 @@
           "turn_number": 8,
           "user_question": "i want f100",
           "status": "PASS",
-          "elapsed_sec": 0.164,
+          "elapsed_sec": 0.166,
           "source": "unified:answer",
           "category": "citizen_photo",
           "awaiting_field": "None",
           "active_product": "epson-sc-f100",
-          "reply_preview": "Understood.  Epson SureColor SC-F100 Sublimation Printer is an approved official equipment model in ",
+          "reply_preview": "Happy to help with that.  Epson SureColor SC-F100 Sublimation Printer is an approved official equipm",
           "chips": [
             "Technical Specifications",
             "Compatible Consumables",
@@ -518,7 +518,7 @@
           "turn_number": 9,
           "user_question": "i want to buy a new printer",
           "status": "PASS",
-          "elapsed_sec": 0.171,
+          "elapsed_sec": 0.177,
           "source": "unified:answer",
           "category": "citizen_photo",
           "awaiting_field": "None",
@@ -534,7 +534,7 @@
           "turn_number": 10,
           "user_question": "i want cy02",
           "status": "PASS",
-          "elapsed_sec": 0.075,
+          "elapsed_sec": 0.084,
           "source": "recommendation:catalogue_list",
           "category": "citizen_photo",
           "awaiting_field": "None",
@@ -549,7 +549,7 @@
           "turn_number": 11,
           "user_question": "What consumables and inks are compatible with Citizen CY02 Photo Printer?",
           "status": "PASS",
-          "elapsed_sec": 16.159,
+          "elapsed_sec": 16.202,
           "source": "compound_request:split_execution",
           "category": "citizen_photo",
           "awaiting_field": "None",
@@ -569,7 +569,7 @@
           "turn_number": 1,
           "user_question": "Who are you",
           "status": "PASS",
-          "elapsed_sec": 2.251,
+          "elapsed_sec": 2.303,
           "source": "unified:out_of_scope_redirect",
           "category": "None",
           "awaiting_field": "None",
@@ -587,12 +587,12 @@
           "turn_number": 2,
           "user_question": "I want f100",
           "status": "PASS",
-          "elapsed_sec": 0.154,
+          "elapsed_sec": 0.162,
           "source": "unified:answer",
           "category": "None",
           "awaiting_field": "None",
           "active_product": "epson-sc-f100",
-          "reply_preview": "Yes, absolutely.  Epson SureColor SC-F100 Sublimation Printer is an approved official equipment mode",
+          "reply_preview": "Good question.  Epson SureColor SC-F100 Sublimation Printer is an approved official equipment model ",
           "chips": [
             "Technical Specifications",
             "Compatible Consumables",
@@ -603,7 +603,7 @@
           "turn_number": 3,
           "user_question": "What consumables and inks are compatible with Epson SureColor SC F100 Printer?",
           "status": "PASS",
-          "elapsed_sec": 15.827,
+          "elapsed_sec": 15.897,
           "source": "compound_request:split_execution",
           "category": "None",
           "awaiting_field": "None",
@@ -615,7 +615,7 @@
           "turn_number": 4,
           "user_question": "Okey thank you",
           "status": "PASS",
-          "elapsed_sec": 0.155,
+          "elapsed_sec": 0.158,
           "source": "unified:answer",
           "category": "None",
           "awaiting_field": "None",
@@ -639,12 +639,12 @@
           "turn_number": 1,
           "user_question": "I want a photo printer",
           "status": "PASS",
-          "elapsed_sec": 0.175,
+          "elapsed_sec": 0.163,
           "source": "unified:clarify",
           "category": "photography_large_format",
           "awaiting_field": "None",
           "active_product": null,
-          "reply_preview": "Yes, absolutely.  Epson SureColor P-Series printers feature UltraChrome PRO pigment inksets, dedicat",
+          "reply_preview": "Understood.  Epson SureColor P-Series printers feature UltraChrome PRO pigment inksets, dedicated Ph",
           "chips": [
             "13″ Desktop (A3+)",
             "17″ Desktop & Production (A2+)",
@@ -657,7 +657,7 @@
           "turn_number": 2,
           "user_question": "Epson",
           "status": "PASS",
-          "elapsed_sec": 5.432,
+          "elapsed_sec": 2.153,
           "source": "unified:clarify",
           "category": "photography_large_format",
           "awaiting_field": "None",
@@ -674,12 +674,12 @@
           "turn_number": 3,
           "user_question": "34",
           "status": "PASS",
-          "elapsed_sec": 5.951,
+          "elapsed_sec": 1.17,
           "source": "unified:clarify",
           "category": "photography_large_format",
           "awaiting_field": "None",
           "active_product": null,
-          "reply_preview": "Regarding your operational workflow:  Understood.  Epson SureColor P-Series printers feature UltraCh",
+          "reply_preview": "Regarding your operational workflow:  Happy to help with that.  Epson SureColor P-Series printers fe",
           "chips": [
             "13″ Desktop (A3+)",
             "17″ Desktop & Production (A2+)",
@@ -692,12 +692,12 @@
           "turn_number": 4,
           "user_question": "10x10",
           "status": "PASS",
-          "elapsed_sec": 9.365,
+          "elapsed_sec": 1.336,
           "source": "unified:answer",
           "category": "photography_large_format",
           "awaiting_field": "None",
           "active_product": "epson-sc-p900",
-          "reply_preview": "Here is the breakdown:  Epson SureColor SC-P900: 17-inch (A2+) desktop photo printer with 10-color U",
+          "reply_preview": "Right away.  Epson SureColor SC-P900: 17-inch (A2+) desktop photo printer with 10-color UltraChrome ",
           "chips": [
             "SC-P900 Specs",
             "Inks & Media",
@@ -708,12 +708,12 @@
           "turn_number": 5,
           "user_question": "What consumables and inks are compatible with Citizen CY02 Photo Printer?",
           "status": "PASS",
-          "elapsed_sec": 24.388,
+          "elapsed_sec": 19.609,
           "source": "compound_request:split_execution",
           "category": "photography_large_format",
           "awaiting_field": "None",
           "active_product": "epson-sc-p900",
-          "reply_preview": "It looks like you asked about the consumables and inks compatible with the Citizen CY02 Photo Printe",
+          "reply_preview": "I don't have that product in our catalog. Could you tell me what type of printing or size you need s",
           "chips": []
         }
       ]
@@ -728,12 +728,12 @@
           "turn_number": 1,
           "user_question": "I want cy02",
           "status": "PASS",
-          "elapsed_sec": 0.167,
+          "elapsed_sec": 0.164,
           "source": "unified:answer",
           "category": "None",
           "awaiting_field": "None",
           "active_product": "citizen-cy-02",
-          "reply_preview": "Here is what the manufacturer specifies:  Citizen CY-02 is an approved official equipment model in o",
+          "reply_preview": "Good question.  Citizen CY-02 is an approved official equipment model in our catalogue. • Print spee",
           "chips": [
             "Technical Specifications",
             "Compatible Consumables",
@@ -744,7 +744,7 @@
           "turn_number": 2,
           "user_question": "What consumables and inks are compatible with Citizen CY02 Photo Printer?",
           "status": "PASS",
-          "elapsed_sec": 16.799,
+          "elapsed_sec": 16.958,
           "source": "compound_request:split_execution",
           "category": "None",
           "awaiting_field": "None",
@@ -764,7 +764,7 @@
           "turn_number": 1,
           "user_question": "Technical CAD",
           "status": "PASS",
-          "elapsed_sec": 0.075,
+          "elapsed_sec": 0.079,
           "source": "qualification:category_prompt",
           "category": "technical_large_format",
           "awaiting_field": "None",
@@ -781,12 +781,12 @@
           "turn_number": 2,
           "user_question": "Fine Art & Photo",
           "status": "PASS",
-          "elapsed_sec": 0.174,
+          "elapsed_sec": 0.164,
           "source": "unified:clarify",
           "category": "photography_large_format",
           "awaiting_field": "None",
           "active_product": null,
-          "reply_preview": "Understood.  Epson SureColor P-Series printers feature UltraChrome PRO pigment inksets, dedicated Ph",
+          "reply_preview": "Right away.  Epson SureColor P-Series printers feature UltraChrome PRO pigment inksets, dedicated Ph",
           "chips": [
             "13″ Desktop (A3+)",
             "17″ Desktop & Production (A2+)",
@@ -799,7 +799,7 @@
           "turn_number": 3,
           "user_question": "I want buy a printer",
           "status": "PASS",
-          "elapsed_sec": 0.176,
+          "elapsed_sec": 0.17,
           "source": "unified:answer",
           "category": "photography_large_format",
           "awaiting_field": "None",
@@ -815,7 +815,7 @@
           "turn_number": 4,
           "user_question": "Office",
           "status": "PASS",
-          "elapsed_sec": 0.071,
+          "elapsed_sec": 0.073,
           "source": "qualification:category_prompt",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -832,7 +832,7 @@
           "turn_number": 5,
           "user_question": "100",
           "status": "PASS",
-          "elapsed_sec": 1.879,
+          "elapsed_sec": 1.838,
           "source": "unified:clarify",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -847,7 +847,7 @@
           "turn_number": 6,
           "user_question": "What consumables and inks are compatible with Epson WorkForce Enterprise​ AM C6000​ Printer?",
           "status": "PASS",
-          "elapsed_sec": 4.83,
+          "elapsed_sec": 4.787,
           "source": "compound_request:split_execution",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -859,7 +859,7 @@
           "turn_number": 7,
           "user_question": "What consumables and inks are compatible with Epson WorkForce Enterprise​ AM C6000​ Printer?",
           "status": "PASS",
-          "elapsed_sec": 4.434,
+          "elapsed_sec": 4.427,
           "source": "compound_request:split_execution",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -879,7 +879,7 @@
           "turn_number": 1,
           "user_question": "I want to buy a printer",
           "status": "PASS",
-          "elapsed_sec": 0.166,
+          "elapsed_sec": 0.19,
           "source": "unified:answer",
           "category": "None",
           "awaiting_field": "None",
@@ -895,7 +895,7 @@
           "turn_number": 2,
           "user_question": "I want buy scanner",
           "status": "PASS",
-          "elapsed_sec": 0.172,
+          "elapsed_sec": 0.161,
           "source": "unified:clarify",
           "category": "scanners",
           "awaiting_field": "None",
@@ -911,7 +911,7 @@
           "turn_number": 3,
           "user_question": "My name is Jishan",
           "status": "PASS",
-          "elapsed_sec": 0.174,
+          "elapsed_sec": 0.164,
           "source": "unified:answer",
           "category": "scanner",
           "awaiting_field": "None",
@@ -927,12 +927,12 @@
           "turn_number": 4,
           "user_question": "I want f100",
           "status": "PASS",
-          "elapsed_sec": 0.168,
+          "elapsed_sec": 0.174,
           "source": "unified:answer",
           "category": "scanner",
           "awaiting_field": "None",
           "active_product": "epson-sc-f100",
-          "reply_preview": "Here is the breakdown:  Epson SureColor SC-F100 Sublimation Printer is an approved official equipmen",
+          "reply_preview": "Good question.  Epson SureColor SC-F100 Sublimation Printer is an approved official equipment model ",
           "chips": [
             "Technical Specifications",
             "Compatible Consumables",
@@ -943,7 +943,7 @@
           "turn_number": 5,
           "user_question": "What consumables and inks are compatible with Epson SureColor SC F100 Printer?",
           "status": "PASS",
-          "elapsed_sec": 16.275,
+          "elapsed_sec": 15.304,
           "source": "compound_request:split_execution",
           "category": "scanner",
           "awaiting_field": "None",
@@ -963,12 +963,12 @@
           "turn_number": 1,
           "user_question": "Citizen hb",
           "status": "PASS",
-          "elapsed_sec": 0.166,
+          "elapsed_sec": 0.162,
           "source": "unified:clarify",
           "category": "citizen_photo",
           "awaiting_field": "None",
           "active_product": null,
-          "reply_preview": "Let's look at the specifications:  Citizen dye-sublimation photo printers deliver high-speed, smudge",
+          "reply_preview": "Good question.  Citizen dye-sublimation photo printers deliver high-speed, smudge-proof instant prin",
           "chips": [
             "4-inch Ultra-Compact (CZ-01)",
             "6-inch Event Photos (CX-02 / CY-02)",
@@ -979,12 +979,12 @@
           "turn_number": 2,
           "user_question": "Printer",
           "status": "PASS",
-          "elapsed_sec": 2.082,
+          "elapsed_sec": 2.062,
           "source": "unified:clarify",
           "category": "citizen_photo",
           "awaiting_field": "None",
           "active_product": null,
-          "reply_preview": "Moving forward with your request:  Here is what the manufacturer specifies:  Citizen dye-sublimation",
+          "reply_preview": "Moving forward with your request:  Here are the verified details:  Citizen dye-sublimation photo pri",
           "chips": [
             "4-inch Ultra-Compact (CZ-01)",
             "6-inch Event Photos (CX-02 / CY-02)",
@@ -995,7 +995,7 @@
           "turn_number": 3,
           "user_question": "Epson surecolor",
           "status": "PASS",
-          "elapsed_sec": 1.345,
+          "elapsed_sec": 1.323,
           "source": "unified:not_verified_handoff",
           "category": "citizen_photo",
           "awaiting_field": "None",
@@ -1011,7 +1011,7 @@
           "turn_number": 4,
           "user_question": "What consumables and inks are compatible with Epson SureColor SC-P9500 Large Format Printer?",
           "status": "PASS",
-          "elapsed_sec": 4.647,
+          "elapsed_sec": 4.899,
           "source": "compound_request:split_execution",
           "category": "citizen_photo",
           "awaiting_field": "None",
@@ -1031,7 +1031,7 @@
           "turn_number": 1,
           "user_question": "hello my name is jishan",
           "status": "PASS",
-          "elapsed_sec": 0.171,
+          "elapsed_sec": 0.168,
           "source": "unified:answer",
           "category": "None",
           "awaiting_field": "None",
@@ -1047,7 +1047,7 @@
           "turn_number": 2,
           "user_question": "i want buy a printer",
           "status": "PASS",
-          "elapsed_sec": 0.171,
+          "elapsed_sec": 0.168,
           "source": "unified:answer",
           "category": "None",
           "awaiting_field": "None",
@@ -1063,7 +1063,7 @@
           "turn_number": 3,
           "user_question": "i want office type",
           "status": "PASS",
-          "elapsed_sec": 0.167,
+          "elapsed_sec": 0.171,
           "source": "unified:clarify",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -1078,7 +1078,7 @@
           "turn_number": 4,
           "user_question": "1000",
           "status": "PASS",
-          "elapsed_sec": 1.807,
+          "elapsed_sec": 1.78,
           "source": "unified:clarify",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -1101,7 +1101,7 @@
           "turn_number": 1,
           "user_question": "hey i want to buy aprinter",
           "status": "PASS",
-          "elapsed_sec": 0.18,
+          "elapsed_sec": 0.169,
           "source": "unified:answer",
           "category": "None",
           "awaiting_field": "None",
@@ -1117,7 +1117,7 @@
           "turn_number": 2,
           "user_question": "i want office type",
           "status": "PASS",
-          "elapsed_sec": 0.18,
+          "elapsed_sec": 0.17,
           "source": "unified:clarify",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -1132,7 +1132,7 @@
           "turn_number": 3,
           "user_question": "10000",
           "status": "PASS",
-          "elapsed_sec": 1.218,
+          "elapsed_sec": 1.158,
           "source": "unified:clarify",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -1155,7 +1155,7 @@
           "turn_number": 1,
           "user_question": "hello i want scanners",
           "status": "PASS",
-          "elapsed_sec": 0.196,
+          "elapsed_sec": 0.165,
           "source": "unified:clarify",
           "category": "scanners",
           "awaiting_field": "None",
@@ -1171,7 +1171,7 @@
           "turn_number": 2,
           "user_question": "i want scan 10000 per month",
           "status": "PASS",
-          "elapsed_sec": 0.183,
+          "elapsed_sec": 0.182,
           "source": "unified:clarify",
           "category": "scanner",
           "awaiting_field": "None",
@@ -1187,7 +1187,7 @@
           "turn_number": 3,
           "user_question": "nothing",
           "status": "PASS",
-          "elapsed_sec": 1.131,
+          "elapsed_sec": 1.208,
           "source": "unified:out_of_scope_redirect",
           "category": "scanner",
           "awaiting_field": "None",
@@ -1205,7 +1205,7 @@
           "turn_number": 4,
           "user_question": "i want to buy a printer",
           "status": "PASS",
-          "elapsed_sec": 0.171,
+          "elapsed_sec": 0.181,
           "source": "unified:answer",
           "category": "scanner",
           "awaiting_field": "None",
@@ -1229,7 +1229,7 @@
           "turn_number": 1,
           "user_question": "i want to buy a printer",
           "status": "PASS",
-          "elapsed_sec": 0.171,
+          "elapsed_sec": 0.169,
           "source": "unified:answer",
           "category": "None",
           "awaiting_field": "None",
@@ -1245,7 +1245,7 @@
           "turn_number": 2,
           "user_question": "i want office type",
           "status": "PASS",
-          "elapsed_sec": 0.168,
+          "elapsed_sec": 0.185,
           "source": "unified:clarify",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -1260,7 +1260,7 @@
           "turn_number": 3,
           "user_question": "10000",
           "status": "PASS",
-          "elapsed_sec": 1.36,
+          "elapsed_sec": 1.333,
           "source": "unified:clarify",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -1275,7 +1275,7 @@
           "turn_number": 4,
           "user_question": "1000",
           "status": "PASS",
-          "elapsed_sec": 1.139,
+          "elapsed_sec": 1.119,
           "source": "unified:answer",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -1291,7 +1291,7 @@
           "turn_number": 5,
           "user_question": "What consumables and inks are compatible with Epson WorkForce Enterprise AM-C4000 Multifunction Printer?",
           "status": "PASS",
-          "elapsed_sec": 6.553,
+          "elapsed_sec": 6.507,
           "source": "compound_request:split_execution",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -1303,7 +1303,7 @@
           "turn_number": 6,
           "user_question": "what is the price",
           "status": "PASS",
-          "elapsed_sec": 0.168,
+          "elapsed_sec": 0.171,
           "source": "unified:clarify",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -1329,7 +1329,7 @@
           "turn_number": 1,
           "user_question": "what are the companies printers are available?",
           "status": "PASS",
-          "elapsed_sec": 1.868,
+          "elapsed_sec": 1.808,
           "source": "unified:clarify",
           "category": "None",
           "awaiting_field": "None",
@@ -1347,12 +1347,12 @@
           "turn_number": 2,
           "user_question": "which is better epson or citizen",
           "status": "PASS",
-          "elapsed_sec": 0.176,
+          "elapsed_sec": 0.174,
           "source": "unified:clarify",
           "category": "citizen_photo",
           "awaiting_field": "None",
           "active_product": null,
-          "reply_preview": "Yes, absolutely.  Citizen dye-sublimation photo printers deliver high-speed, smudge-proof instant pr",
+          "reply_preview": "Understood.  Citizen dye-sublimation photo printers deliver high-speed, smudge-proof instant prints ",
           "chips": [
             "4-inch Ultra-Compact (CZ-01)",
             "6-inch Event Photos (CX-02 / CY-02)",
@@ -1363,7 +1363,7 @@
           "turn_number": 3,
           "user_question": "i want to buy a printer",
           "status": "PASS",
-          "elapsed_sec": 0.169,
+          "elapsed_sec": 0.174,
           "source": "unified:answer",
           "category": "citizen_photo",
           "awaiting_field": "None",
@@ -1379,7 +1379,7 @@
           "turn_number": 4,
           "user_question": "i want office printers",
           "status": "PASS",
-          "elapsed_sec": 0.168,
+          "elapsed_sec": 0.169,
           "source": "unified:clarify",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -1394,7 +1394,7 @@
           "turn_number": 5,
           "user_question": "60k",
           "status": "PASS",
-          "elapsed_sec": 0.164,
+          "elapsed_sec": 0.159,
           "source": "unified:clarify",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -1417,7 +1417,7 @@
           "turn_number": 1,
           "user_question": "i am looking for an office printer",
           "status": "PASS",
-          "elapsed_sec": 0.179,
+          "elapsed_sec": 0.17,
           "source": "unified:clarify",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -1432,7 +1432,7 @@
           "turn_number": 2,
           "user_question": "aprox 2000 prints per day.",
           "status": "PASS",
-          "elapsed_sec": 0.173,
+          "elapsed_sec": 0.176,
           "source": "unified:clarify",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -1447,7 +1447,7 @@
           "turn_number": 3,
           "user_question": "aprox. 60,000 print per month and you may suggest the best option for my office",
           "status": "PASS",
-          "elapsed_sec": 0.2,
+          "elapsed_sec": 0.201,
           "source": "unified:not_verified_handoff",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -1463,7 +1463,7 @@
           "turn_number": 4,
           "user_question": "does it connect 60 employees?",
           "status": "PASS",
-          "elapsed_sec": 0.182,
+          "elapsed_sec": 0.186,
           "source": "unified:clarify",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -1480,7 +1480,7 @@
           "turn_number": 5,
           "user_question": "i having 60 employees on site, in different floor and different ip, how can i manage this",
           "status": "PASS",
-          "elapsed_sec": 0.097,
+          "elapsed_sec": 0.1,
           "source": "qualification:next_question",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -1492,7 +1492,7 @@
           "turn_number": 6,
           "user_question": "What consumables and inks are compatible with Epson WorkForce Enterprise AM-C4000 Multifunction Printer?",
           "status": "PASS",
-          "elapsed_sec": 4.74,
+          "elapsed_sec": 4.878,
           "source": "compound_request:split_execution",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -1519,7 +1519,7 @@
           "turn_number": 8,
           "user_question": "its fine, does this printer in stock?",
           "status": "PASS",
-          "elapsed_sec": 4.989,
+          "elapsed_sec": 4.921,
           "source": "route:stock_availability",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -1531,7 +1531,7 @@
           "turn_number": 9,
           "user_question": "i need 5 units, can you confirm the availbility",
           "status": "PASS",
-          "elapsed_sec": 0.087,
+          "elapsed_sec": 0.094,
           "source": "route:order_quantity_update",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -1543,7 +1543,7 @@
           "turn_number": 10,
           "user_question": "ok, i need epsn ink for my p9500 printer",
           "status": "PASS",
-          "elapsed_sec": 0.089,
+          "elapsed_sec": 0.092,
           "source": "route:consumables:verified_list",
           "category": "consumables",
           "awaiting_field": "None",
@@ -1558,7 +1558,7 @@
           "turn_number": 11,
           "user_question": "i needonly cyan",
           "status": "PASS",
-          "elapsed_sec": 24.074,
+          "elapsed_sec": 24.041,
           "source": "route:consumables",
           "category": "consumables",
           "awaiting_field": "None",
@@ -1574,12 +1574,12 @@
           "turn_number": 12,
           "user_question": "ok. i need a photo printer that can use for event",
           "status": "PASS",
-          "elapsed_sec": 0.176,
+          "elapsed_sec": 0.179,
           "source": "unified:clarify",
           "category": "photography_large_format",
           "awaiting_field": "None",
           "active_product": null,
-          "reply_preview": "Happy to help with that.  Epson SureColor P-Series printers feature UltraChrome PRO pigment inksets,",
+          "reply_preview": "Here is the breakdown:  Epson SureColor P-Series printers feature UltraChrome PRO pigment inksets, d",
           "chips": [
             "13″ Desktop (A3+)",
             "17″ Desktop & Production (A2+)",
@@ -1592,7 +1592,7 @@
           "turn_number": 13,
           "user_question": "photoprinter",
           "status": "PASS",
-          "elapsed_sec": 0.167,
+          "elapsed_sec": 0.164,
           "source": "unified:clarify",
           "category": "citizen_photo",
           "awaiting_field": "None",
@@ -1617,7 +1617,7 @@
           "turn_number": 1,
           "user_question": "my name is jishan",
           "status": "PASS",
-          "elapsed_sec": 0.172,
+          "elapsed_sec": 0.171,
           "source": "unified:answer",
           "category": "None",
           "awaiting_field": "None",
@@ -1633,7 +1633,7 @@
           "turn_number": 2,
           "user_question": "i want to buy aprinter",
           "status": "PASS",
-          "elapsed_sec": 0.17,
+          "elapsed_sec": 0.167,
           "source": "unified:answer",
           "category": "None",
           "awaiting_field": "None",
@@ -1649,7 +1649,7 @@
           "turn_number": 3,
           "user_question": "i want office type",
           "status": "PASS",
-          "elapsed_sec": 0.168,
+          "elapsed_sec": 0.17,
           "source": "unified:clarify",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -1664,7 +1664,7 @@
           "turn_number": 4,
           "user_question": "its 60000",
           "status": "PASS",
-          "elapsed_sec": 2.996,
+          "elapsed_sec": 2.972,
           "source": "unified:clarify",
           "category": "office_printer",
           "awaiting_field": "None",
@@ -1687,12 +1687,12 @@
           "turn_number": 1,
           "user_question": "Show me Epson SureColor SC-T3100",
           "status": "PASS",
-          "elapsed_sec": 0.182,
+          "elapsed_sec": 0.172,
           "source": "unified:answer",
           "category": "None",
           "awaiting_field": "None",
           "active_product": "epson-sc-t3100",
-          "reply_preview": "Here is the official specification:  Epson SureColor SC-T3100 is an approved official equipment mode",
+          "reply_preview": "Yes, absolutely.  Epson SureColor SC-T3100 is an approved official equipment model in our catalogue.",
           "chips": [
             "Technical Specifications",
             "Compatible Consumables",
@@ -1703,12 +1703,12 @@
           "turn_number": 2,
           "user_question": "Tell me about AM-C4000",
           "status": "PASS",
-          "elapsed_sec": 0.175,
+          "elapsed_sec": 0.167,
           "source": "unified:answer",
           "category": "None",
           "awaiting_field": "None",
           "active_product": "epson-am-c4000",
-          "reply_preview": "Good question.  Epson WorkForce Enterprise AM-C4000 — Verified Specifications: • Print speed: 40 ISO",
+          "reply_preview": "Here is what the manufacturer specifies:  Epson WorkForce Enterprise AM-C4000 — Verified Specificati",
           "chips": [
             "Official Quotation",
             "Compatible Consumables",
@@ -1728,12 +1728,12 @@
           "turn_number": 1,
           "user_question": "Tell me about AM-C4000",
           "status": "PASS",
-          "elapsed_sec": 0.167,
+          "elapsed_sec": 0.168,
           "source": "unified:answer",
           "category": "None",
           "awaiting_field": "None",
           "active_product": "epson-am-c4000",
-          "reply_preview": "Good question.  Epson WorkForce Enterprise AM-C4000 — Verified Specifications: • Print speed: 40 ISO",
+          "reply_preview": "Let's look at the specifications:  Epson WorkForce Enterprise AM-C4000 — Verified Specifications: • ",
           "chips": [
             "Official Quotation",
             "Compatible Consumables",
@@ -1745,7 +1745,7 @@
           "turn_number": 2,
           "user_question": "Tell me more details about C13T08H300 Epson WorkForce Enterprise AM-C4000 Magenta Ink",
           "status": "PASS",
-          "elapsed_sec": 0.091,
+          "elapsed_sec": 0.092,
           "source": "route:consumables:verified_list",
           "category": "consumables",
           "awaiting_field": "None",
@@ -1754,6 +1754,2762 @@
           "chips": [
             "Price of Yellow Ink",
             "Maintenance Box"
+          ]
+        }
+      ]
+    },
+    {
+      "session_id": "bb0da53f-53e8-4caa-8961-6fb9a62a443c",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 2,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "Tell me about AM-C4000",
+          "status": "PASS",
+          "elapsed_sec": 0.166,
+          "source": "unified:answer",
+          "category": "None",
+          "awaiting_field": "None",
+          "active_product": "epson-am-c4000",
+          "reply_preview": "Yes, absolutely.  Epson WorkForce Enterprise AM-C4000 — Verified Specifications: • Print speed: 40 I",
+          "chips": [
+            "Official Quotation",
+            "Compatible Consumables",
+            "Cost Per Page",
+            "Delivery Details"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "i want yellow",
+          "status": "PASS",
+          "elapsed_sec": 0.161,
+          "source": "unified:answer",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "epson-am-c4000",
+          "reply_preview": "Found 5 verified compatible consumables for Epson WorkForce Enterprise AM-C4000.  Would you like to ",
+          "chips": [
+            "Technical Specifications",
+            "Media Rolls",
+            "Official Quotation"
+          ]
+        }
+      ]
+    },
+    {
+      "session_id": "33886e32-ade7-4492-b8e3-c7a048f2e911",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 3,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "i want to buy a printer",
+          "status": "PASS",
+          "elapsed_sec": 0.172,
+          "source": "unified:answer",
+          "category": "None",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "I note your request for a formal quotation. Discounts, formal quotations, and custom configurations ",
+          "chips": [
+            "Leave Phone Number",
+            "Leave Email Address",
+            "Showroom Hours & Location"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "i want office type",
+          "status": "PASS",
+          "elapsed_sec": 0.166,
+          "source": "unified:clarify",
+          "category": "office_printer",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Kepler Tech provides Epson WorkForce Heat-Free printers in both compact A4 desktop workgroup and hig",
+          "chips": [
+            "A4 Output",
+            "A3 Output"
+          ]
+        },
+        {
+          "turn_number": 3,
+          "user_question": "100",
+          "status": "PASS",
+          "elapsed_sec": 1.537,
+          "source": "unified:clarify",
+          "category": "office_printer",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Regarding your operational workflow:  Kepler Tech provides Epson WorkForce Heat-Free printers in bot",
+          "chips": [
+            "A4 Output",
+            "A3 Output"
+          ]
+        }
+      ]
+    },
+    {
+      "session_id": "b1357923-0a94-45ce-acf2-20d16f5af04e",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 9,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "I need a 24-inch plotter for AutoCAD blueprint",
+          "status": "PASS",
+          "elapsed_sec": 0.196,
+          "source": "unified:answer",
+          "category": "technical_large_format",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-t3100",
+          "reply_preview": "24-inch Technical CAD Plotters (SureColor T-Series): • SureColor SC-T3100: Compact 24-inch wireless ",
+          "chips": [
+            "SC-T3100 (Desktop)",
+            "SC-T3700E (Single Roll)",
+            "SC-T3700D (Dual Roll)",
+            "Official Quotation"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "printing only",
+          "status": "PASS",
+          "elapsed_sec": 1.252,
+          "source": "unified:answer",
+          "category": "technical_large_format",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-t3100",
+          "reply_preview": "Here is what the manufacturer specifies:  Epson SureColor SC-T3100 is an approved official equipment",
+          "chips": [
+            "Technical Specifications",
+            "Compatible Consumables",
+            "Official Quotation"
+          ]
+        },
+        {
+          "turn_number": 3,
+          "user_question": "ok i want to know the price?",
+          "status": "PASS",
+          "elapsed_sec": 0.171,
+          "source": "unified:answer",
+          "category": "technical_large_format",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-t3100",
+          "reply_preview": "The Epson SureColor SC-T3100 is listed at AED 3,880.00 (excl. VAT).  Official quotations and tax inv",
+          "chips": [
+            "Request Official Quote",
+            "Compatible Consumables",
+            "View Technical Specs"
+          ]
+        },
+        {
+          "turn_number": 4,
+          "user_question": "ok fine , i want buy aprinter",
+          "status": "PASS",
+          "elapsed_sec": 0.175,
+          "source": "unified:answer",
+          "category": "technical_large_format",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-t3100",
+          "reply_preview": "I note your request for a formal quotation (of Epson SureColor SC-T3100). Discounts, formal quotatio",
+          "chips": [
+            "Leave Phone Number",
+            "Leave Email Address",
+            "Showroom Hours & Location"
+          ]
+        },
+        {
+          "turn_number": 5,
+          "user_question": "okey its fine, i want yellow ink for AM-C4000",
+          "status": "PASS",
+          "elapsed_sec": 0.088,
+          "source": "route:consumables:verified_list",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "epson-am-c4000",
+          "reply_preview": "Here are the genuine consumables for the Epson WorkForce Enterprise AM-C4000:  • Epson Maintenance B",
+          "chips": [
+            "Price of Yellow Ink",
+            "Maintenance Box"
+          ]
+        },
+        {
+          "turn_number": 6,
+          "user_question": "sorry i want cyan",
+          "status": "PASS",
+          "elapsed_sec": 17.63,
+          "source": "route:consumables",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "epson-am-c4000",
+          "reply_preview": "Certainly! Here are the verified Cyan inks and media compatible with Epson WorkForce Enterprise AM-C",
+          "chips": [
+            "View Technical Specifications",
+            "Compare Matching Models",
+            "Talk to Sales Specialist"
+          ]
+        },
+        {
+          "turn_number": 7,
+          "user_question": "okey thats good",
+          "status": "PASS",
+          "elapsed_sec": 0.164,
+          "source": "unified:answer",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "epson-am-c4000",
+          "reply_preview": "Understood! Would you like to proceed with an official quotation or delivery details for the Epson W",
+          "chips": [
+            "Request Official Quote",
+            "Delivery Details",
+            "Technical Specifications",
+            "View Other Models"
+          ]
+        },
+        {
+          "turn_number": 8,
+          "user_question": "i want p900 cyan ink",
+          "status": "PASS",
+          "elapsed_sec": 29.391,
+          "source": "route:product_or_consumable:consumables",
+          "category": "photography_and_fine_art",
+          "awaiting_field": "None",
+          "active_product": "epson-am-c4000",
+          "reply_preview": "Certainly! Here are the official compatible inks and media for the Epson SureColor SC-P900:  • [Epso",
+          "chips": [
+            "Order Consumables",
+            "View SC-P900 Specifications"
+          ]
+        },
+        {
+          "turn_number": 9,
+          "user_question": "i want yellow",
+          "status": "PASS",
+          "elapsed_sec": 17.937,
+          "source": "route:consumables",
+          "category": "photography_and_fine_art",
+          "awaiting_field": "None",
+          "active_product": "epson-am-c4000",
+          "reply_preview": "Certainly! Here are the verified Yellow inks and media compatible with Epson WorkForce Enterprise AM",
+          "chips": [
+            "View Technical Specifications",
+            "Compare Matching Models",
+            "Talk to Sales Specialist"
+          ]
+        }
+      ]
+    },
+    {
+      "session_id": "fde2b358-5814-45e0-ac02-7aec54046abc",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 8,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "I want buy a ink",
+          "status": "PASS",
+          "elapsed_sec": 0.161,
+          "source": "unified:clarify",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Which printer or scanner model do you need consumables for?  Please enter your model name, or select",
+          "chips": [
+            "Epson SC-F500",
+            "Epson SC-T3100",
+            "Citizen CX-02",
+            "Epson SC-P900"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "F100 ink",
+          "status": "PASS",
+          "elapsed_sec": 0.083,
+          "source": "route:consumables:verified_list",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "Here are the verified compatible consumables for the Epson SureColor SC-F100:  • Epson T49N Ink Bott",
+          "chips": [
+            "Price of Yellow Ink",
+            "Maintenance Box"
+          ]
+        },
+        {
+          "turn_number": 3,
+          "user_question": "Yellow",
+          "status": "PASS",
+          "elapsed_sec": 16.427,
+          "source": "route:consumables",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "Certainly! Here are the verified Yellow inks and media compatible with Epson SureColor SC-F100 Subli",
+          "chips": [
+            "View Technical Specifications",
+            "Compare with SC-F500",
+            "Talk to Sales Specialist"
+          ]
+        },
+        {
+          "turn_number": 4,
+          "user_question": "Best selling printers",
+          "status": "PASS",
+          "elapsed_sec": 0.17,
+          "source": "unified:clarify",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "Which supplies or ink colours would you like to review?  • Inks • Media Rolls / Paper • Maintenance ",
+          "chips": [
+            "Inks",
+            "Media Rolls / Paper",
+            "Maintenance Box",
+            "Official Quotation"
+          ]
+        },
+        {
+          "turn_number": 5,
+          "user_question": "I want maintenance box for f100",
+          "status": "PASS",
+          "elapsed_sec": 20.752,
+          "source": "route:product_or_consumable:consumables",
+          "category": "dye_sublimation",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "Certainly! The maintenance box for the Epson SureColor SC-F100 Sublimation Printer is:  • [Epson Mai",
+          "chips": [
+            "Order Consumables",
+            "View SC-F100 Specifications"
+          ]
+        },
+        {
+          "turn_number": 6,
+          "user_question": "Maintenance box",
+          "status": "PASS",
+          "elapsed_sec": 0.165,
+          "source": "unified:answer",
+          "category": "dye_sublimation",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "Here is what the manufacturer specifies:  Epson SureColor SC-F100 Sublimation Printer is an approved",
+          "chips": [
+            "Technical Specifications",
+            "Compatible Consumables",
+            "Official Quotation"
+          ]
+        },
+        {
+          "turn_number": 7,
+          "user_question": "Can you provide scanners",
+          "status": "PASS",
+          "elapsed_sec": 0.187,
+          "source": "unified:clarify",
+          "category": "scanners",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Kepler Tech supplies specialized Epson scanners ranging from museum-grade graphic film units to heav",
+          "chips": [
+            "Fast Sheetfed Business Scanners",
+            "Photo & Fine Art Film Scanners",
+            "Books & Stacks (Hybrid Flatbed+ADF)"
+          ]
+        },
+        {
+          "turn_number": 8,
+          "user_question": "1000",
+          "status": "PASS",
+          "elapsed_sec": 2.835,
+          "source": "unified:clarify",
+          "category": "scanner",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Regarding your operational workflow:  Kepler Tech supplies specialized Epson scanners ranging from m",
+          "chips": [
+            "Fast Sheetfed Business Scanners",
+            "Photo & Fine Art Film Scanners",
+            "Books & Stacks (Hybrid Flatbed+ADF)"
+          ]
+        }
+      ]
+    },
+    {
+      "session_id": "b4bf5025-fc5a-48de-a111-003677320419",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 7,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "hey i want a scanner",
+          "status": "PASS",
+          "elapsed_sec": 0.165,
+          "source": "unified:clarify",
+          "category": "scanners",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Kepler Tech supplies specialized Epson scanners ranging from museum-grade graphic film units to heav",
+          "chips": [
+            "Fast Sheetfed Business Scanners",
+            "Photo & Fine Art Film Scanners",
+            "Books & Stacks (Hybrid Flatbed+ADF)"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "Mostly A4 office documents, invoices, contracts, and forms. We need to scan around 50–100 pages per day",
+          "status": "PASS",
+          "elapsed_sec": 16.845,
+          "source": "recommendation:catalogue_list",
+          "category": "scanner",
+          "awaiting_field": "None",
+          "active_product": "epson-workforce-es-580w",
+          "reply_preview": "Based on your requirements (A4, 75 prints/day, integrated scanner), here are our recommended busines",
+          "chips": [
+            "Compare Matching Models",
+            "View Detailed Specifications",
+            "Filter by Requirements"
+          ]
+        },
+        {
+          "turn_number": 3,
+          "user_question": "i want know the price?",
+          "status": "PASS",
+          "elapsed_sec": 0.168,
+          "source": "unified:answer",
+          "category": "scanner",
+          "awaiting_field": "None",
+          "active_product": "epson-workforce-es-580w",
+          "reply_preview": "Official pricing for the Epson WorkForce WF ES-580W Wireless Touchscreen Document Scanner is provide",
+          "chips": [
+            "Request Official Quote",
+            "Contact Sales Desk",
+            "View Product Page"
+          ]
+        },
+        {
+          "turn_number": 4,
+          "user_question": "its fine, i want buy a printer",
+          "status": "PASS",
+          "elapsed_sec": 0.192,
+          "source": "unified:answer",
+          "category": "scanner",
+          "awaiting_field": "None",
+          "active_product": "epson-workforce-es-580w",
+          "reply_preview": "I note your request for a formal quotation (of scanner). Discounts, formal quotations, and custom co",
+          "chips": [
+            "Leave Phone Number",
+            "Leave Email Address",
+            "Showroom Hours & Location"
+          ]
+        },
+        {
+          "turn_number": 5,
+          "user_question": "its done, i also want a printer",
+          "status": "PASS",
+          "elapsed_sec": 0.173,
+          "source": "unified:clarify",
+          "category": "scanner",
+          "awaiting_field": "None",
+          "active_product": "epson-workforce-es-580w",
+          "reply_preview": "Kepler Tech supplies specialized Epson scanners ranging from museum-grade graphic film units to heav",
+          "chips": [
+            "Fast Sheetfed Business Scanners",
+            "Photo & Fine Art Film Scanners",
+            "Books & Stacks (Hybrid Flatbed+ADF)"
+          ]
+        },
+        {
+          "turn_number": 6,
+          "user_question": "i want ink",
+          "status": "PASS",
+          "elapsed_sec": 0.176,
+          "source": "unified:answer",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "epson-workforce-es-580w",
+          "reply_preview": "Found 0 verified compatible consumables for Epson WorkForce WF ES-580W Wireless Touchscreen Document",
+          "chips": [
+            "Technical Specifications",
+            "Media Rolls",
+            "Official Quotation"
+          ]
+        },
+        {
+          "turn_number": 7,
+          "user_question": "i want to buy ink",
+          "status": "PASS",
+          "elapsed_sec": 0.161,
+          "source": "unified:answer",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "epson-workforce-es-580w",
+          "reply_preview": "Regarding your operational workflow:  Found 0 verified compatible consumables for Epson WorkForce WF",
+          "chips": [
+            "Technical Specifications",
+            "Media Rolls",
+            "Official Quotation"
+          ]
+        }
+      ]
+    },
+    {
+      "session_id": "a8b5fb9f-0ccd-4d82-a0fa-420a232ec05f",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 2,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "i want a ink",
+          "status": "PASS",
+          "elapsed_sec": 0.158,
+          "source": "unified:clarify",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Which printer or scanner model do you need consumables for?  Please enter your model name, or select",
+          "chips": [
+            "Epson SC-F500",
+            "Epson SC-T3100",
+            "Citizen CX-02",
+            "Epson SC-P900"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "f100",
+          "status": "PASS",
+          "elapsed_sec": 11.709,
+          "source": "route:product_or_consumable_disambiguation",
+          "category": "consumables",
+          "awaiting_field": "product_or_consumable",
+          "active_product": null,
+          "reply_preview": "I'd be happy to help with the Epson SureColor SC-F100 Sublimation Printer! Are you looking to purcha",
+          "chips": [
+            "SC-F100 Printer",
+            "SC-F100 Consumables"
+          ]
+        }
+      ]
+    },
+    {
+      "session_id": "e9295759-2ec1-49a9-9951-6d6d6667b6ee",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 2,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "i want ink",
+          "status": "PASS",
+          "elapsed_sec": 0.078,
+          "source": "route:consumables:ask_model",
+          "category": "consumables",
+          "awaiting_field": "consumable_model",
+          "active_product": null,
+          "reply_preview": "Kepler Tech supplies 100% genuine Epson and Citizen inks, ribbons, media rolls, and maintenance boxe",
+          "chips": [
+            "Epson SC-F100",
+            "Citizen CX-02",
+            "Epson SC-T3100",
+            "Epson SC-P900",
+            "WorkForce WF-C878R"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "f100",
+          "status": "PASS",
+          "elapsed_sec": 8.887,
+          "source": "route:product_or_consumable:consumables",
+          "category": "dye_sublimation",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "For the Epson SureColor SC-F100, here are the compatible inks and media:  - Black Ink (C13T49N100): ",
+          "chips": [
+            "Order Consumables",
+            "View SC-F100 Specifications"
+          ]
+        }
+      ]
+    },
+    {
+      "session_id": "a35720f8-8be7-4516-813f-a7ec21a1e8d9",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 2,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "i want to buy a ink",
+          "status": "PASS",
+          "elapsed_sec": 0.158,
+          "source": "unified:clarify",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Which printer or scanner model do you need consumables for?  Please enter your model name, or select",
+          "chips": [
+            "Epson SC-F500",
+            "Epson SC-T3100",
+            "Citizen CX-02",
+            "Epson SC-P900"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "i want to buy a ink",
+          "status": "PASS",
+          "elapsed_sec": 0.177,
+          "source": "unified:answer",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Understood, looking for consumables. To guide you to the ideal model, do you need standard A4 deskto",
+          "chips": [
+            "A4 Output",
+            "A3 Output",
+            "Consult Specialist"
+          ]
+        }
+      ]
+    },
+    {
+      "session_id": "2c34cf11-4669-4392-881f-0e900ebf7e6b",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 5,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "i want to buy a ink",
+          "status": "PASS",
+          "elapsed_sec": 0.161,
+          "source": "unified:clarify",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Which printer or scanner model do you need consumables for?  Please enter your model name, or select",
+          "chips": [
+            "Epson SC-F500",
+            "Epson SC-T3100",
+            "Citizen CX-02",
+            "Epson SC-P900"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "i need ink",
+          "status": "PASS",
+          "elapsed_sec": 0.072,
+          "source": "route:consumables:ask_model",
+          "category": "consumables",
+          "awaiting_field": "consumable_model",
+          "active_product": null,
+          "reply_preview": "Kepler Tech supplies 100% genuine Epson and Citizen inks, ribbons, media rolls, and maintenance boxe",
+          "chips": [
+            "Epson SC-F100",
+            "Citizen CX-02",
+            "Epson SC-T3100",
+            "Epson SC-P900",
+            "WorkForce WF-C878R"
+          ]
+        },
+        {
+          "turn_number": 3,
+          "user_question": "for f1oo",
+          "status": "PASS",
+          "elapsed_sec": 8.617,
+          "source": "route:product_or_consumable:consumables",
+          "category": "dye_sublimation",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "For the Epson SureColor SC-F100, here are the compatible inks and media:  - Black Ink (C13T49N100): ",
+          "chips": [
+            "Order Consumables",
+            "View SC-F100 Specifications"
+          ]
+        },
+        {
+          "turn_number": 4,
+          "user_question": "i want to buy a printer",
+          "status": "PASS",
+          "elapsed_sec": 0.173,
+          "source": "unified:answer",
+          "category": "dye_sublimation",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Understood, looking for dye sublimation. To guide you to the ideal model, do you need standard A4 de",
+          "chips": [
+            "A4 Output",
+            "A3 Output",
+            "Consult Specialist"
+          ]
+        },
+        {
+          "turn_number": 5,
+          "user_question": "i want to buy a ink",
+          "status": "PASS",
+          "elapsed_sec": 0.083,
+          "source": "route:consumables:verified_list",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "Found 7 verified compatible consumables for Epson SureColor SC-F100 Sublimation Printer:  • Epson Ul",
+          "chips": [
+            "Technical Specifications",
+            "Order Supplies"
+          ]
+        }
+      ]
+    },
+    {
+      "session_id": "74f5e61f-64e4-4c06-95d1-4770be49a67d",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 4,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "i want to buy a ink",
+          "status": "PASS",
+          "elapsed_sec": 0.16,
+          "source": "unified:clarify",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Which printer or scanner model do you need consumables for?  Please enter your model name, or select",
+          "chips": [
+            "Epson SC-F500",
+            "Epson SC-T3100",
+            "Citizen CX-02",
+            "Epson SC-P900"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "i need ink",
+          "status": "PASS",
+          "elapsed_sec": 0.07,
+          "source": "route:consumables:ask_model",
+          "category": "consumables",
+          "awaiting_field": "consumable_model",
+          "active_product": null,
+          "reply_preview": "Kepler Tech supplies 100% genuine Epson and Citizen inks, ribbons, media rolls, and maintenance boxe",
+          "chips": [
+            "Epson SC-F100",
+            "Citizen CX-02",
+            "Epson SC-T3100",
+            "Epson SC-P900",
+            "WorkForce WF-C878R"
+          ]
+        },
+        {
+          "turn_number": 3,
+          "user_question": "i want ink for f100",
+          "status": "PASS",
+          "elapsed_sec": 7.523,
+          "source": "route:product_or_consumable:consumables",
+          "category": "dye_sublimation",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "For the Epson SureColor SC-F100 Sublimation Printer, here are the compatible inks and media:  - Blac",
+          "chips": [
+            "Order Consumables",
+            "View SC-F100 Specifications"
+          ]
+        },
+        {
+          "turn_number": 4,
+          "user_question": "magenta",
+          "status": "PASS",
+          "elapsed_sec": 0.158,
+          "source": "unified:not_verified_handoff",
+          "category": "dye_sublimation",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Our sales specialists are available at sales@keplertech.ae or +971 4 323 1008.",
+          "chips": [
+            "Call +971 4 323 1008",
+            "Email sales@keplertech.ae",
+            "Visit Showroom"
+          ]
+        }
+      ]
+    },
+    {
+      "session_id": "a0047dfe-9c03-4524-952e-f46ee8e566fa",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 2,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "Hello I want ink",
+          "status": "PASS",
+          "elapsed_sec": 0.071,
+          "source": "route:consumables:ask_model",
+          "category": "consumables",
+          "awaiting_field": "consumable_model",
+          "active_product": null,
+          "reply_preview": "Kepler Tech supplies 100% genuine Epson and Citizen inks, ribbons, media rolls, and maintenance boxe",
+          "chips": [
+            "Epson SC-F100",
+            "Citizen CX-02",
+            "Epson SC-T3100",
+            "Epson SC-P900",
+            "WorkForce WF-C878R"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "I want ink for f100",
+          "status": "PASS",
+          "elapsed_sec": 8.418,
+          "source": "route:product_or_consumable:consumables",
+          "category": "dye_sublimation",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "For the Epson SureColor SC-F100, here are the compatible inks and media:  - Black Ink Bottle (140ml)",
+          "chips": [
+            "Order Consumables",
+            "View SC-F100 Specifications"
+          ]
+        }
+      ]
+    },
+    {
+      "session_id": "523ca759-f12d-4469-afa7-f41dd4c925c6",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 3,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "Which Citizen printer is the fastest?",
+          "status": "PASS",
+          "elapsed_sec": 0.177,
+          "source": "unified:clarify",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Yes, absolutely.  Citizen dye-sublimation photo printers deliver high-speed, smudge-proof instant pr",
+          "chips": [
+            "4-inch Ultra-Compact (CZ-01)",
+            "6-inch Event Photos (CX-02 / CY-02)",
+            "8-inch Wide Event (CX-02W)"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "Which supports 5×7 printing, CX-02 or CY-02?",
+          "status": "PASS",
+          "elapsed_sec": 0.082,
+          "source": "recommendation:catalogue_list",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": "citizen-cx-02",
+          "reply_preview": "For 6-inch event photo printing (including 6×8″ and 4×6″ formats), both the Citizen CX-02 and Citize",
+          "chips": [
+            "CX02 Yield?",
+            "CY02 Yield?"
+          ]
+        },
+        {
+          "turn_number": 3,
+          "user_question": "Which supports 8×10, CX-02 or CX-02W?",
+          "status": "PASS",
+          "elapsed_sec": 0.079,
+          "source": "recommendation:catalogue_list",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": "citizen-cx-02",
+          "reply_preview": "For 6-inch event photo printing (including 6×8″ and 4×6″ formats), both the Citizen CX-02 and Citize",
+          "chips": [
+            "CX02 Yield?",
+            "CY02 Yield?"
+          ]
+        }
+      ]
+    },
+    {
+      "session_id": "1400351b-a673-4e53-990d-8892a8baad2a",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 2,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "do you sell printers",
+          "status": "PASS",
+          "elapsed_sec": 0.167,
+          "source": "unified:answer",
+          "category": "None",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Yes, absolutely. Kepler Tech LLC is an authorized distributor in the UAE supplying official commerci",
+          "chips": [
+            "Technical CAD Plotters",
+            "Photo & Fine Art",
+            "Citizen Photo Booth",
+            "Office Printers",
+            "Document Scanners"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "i want photo printers",
+          "status": "PASS",
+          "elapsed_sec": 0.167,
+          "source": "unified:clarify",
+          "category": "photography_large_format",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Here is the official specification:  Epson SureColor P-Series printers feature UltraChrome PRO pigme",
+          "chips": [
+            "13″ Desktop (A3+)",
+            "17″ Desktop & Production (A2+)",
+            "24″ Professional Studio",
+            "44″ Professional Gallery",
+            "64″ High-Volume Production"
+          ]
+        }
+      ]
+    },
+    {
+      "session_id": "7e349ece-c891-4812-bc0d-e8200a28c18e",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 3,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "do you provide printers",
+          "status": "PASS",
+          "elapsed_sec": 0.169,
+          "source": "unified:answer",
+          "category": "None",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Yes, absolutely. Kepler Tech LLC is an authorized distributor in the UAE supplying official commerci",
+          "chips": [
+            "Technical CAD Plotters",
+            "Photo & Fine Art",
+            "Citizen Photo Booth",
+            "Office Printers",
+            "Document Scanners"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "25",
+          "status": "PASS",
+          "elapsed_sec": 2.956,
+          "source": "unified:clarify",
+          "category": "None",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "How can I best assist you with Kepler Tech printing equipment?  • Technical CAD Plotters • Professio",
+          "chips": [
+            "Technical CAD Plotters",
+            "Professional Photo & Fine Art",
+            "Citizen Photo Booth / Events",
+            "Dye-Sublimation",
+            "Office Printers"
+          ]
+        },
+        {
+          "turn_number": 3,
+          "user_question": "show another one",
+          "status": "PASS",
+          "elapsed_sec": 1.334,
+          "source": "unified:clarify",
+          "category": "None",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Regarding your operational workflow:  How can I best assist you with Kepler Tech printing equipment?",
+          "chips": [
+            "Technical CAD Plotters",
+            "Professional Photo & Fine Art",
+            "Citizen Photo Booth / Events",
+            "Dye-Sublimation",
+            "Office Printers"
+          ]
+        }
+      ]
+    },
+    {
+      "session_id": "8ad0efff-66a4-4ec3-84dd-9b954c54269d",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 2,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "i want citizen photo printer large",
+          "status": "PASS",
+          "elapsed_sec": 1.371,
+          "source": "unified:clarify",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Here is the breakdown:  Citizen dye-sublimation photo printers deliver high-speed, smudge-proof inst",
+          "chips": [
+            "4-inch Ultra-Compact (CZ-01)",
+            "6-inch Event Photos (CX-02 / CY-02)",
+            "8-inch Wide Event (CX-02W)"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "13 inch",
+          "status": "PASS",
+          "elapsed_sec": 0.16,
+          "source": "unified:clarify",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Moving forward with your request:  Here are the verified details:  Citizen dye-sublimation photo pri",
+          "chips": [
+            "4-inch Ultra-Compact (CZ-01)",
+            "6-inch Event Photos (CX-02 / CY-02)",
+            "8-inch Wide Event (CX-02W)"
+          ]
+        }
+      ]
+    },
+    {
+      "session_id": "aeb030e0-632e-423e-a8df-fdce74765488",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 4,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "\"show me citizen cx-02",
+          "status": "PASS",
+          "elapsed_sec": 0.178,
+          "source": "unified:answer",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": "citizen-cx-02",
+          "reply_preview": "Right away.  Citizen CX-02 is an approved official equipment model in our catalogue. • Print speed: ",
+          "chips": [
+            "Technical Specifications",
+            "Compatible Consumables",
+            "Official Quotation"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "i want to know the price",
+          "status": "PASS",
+          "elapsed_sec": 0.17,
+          "source": "unified:answer",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": "citizen-cx-02",
+          "reply_preview": "The Citizen CX-02 is listed at AED 4,385.00 (excl. VAT).  Official quotations and tax invoices are i",
+          "chips": [
+            "Request Official Quote",
+            "Compatible Consumables",
+            "View Technical Specs"
+          ]
+        },
+        {
+          "turn_number": 3,
+          "user_question": "what is the price?",
+          "status": "PASS",
+          "elapsed_sec": 0.171,
+          "source": "unified:answer",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": "citizen-cx-02",
+          "reply_preview": "Regarding your operational workflow:  The Citizen CX-02 is listed at AED 4,385.00 (excl. VAT).  Offi",
+          "chips": [
+            "Request Official Quote",
+            "Compatible Consumables",
+            "View Technical Specs"
+          ]
+        },
+        {
+          "turn_number": 4,
+          "user_question": "what ink does SC-F100 use?",
+          "status": "PASS",
+          "elapsed_sec": 0.085,
+          "source": "route:consumables:verified_list",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "Here are the verified compatible consumables for the Epson SureColor SC-F100:  • Epson T49N Ink Bott",
+          "chips": [
+            "Price of Yellow Ink",
+            "Maintenance Box"
+          ]
+        }
+      ]
+    },
+    {
+      "session_id": "229dec57-f729-43f1-aac4-7a241d69a970",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 2,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "i want to buy a citizen photo printer",
+          "status": "PASS",
+          "elapsed_sec": 0.177,
+          "source": "unified:clarify",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Here is the breakdown:  Citizen dye-sublimation photo printers deliver high-speed, smudge-proof inst",
+          "chips": [
+            "4-inch Ultra-Compact (CZ-01)",
+            "6-inch Event Photos (CX-02 / CY-02)",
+            "8-inch Wide Event (CX-02W)"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "large",
+          "status": "PASS",
+          "elapsed_sec": 1.188,
+          "source": "unified:out_of_scope_redirect",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "We don't have information about that in our catalogue, but we specialize in official Epson commercia",
+          "chips": [
+            "Technical CAD Plotters",
+            "Photo & Fine Art",
+            "Citizen Photo Booth",
+            "Dye-Sublimation",
+            "Office Printers"
+          ]
+        }
+      ]
+    },
+    {
+      "session_id": "dd69205c-8947-4c1b-9319-25706f30a09a",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 10,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "i want to buy a printer",
+          "status": "PASS",
+          "elapsed_sec": 0.17,
+          "source": "unified:answer",
+          "category": "None",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "I note your request for a formal quotation. Discounts, formal quotations, and custom configurations ",
+          "chips": [
+            "Leave Phone Number",
+            "Leave Email Address",
+            "Showroom Hours & Location"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "20",
+          "status": "PASS",
+          "elapsed_sec": 1.094,
+          "source": "unified:clarify",
+          "category": "None",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "How can I best assist you with Kepler Tech printing equipment?  • Technical CAD Plotters • Professio",
+          "chips": [
+            "Technical CAD Plotters",
+            "Professional Photo & Fine Art",
+            "Citizen Photo Booth / Events",
+            "Dye-Sublimation",
+            "Office Printers"
+          ]
+        },
+        {
+          "turn_number": 3,
+          "user_question": "I need a Citizen printer for 4×6 and 6×8 event photos",
+          "status": "PASS",
+          "elapsed_sec": 0.198,
+          "source": "unified:answer",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": "citizen-cz-01",
+          "reply_preview": "Yes, absolutely.  Citizen CZ-01: Ultra-compact 4-inch dye-sub photo printer weighing only 5.8 kg, id",
+          "chips": [
+            "Citizen CZ-01 Specs",
+            "Media Packs (4x6)",
+            "Official Quotation"
+          ]
+        },
+        {
+          "turn_number": 4,
+          "user_question": "Find a compact printer that provides gloss, matte, and lustre finishes.",
+          "status": "PASS",
+          "elapsed_sec": 0.196,
+          "source": "unified:answer",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": "citizen-cz-01",
+          "reply_preview": "Right away.  Citizen CZ-01 is an approved official equipment model in our catalogue.  Would you like",
+          "chips": [
+            "Technical Specifications",
+            "Compatible Consumables",
+            "Official Quotation"
+          ]
+        },
+        {
+          "turn_number": 5,
+          "user_question": "I print approximately 500 photos at each event. Which model suits me?",
+          "status": "PASS",
+          "elapsed_sec": 0.207,
+          "source": "unified:answer",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": "citizen-cz-01",
+          "reply_preview": "Verified Compact Design: Weighs 5.8Kg (dimensions: 24 × 20.8 × 19.8 cm).  Citizen CZ-01: Ultra-compa",
+          "chips": [
+            "Citizen CZ-01 Specs",
+            "Media Packs (4x6)",
+            "Official Quotation"
+          ]
+        },
+        {
+          "turn_number": 6,
+          "user_question": "i want epson photo printer",
+          "status": "PASS",
+          "elapsed_sec": 0.171,
+          "source": "unified:clarify",
+          "category": "photography_large_format",
+          "awaiting_field": "None",
+          "active_product": "citizen-cz-01",
+          "reply_preview": "Here is what the manufacturer specifies:  Epson SureColor P-Series printers feature UltraChrome PRO ",
+          "chips": [
+            "13″ Desktop (A3+)",
+            "17″ Desktop & Production (A2+)",
+            "24″ Professional Studio",
+            "44″ Professional Gallery",
+            "64″ High-Volume Production"
+          ]
+        },
+        {
+          "turn_number": 7,
+          "user_question": "i wanr f100 ink",
+          "status": "PASS",
+          "elapsed_sec": 0.084,
+          "source": "route:consumables:verified_list",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "Here are the verified compatible consumables for the Epson SureColor SC-F100:  • Epson T49N Ink Bott",
+          "chips": [
+            "Price of Yellow Ink",
+            "Maintenance Box"
+          ]
+        },
+        {
+          "turn_number": 8,
+          "user_question": "i wanr magenta ink",
+          "status": "PASS",
+          "elapsed_sec": 0.082,
+          "source": "route:consumables:verified_list",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "Found 7 verified compatible consumables for Epson SureColor SC-F100 Sublimation Printer:  • Epson Ul",
+          "chips": [
+            "Technical Specifications",
+            "Order Supplies"
+          ]
+        },
+        {
+          "turn_number": 9,
+          "user_question": "f100",
+          "status": "PASS",
+          "elapsed_sec": 11.908,
+          "source": "route:product_or_consumable:consumables",
+          "category": "dye_sublimation",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "Certainly! Here are the compatible inks for your Epson SureColor SC-F100:  - Epson UltraChrome DS Dy",
+          "chips": [
+            "Order Consumables",
+            "View SC-F100 Specifications"
+          ]
+        },
+        {
+          "turn_number": 10,
+          "user_question": "What consumables and media are compatible with Epson SureColor SC-F100 Dye-Sublimation Desktop Printer?",
+          "status": "PASS",
+          "elapsed_sec": 17.535,
+          "source": "compound_request:split_execution",
+          "category": "dye_sublimation",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "The Epson SureColor SC-F100 Dye-Sublimation Desktop Printer uses the following consumables:  - Epson",
+          "chips": []
+        }
+      ]
+    },
+    {
+      "session_id": "f4a41db7-b64d-4817-99a3-512724cb594e",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 5,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "I want the Citizen CX-02",
+          "status": "PASS",
+          "elapsed_sec": 0.178,
+          "source": "unified:answer",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": "citizen-cx-02",
+          "reply_preview": "Here are the verified details:  Citizen CX-02 is an approved official equipment model in our catalog",
+          "chips": [
+            "Technical Specifications",
+            "Compatible Consumables",
+            "Official Quotation"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "Give me the specifications of the CX-02S",
+          "status": "PASS",
+          "elapsed_sec": 0.091,
+          "source": "unified:clarify",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": "citizen-cx-02",
+          "reply_preview": "Did you mean Citizen CX-02 or Citizen CX-02W?",
+          "chips": [
+            "Citizen CX-02",
+            "Citizen CX-02W"
+          ]
+        },
+        {
+          "turn_number": 3,
+          "user_question": "i want magenta ink for f100",
+          "status": "PASS",
+          "elapsed_sec": 0.088,
+          "source": "route:consumables:verified_list",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "Here are the verified compatible consumables for the Epson SureColor SC-F100:  • Epson T49N Ink Bott",
+          "chips": [
+            "Price of Yellow Ink",
+            "Maintenance Box"
+          ]
+        },
+        {
+          "turn_number": 4,
+          "user_question": "do you have green",
+          "status": "PASS",
+          "elapsed_sec": 2.271,
+          "source": "unified:clarify",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "Which supplies or ink colours would you like to review?  • Inks • Media Rolls / Paper • Maintenance ",
+          "chips": [
+            "Inks",
+            "Media Rolls / Paper",
+            "Maintenance Box",
+            "Official Quotation"
+          ]
+        },
+        {
+          "turn_number": 5,
+          "user_question": "what i asked what you giving",
+          "status": "PASS",
+          "elapsed_sec": 0.163,
+          "source": "unified:answer",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "I sincerely apologize for the frustration. Let me connect you directly with a dedicated Kepler Tech ",
+          "chips": [
+            "Speak to Specialist",
+            "Request Call Back",
+            "Restart Inquiry"
+          ]
+        }
+      ]
+    },
+    {
+      "session_id": "796cf99a-264c-4f25-9061-05d0dc4fda93",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 2,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "I need a Citizen printer for 4x6 event photos",
+          "status": "PASS",
+          "elapsed_sec": 0.18,
+          "source": "unified:answer",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": "citizen-cz-01",
+          "reply_preview": "Happy to help with that.  Citizen CZ-01: Ultra-compact 4-inch dye-sub photo printer weighing only 5.",
+          "chips": [
+            "Citizen CZ-01 Specs",
+            "Media Packs (4x6)",
+            "Official Quotation"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "I print approximately 500 photos at each event. Which model suits me?",
+          "status": "PASS",
+          "elapsed_sec": 0.202,
+          "source": "unified:answer",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": "citizen-cz-01",
+          "reply_preview": "Moving forward with your request:  Here are the verified details:  Citizen CZ-01: Ultra-compact 4-in",
+          "chips": [
+            "Citizen CZ-01 Specs",
+            "Media Packs (4x6)",
+            "Official Quotation"
+          ]
+        }
+      ]
+    },
+    {
+      "session_id": "3c1e3e3f-3e84-4d81-b776-a118c3d6c820",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 3,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "i want know about citizen cx-02 printer",
+          "status": "PASS",
+          "elapsed_sec": 0.086,
+          "source": "route:model_detail",
+          "category": "None",
+          "awaiting_field": "None",
+          "active_product": "citizen-cx-02",
+          "reply_preview": "Here are the verified specifications and key features for the Citizen CX-02 (Citizen Photo — Citizen",
+          "chips": [
+            "View Compatible Consumables"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "compare cx02 and CZ01",
+          "status": "PASS",
+          "elapsed_sec": 0.076,
+          "source": "recommendation:catalogue_list",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": "citizen-cx-02",
+          "reply_preview": "For 4×6″ event and photo booth printing, here are our recommended Citizen dye-sublimation printers: ",
+          "chips": [
+            "Cheapest one?",
+            "Compare CX-02 and CZ-01"
+          ]
+        },
+        {
+          "turn_number": 3,
+          "user_question": "i want to buy this",
+          "status": "PASS",
+          "elapsed_sec": 0.169,
+          "source": "unified:answer",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": "citizen-cx-02",
+          "reply_preview": "I note your request for a formal quotation (of Citizen CX-02). Discounts, formal quotations, and cus",
+          "chips": [
+            "Leave Phone Number",
+            "Leave Email Address",
+            "Showroom Hours & Location"
+          ]
+        }
+      ]
+    },
+    {
+      "session_id": "a45ee1a8-0394-486e-8f08-5780da95fdcc",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 4,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "i want to know about photo printers what are the types have",
+          "status": "PASS",
+          "elapsed_sec": 0.18,
+          "source": "unified:clarify",
+          "category": "photography_large_format",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Here are the verified details:  Epson SureColor P-Series printers feature UltraChrome PRO pigment in",
+          "chips": [
+            "13″ Desktop (A3+)",
+            "17″ Desktop & Production (A2+)",
+            "24″ Professional Studio",
+            "44″ Professional Gallery",
+            "64″ High-Volume Production"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "compact",
+          "status": "PASS",
+          "elapsed_sec": 0.164,
+          "source": "unified:clarify",
+          "category": "photography_large_format",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Moving forward with your request:  Good question.  Epson SureColor P-Series printers feature UltraCh",
+          "chips": [
+            "13″ Desktop (A3+)",
+            "17″ Desktop & Production (A2+)",
+            "24″ Professional Studio",
+            "44″ Professional Gallery",
+            "64″ High-Volume Production"
+          ]
+        },
+        {
+          "turn_number": 3,
+          "user_question": "i want Citizen",
+          "status": "PASS",
+          "elapsed_sec": 0.174,
+          "source": "unified:clarify",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Here is what the manufacturer specifies:  Citizen dye-sublimation photo printers deliver high-speed,",
+          "chips": [
+            "4-inch Ultra-Compact (CZ-01)",
+            "6-inch Event Photos (CX-02 / CY-02)",
+            "8-inch Wide Event (CX-02W)"
+          ]
+        },
+        {
+          "turn_number": 4,
+          "user_question": "What consumables and media are compatible with Citizen CX-02 Compact Dye-Sublimation Photo Printer?",
+          "status": "PASS",
+          "elapsed_sec": 13.347,
+          "source": "compound_request:split_execution",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": "citizen-cx-02",
+          "reply_preview": "The Citizen CX-02 uses Thermal Dye-Sublimation technology with Ribbon-Save Rewind & Glossy/Matte Con",
+          "chips": []
+        }
+      ]
+    },
+    {
+      "session_id": "30322807-4de6-4faf-a83f-b3c2d71dc889",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 3,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "i want to buy a printer",
+          "status": "PASS",
+          "elapsed_sec": 0.166,
+          "source": "unified:answer",
+          "category": "None",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "I note your request for a formal quotation. Discounts, formal quotations, and custom configurations ",
+          "chips": [
+            "Leave Phone Number",
+            "Leave Email Address",
+            "Showroom Hours & Location"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "event photos",
+          "status": "PASS",
+          "elapsed_sec": 0.163,
+          "source": "unified:clarify",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Here is what the manufacturer specifies:  Citizen dye-sublimation photo printers deliver high-speed,",
+          "chips": [
+            "4-inch Ultra-Compact (CZ-01)",
+            "6-inch Event Photos (CX-02 / CY-02)",
+            "8-inch Wide Event (CX-02W)"
+          ]
+        },
+        {
+          "turn_number": 3,
+          "user_question": "large",
+          "status": "PASS",
+          "elapsed_sec": 1.997,
+          "source": "unified:out_of_scope_redirect",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "We don't have information about that in our catalogue, but we specialize in official Epson commercia",
+          "chips": [
+            "Technical CAD Plotters",
+            "Photo & Fine Art",
+            "Citizen Photo Booth",
+            "Dye-Sublimation",
+            "Office Printers"
+          ]
+        }
+      ]
+    },
+    {
+      "session_id": "c069cb02-e9ad-4b7b-8cec-f3f8e611c5c1",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 4,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "i need a printer",
+          "status": "PASS",
+          "elapsed_sec": 0.167,
+          "source": "unified:clarify",
+          "category": "None",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Which printing application fits your requirements?  • Technical CAD Plotters • Professional Photo & ",
+          "chips": [
+            "Technical CAD Plotters",
+            "Professional Photo & Fine Art",
+            "Citizen Photo Booth / Events",
+            "Dye-Sublimation",
+            "Office Printers"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "for event photos",
+          "status": "PASS",
+          "elapsed_sec": 0.165,
+          "source": "unified:clarify",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Here is the official specification:  Citizen dye-sublimation photo printers deliver high-speed, smud",
+          "chips": [
+            "4-inch Ultra-Compact (CZ-01)",
+            "6-inch Event Photos (CX-02 / CY-02)",
+            "8-inch Wide Event (CX-02W)"
+          ]
+        },
+        {
+          "turn_number": 3,
+          "user_question": "i want large",
+          "status": "PASS",
+          "elapsed_sec": 0.166,
+          "source": "unified:clarify",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Regarding your operational workflow:  Understood.  Citizen dye-sublimation photo printers deliver hi",
+          "chips": [
+            "4-inch Ultra-Compact (CZ-01)",
+            "6-inch Event Photos (CX-02 / CY-02)",
+            "8-inch Wide Event (CX-02W)"
+          ]
+        },
+        {
+          "turn_number": 4,
+          "user_question": "do you have any other one",
+          "status": "PASS",
+          "elapsed_sec": 1.34,
+          "source": "unified:not_verified_handoff",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "I want to make sure you get the right answer. Our sales specialist can help directly at sales@kepler",
+          "chips": [
+            "Connect with Sales Specialist",
+            "Official Quotation",
+            "Browse Products"
+          ]
+        }
+      ]
+    },
+    {
+      "session_id": "d7cf725b-61ac-4e46-8a14-63cbd6375bc1",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 3,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "i want Citizen large photo printer",
+          "status": "PASS",
+          "elapsed_sec": 1.338,
+          "source": "unified:clarify",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Here is the breakdown:  Citizen dye-sublimation photo printers deliver high-speed, smudge-proof inst",
+          "chips": [
+            "4-inch Ultra-Compact (CZ-01)",
+            "6-inch Event Photos (CX-02 / CY-02)",
+            "8-inch Wide Event (CX-02W)"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "8x12",
+          "status": "PASS",
+          "elapsed_sec": 0.076,
+          "source": "recommendation:catalogue_list",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": "citizen-cx-02w",
+          "reply_preview": "For 8-inch wide event and portrait photography, here is our recommended Citizen dye-sublimation prin",
+          "chips": [
+            "CX-02W Media Packs",
+            "Print Speed"
+          ]
+        },
+        {
+          "turn_number": 3,
+          "user_question": "oky fine ineed another printer",
+          "status": "PASS",
+          "elapsed_sec": 0.179,
+          "source": "unified:clarify",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": "citizen-cx-02w",
+          "reply_preview": "Regarding your operational workflow:  Understood.  Citizen dye-sublimation photo printers deliver hi",
+          "chips": [
+            "4-inch Ultra-Compact (CZ-01)",
+            "6-inch Event Photos (CX-02 / CY-02)",
+            "8-inch Wide Event (CX-02W)"
+          ]
+        }
+      ]
+    },
+    {
+      "session_id": "ca4ca5f9-f650-4c1d-9c91-449a0db714b4",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 4,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "i want f100",
+          "status": "PASS",
+          "elapsed_sec": 0.157,
+          "source": "unified:answer",
+          "category": "None",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "Understood.  Epson SureColor SC-F100 Sublimation Printer is an approved official equipment model in ",
+          "chips": [
+            "Technical Specifications",
+            "Compatible Consumables",
+            "Official Quotation"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "What consumables and media are compatible with Epson SureColor SC-F100 Dye-Sublimation Desktop Printer?",
+          "status": "PASS",
+          "elapsed_sec": 22.807,
+          "source": "compound_request:split_execution",
+          "category": "None",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "The Epson SureColor SC-F100 Dye-Sublimation Desktop Printer uses Epson UltraChrome DS Dye-Sublimatio",
+          "chips": []
+        },
+        {
+          "turn_number": 3,
+          "user_question": "i want black only",
+          "status": "PASS",
+          "elapsed_sec": 0.167,
+          "source": "unified:answer",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "Found 7 verified compatible consumables for Epson SureColor SC-F100 Sublimation Printer.  Would you ",
+          "chips": [
+            "Technical Specifications",
+            "Media Rolls",
+            "Official Quotation"
+          ]
+        },
+        {
+          "turn_number": 4,
+          "user_question": "i want brochure of f100",
+          "status": "PASS",
+          "elapsed_sec": 9.689,
+          "source": "route:brochure_request",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "You can review the official technical specifications and product datasheet for the Epson SureColor S",
+          "chips": []
+        }
+      ]
+    },
+    {
+      "session_id": "a02abdbd-3635-4315-a8fe-0fb0eadebc67",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 3,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "I want to buy a printer",
+          "status": "PASS",
+          "elapsed_sec": 0.169,
+          "source": "unified:answer",
+          "category": "None",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "I note your request for a formal quotation. Discounts, formal quotations, and custom configurations ",
+          "chips": [
+            "Leave Phone Number",
+            "Leave Email Address",
+            "Showroom Hours & Location"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "I want office use printer",
+          "status": "PASS",
+          "elapsed_sec": 0.165,
+          "source": "unified:clarify",
+          "category": "office_printer",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Kepler Tech provides Epson WorkForce Heat-Free printers in both compact A4 desktop workgroup and hig",
+          "chips": [
+            "A4 Output",
+            "A3 Output"
+          ]
+        },
+        {
+          "turn_number": 3,
+          "user_question": "40 to 50 pages per day",
+          "status": "PASS",
+          "elapsed_sec": 0.175,
+          "source": "unified:clarify",
+          "category": "office_printer",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Regarding your operational workflow:  Kepler Tech provides Epson WorkForce Heat-Free printers in bot",
+          "chips": [
+            "A4 Output",
+            "A3 Output"
+          ]
+        }
+      ]
+    },
+    {
+      "session_id": "c8f84a64-d1b2-4a33-a3f1-fddba7cc2e23",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 6,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "I want ink for f100",
+          "status": "PASS",
+          "elapsed_sec": 0.086,
+          "source": "route:consumables:verified_list",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "Here are the verified compatible consumables for the Epson SureColor SC-F100:  • Epson T49N Ink Bott",
+          "chips": [
+            "Price of Yellow Ink",
+            "Maintenance Box"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "What",
+          "status": "PASS",
+          "elapsed_sec": 0.169,
+          "source": "unified:answer",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "Good question.  Epson SureColor SC-F100 Sublimation Printer is an approved official equipment model ",
+          "chips": [
+            "Technical Specifications",
+            "Compatible Consumables",
+            "Official Quotation"
+          ]
+        },
+        {
+          "turn_number": 3,
+          "user_question": "I want ink for f100",
+          "status": "PASS",
+          "elapsed_sec": 18.789,
+          "source": "route:product_or_consumable:consumables",
+          "category": "dye_sublimation",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "For the Epson SureColor SC-F100 Sublimation Printer, here are the compatible inks:  - Epson Dye Subl",
+          "chips": [
+            "Order Consumables",
+            "View SC-F100 Specifications"
+          ]
+        },
+        {
+          "turn_number": 4,
+          "user_question": "It’s fine , now I want a buy a printer",
+          "status": "PASS",
+          "elapsed_sec": 0.177,
+          "source": "unified:answer",
+          "category": "dye_sublimation",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "To help guide you to the right system:  Here is the breakdown:  Epson SureColor SC-F100 Sublimation ",
+          "chips": [
+            "Technical Specifications",
+            "Compatible Consumables",
+            "Official Quotation"
+          ]
+        },
+        {
+          "turn_number": 5,
+          "user_question": "I want office type",
+          "status": "PASS",
+          "elapsed_sec": 0.184,
+          "source": "unified:clarify",
+          "category": "office_printer",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "What daily page volume and paper size (A4 vs A3) do you require for your office?  • A4 WorkForce Pro",
+          "chips": [
+            "A4 WorkForce Pro",
+            "A3 Departmental RIPS",
+            "Enterprise Line-Head",
+            "Official Quotation"
+          ]
+        },
+        {
+          "turn_number": 6,
+          "user_question": "It’s 200 to 300 pages per day",
+          "status": "PASS",
+          "elapsed_sec": 0.09,
+          "source": "qualification:next_question",
+          "category": "office_printer",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "What maximum document size do you need—standard A4 or large A3?",
+          "chips": []
+        }
+      ]
+    },
+    {
+      "session_id": "8953ec1e-514e-4fb6-a764-9ddab15f4852",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 16,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "i want buy a printer",
+          "status": "PASS",
+          "elapsed_sec": 0.172,
+          "source": "unified:answer",
+          "category": "None",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "I note your request for a formal quotation. Discounts, formal quotations, and custom configurations ",
+          "chips": [
+            "Leave Phone Number",
+            "Leave Email Address",
+            "Showroom Hours & Location"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "i want ink for f100",
+          "status": "PASS",
+          "elapsed_sec": 0.094,
+          "source": "route:consumables:verified_list",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "Here are the verified compatible consumables for the Epson SureColor SC-F100:  • Epson T49N Ink Bott",
+          "chips": [
+            "Price of Yellow Ink",
+            "Maintenance Box"
+          ]
+        },
+        {
+          "turn_number": 3,
+          "user_question": "i want green",
+          "status": "PASS",
+          "elapsed_sec": 0.163,
+          "source": "unified:clarify",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "Which supplies or ink colours would you like to review?  • Inks • Media Rolls / Paper • Maintenance ",
+          "chips": [
+            "Inks",
+            "Media Rolls / Paper",
+            "Maintenance Box",
+            "Official Quotation"
+          ]
+        },
+        {
+          "turn_number": 4,
+          "user_question": "okey so i want yellow",
+          "status": "PASS",
+          "elapsed_sec": 16.547,
+          "source": "route:consumables",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "Certainly! Here are the verified Yellow inks and media compatible with Epson SureColor SC-F100 Subli",
+          "chips": [
+            "View Technical Specifications",
+            "Compare with SC-F500",
+            "Talk to Sales Specialist"
+          ]
+        },
+        {
+          "turn_number": 5,
+          "user_question": "okey fine now i want to buy a printer",
+          "status": "PASS",
+          "elapsed_sec": 0.188,
+          "source": "unified:answer",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "I note your request for a formal quotation (of Epson SureColor SC-F100 Sublimation Printer). Discoun",
+          "chips": [
+            "Leave Phone Number",
+            "Leave Email Address",
+            "Showroom Hours & Location"
+          ]
+        },
+        {
+          "turn_number": 6,
+          "user_question": "i want tecnical drwings",
+          "status": "PASS",
+          "elapsed_sec": 0.171,
+          "source": "unified:clarify",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "Which supplies or ink colours would you like to review?  • Inks • Media Rolls / Paper • Maintenance ",
+          "chips": [
+            "Inks",
+            "Media Rolls / Paper",
+            "Maintenance Box",
+            "Official Quotation"
+          ]
+        },
+        {
+          "turn_number": 7,
+          "user_question": "large",
+          "status": "PASS",
+          "elapsed_sec": 2.606,
+          "source": "unified:out_of_scope_redirect",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "We don't have information about that in our catalogue, but we specialize in official Epson commercia",
+          "chips": [
+            "Technical CAD Plotters",
+            "Photo & Fine Art",
+            "Citizen Photo Booth",
+            "Dye-Sublimation",
+            "Office Printers"
+          ]
+        },
+        {
+          "turn_number": 8,
+          "user_question": "scanning only",
+          "status": "PASS",
+          "elapsed_sec": 1.344,
+          "source": "unified:clarify",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "Regarding your operational workflow:  Which supplies or ink colours would you like to review?  • Ink",
+          "chips": [
+            "Inks",
+            "Media Rolls / Paper",
+            "Maintenance Box",
+            "Official Quotation"
+          ]
+        },
+        {
+          "turn_number": 9,
+          "user_question": "another one",
+          "status": "PASS",
+          "elapsed_sec": 1.158,
+          "source": "unified:answer",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f100",
+          "reply_preview": "Understood! Would you like to proceed with an official quotation or delivery details for the Epson S",
+          "chips": [
+            "Request Official Quote",
+            "Delivery Details",
+            "Technical Specifications",
+            "View Other Models"
+          ]
+        },
+        {
+          "turn_number": 10,
+          "user_question": "okey fine do you have photo printer?",
+          "status": "PASS",
+          "elapsed_sec": 0.173,
+          "source": "unified:clarify",
+          "category": "photography_large_format",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Here are the verified details:  Epson SureColor P-Series printers feature UltraChrome PRO pigment in",
+          "chips": [
+            "13″ Desktop (A3+)",
+            "17″ Desktop & Production (A2+)",
+            "24″ Professional Studio",
+            "44″ Professional Gallery",
+            "64″ High-Volume Production"
+          ]
+        },
+        {
+          "turn_number": 11,
+          "user_question": "compact",
+          "status": "PASS",
+          "elapsed_sec": 0.171,
+          "source": "unified:clarify",
+          "category": "photography_large_format",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Moving forward with your request:  Right away.  Epson SureColor P-Series printers feature UltraChrom",
+          "chips": [
+            "13″ Desktop (A3+)",
+            "17″ Desktop & Production (A2+)",
+            "24″ Professional Studio",
+            "44″ Professional Gallery",
+            "64″ High-Volume Production"
+          ]
+        },
+        {
+          "turn_number": 12,
+          "user_question": "sorry i want large format",
+          "status": "PASS",
+          "elapsed_sec": 0.175,
+          "source": "unified:answer",
+          "category": "photography_large_format",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-p900",
+          "reply_preview": "Verified Format Handling: Engineered for 17-inch, A2, A3+, A3, A4, 8x10, 8x12 media.  Epson SureColo",
+          "chips": [
+            "SC-P900 Specs",
+            "Inks & Media",
+            "Official Quotation"
+          ]
+        },
+        {
+          "turn_number": 13,
+          "user_question": "are you sure you give large and compact listed same printers check it",
+          "status": "PASS",
+          "elapsed_sec": 0.194,
+          "source": "unified:answer",
+          "category": "photography_large_format",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-p900",
+          "reply_preview": "Here is the breakdown:  Epson SureColor SC-P900 is an approved official equipment model in our catal",
+          "chips": [
+            "Technical Specifications",
+            "Compatible Consumables",
+            "Official Quotation"
+          ]
+        },
+        {
+          "turn_number": 14,
+          "user_question": "i want large priner",
+          "status": "PASS",
+          "elapsed_sec": 0.171,
+          "source": "unified:clarify",
+          "category": "photography_large_format",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-p900",
+          "reply_preview": "What format or print width do you require for photo and fine art reproduction?  • 13″–17″ Desktop • ",
+          "chips": [
+            "13″–17″ Desktop",
+            "24″ Production",
+            "44″ Gallery",
+            "12-Colour Proofing"
+          ]
+        },
+        {
+          "turn_number": 15,
+          "user_question": "do you provide Citizen",
+          "status": "PASS",
+          "elapsed_sec": 0.185,
+          "source": "unified:clarify",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Here is what the manufacturer specifies:  Citizen dye-sublimation photo printers deliver high-speed,",
+          "chips": [
+            "4-inch Ultra-Compact (CZ-01)",
+            "6-inch Event Photos (CX-02 / CY-02)",
+            "8-inch Wide Event (CX-02W)"
+          ]
+        },
+        {
+          "turn_number": 16,
+          "user_question": "What consumables and media are compatible with Citizen CY-02 High-Capacity Dye-Sublimation Photo Printer?",
+          "status": "PASS",
+          "elapsed_sec": 19.161,
+          "source": "compound_request:split_execution",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": "citizen-cy-02",
+          "reply_preview": "The Citizen CY-02 uses Thermal Dye-Sublimation with Commercial Overcoat Protection. The compatible s",
+          "chips": []
+        }
+      ]
+    },
+    {
+      "session_id": "e2c44182-7d16-4eaa-9703-6584a46b7614",
+      "customer_name": "Anonymous Customer",
+      "turns_count": 33,
+      "passed": true,
+      "turn_logs": [
+        {
+          "turn_number": 1,
+          "user_question": "I need a printer",
+          "status": "PASS",
+          "elapsed_sec": 0.2,
+          "source": "unified:clarify",
+          "category": "None",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Which printing application fits your requirements?  • Technical CAD Plotters • Professional Photo & ",
+          "chips": [
+            "Technical CAD Plotters",
+            "Professional Photo & Fine Art",
+            "Citizen Photo Booth / Events",
+            "Dye-Sublimation",
+            "Office Printers"
+          ]
+        },
+        {
+          "turn_number": 2,
+          "user_question": "office printer",
+          "status": "PASS",
+          "elapsed_sec": 0.087,
+          "source": "qualification:category_prompt",
+          "category": "office_printer",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Understood! For business and office environments, Kepler Tech supplies Epson WorkForce Pro and Enter",
+          "chips": [
+            "A4 Output",
+            "A3 Output",
+            "< 100 pages/day",
+            "100–500 pages/day"
+          ]
+        },
+        {
+          "turn_number": 3,
+          "user_question": "150",
+          "status": "PASS",
+          "elapsed_sec": 1.993,
+          "source": "unified:clarify",
+          "category": "office_printer",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Kepler Tech provides Epson WorkForce Heat-Free printers in both compact A4 desktop workgroup and hig",
+          "chips": [
+            "A4 Output",
+            "A3 Output"
+          ]
+        },
+        {
+          "turn_number": 4,
+          "user_question": "I need A3 machine",
+          "status": "PASS",
+          "elapsed_sec": 0.194,
+          "source": "unified:answer",
+          "category": "office_printer",
+          "awaiting_field": "None",
+          "active_product": "epson-wf-c878r-dwf",
+          "reply_preview": "Verified Format Handling: Engineered for A4, A3, A3+, Letter, Legal, Tabloid media.  Epson WorkForce",
+          "chips": [
+            "WF-C878R DWF",
+            "WF-C879R DWF",
+            "RIPS Inks",
+            "Official Quotation"
+          ]
+        },
+        {
+          "turn_number": 5,
+          "user_question": "I need Epson 878R",
+          "status": "PASS",
+          "elapsed_sec": 0.096,
+          "source": "unified:clarify",
+          "category": "office_printer",
+          "awaiting_field": "None",
+          "active_product": "epson-wf-c878r-dwf",
+          "reply_preview": "Did you mean Epson WorkForce Pro WF-C878R DWF or Epson WorkForce Pro WF-C879R DWF?",
+          "chips": [
+            "Epson WorkForce Pro WF-C878R DWF",
+            "Epson WorkForce Pro WF-C879R DWF"
+          ]
+        },
+        {
+          "turn_number": 6,
+          "user_question": "List out all A3 office printers",
+          "status": "PASS",
+          "elapsed_sec": 0.192,
+          "source": "unified:answer",
+          "category": "office_printer",
+          "awaiting_field": "None",
+          "active_product": "epson-wf-c878r-dwf",
+          "reply_preview": "Moving forward with your request:  Verified Format Handling: Engineered for A4, A3, A3+, Letter, Leg",
+          "chips": [
+            "WF-C878R DWF",
+            "WF-C879R DWF",
+            "RIPS Inks",
+            "Official Quotation"
+          ]
+        },
+        {
+          "turn_number": 7,
+          "user_question": "I need a photo printer",
+          "status": "PASS",
+          "elapsed_sec": 0.177,
+          "source": "unified:clarify",
+          "category": "photography_large_format",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Good question.  Epson SureColor P-Series printers feature UltraChrome PRO pigment inksets, dedicated",
+          "chips": [
+            "13″ Desktop (A3+)",
+            "17″ Desktop & Production (A2+)",
+            "24″ Professional Studio",
+            "44″ Professional Gallery",
+            "64″ High-Volume Production"
+          ]
+        },
+        {
+          "turn_number": 8,
+          "user_question": "for photo studio",
+          "status": "PASS",
+          "elapsed_sec": 0.182,
+          "source": "unified:clarify",
+          "category": "photography_large_format",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "To help guide you to the right system:  Here are the verified details:  Epson SureColor P-Series pri",
+          "chips": [
+            "13″ Desktop (A3+)",
+            "17″ Desktop & Production (A2+)",
+            "24″ Professional Studio",
+            "44″ Professional Gallery",
+            "64″ High-Volume Production"
+          ]
+        },
+        {
+          "turn_number": 9,
+          "user_question": "dye-sublimation",
+          "status": "PASS",
+          "elapsed_sec": 0.097,
+          "source": "qualification:category_prompt",
+          "category": "dye_sublimation",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Understood! For heat transfer and dye-sublimation printing on apparel, textiles, and promotional ite",
+          "chips": [
+            "A4 Desktop (SC-F100)",
+            "24″ Roll Apparel (SC-F500)",
+            "Sublimation Inks & Paper"
+          ]
+        },
+        {
+          "turn_number": 10,
+          "user_question": "list all available",
+          "status": "PASS",
+          "elapsed_sec": 1.337,
+          "source": "unified:clarify",
+          "category": "dye_sublimation",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Choose between compact A4 desktop gift printing (SC-F100) or 24-inch roll production for apparel and",
+          "chips": [
+            "A4 Desktop Gifts (SC-F100)",
+            "24-inch Roll Apparel (SC-F500)"
+          ]
+        },
+        {
+          "turn_number": 11,
+          "user_question": "6x8",
+          "status": "PASS",
+          "elapsed_sec": 0.171,
+          "source": "unified:clarify",
+          "category": "dye_sublimation",
+          "awaiting_field": "None",
+          "active_product": null,
+          "reply_preview": "Regarding your operational workflow:  Choose between compact A4 desktop gift printing (SC-F100) or 2",
+          "chips": [
+            "A4 Desktop Gifts (SC-F100)",
+            "24-inch Roll Apparel (SC-F500)"
+          ]
+        },
+        {
+          "turn_number": 12,
+          "user_question": "compare CX02 with CY02",
+          "status": "PASS",
+          "elapsed_sec": 0.088,
+          "source": "route:model_detail",
+          "category": "dye_sublimation",
+          "awaiting_field": "None",
+          "active_product": "citizen-cx-02",
+          "reply_preview": "Here are the verified specifications and key features for the Citizen CX-02 (Citizen Photo — Citizen",
+          "chips": [
+            "View Compatible Consumables"
+          ]
+        },
+        {
+          "turn_number": 13,
+          "user_question": "which gives more prints per roll?",
+          "status": "PASS",
+          "elapsed_sec": 0.177,
+          "source": "unified:answer",
+          "category": "dye_sublimation",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-f500",
+          "reply_preview": "Right away.  Epson SureColor SC-F500: 24-inch desktop roll dye-sublimation printer with refillable i",
+          "chips": [
+            "SC-F500 Specs",
+            "140ml Ink Bottles (T49N)",
+            "Sublimation Media",
+            "Official Quotation"
+          ]
+        },
+        {
+          "turn_number": 14,
+          "user_question": "what are the consumables for CY02",
+          "status": "PASS",
+          "elapsed_sec": 0.096,
+          "source": "route:consumables:verified_list",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "citizen-cy-02",
+          "reply_preview": "Here are the genuine consumables for the Citizen CY-02:  • Citizen CY-MS46 4×6″ Media Set (CY-MS46) ",
+          "chips": [
+            "Price of Yellow Ink",
+            "Maintenance Box"
+          ]
+        },
+        {
+          "turn_number": 15,
+          "user_question": "do u have bag for this?",
+          "status": "PASS",
+          "elapsed_sec": 0.181,
+          "source": "unified:answer",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "citizen-cy-02",
+          "reply_preview": "Let's look at the specifications:  Citizen CY-02 is an approved official equipment model in our cata",
+          "chips": [
+            "Technical Specifications",
+            "Compatible Consumables",
+            "Official Quotation"
+          ]
+        },
+        {
+          "turn_number": 16,
+          "user_question": "I need ink",
+          "status": "PASS",
+          "elapsed_sec": 0.097,
+          "source": "route:consumables:verified_list",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "citizen-cy-02",
+          "reply_preview": "Found 4 verified compatible consumables for Citizen CY-02:  • Citizen CY-MS46 4×6″ Media Set (CY-MS4",
+          "chips": [
+            "Technical Specifications",
+            "Order Supplies"
+          ]
+        },
+        {
+          "turn_number": 17,
+          "user_question": "878r",
+          "status": "PASS",
+          "elapsed_sec": 0.095,
+          "source": "unified:clarify",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "citizen-cy-02",
+          "reply_preview": "Did you mean Epson WorkForce Pro WF-C878R DWF or Epson WorkForce Pro WF-C879R DWF?",
+          "chips": [
+            "Epson WorkForce Pro WF-C878R DWF",
+            "Epson WorkForce Pro WF-C879R DWF"
+          ]
+        },
+        {
+          "turn_number": 18,
+          "user_question": "ink for SC-T5100",
+          "status": "PASS",
+          "elapsed_sec": 19.776,
+          "source": "route:product_or_consumable:consumables",
+          "category": "technical_large_format",
+          "awaiting_field": "None",
+          "active_product": "citizen-cy-02",
+          "reply_preview": "For the Epson SureColor SC-T5100, here are some compatible inks and media:  - Epson UltraChrome XD2 ",
+          "chips": [
+            "Order Consumables",
+            "View SC-T5100 Specifications"
+          ]
+        },
+        {
+          "turn_number": 19,
+          "user_question": "i need ink",
+          "status": "PASS",
+          "elapsed_sec": 0.084,
+          "source": "route:consumables:verified_list",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "citizen-cy-02",
+          "reply_preview": "Found 4 verified compatible consumables for Citizen CY-02:  • Citizen CY-MS46 4×6″ Media Set (CY-MS4",
+          "chips": [
+            "Technical Specifications",
+            "Order Supplies"
+          ]
+        },
+        {
+          "turn_number": 20,
+          "user_question": "I need ink",
+          "status": "PASS",
+          "elapsed_sec": 0.107,
+          "source": "route:consumables:verified_list",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "citizen-cy-02",
+          "reply_preview": "Found 4 verified compatible consumables for Citizen CY-02:  • Citizen CY-MS46 4×6″ Media Set (CY-MS4",
+          "chips": [
+            "Technical Specifications",
+            "Order Supplies"
+          ]
+        },
+        {
+          "turn_number": 21,
+          "user_question": "p900",
+          "status": "PASS",
+          "elapsed_sec": 16.724,
+          "source": "route:product_or_consumable:consumables",
+          "category": "photography_and_fine_art",
+          "awaiting_field": "None",
+          "active_product": "citizen-cy-02",
+          "reply_preview": "For the Epson SureColor SC-P900, here are some compatible inks and media:  - Maintenance Box (SC-P70",
+          "chips": [
+            "Order Consumables",
+            "View SC-P900 Specifications"
+          ]
+        },
+        {
+          "turn_number": 22,
+          "user_question": "i need ink t47a",
+          "status": "PASS",
+          "elapsed_sec": 0.088,
+          "source": "route:consumables:verified_list",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "citizen-cy-02",
+          "reply_preview": "Found 4 verified compatible consumables for Citizen CY-02:  • Citizen CY-MS46 4×6″ Media Set (CY-MS4",
+          "chips": [
+            "Technical Specifications",
+            "Order Supplies"
+          ]
+        },
+        {
+          "turn_number": 23,
+          "user_question": "i need t47a",
+          "status": "PASS",
+          "elapsed_sec": 0.182,
+          "source": "unified:answer",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "citizen-cy-02",
+          "reply_preview": "The t47a is not in our approved equipment catalogue. We specialize in authorized Epson and Citizen p",
+          "chips": [
+            "Official Quotation",
+            "Speak to Specialist"
+          ]
+        },
+        {
+          "turn_number": 24,
+          "user_question": "cyan",
+          "status": "PASS",
+          "elapsed_sec": 18.033,
+          "source": "route:consumables",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "citizen-cy-02",
+          "reply_preview": "Certainly! Here are the verified Cyan inks and media compatible with Citizen CY-02:  • [Citizen CY-M",
+          "chips": [
+            "View Technical Specifications",
+            "Compare Matching Models",
+            "Talk to Sales Specialist"
+          ]
+        },
+        {
+          "turn_number": 25,
+          "user_question": "I need cx02 media",
+          "status": "PASS",
+          "elapsed_sec": 0.087,
+          "source": "recommendation:catalogue_list",
+          "category": "citizen_photo",
+          "awaiting_field": "None",
+          "active_product": "citizen-cy-02",
+          "reply_preview": "For 6-inch event photo printing (including 6×8″ and 4×6″ formats), both the Citizen CX-02 and Citize",
+          "chips": [
+            "CX02 Yield?",
+            "CY02 Yield?"
+          ]
+        },
+        {
+          "turn_number": 26,
+          "user_question": "I need ink",
+          "status": "PASS",
+          "elapsed_sec": 0.091,
+          "source": "route:consumables:verified_list",
+          "category": "consumables",
+          "awaiting_field": "None",
+          "active_product": "citizen-cy-02",
+          "reply_preview": "Found 4 verified compatible consumables for Citizen CY-02:  • Citizen CY-MS46 4×6″ Media Set (CY-MS4",
+          "chips": [
+            "Technical Specifications",
+            "Order Supplies"
+          ]
+        },
+        {
+          "turn_number": 27,
+          "user_question": "Do you have epson p900?",
+          "status": "PASS",
+          "elapsed_sec": 22.984,
+          "source": "route:product_or_consumable:consumables",
+          "category": "photography_and_fine_art",
+          "awaiting_field": "None",
+          "active_product": "citizen-cy-02",
+          "reply_preview": "Certainly! Here are the official compatible inks and media for the Epson SureColor P900:  - Epson Ma",
+          "chips": [
+            "Order Consumables",
+            "View SC-P900 Specifications"
+          ]
+        },
+        {
+          "turn_number": 28,
+          "user_question": "i need printer",
+          "status": "PASS",
+          "elapsed_sec": 0.177,
+          "source": "unified:clarify",
+          "category": "photography_and_fine_art",
+          "awaiting_field": "None",
+          "active_product": "citizen-cy-02",
+          "reply_preview": "Which supplies or ink colours would you like to review?  • Inks • Media Rolls / Paper • Maintenance ",
+          "chips": [
+            "Inks",
+            "Media Rolls / Paper",
+            "Maintenance Box",
+            "Official Quotation"
+          ]
+        },
+        {
+          "turn_number": 29,
+          "user_question": "p900 printer",
+          "status": "PASS",
+          "elapsed_sec": 0.096,
+          "source": "route:model_detail",
+          "category": "photography_and_fine_art",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-p900",
+          "reply_preview": "Here are the verified specifications and key features for the Epson SureColor SC-P900 (Photography A",
+          "chips": [
+            "View Compatible Consumables"
+          ]
+        },
+        {
+          "turn_number": 30,
+          "user_question": "p900",
+          "status": "PASS",
+          "elapsed_sec": 16.947,
+          "source": "route:product_or_consumable:consumables",
+          "category": "photography_and_fine_art",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-p900",
+          "reply_preview": "Got it — you’re interested in the Epson SureColor SC-P900. Here are some compatible consumables:  - ",
+          "chips": [
+            "Order Consumables",
+            "View SC-P900 Specifications"
+          ]
+        },
+        {
+          "turn_number": 31,
+          "user_question": "epson surecolor sc-p900",
+          "status": "PASS",
+          "elapsed_sec": 17.349,
+          "source": "route:product_or_consumable:consumables",
+          "category": "photography_and_fine_art",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-p900",
+          "reply_preview": "Here are the compatible consumables for your Epson SureColor SC-P900:  - Maintenance Box: SKU: C12C9",
+          "chips": [
+            "Order Consumables",
+            "View SC-P900 Specifications"
+          ]
+        },
+        {
+          "turn_number": 32,
+          "user_question": "I need epson sc-p900",
+          "status": "PASS",
+          "elapsed_sec": 17.466,
+          "source": "route:product_or_consumable:consumables",
+          "category": "photography_and_fine_art",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-p900",
+          "reply_preview": "Here are the compatible consumables for your Epson SureColor SC-P900:  - Maintenance Box: SKU: C12C9",
+          "chips": [
+            "Order Consumables",
+            "View SC-P900 Specifications"
+          ]
+        },
+        {
+          "turn_number": 33,
+          "user_question": "compare it with sc-p21000",
+          "status": "PASS",
+          "elapsed_sec": 0.116,
+          "source": "unified:clarify",
+          "category": "photography_and_fine_art",
+          "awaiting_field": "None",
+          "active_product": "epson-sc-p900",
+          "reply_preview": "Did you mean Epson SureColor SC-P20500 or Epson WorkForce Enterprise WF-C21000 D4TW?",
+          "chips": [
+            "Epson SureColor SC-P20500",
+            "Epson WorkForce Enterprise WF-C21000 D4TW"
           ]
         }
       ]

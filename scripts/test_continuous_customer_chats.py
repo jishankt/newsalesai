@@ -148,6 +148,22 @@ def run_continuous_test(
             "turn_logs": turn_logs,
         })
 
+        # Incremental save so completed sessions are never lost
+        out_file = "/opt/salesai/data/extracted_conversations/continuous_test_results.json"
+        try:
+            with open(out_file, "w", encoding="utf-8") as f:
+                json.dump({
+                    "total_sessions": len(session_results),
+                    "total_turns": total_turns,
+                    "passed_turns": passed_turns,
+                    "failed_turns": failed_turns,
+                    "pass_rate": round(passed_turns / max(total_turns, 1) * 100, 2),
+                    "sessions": session_results,
+                }, f, indent=2, ensure_ascii=False)
+        except Exception:
+            pass
+        sys.stdout.flush()
+
     total_time = time.time() - t_suite_start
     print("\n" + "=" * 80)
     print(" CONTINUOUS MULTI-TURN TEST SUITE SUMMARY")
