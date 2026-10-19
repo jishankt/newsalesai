@@ -22,14 +22,17 @@ def run_continuous_test(
     input_file: str,
     max_sessions: int = None,
     min_turns: int = 2,
-    only_real_customers: bool = True
+    only_real_customers: bool = True,
+    resume: bool = False,
 ):
+    out_file = "/opt/salesai/data/extracted_conversations/continuous_test_results.json"
     print("=" * 80)
     print(" CONTINUOUS MULTI-TURN CHAT TEST RUNNER")
     print(f" Input File         : {input_file}")
     print(f" Filter Real Cust.  : {only_real_customers}")
     print(f" Min Turns / Session: {min_turns}")
-    print(f" Max Sessions       : {max_sessions or 'ALL'}")
+    print(f" Max Sessions       : {max_sessions if (max_sessions and max_sessions > 0) else 'ALL'}")
+    print(f" Resume Completed   : {resume}")
     print("=" * 80)
 
     with open(input_file, "r", encoding="utf-8") as f:
@@ -46,15 +49,32 @@ def run_continuous_test(
             continue
         eligible.append(s)
 
-    if max_sessions:
+    if max_sessions and max_sessions > 0:
         eligible = eligible[:max_sessions]
 
-    print(f"Selected {len(eligible)} multi-turn sessions for continuous replay.\n")
+    print(f"Total eligible multi-turn sessions: {len(eligible)}")
 
     session_results = []
+    completed_ids = set()
     total_turns = 0
     passed_turns = 0
     failed_turns = 0
+
+    if resume and os.path.exists(out_file):
+        try:
+            with open(out_file, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+                session_results = saved.get("sessions", [])
+                completed_ids = {s.get("session_id") for s in session_results}
+                passed_turns = saved.get("passed_turns", 0)
+                failed_turns = saved.get("failed_turns", 0)
+                total_turns = saved.get("total_turns", 0)
+            print(f"Resuming: Loaded {len(session_results)} already completed sessions ({total_turns} turns).")
+        except Exception as e:
+            print(f"Warning: could not load existing results for resume: {e}")
+
+    remaining_count = len([s for s in eligible if s.get("session_id") not in completed_ids])
+    print(f"Sessions to execute in this run: {remaining_count}\n")
 
     t_suite_start = time.time()
 
@@ -62,6 +82,9 @@ def run_continuous_test(
         s_id = session.get("session_id", f"sess_{s_idx}")
         cust = session.get("customer_name", "Anonymous")
         turns = session.get("turns", [])
+
+        if s_id in completed_ids:
+            continue
 
         print(f"\n[{s_idx}/{len(eligible)}] Session: {s_id} | Customer: '{cust}' | {len(turns)} turns")
         print("-" * 75)
@@ -192,14 +215,16 @@ def run_continuous_test(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Test customer chats continuously.")
     parser.add_argument("--input", default="/opt/salesai/data/extracted_conversations/all_customer_conversations.json")
-    parser.add_argument("--max-sessions", type=int, default=20)
+    parser.add_argument("--max-sessions", type=int, default=0, help="Max sessions to test (0 for all)")
     parser.add_argument("--min-turns", type=int, default=2)
     parser.add_argument("--all-sessions", action="store_true", help="Include all sessions, not only UUID customer sessions")
+    parser.add_argument("--resume", action="store_true", help="Resume from previously completed sessions in results file")
     args = parser.parse_args()
 
     run_continuous_test(
         args.input,
         max_sessions=args.max_sessions,
         min_turns=args.min_turns,
-        only_real_customers=not args.all_sessions
+        only_real_customers=not args.all_sessions,
+        resume=args.resume
     )
