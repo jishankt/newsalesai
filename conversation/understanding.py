@@ -1511,25 +1511,30 @@ def understand_turn(
                 else:
                     t_lower = text.lower()
                     is_valid_topic = any(
-                    k in t_lower for k in [
-                        "dubai", "abu dhabi", "sharjah", "uae", "oman", "saudi", "gcc",
-                        "delivery", "ship", "pickup", "order", "price", "quote",
-                        "ink", "inks", "consumable", "consuble", "consumbales", "cartridge", "ribbon",
-                        "black", "cyan", "magenta", "yellow", "grey", "gray", "maintenance box",
-                        "printer", "scanner", "plotter", "plotters", "epson", "citizen", "f100", "c878", "cz01", "cx02",
-                        "tech", "technical", "cad", "photo", "booth", "sublimation", "office", "print",
-                        "pay", "payment", "card", "bank transfer", "transfer", "cod", "cash", "cheque",
-                        "repair", "service", "maintenance", "amc", "units", "quantity", "cancel", "warranty", "speed", "ppm"
-                    ]
-                )
-                if is_valid_topic:
-                    det_understanding.dialogue_act = DialogueAct.QUESTION
-                    if any(k in t_lower for k in ["dubai", "abu dhabi", "sharjah", "uae", "oman", "delivery", "ship"]):
-                        det_understanding.intent = Intent.SHIPPING_OR_DELIVERY
-                    elif any(k in t_lower for k in ["ink", "inks", "consumable", "consuble", "consumbales", "cartridge", "ribbon", "black", "cyan", "magenta", "yellow"]):
-                        det_understanding.intent = Intent.CONSUMABLES_LOOKUP
-                    else:
-                        det_understanding.intent = Intent.PRODUCT_INFO
+                        k in t_lower for k in [
+                            "dubai", "abu dhabi", "sharjah", "uae", "oman", "saudi", "gcc",
+                            "delivery", "ship", "pickup", "order", "price", "quote",
+                            "ink", "inks", "consumable", "consuble", "consumbales", "cartridge", "ribbon",
+                            "black", "cyan", "magenta", "yellow", "grey", "gray", "maintenance box",
+                            "printer", "scanner", "plotter", "plotters", "epson", "citizen", "f100", "c878", "cz01", "cx02",
+                            "tech", "tach", "teck", "technical", "cad", "photo", "booth", "sublimation", "office", "print",
+                            "pay", "payment", "card", "bank transfer", "transfer", "cod", "cash", "cheque",
+                            "repair", "service", "maintenance", "amc", "units", "quantity", "cancel", "warranty", "speed", "ppm",
+                            "showroom", "location", "address", "hours", "timing", "timings", "kahan", "evide",
+                            "why", "how come", "reason", "explain",
+                            "معرض", "مكان", "عنوان", "موقع"
+                        ]
+                    )
+                    if is_valid_topic:
+                        det_understanding.dialogue_act = DialogueAct.QUESTION
+                        if any(k in t_lower for k in ["showroom", "location", "address", "hours", "timing", "kahan", "evide", "معرض", "مكان", "عنوان", "موقع"]):
+                            det_understanding.intent = Intent.CONTACT_SHOWROOM
+                        elif any(k in t_lower for k in ["dubai", "abu dhabi", "sharjah", "uae", "oman", "delivery", "ship"]):
+                            det_understanding.intent = Intent.SHIPPING_OR_DELIVERY
+                        elif any(k in t_lower for k in ["ink", "inks", "consumable", "consuble", "consumbales", "cartridge", "ribbon", "black", "cyan", "magenta", "yellow"]):
+                            det_understanding.intent = Intent.CONSUMABLES_LOOKUP
+                        else:
+                            det_understanding.intent = Intent.PRODUCT_INFO
     except Exception as e:
         logger.warning(f"Ollama structured understanding error: {e}. Falling back to deterministic result.")
 

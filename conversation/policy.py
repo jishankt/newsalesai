@@ -281,7 +281,7 @@ class PolicyEngine:
                 options=[
                     {"id": "upfront", "label": "Upfront price", "value": "upfront"},
                     {"id": "running_cost", "label": "Running cost", "value": "running_cost"},
-                    {"id": "cheaper", "label": "Show cheaper options", "value": "cheaper"},
+                    {"id": "cheaper", "label": "Cost-Effective Models", "value": "cheaper"},
                 ],
                 turn_asked=state.turn_count,
             )
@@ -291,7 +291,7 @@ class PolicyEngine:
                 target_entity_id=target.id if target else None,
                 clarification_topic="price_objection",
                 clarification_question="Is your main concern the upfront price or the running cost per print?",
-                options_or_chips=["Upfront price", "Running cost", "Show cheaper options"],
+                options_or_chips=["Upfront price", "Running cost", "Cost-Effective Models", "Request Official Quote"],
                 evidence_records=[rec],
                 next_step="Please let me know whether you want to focus on upfront equipment cost or ongoing running costs.",
             )
@@ -704,7 +704,7 @@ class PolicyEngine:
                 action=PolicyAction.OUT_OF_SCOPE_REDIRECT,
                 reason="Request references non-catalogue categories or unapproved brands (3D printers, laser, edible, food, general trivia).",
                 options_or_chips=["Technical CAD Plotters", "Photo & Fine Art", "Citizen Photo Booth", "Dye-Sublimation", "Office Printers"],
-                next_step="Kepler Tech is an authorized commercial distributor specializing strictly in Epson and Citizen large-format printers, enterprise office MFPs, and professional document scanners. We do not provide non-commercial or culinary equipment. Which equipment category can we assist you with?",
+                next_step="Kepler Tech is an authorized commercial distributor specializing strictly in Epson and Citizen large-format printers, enterprise office MFPs, and professional document scanners. Which equipment category can we assist you with?",
             )
 
         # 2b. Company Capability / Full Product List / Authorized Dealership Inquiry
@@ -2033,14 +2033,48 @@ class PolicyEngine:
                     next_step="Would you like directions or to schedule an on-site equipment demonstration?",
                 )
 
-        # 12. Fallback Clarify
+        # 12. Fallback Clarify - Universally Context-Aware (Never drop to root mid-conversation)
         state.clarifications_asked[current_topic] = topic_clarifications + 1
-        q_text = "Which printing application fits your requirements?" if "print" in und.raw_text.lower() else "How can I best assist you with Kepler Tech printing equipment?"
+        active_cat = getattr(state, "category", None) or (state.confirmed_slots.get("category") if hasattr(state, "confirmed_slots") else None)
+
+        if active_cat == "office_printer":
+            q_text = "What daily page volume and paper size (A4 vs A3) do you require for your office?"
+            chips = ["A4 WorkForce Pro", "A3 Departmental RIPS", "Enterprise Line-Head", "Official Quotation"]
+            step_text = "Please select your daily volume or specify your required office printing features."
+        elif active_cat == "citizen_photo":
+            q_text = "What print format do you need for instant event photography?"
+            chips = ["4×6″ (CZ-01)", "6×8″ (CX-02 / CY-02)", "8×12″ (CX-02W)", "Official Quotation"]
+            step_text = "Please select a photo print format or ask for specific event printer specifications."
+        elif active_cat == "technical_large_format":
+            q_text = "What roll width do you need for your CAD drawings and plans?"
+            chips = ["24-inch (A1)", "36-inch (A0)", "44-inch Production", "Integrated Scanner"]
+            step_text = "Please select a roll width or specify whether you need an integrated wide-format scanner."
+        elif active_cat == "photography_large_format":
+            q_text = "What format or print width do you require for photo and fine art reproduction?"
+            chips = ["13″–17″ Desktop", "24″ Production", "44″ Gallery", "12-Colour Proofing"]
+            step_text = "Please select a print format or ask for specific model specifications."
+        elif active_cat in ("dye_sublimation", "sublimation"):
+            q_text = "What format do you need for dye-sublimation printing?"
+            chips = ["A4 Desktop Gifts (SC-F100)", "24-inch Roll Apparel (SC-F500)", "Sublimation Inks", "Official Quotation"]
+            step_text = "Please choose between A4 desktop gift printing and 24-inch roll textile production."
+        elif active_cat == "scanners":
+            q_text = "What type of document or media scanning do you require?"
+            chips = ["WorkForce Sheetfed", "Flatbed & Books", "Large Format Graphics", "Official Quotation"]
+            step_text = "Please select a scanner type or specify your daily scan volume."
+        elif getattr(state, "last_shown_consumables", None) or any(getattr(e, "entity_type", "") == "consumable" for e in getattr(state, "focus_stack", [])):
+            q_text = "Which supplies or ink colours would you like to review?"
+            chips = ["Inks", "Media Rolls / Paper", "Maintenance Box", "Official Quotation"]
+            step_text = "Please enter the specific ink colour, part number, or equipment model."
+        else:
+            q_text = "Which printing application fits your requirements?" if "print" in und.raw_text.lower() else "How can I best assist you with Kepler Tech printing equipment?"
+            chips = ["Technical CAD Plotters", "Professional Photo & Fine Art", "Citizen Photo Booth / Events", "Dye-Sublimation", "Office Printers"]
+            step_text = "Please select a category or ask a specific model question."
+
         return PolicyDecision(
             action=PolicyAction.CLARIFY,
-            reason="Ambiguous input; clarify customer needs with structured chips.",
+            reason="Contextual clarification; maintaining active conversation domain without generic fallback.",
             clarification_topic=current_topic,
             clarification_question=q_text,
-            options_or_chips=["Technical CAD Plotters", "Professional Photo & Fine Art", "Citizen Photo Booth / Events", "Dye-Sublimation", "Office Printers"],
-            next_step="Please select a category or ask a specific model question.",
+            options_or_chips=chips,
+            next_step=step_text,
         )

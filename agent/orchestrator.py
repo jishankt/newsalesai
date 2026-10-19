@@ -397,9 +397,17 @@ class Orchestrator:
                     state._unified_dialogue_state = unified_state
                 unified_state.turn_count = state.turn_count
 
-                # Sync category if state has one and unified does not
-                if getattr(state, "category", None) and not unified_state.category:
-                    unified_state.category = state.category
+                # Sync category: if state has category, keep unified_state in sync
+                if getattr(state, "category", None):
+                    if unified_state.category != state.category:
+                        unified_state.category = state.category
+                        unified_state.confirmed_slots.pop("_flowchart_leaf_reached", None)
+                        unified_state.confirmed_slots.pop("_leaf_product_id", None)
+                        unified_state.focus_stack = [e for e in getattr(unified_state, "focus_stack", []) if getattr(e, "entity_type", "") != "printer"]
+                        unified_state.last_shown_products = []
+                        unified_state.last_shown_cards = []
+                    elif not unified_state.category:
+                        unified_state.category = state.category
 
                 # Sync last shown items from state only if unified state has none recorded
                 if getattr(state, "active_consumable", None) and not unified_state.last_shown_consumables:
@@ -1509,7 +1517,7 @@ class Orchestrator:
                     f"Our equipment is commercial-grade with high reliability, official manufacturer warranty, and low per-print consumable costs. "
                     f"Would you prefer to explore an alternative model with a lower initial equipment cost, or look at the expected running cost per print?"
                 )
-                chips = ["View Lower-Cost Options", "Check Running Costs", "Speak to Sales Specialist"]
+                chips = ["Cost-Effective Models", "Running Cost Comparison", "Request Official Quote"]
 
             state.last_assistant_response = reply_text
             state.increment_turn()
@@ -1993,15 +2001,61 @@ class Orchestrator:
 
             # If no product or consumable has been selected yet, guide customer to choose equipment
             if not act_prod:
-                reply_text = (
-                    "I would be glad to assist you with your purchase! What type of equipment are you looking for?\n\n"
-                    "• **Technical CAD Plotters** (Epson SureColor T-Series)\n"
-                    "• **Photo & Fine Art Printers** (Epson SureColor P-Series)\n"
-                    "• **Dye-Sublimation Printers** (Epson SC-F100, SC-F500 & Citizen)\n"
-                    "• **Enterprise Office Printers** (Epson WorkForce Enterprise)\n"
-                    "• **Large Format Scanners or Consumables**"
-                )
-                chips = ["Technical CAD", "Photo & Fine Art", "Dye-Sublimation", "High-Speed Office"]
+                if state.category == "citizen_photo":
+                    reply_text = (
+                        "I would be glad to assist you with ordering a Citizen photo printer! Which model would you like to proceed with?\n\n"
+                        "• **Citizen CX-02** — Standard 4×6″ & 6×8″ dye-sublimation photo booth printer\n"
+                        "• **Citizen CZ-01** — Ultra-compact lightweight 4×6″ event printer\n"
+                        "• **Citizen CX-02W** — Wide 8×10″ and 8×12″ photo printer"
+                    )
+                    chips = ["Citizen CX-02", "Citizen CZ-01", "Citizen CX-02W", "Order Consumables"]
+                elif state.category == "technical_large_format":
+                    reply_text = (
+                        "I would be glad to assist you with ordering an Epson SureColor CAD plotter! Which format do you need?\n\n"
+                        "• **24-inch (A1)** — Epson SC-T3100 desktop or SC-T3400 production\n"
+                        "• **36-inch (A0)** — Epson SC-T5100 or SC-T5400\n"
+                        "• **44-inch Production** — Epson SC-T7700D dual-roll"
+                    )
+                    chips = ["24″ (A1)", "36″ (A0)", "44″ Production", "With Integrated Scanner"]
+                elif state.category == "office_printer":
+                    reply_text = (
+                        "I would be glad to assist you with ordering an Epson WorkForce enterprise printer! What format and volume do you require?\n\n"
+                        "• **A4 WorkForce Pro** — WF-C5890 (up to 100 pages/day)\n"
+                        "• **A3 WorkForce Pro** — WF-C878R (100–500 pages/day)\n"
+                        "• **Enterprise High-Speed** — AM-C4000 / AM-C5000 / AM-C6000 (500+ pages/day)"
+                    )
+                    chips = ["A4 Multifunction", "A3 Multifunction", "Enterprise High-Speed"]
+                elif state.category == "photography_large_format":
+                    reply_text = (
+                        "I would be glad to assist you with ordering an Epson SureColor fine art printer! Which format do you need?\n\n"
+                        "• **13″/17″ Desktop** — SC-P700 & SC-P900\n"
+                        "• **24-inch Master Proofer** — SC-P6500D / SC-P7500\n"
+                        "• **44-inch Gallery Proofer** — SC-P8500D / SC-P9500"
+                    )
+                    chips = ["Epson SC-P700", "Epson SC-P900", "Epson SC-P9500"]
+                elif state.category in ("dye_sublimation", "sublimation"):
+                    reply_text = (
+                        "I would be glad to assist you with ordering a dye-sublimation printer! Which system fits your production?\n\n"
+                        "• **Epson SC-F100** — A4 desktop sublimation printer for mugs and blanks\n"
+                        "• **Epson SC-F500** — 24-inch roll sublimation printer for textiles and merchandise\n"
+                        "• **Citizen CX-02** — Dye-sublimation photo printer"
+                    )
+                    chips = ["Epson SC-F100", "Epson SC-F500", "Citizen CX-02"]
+                elif state.category == "consumables" or getattr(state, "active_route", None) == "consumable":
+                    reply_text = (
+                        "I would be glad to assist with your consumables order! Which printer model do you need inks, ribbons, or media for?"
+                    )
+                    chips = ["Epson SC-F100 Inks", "Citizen CX-02 Media", "Epson SC-T Inks", "WorkForce Ink Packs"]
+                else:
+                    reply_text = (
+                        "I would be glad to assist you with your purchase! What type of equipment are you looking for?\n\n"
+                        "• **Technical CAD Plotters** (Epson SureColor T-Series)\n"
+                        "• **Photo & Fine Art Printers** (Epson SureColor P-Series)\n"
+                        "• **Dye-Sublimation Printers** (Epson SC-F100, SC-F500 & Citizen)\n"
+                        "• **Enterprise Office Printers** (Epson WorkForce Enterprise)\n"
+                        "• **Large Format Scanners or Consumables**"
+                    )
+                    chips = ["Technical CAD", "Photo & Fine Art", "Dye-Sublimation", "High-Speed Office"]
                 state.last_assistant_response = reply_text
                 state.increment_turn()
                 return self._build_response(
@@ -3168,12 +3222,26 @@ class Orchestrator:
 
             if intercept_result.intent in ("discount_inquiry", "quote", "commercial"):
                 reply_text = format_rotating_pricing_redirect(state)
-                chips_to_return = [
-                    "Speak to Human Agent",
-                    "Technical CAD Plotters",
-                    "Office Enterprise MFPs",
-                    "Photo & Fine Art",
-                ]
+                if state.active_product:
+                    p_name = state.active_product.get("display_name") or state.active_product.get("name") or "Product"
+                    chips_to_return = ["Request Official Quote", "Speak to Sales Specialist", f"View {p_name}"]
+                elif state.category == "citizen_photo":
+                    chips_to_return = ["Request Official Quote", "Speak to Sales Specialist", "Citizen CX-02"]
+                elif state.category == "technical_large_format":
+                    chips_to_return = ["Request Official Quote", "Speak to Sales Specialist", "24″ (A1)", "36″ (A0)"]
+                elif state.category == "office_printer":
+                    chips_to_return = ["Request Official Quote", "Speak to Sales Specialist", "A4 Multifunction", "A3 Multifunction"]
+                elif state.category in ("dye_sublimation", "sublimation"):
+                    chips_to_return = ["Request Official Quote", "Speak to Sales Specialist", "Epson SC-F100"]
+                elif state.category == "consumables" or getattr(state, "active_route", None) == "consumable":
+                    chips_to_return = ["Request Official Quote", "Order Consumables", "Speak to Sales Specialist"]
+                else:
+                    chips_to_return = [
+                        "Speak to Human Agent",
+                        "Technical CAD Plotters",
+                        "Office Enterprise MFPs",
+                        "Photo & Fine Art",
+                    ]
             else:
                 reply_text = intercept_result.response
                 chips_to_return = intercept_result.suggested_chips or []
@@ -6262,12 +6330,13 @@ class Orchestrator:
             )
 
         # 6d. Company Information / Business Hours / Location
+        raw_msg_lower = (raw_message or "").lower()
         has_biz_keywords = any(w in normalized_msg.lower() for w in [
             "location", "address", "opening hours", "business hours", "working hours",
-            "contact number", "phone number", "email address", "where are you",
+            "contact number", "phone number", "email address", "where are you", "showroom",
             "office location", "office address", "your office", "where is your office",
-            "do you deliver", "delivery", "shipping", "support email"
-        ])
+            "do you deliver", "delivery", "shipping", "support email", "kahan", "evide"
+        ]) or any(w in raw_msg_lower for w in ["معرض", "مكان", "عنوان", "موقع", "وين"])
         is_business_info = (
             understanding.intent == Intent.BUSINESS_INFORMATION
             or has_biz_keywords
@@ -6284,7 +6353,21 @@ class Orchestrator:
                 "✉️ **Email:** sales@keplertech.ae | info@keplertech.ae\n\n"
                 "We provide equipment demonstrations, delivery, and authorized technical support across the UAE and Middle East."
             )
-            chips_to_return = ["Technical CAD Plotters", "Photo & Fine Art Printers", "Office Enterprise MFPs"]
+            if state.active_product:
+                disp = state.active_product.get("display_name", "Equipment")
+                chips_to_return = [f"View {disp}", "Request Official Quote", "Delivery Options"]
+            elif state.category == "citizen_photo":
+                chips_to_return = ["Citizen CX-02", "Citizen CZ-01", "Request Quotation"]
+            elif state.category == "technical_large_format":
+                chips_to_return = ["24″ (A1)", "36″ (A0)", "44″ Production"]
+            elif state.category == "office_printer":
+                chips_to_return = ["A4 Multifunction", "A3 Multifunction", "Request Quotation"]
+            elif state.category == "photography_large_format":
+                chips_to_return = ["Epson SC-P700", "Epson SC-P900", "Epson SC-P9500"]
+            elif state.category == "consumables" or getattr(state, "active_route", None) == "consumable":
+                chips_to_return = ["Order Consumables", "Request Official Quote", "Delivery Options"]
+            else:
+                chips_to_return = ["Technical CAD Plotters", "Photo & Fine Art Printers", "Office Enterprise MFPs"]
             return self._build_response(
                 reply=reply_text,
                 source="route:business_info",
@@ -7186,7 +7269,15 @@ class Orchestrator:
         # Strict flow buttons enforcement:
         # Only permit suggestion chips that are part of the active qualification flow,
         # category selection, or guest login. Strip all generic ad-hoc/unwanted buttons.
-        is_flow_source = source.startswith(("qualification:category_prompt", "qualification:next_question", "qualification:consumables_prompt", "route:product_or_consumable", "unified:")) or any("guest" in str(ch).lower() for ch in (suggested_chips or []))
+        is_flow_source = (
+            source.startswith((
+                "qualification:", "route:product_or_consumable", "route:consumables",
+                "route:business_info", "route:product_justification", "route:category_justification",
+                "route:model_detail", "recommendation:", "agent:price_objection",
+                "guardrail:", "unified:"
+            ))
+            or any("guest" in str(ch).lower() for ch in (suggested_chips or []))
+        )
         if not is_flow_source:
             suggested_chips = []
         else:

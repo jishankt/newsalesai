@@ -140,6 +140,149 @@ class PreClassificationResolver:
                         source="route:product_or_consumable:printer",
                     )
 
+        # ── (0b) UNIVERSAL SHOWROOM LOCATION & HOURS (Multilingual) ──────────
+        is_showroom_query = bool(re.search(
+            r"\b(?:showroom|location|address|office\s+location|where\s+are\s+you|where\s+is\s+your\s+shop|where\s+is\s+your\s+office|opening\s+hours|business\s+hours|working\s+hours|contact\s+details|kahan\s+hai|evide\s+aanu)\b",
+            msg_l
+        )) or any(w in raw_l for w in ["معرض", "مكان", "عنوان", "موقع", "وين"])
+        is_printer_for_showroom = bool(re.search(r"\b(?:printer|plotter|scanner|machine)\s+(?:for|in)\s+(?:our|my|a)\s+showroom\b", msg_l))
+
+        if is_showroom_query and not is_printer_for_showroom and not any(k in msg_l for k in ["recommend", "which printer", "suitable"]):
+            reply_text = (
+                "**Kepler Tech LLC — Dubai Headquarters & Showroom**\n\n"
+                "📍 **Address:** D79, Khalid Bin Waleed Road, Office No. 1, Abdulla Al Awar Building, Dubai, UAE.\n"
+                "🕒 **Working Hours:** Monday – Friday: 8:30 AM to 5:30 PM | Saturday: 8:30 AM to 1:00 PM | Sunday: Closed (GST)\n"
+                "📞 **Phone:** +971 4 323 1008 | +971 55 835 8586\n"
+                "✉️ **Email:** sales@keplertech.ae | info@keplertech.ae\n\n"
+                "We provide live equipment demonstrations, manufacturer warranty service, and delivery across Dubai, the UAE, and the GCC. Free store pickup is also available."
+            )
+            if state.active_product:
+                disp = state.active_product.get("display_name", "Equipment")
+                chips_to_return = [f"View {disp}", "Request Official Quote", "Delivery Options"]
+            elif state.category == "citizen_photo":
+                chips_to_return = ["Citizen CX-02", "Citizen CZ-01", "Request Quotation"]
+            elif state.category == "technical_large_format":
+                chips_to_return = ["24″ (A1)", "36″ (A0)", "44″ Production"]
+            elif state.category == "office_printer":
+                chips_to_return = ["A4 Multifunction", "A3 Multifunction", "Request Quotation"]
+            elif state.category == "photography_large_format":
+                chips_to_return = ["Epson SC-P700", "Epson SC-P900", "Epson SC-P9500"]
+            elif state.category == "consumables" or getattr(state, "active_route", None) == "consumable":
+                chips_to_return = ["Order Consumables", "Request Official Quote", "Delivery Options"]
+            else:
+                chips_to_return = ["Browse Products", "Request Official Quote", "Delivery Options"]
+            return PreClassificationResult(
+                handled=True,
+                reply=reply_text,
+                suggested_chips=chips_to_return,
+                source="route:business_info:showroom",
+            )
+
+        # ── (0c) UNIVERSAL "WHY THIS?" / TECHNICAL JUSTIFICATION ──────────────
+        is_why_query = bool(re.search(
+            r"^\s*(?:why\s*(?:this|this\s*one|this\s*model|this\s*printer)?\??|how\s*come\??|why\s+(?:should|would)\s+i\s+(?:buy|choose|pick)\s+this|why\s+do\s+you\s+recommend\s+this|what\s+makes\s+this\s+(?:good|better|special))\s*$",
+            msg_l
+        )) or bool(re.search(r"\bwhy\s+this\s+(?:model|printer|plotter)\b", msg_l))
+
+        if is_why_query:
+            act_id = state.get_canonical_focus_id() or getattr(state, "active_product_id", None)
+            act_p = state.active_product or (catalogue_loader.get_by_id(act_id) if act_id else None)
+            if act_p:
+                disp_name = act_p.get("display_name") or act_p.get("name") or "this model"
+                family = act_p.get("model_family") or disp_name
+                cat = act_p.get("catalogue") or act_p.get("main_category") or state.category
+                if cat == "technical_large_format" or "sc-t" in str(act_id).lower():
+                    justification = (
+                        f"The **{disp_name}** is engineered specifically for CAD, AEC, and GIS precision:\n\n"
+                        "• **UltraChrome XD Pigment Inks**: Archival, water-resistant, and smudge-proof lines that withstand outdoor construction site handling.\n"
+                        "• **PrecisionCore MicroTFP Printhead**: Permanent, heat-free printhead technology delivering micron-level line accuracy without thermal degradation.\n"
+                        "• **Direct HP-GL/2 & PDF Processing**: Rapid rendering of complex architectural layers and vector schematics."
+                    )
+                elif cat == "citizen_photo" or "cx" in str(act_id).lower() or "cz" in str(act_id).lower():
+                    justification = (
+                        f"The **{disp_name}** is purpose-built for commercial event photography and photo booths:\n\n"
+                        "• **Thermal Dye-Sublimation Speed**: Instant dry, laminated lab-quality prints in seconds with water and fingerprint protection.\n"
+                        "• **Ribbon Rewind Technology**: Unique multi-cut capability enabling 4×6″ and 6×8″ prints from the same roll without wasting media.\n"
+                        "• **Proven Event Durability**: Compact steel chassis engineered for rigorous on-the-road event transportation."
+                    )
+                elif cat in ("dye_sublimation", "sublimation") or "sc-f" in str(act_id).lower():
+                    justification = (
+                        f"The **{disp_name}** delivers turnkey sublimation transfer reliability:\n\n"
+                        "• **Genuine Turnkey Solution**: Printer, UltraChrome DS ink bottles, and software are all factory-matched and warrantied by Epson.\n"
+                        "• **No Clogging / Vibrant Transfer**: Certified OEKO-TEX Eco Passport inks deliver rich blacks and vibrant colors on textiles, mugs, and blanks.\n"
+                        "• **Ultra-Low Running Cost**: High-capacity refill bottles eliminate expensive cartridge waste."
+                    )
+                elif cat == "office_printer" or "wf-" in str(act_id).lower() or "am-c" in str(act_id).lower():
+                    justification = (
+                        f"The **{disp_name}** provides commercial office cost and uptime advantages:\n\n"
+                        "• **Heat-Free PrecisionCore Technology**: Zero warm-up time, high first-page-out speed, and up to 85% lower power consumption than laser.\n"
+                        "• **Replaceable Ink Pack System (RIPS)**: Up to 86,000 pages uninterrupted printing before ink replenishment, slashing per-page printing costs.\n"
+                        "• **Minimal Maintenance**: No fuser unit, transfer belt, or developer drums to replace."
+                    )
+                else:
+                    justification = (
+                        f"The **{disp_name}** is selected for professional image reproduction:\n\n"
+                        "• **UltraChrome PRO Inkset**: Expanded dynamic color gamut with dedicated Photo and Matte Black channels for gallery proofing.\n"
+                        "• **Epson PrecisionCore Engine**: Industry-standard exhibition longevity and certified color consistency across print runs."
+                    )
+                chips = [f"View {family} Specs", "Request Official Quote", "Delivery Options"]
+                return PreClassificationResult(
+                    handled=True,
+                    reply=justification,
+                    product_cards=[act_p],
+                    suggested_chips=chips,
+                    source="route:product_justification",
+                )
+            elif state.category == "citizen_photo":
+                reply = (
+                    "Citizen photo printers use professional thermal dye-sublimation technology with instant dry protective lamination, "
+                    "making them the global industry standard for photo booths, weddings, and commercial events.\n\n"
+                    "Would you like to review the ultra-compact **Citizen CZ-01** (4×6″) or the high-capacity **Citizen CX-02** (4×6″ & 6×8″)?"
+                )
+                return PreClassificationResult(
+                    handled=True,
+                    reply=reply,
+                    suggested_chips=["Citizen CX-02", "Citizen CZ-01", "Request Official Quote"],
+                    source="route:category_justification",
+                )
+            elif state.category == "technical_large_format":
+                reply = (
+                    "Epson SureColor T-Series plotters use water-resistant UltraChrome XD pigment inks and permanent PrecisionCore printheads, "
+                    "ensuring architectural blueprints and CAD line drawings never bleed or fade under job-site conditions.\n\n"
+                    "What roll width fits your plans: 24″ (A1), 36″ (A0), or 44″ production?"
+                )
+                return PreClassificationResult(
+                    handled=True,
+                    reply=reply,
+                    suggested_chips=["24″ (A1)", "36″ (A0)", "44″ Production"],
+                    source="route:category_justification",
+                )
+
+        # ── (0d) GENERIC CONSUMABLES REQUEST ENTRY (when no model yet) ────────
+        is_generic_consumables = bool(re.search(
+            r"^\s*(?:i\s+(?:need|want|am\s+looking\s+for|require)\s+)?(?:consumables?|consubles?|consumbales?|inks?|cartridges?|printer\s+inks?|photo\s+paper|ribbons?|toner|supplies)\s*$",
+            msg_l
+        )) or bool(re.search(
+            r"\b(?:buy|order|purchase|need|want)\s+(?:consumables?|inks?|cartridges?|ribbons?)\b",
+            msg_l
+        ) and not any(k in msg_l for k in ["printer", "plotter", "machine", "hardware", "scanner"]))
+
+        if is_generic_consumables and not getattr(state, "active_product", None) and not state.get_canonical_focus_id():
+            state.category = "consumables"
+            state.active_route = "consumable"
+            state.awaiting_field = "consumable_model"
+            reply_text = (
+                "Kepler Tech supplies 100% genuine Epson and Citizen inks, ribbons, media rolls, and maintenance boxes with guaranteed printhead compatibility.\n\n"
+                "Which printer or plotter model do you need consumables for?"
+            )
+            chips_to_return = ["Epson SC-F100", "Citizen CX-02", "Epson SC-T3100", "Epson SC-P900", "WorkForce WF-C878R"]
+            return PreClassificationResult(
+                handled=True,
+                reply=reply_text,
+                suggested_chips=chips_to_return,
+                source="route:consumables:ask_model",
+            )
+
         # ── GATE INTERCEPTOR: Category words vs attributes & Explicit Switches ──
         # 1. "a4 colour printer with scanner" must stay in office_printer, not scanners
         if re.search(r"\b(?:a4|a3|colour|color|office)?\s*printer\s+with\s+scann?er\b", msg_l) or \
@@ -342,6 +485,14 @@ class PreClassificationResolver:
                         "Understood, print-only without scanner. For 24-inch technical CAD plans, here is our recommended standalone plotter:\n\n"
                         "• **Epson SureColor SC-T3100**: Clean, wireless 24″ desktop CAD plotter engineered for precise architectural line work."
                     )
+                elif width == 44:
+                    t7700 = catalogue_loader.get_by_id("epson-sc-t7700d")
+                    cards = [t7700] if t7700 else []
+                    state.shown_entities = [c["id"] for c in cards]
+                    reply = (
+                        "Understood, print-only without scanner. For 44-inch high-production technical CAD plans, here is our recommended standalone plotter:\n\n"
+                        "• **Epson SureColor SC-T7700D**: High-speed 44″ dual-roll production technical CAD plotter with UltraChrome XD3 inks."
+                    )
                 else:
                     t5100 = catalogue_loader.get_by_id("epson-sc-t5100")
                     cards = [t5100] if t5100 else []
@@ -412,48 +563,93 @@ class PreClassificationResolver:
                     source="recommendation:catalogue_list",
                 )
 
-        # ── Citizen photo booth 4x6 prints (Chat 18 Turn 4) ───────────────────
-        if state.category == "citizen_photo" and re.search(r"\b(?:4x6|4\s*x\s*6|4\"x6\"|4\s*by\s*6)\b", msg_l):
-            state.requirements["print_size"] = "4x6"
-            state.requirements["print_sizes"] = ["4x6"]
-            cz01 = catalogue_loader.get_by_id("citizen-cz-01")
-            cx02 = catalogue_loader.get_by_id("citizen-cx-02")
-            cy02 = catalogue_loader.get_by_id("citizen-cy-02")
-            cards = [c for c in [cz01, cx02, cy02] if c]
-            state.shown_entities = [c["id"] for c in cards]
-            state.consume_pending_question()
-            reply = (
-                "For 4×6″ event and photo booth printing, here are our recommended Citizen dye-sublimation printers:\n\n"
-                "• **Citizen CZ-01**: Ultra-compact and lightweight (5.8 kg) 4×6″ printer, ideal for portable booths.\n"
-                "• **Citizen CX-02**: Premium photo booth printer supporting 4×6″ and 6×8″ with ribbon rewind.\n"
-                "• **Citizen CY-02**: High-capacity event printer producing up to 700 4×6″ prints per roll."
-            )
-            return PreClassificationResult(
-                handled=True,
-                reply=reply,
-                product_cards=cards,
-                suggested_chips=["Cheapest one?", "Compare CX-02 and CZ-01", "Official Quotation"],
-                source="recommendation:catalogue_list",
-            )
+        # ── Citizen photo booth formats (4", 6", 8") ─────────────────────────
+        is_cit_scope = (
+            state.category == "citizen_photo"
+            or getattr(state, "awaiting_field", None) == "citizen_format"
+            or "citizen" in str(getattr(state, "category", "")).lower()
+            or any("citizen" in str(x).lower() for x in (state.shown_entities or []))
+        )
+        if is_cit_scope:
+            is_4_in = bool(re.search(r"\b(?:4x6|4\s*x\s*6|4\"x6\"|4\s*by\s*6|4[\s-]*(?:inch|in|\")|cz01|cz-01)\b", msg_l)) or msg_l in ("4 inch", "4inch", "4\"", "4")
+            is_6_in = bool(re.search(r"\b(?:6x8|6\s*x\s*8|6\"x8\"|6\s*by\s*8|6[\s-]*(?:inch|in|\")|cx02|cx-02|cy02|cy-02)\b", msg_l)) or msg_l in ("6 inch", "6inch", "6\"", "6")
+            is_8_in = bool(re.search(r"\b(?:8x12|8\s*x\s*12|8\"x12\"|8x10|8\s*x\s*10|8[\s-]*(?:inch|in|\")|cx02w|cx-02w)\b", msg_l)) or msg_l in ("8 inch", "8inch", "8\"", "8")
 
-        # ── Citizen photo booth 6x8 multi-format (Chat 6 Turn 3) ──────────────
-        if state.category == "citizen_photo" and re.search(r"\b(?:6x8|6\s*x\s*8|6\"x8\"|6\s*by\s*8)\b", msg_l):
-            cx02 = catalogue_loader.get_by_id("citizen-cx-02")
-            cy02 = catalogue_loader.get_by_id("citizen-cy-02")
-            cards = [c for c in [cx02, cy02] if c]
-            state.shown_entities = [c["id"] for c in cards]
-            reply = (
-                "For multi-format printing including 6×8″ and 4×6″ prints, both the **Citizen CX-02** and **Citizen CY-02** support 6×8″ media:\n\n"
-                "• **Citizen CX-02**: Lightweight 12 kg event printer with ribbon-rewind feature to print both 4×6″ and 6×8″ without changing media.\n"
-                "• **Citizen CY-02**: High-capacity workhorse producing up to 350 6×8″ prints per roll for large-volume event photography."
-            )
-            return PreClassificationResult(
-                handled=True,
-                reply=reply,
-                product_cards=cards,
-                suggested_chips=["CX02 Yield?", "CY02 Yield?", "Official Quotation"],
-                source="recommendation:catalogue_list",
-            )
+            if is_4_in:
+                state.category = "citizen_photo"
+                state.requirements["category"] = "citizen_photo"
+                state.requirements["print_size"] = "4x6"
+                state.requirements["print_sizes"] = ["4x6"]
+                if hasattr(state, "confirmed_slots") and isinstance(state.confirmed_slots, dict):
+                    state.confirmed_slots.pop("_flowchart_leaf_reached", None)
+                    state.confirmed_slots.pop("_leaf_product_id", None)
+                cz01 = catalogue_loader.get_by_id("citizen-cz-01")
+                cx02 = catalogue_loader.get_by_id("citizen-cx-02")
+                cy02 = catalogue_loader.get_by_id("citizen-cy-02")
+                cards = [c for c in [cz01, cx02, cy02] if c]
+                state.shown_entities = [c["id"] for c in cards]
+                state.consume_pending_question()
+                reply = (
+                    "For 4×6″ event and photo booth printing, here are our recommended Citizen dye-sublimation printers:\n\n"
+                    "• **Citizen CZ-01**: Ultra-compact and lightweight (5.8 kg) 4×6″ printer, ideal for portable booths.\n"
+                    "• **Citizen CX-02**: Premium photo booth printer supporting 4×6″ and 6×8″ with ribbon rewind.\n"
+                    "• **Citizen CY-02**: High-capacity event printer producing up to 700 4×6″ prints per roll."
+                )
+                return PreClassificationResult(
+                    handled=True,
+                    reply=reply,
+                    product_cards=cards,
+                    suggested_chips=["Cheapest one?", "Compare CX-02 and CZ-01", "Official Quotation"],
+                    source="recommendation:catalogue_list",
+                )
+            elif is_6_in:
+                state.category = "citizen_photo"
+                state.requirements["category"] = "citizen_photo"
+                state.requirements["print_size"] = "6x8"
+                state.requirements["print_sizes"] = ["6x8", "4x6"]
+                if hasattr(state, "confirmed_slots") and isinstance(state.confirmed_slots, dict):
+                    state.confirmed_slots.pop("_flowchart_leaf_reached", None)
+                    state.confirmed_slots.pop("_leaf_product_id", None)
+                cx02 = catalogue_loader.get_by_id("citizen-cx-02")
+                cy02 = catalogue_loader.get_by_id("citizen-cy-02")
+                cards = [c for c in [cx02, cy02] if c]
+                state.shown_entities = [c["id"] for c in cards]
+                state.consume_pending_question()
+                reply = (
+                    "For 6-inch event photo printing (including 6×8″ and 4×6″ formats), both the **Citizen CX-02** and **Citizen CY-02** deliver high-speed dye-sublimation output:\n\n"
+                    "• **Citizen CX-02**: Lightweight 12 kg event workhorse with ribbon-rewind to produce 4×6″ and 6×8″ without swapping rolls.\n"
+                    "• **Citizen CY-02**: High-capacity commercial model producing up to 700 4×6″ prints or 350 6×8″ prints per roll."
+                )
+                return PreClassificationResult(
+                    handled=True,
+                    reply=reply,
+                    product_cards=cards,
+                    suggested_chips=["CX02 Yield?", "CY02 Yield?", "Official Quotation"],
+                    source="recommendation:catalogue_list",
+                )
+            elif is_8_in:
+                state.category = "citizen_photo"
+                state.requirements["category"] = "citizen_photo"
+                state.requirements["print_size"] = "8x12"
+                state.requirements["print_sizes"] = ["8x12", "8x10"]
+                if hasattr(state, "confirmed_slots") and isinstance(state.confirmed_slots, dict):
+                    state.confirmed_slots.pop("_flowchart_leaf_reached", None)
+                    state.confirmed_slots.pop("_leaf_product_id", None)
+                cx02w = catalogue_loader.get_by_id("citizen-cx-02w")
+                cards = [cx02w] if cx02w else []
+                state.shown_entities = [c["id"] for c in cards]
+                state.consume_pending_question()
+                reply = (
+                    "For 8-inch wide event and portrait photography, here is our recommended Citizen dye-sublimation printer:\n\n"
+                    "• **Citizen CX-02W**: Wide-format instant event printer engineered for 8×10″ and 8×12″ school, wedding, and gala portraits."
+                )
+                return PreClassificationResult(
+                    handled=True,
+                    reply=reply,
+                    product_cards=cards,
+                    suggested_chips=["CX-02W Media Packs", "Print Speed", "Official Quotation"],
+                    source="recommendation:catalogue_list",
+                )
 
         # ── F100 paper size support inquiry (Chat 4 Turn 4) ───────────────────
         if re.search(r"\b(?:what\s+paper\s+size|paper\s+size|supported\s+paper|media\s+size|which\s+paper\s+size)\b", msg_l):
@@ -1310,6 +1506,75 @@ class PreClassificationResolver:
                 ))
             )
 
+            # If returning back to model (e.g. "back to the f100 – ink bottle size")
+            if re.search(r"\bback\s+to\s+(?:the\s+)?f100\b", msg_l) or ("f100" in msg_l and ("bottle" in msg_l or "ink" in msg_l and "back" in msg_l)):
+                state.set_canonical_focus("epson-surecolor-sc-f100")
+                state.category = "dye_sublimation"
+                reply = (
+                    "The **Epson SureColor SC-F100** uses genuine Epson T49N dye-sublimation ink bottles with a capacity of **140 ml per bottle** "
+                    "(available in Black, Cyan, Magenta, and Yellow)."
+                )
+                return PreClassificationResult(
+                    handled=True,
+                    reply=reply,
+                    product_cards=[p],
+                    suggested_chips=["View T49N Inks", "Paper Size Support", "Official Quotation"],
+                    source="route:product_spec_attribute",
+                )
+
+            # If user already initiated consumables inquiry in prior turns, directly return consumables!
+            user_initiated_consumables = bool(
+                state.active_route in ("consumables", "consumable", "route:consumables")
+                or getattr(state, "awaiting_field", None) in ("consumables", "consumables_printer", "consumable_model", "printer_for_consumables")
+                or (state.history_turns and any(
+                    "need ink" in t.get("content", "").lower()
+                    or "which printer or plotter model do you need consumables" in t.get("content", "").lower()
+                    or "which printer or scanner do you need supplies" in t.get("content", "").lower()
+                    for t in state.history_turns[-3:]
+                ))
+            )
+            if user_initiated_consumables and not has_explicit_hardware:
+                from catalog.evidence import EvidenceEngine
+                disp_name = p.get("display_name") or p_name
+                short_name = p.get("model_family") or disp_name
+                c_items, _ = EvidenceEngine.list_consumables(p.get("id", pid)) if p else ([], None)
+                c_cards = []
+                items_lines = []
+                for ci in c_items:
+                    c_card = {
+                        "card_type": "consumable",
+                        "id": ci.get("sku") or ci.get("id"),
+                        "name": ci.get("name"),
+                        "sku": ci.get("sku"),
+                        "price": ci.get("price"),
+                        "price_str": ci.get("price_str") or (f"AED {ci.get('price'):,.2f}" if ci.get("price") else None),
+                        "price_formatted": ci.get("price_formatted") or (f"AED {ci.get('price'):,.2f} (Excl. VAT)" if ci.get("price") else None),
+                        "category": ci.get("type", "consumable"),
+                        "compatible_printers": [disp_name],
+                        "product_url": ci.get("url"),
+                    }
+                    c_cards.append(c_card)
+                    price_part = f": **{c_card['price_formatted']}**" if c_card.get('price_formatted') else ""
+                    c_url = ci.get("url")
+                    link_title = f"[{ci.get('name')}]({c_url})" if c_url else f"**{ci.get('name')}**"
+                    items_lines.append(f"• **{link_title}** (SKU: `{ci.get('sku')}`){price_part}")
+                items_text = "\n".join(items_lines)
+                reply_text = f"Certainly! Here are the official compatible inks and media for the **{disp_name}**:\n\n{items_text}"
+                chips_to_return = ["Order Consumables", f"View {short_name} Specifications", "Request Official Quote"]
+                state.active_printer_for_consumables = disp_name
+                state.active_route = "consumable"
+                state.active_consumables = c_cards
+                state.category = p.get("catalogue") or p.get("main_category") or "consumables"
+                state.awaiting_field = None
+                return PreClassificationResult(
+                    handled=True,
+                    reply=reply_text,
+                    product_cards=[],
+                    consumable_cards=c_cards,
+                    suggested_chips=chips_to_return,
+                    source="route:product_or_consumable:consumables",
+                )
+
             # If inquiry occurs in consumables context and is ambiguous between hardware and consumables:
             if has_consumables_context and not has_explicit_hardware and not has_explicit_consumables:
                 disp_name = p.get("display_name") or p_name
@@ -1346,22 +1611,6 @@ class PreClassificationResolver:
                     product_cards=[p],
                     suggested_chips=["Compatible Consumables", "Official Quotation", "Compare with WF-C879R"],
                     source="route:model_detail",
-                )
-
-            # If returning back to model (e.g. "back to the f100 – ink bottle size")
-            if re.search(r"\bback\s+to\s+(?:the\s+)?f100\b", msg_l) or ("f100" in msg_l and "bottle" in msg_l):
-                state.set_canonical_focus("epson-surecolor-sc-f100")
-                state.category = "dye_sublimation"
-                reply = (
-                    "The **Epson SureColor SC-F100** uses genuine Epson T49N dye-sublimation ink bottles with a capacity of **140 ml per bottle** "
-                    "(available in Black, Cyan, Magenta, and Yellow)."
-                )
-                return PreClassificationResult(
-                    handled=True,
-                    reply=reply,
-                    product_cards=[p],
-                    suggested_chips=["View T49N Inks", "Paper Size Support", "Official Quotation"],
-                    source="route:product_spec_attribute",
                 )
 
             # If looking for consumables for a model (e.g. "i need f100 consubales", "need ink for epson c878", "i want p900 ink")
