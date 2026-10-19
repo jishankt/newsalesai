@@ -16,7 +16,7 @@ from domain.conversation_state import ConversationState
 def is_compound_message(text: str) -> bool:
     """Detects if message joins multiple distinct product or consumable requests."""
     t = text.lower()
-    if re.search(r"\b(?:compare|comparison|versus|vs)\b", t):
+    if re.search(r"\b(?:compare|comparison|versus|vs|difference|differences|diff)\b", t):
         return False
     split_patterns = [
         r"\band\s+also\b",

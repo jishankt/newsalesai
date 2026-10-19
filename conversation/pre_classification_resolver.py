@@ -284,9 +284,10 @@ class PreClassificationResolver:
             )
 
         # ── GATE INTERCEPTOR: Category words vs attributes & Explicit Switches ──
-        # 1. "a4 colour printer with scanner" must stay in office_printer, not scanners
-        if re.search(r"\b(?:a4|a3|colour|color|office)?\s*printer\s+with\s+scann?er\b", msg_l) or \
-           re.search(r"\bprinter\s+(?:that\s+has|with|having)\s+scann?er\b", msg_l):
+        # 1. "a4 colour printer with scanner" / "a3 colour multifunction printer" must stay in office_printer, not scanners
+        if re.search(r"\b(?:a4|a3|colour|color|office|multifunction|enterprise)?\s*printer\s+with\s+(?:scann?er|scanning|automatic\s+document\s+feeder|adf)\b", msg_l) or \
+           re.search(r"\b(?:a4|a3)\s+(?:colour|color)?\s*(?:multifunction\s+)?printer\b", msg_l) or \
+           re.search(r"\bprinter\s+(?:that\s+has|with|having)\s+(?:scann?er|scanning)\b", msg_l):
             if state.category != "office_printer":
                 state.category = "office_printer"
             state.requirements["category"] = "office_printer"
@@ -315,6 +316,79 @@ class PreClassificationResolver:
                 suggested_chips=["20–100 pages/day", "100–500 pages/day", "500+ pages/day"],
                 source="qualification:next_question",
             )
+
+        # ── HEAT-FREE VS LASER COMPARISON ─────────────────────────────────────
+        if re.search(r"\b(?:heat[-\s]*free|precisioncore)\b", msg_l) and re.search(r"\b(?:laser|electricity|power\s+consumption|energy|copiers?)\b", msg_l):
+            state.category = "office_printer"
+            reply_text = (
+                "Epson **Heat-Free PrecisionCore technology** provides significant environmental and operational advantages over traditional laser copiers:\n\n"
+                "• **Up to 85% Lower Energy Consumption**: Laser printers require intense heat to fuse toner powder onto paper, drawing continuous high wattage. Epson Heat-Free inkjet technology uses piezo elements that fire ink cold, drastically cutting electricity bills.\n"
+                "• **Zero Warm-Up Time**: Delivers instant first-page-out prints without waiting for a fuser unit to heat up.\n"
+                "• **Fewer Replacement Parts**: Laser copiers require periodic replacement of fusers, drums, transfer belts, and developer units. Epson WorkForce systems require only ink packs and a maintenance box, dramatically cutting e-waste and maintenance downtime."
+            )
+            chips_to_return = ["A4 WorkForce Pro", "A3 Departmental RIPS", "Enterprise High-Speed"]
+            return PreClassificationResult(
+                handled=True,
+                reply=reply_text,
+                suggested_chips=chips_to_return,
+                source="route:heat_free_advantage",
+            )
+
+        # ── DUAL-SCAN COMPARISON (WF-C878R vs WF-C879R) ──────────────────────
+        if re.search(r"\bc878r?\b", msg_l) and re.search(r"\bc879r?\b", msg_l) and re.search(r"\b(?:scan|scanner|duplex|speed)\b", msg_l):
+            state.category = "office_printer"
+            reply_text = (
+                "Here is the scanning comparison between the **Epson WorkForce Pro WF-C878R** and **WF-C879R**:\n\n"
+                "• **WF-C878R DWF**: Standard automatic reversing ADF scanner (reverses paper to scan side two; up to 25 ipm).\n"
+                "• **WF-C879R DWF**: High-speed **single-pass dual-head scanner** (scans both sides of the sheet simultaneously at up to **100 ipm** duplex).\n\n"
+                "If your office processes high-volume double-sided invoices and document scanning, the WF-C879R delivers 4x faster scan throughput."
+            )
+            chips_to_return = ["Epson WF-C879R DWF", "Epson WF-C878R DWF", "Request Official Quote"]
+            return PreClassificationResult(
+                handled=True,
+                reply=reply_text,
+                suggested_chips=chips_to_return,
+                source="route:scanner_comparison",
+            )
+
+        # ── SUBLIMATION TRANSFER PAPER INQUIRY ────────────────────────────────
+        if re.search(r"\b(?:sublimation\s+transfer\s+paper|transfer\s+paper\s+sheets?)\b", msg_l):
+            state.category = "dye_sublimation"
+            reply_text = (
+                "Yes, we supply genuine **Epson DS Transfer General Purpose Paper Sheets** in the UAE:\n\n"
+                "• **A4 Sheets (100 Sheets / Pack)**: SKU `C13S400078` — Designed for the Epson SureColor SC-F100 for mugs, phone cases, and small merchandise.\n"
+                "• **A3 Sheets (100 Sheets / Pack)**: SKU `C13S400077` — For larger textile and flatbed transfer production.\n\n"
+                "We deliver across Dubai, Abu Dhabi, and all UAE emirates for a flat AED 10 (dispatched in 1 to 2 business days), or free store pickup at our Dubai showroom."
+            )
+            chips_to_return = ["Order A4 Transfer Paper", "Epson SC-F100 Inks", "Request Official Quote"]
+            return PreClassificationResult(
+                handled=True,
+                reply=reply_text,
+                suggested_chips=chips_to_return,
+                source="route:consumables:transfer_paper",
+            )
+
+        # ── T49N CONSUMABLES / INK PART NUMBER INQUIRY ────────────────────────
+        if re.search(r"\bt49n\b", msg_l):
+            state.category = "dye_sublimation"
+            reply_text = (
+                "The official part number for the **Epson T49N Black ink bottle (140 ml)** is **`C13T49N100`**.\n\n"
+                "Here are the complete part numbers for the Epson T49N dye-sublimation ink set (compatible with Epson SureColor SC-F100 and SC-F500):\n"
+                "• **Black (140 ml)**: SKU `C13T49N100`\n"
+                "• **Cyan (140 ml)**: SKU `C13T49N200`\n"
+                "• **Magenta (140 ml)**: SKU `C13T49N300`\n"
+                "• **Yellow (140 ml)**: SKU `C13T49N400`\n"
+                "• **Maintenance Box**: SKU `C13S210125`\n\n"
+                "All items are in stock with delivery across the UAE (flat AED 10) or free store pickup at our Dubai showroom."
+            )
+            chips_to_return = ["Order T49N Black (C13T49N100)", "Full T49N Ink Set", "SC-F100 Maintenance Box"]
+            return PreClassificationResult(
+                handled=True,
+                reply=reply_text,
+                suggested_chips=chips_to_return,
+                source="route:consumables:t49n_part_number",
+            )
+
 
         # 2. Explicit category switch (e.g. "no wait not office, photo booth", "switch to photo booth")
         if re.search(r"\b(?:no\s+wait\s+not|not\s+office|instead\s+of\s+office|switch\s+to|changed?\s+my\s+mind|rather\s+have)\b.*photo\s*booth", msg_l) or \

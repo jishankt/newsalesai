@@ -1,0 +1,615 @@
+[
+  {
+    "qid": "A1",
+    "domain": "A. Technical CAD & AEC Plotters",
+    "question": "I need a CAD printer",
+    "status": "PASS",
+    "elapsed_sec": 2.796,
+    "source": "unified:clarify",
+    "reply": "Kepler Tech supplies the Epson SureColor T-Series, engineered for line accuracy, AEC drawings, and water-resistant UltraChrome XD2/XD3 inks.\n\nWhich technical CAD category fits your architectural and engineering requirements?\n\n• 24″ Print-Only (A1)\n• 36″ Print-Only (A0)\n• 36″ Multifunction (MFP)\n• 44″ Print-Only\n• 44″ Multifunction (MFP)",
+    "chips": [
+      "24″ Print-Only (A1)",
+      "36″ Print-Only (A0)",
+      "36″ Multifunction (MFP)",
+      "44″ Print-Only",
+      "44″ Multifunction (MFP)"
+    ],
+    "product_cards": [],
+    "consumable_cards": []
+  },
+  {
+    "qid": "A2",
+    "domain": "A. Technical CAD & AEC Plotters",
+    "question": "What are the technical specs and print speed of the Epson SC-T3100?",
+    "status": "PASS",
+    "elapsed_sec": 0.092,
+    "source": "route:model_detail",
+    "reply": "Here are the verified specifications and key features for the Epson SureColor SC-T3100 (Technical Large Format — Technical 24 Print Only):\n\n• Category: Technical Large Format (Technical 24 Print Only)\n• Functions: Print (Dedicated print-only)\n• Maximum Print Width: 24 inches\n• Paper Formats: 24-INCH\n• Yield & Capacity: Approx. 100–180 A1 CAD line drawings per black cartridge (26ml, 50ml, and 80ml Cartridges)\n• Finishing & Pattern: Plain paper, CAD bond paper, tracing paper, matte film, and coated presentation media; single roll and manual sheet feed; automated PrecisionCore nozzle check diagnostic pattern and head cleaning.\n\n*(Verified from official catalogue: TECHNICAL LARGE FORMAT PRINTERS_CATALOG.pdf)*",
+    "chips": [
+      "View Compatible Consumables"
+    ],
+    "product_cards": [
+      "Epson SureColor SC-T3100"
+    ],
+    "consumable_cards": []
+  },
+  {
+    "qid": "A3",
+    "domain": "A. Technical CAD & AEC Plotters",
+    "question": "Does the SC-T5100 come with a stand or is it desktop only?",
+    "status": "PASS",
+    "elapsed_sec": 0.088,
+    "source": "route:model_detail",
+    "reply": "Here are the verified specifications and key features for the Epson SureColor SC-T5100 (Technical Large Format — Technical 36 Print Only):\n\n• Category: Technical Large Format (Technical 36 Print Only)\n• Functions: Print (Dedicated print-only)\n• Maximum Print Width: 36 inches\n• Paper Formats: 36-INCH\n• Yield & Capacity: Approx. 120–200 A1 CAD line drawings per black cartridge (26ml, 50ml, and 80ml Cartridges)\n• Finishing & Pattern: Plain paper, CAD bond paper, tracing paper, matte film, and coated presentation media; single roll and manual sheet feed; automated PrecisionCore nozzle check diagnostic pattern and head cleaning.\n\n*(Verified from official catalogue: TECHNICAL LARGE FORMAT PRINTERS_CATALOG.pdf)*",
+    "chips": [
+      "View Compatible Consumables"
+    ],
+    "product_cards": [
+      "Epson SureColor SC-T5100"
+    ],
+    "consumable_cards": []
+  },
+  {
+    "qid": "A4",
+    "domain": "A. Technical CAD & AEC Plotters",
+    "question": "Looking for a 36 inch plotter with integrated scanner for engineering blueprints",
+    "status": "PASS",
+    "elapsed_sec": 8.674,
+    "source": "route:a0_plotters",
+    "reply": "Got it — the Epson SureColor SC-T5100 is a dedicated print-only model and does not have an integrated scanner. It's designed specifically for architectural blueprints, engineering line drawings, and GIS mapping.\n\nWould you like a quotation or technical datasheet for our A0 plotters?",
+    "chips": [],
+    "product_cards": [
+      "Epson SureColor SC-T5100"
+    ],
+    "consumable_cards": []
+  },
+  {
+    "qid": "A5",
+    "domain": "A. Technical CAD & AEC Plotters",
+    "question": "SC-T7700D dual roll CAD printer price and availability in UAE",
+    "status": "PASS",
+    "elapsed_sec": 0.087,
+    "source": "route:model_detail",
+    "reply": "Here are the verified specifications and key features for the Epson SureColor SC-T7700D (Technical Large Format — Technical 44 Print Only):\n\n• Category: Technical Large Format (Technical 44 Print Only)\n• Functions: Print (Dedicated print-only)\n• Maximum Print Width: 44 inches\n• Paper Formats: 44-INCH\n• Dual Roll: Automatic dual-roll media switching supported\n• Yield & Capacity: Over 2,500 A1 CAD drawings per 700ml set (350ml and 700ml Tanks)\n• Finishing & Pattern: Plain paper, CAD bond paper, tracing paper, matte film, and coated presentation media; automatic dual-roll media switching; automated PrecisionCore nozzle check diagnostic pattern and head cleaning.\n\n*(Verified from official catalogue: TECHNICAL LARGE FORMAT PRINTERS_CATALOG.pdf)*",
+    "chips": [
+      "View Compatible Consumables"
+    ],
+    "product_cards": [
+      "Epson SureColor SC-T7700D"
+    ],
+    "consumable_cards": []
+  },
+  {
+    "qid": "A6",
+    "domain": "A. Technical CAD & AEC Plotters",
+    "question": "Can I print on tracing paper and glossy film with SC-T5400?",
+    "status": "PASS",
+    "elapsed_sec": 0.123,
+    "source": "unified:clarify",
+    "reply": "Did you mean Epson SureColor SC-T5400M or Epson SureColor SC-T5100?",
+    "chips": [
+      "Epson SureColor SC-T5400M",
+      "Epson SureColor SC-T5100"
+    ],
+    "product_cards": [],
+    "consumable_cards": []
+  },
+  {
+    "qid": "B1",
+    "domain": "B. Citizen Event & Photo Booth Printers",
+    "question": "Photo booth printer for events",
+    "status": "PASS",
+    "elapsed_sec": 0.169,
+    "source": "unified:clarify",
+    "reply": "Understood.\n\nCitizen dye-sublimation photo printers deliver high-speed, smudge-proof instant prints with gloss and matte finishes without changing paper.\n\nWhat photo print format do you need for instant event or photo booth printing?\n\n• 4-inch Ultra-Compact (CZ-01)\n• 6-inch Event Photos (CX-02 / CY-02)\n• 8-inch Wide Event (CX-02W)",
+    "chips": [
+      "4-inch Ultra-Compact (CZ-01)",
+      "6-inch Event Photos (CX-02 / CY-02)",
+      "8-inch Wide Event (CX-02W)"
+    ],
+    "product_cards": [],
+    "consumable_cards": []
+  },
+  {
+    "qid": "B2",
+    "domain": "B. Citizen Event & Photo Booth Printers",
+    "question": "What is the print speed and roll yield of the Citizen CX-02?",
+    "status": "PASS",
+    "elapsed_sec": 0.1,
+    "source": "route:model_detail",
+    "reply": "Here are the verified specifications and key features for the Citizen CX-02 (Citizen Photo — Citizen 6 Inch):\n\n• Category: Citizen Photo (Citizen 6 Inch)\n• Functions: Print (Dedicated print-only)\n• Maximum Print Width: 6 inches\n• Paper Formats: 6-INCH\n• Yield & Capacity: 400 prints per roll (4×6″) / 200 prints per roll (6×8″); 800 prints per 2-roll box of CX2.4X6\n• Finishing & Pattern: Glossy and Matte finishes managed via thermal printhead overcoat in the printer driver without changing media (promotional overview also references a luster effect); ribbon rewind technology to prevent media waste; drop-in paper loading; automated test pattern diagnostics.\n\n*(Verified from official catalogue: CITIZEN PHOTO PRINTERS_CATALOG.pdf)*",
+    "chips": [
+      "View Compatible Consumables"
+    ],
+    "product_cards": [
+      "Citizen CX-02"
+    ],
+    "consumable_cards": []
+  },
+  {
+    "qid": "B3",
+    "domain": "B. Citizen Event & Photo Booth Printers",
+    "question": "Can the CX-02 print both 4x6 and 6x8 without changing paper rolls?",
+    "status": "PASS",
+    "elapsed_sec": 4.558,
+    "source": "compound_request:split_execution",
+    "reply": "The Citizen CX-02 can print different sizes, but it typically requires changing paper rolls to switch between 4x6 and 6x8 prints. If you need a solution that allows for quick size changes without swapping rolls, let me know your specific needs so I can suggest an alternative.",
+    "chips": [],
+    "product_cards": [
+      "Citizen CX-02"
+    ],
+    "consumable_cards": []
+  },
+  {
+    "qid": "B4",
+    "domain": "B. Citizen Event & Photo Booth Printers",
+    "question": "Citizen CZ-01 compact event printer price",
+    "status": "PASS",
+    "elapsed_sec": 0.088,
+    "source": "route:model_detail",
+    "reply": "Here are the verified specifications and key features for the Citizen CZ-01 (Citizen Photo — Citizen 4 Inch):\n\n• Category: Citizen Photo (Citizen 4 Inch)\n• Functions: Print (Dedicated print-only)\n• Maximum Print Width: 4 inches\n• Paper Formats: 4.5-INCH\n• Yield & Capacity: 150 prints per roll (4×6″); 300 prints per 2-roll box of CZ-MS46\n• Finishing & Pattern: Glossy, Matte, and Partial Matte finishes managed via thermal printhead overcoat in the printer driver without changing media (Partial Matte enables selective texture patterns); ultra-compact drop-in roll loading; automated test pattern diagnostics.\n\n*(Verified from official catalogue: CITIZEN PHOTO PRINTERS_CATALOG.pdf)*",
+    "chips": [
+      "View Compatible Consumables"
+    ],
+    "product_cards": [
+      "Citizen CZ-01"
+    ],
+    "consumable_cards": []
+  },
+  {
+    "qid": "B5",
+    "domain": "B. Citizen Event & Photo Booth Printers",
+    "question": "How heavy is the CZ-01 for portable photo booths?",
+    "status": "PASS",
+    "elapsed_sec": 0.09,
+    "source": "route:model_detail",
+    "reply": "Here are the verified specifications and key features for the Citizen CZ-01 (Citizen Photo — Citizen 4 Inch):\n\n• Category: Citizen Photo (Citizen 4 Inch)\n• Functions: Print (Dedicated print-only)\n• Maximum Print Width: 4 inches\n• Paper Formats: 4.5-INCH\n• Yield & Capacity: 150 prints per roll (4×6″); 300 prints per 2-roll box of CZ-MS46\n• Finishing & Pattern: Glossy, Matte, and Partial Matte finishes managed via thermal printhead overcoat in the printer driver without changing media (Partial Matte enables selective texture patterns); ultra-compact drop-in roll loading; automated test pattern diagnostics.\n\n*(Verified from official catalogue: CITIZEN PHOTO PRINTERS_CATALOG.pdf)*",
+    "chips": [
+      "View Compatible Consumables"
+    ],
+    "product_cards": [
+      "Citizen CZ-01"
+    ],
+    "consumable_cards": []
+  },
+  {
+    "qid": "B6",
+    "domain": "B. Citizen Event & Photo Booth Printers",
+    "question": "Do you have the wide 8x10 Citizen CX-02W in stock?",
+    "status": "PASS",
+    "elapsed_sec": 2.961,
+    "source": "route:stock_availability",
+    "reply": "I don't have the wide 8x10 Citizen CX-02W in stock right now. Would you like to check the delivery lead time for that specific unit?",
+    "chips": [],
+    "product_cards": [],
+    "consumable_cards": []
+  },
+  {
+    "qid": "C1",
+    "domain": "C. Commercial Pricing, Quotations & Discounts",
+    "question": "How much does it cost?",
+    "status": "PASS",
+    "elapsed_sec": 0.167,
+    "source": "unified:clarify",
+    "reply": "Which model or application are you looking to price?\n\n• Office & Multifunction\n• CAD / Blueprint / GIS\n• Photo & Fine Art\n• Photo Booth / Instant Photo\n• Professional Scanners\n\nPlease select a category or specify a model to view verified pricing.",
+    "chips": [
+      "Office & Multifunction",
+      "CAD / Blueprint / GIS",
+      "Photo & Fine Art",
+      "Photo Booth / Instant Photo",
+      "Professional Scanners"
+    ],
+    "product_cards": [],
+    "consumable_cards": []
+  },
+  {
+    "qid": "C2",
+    "domain": "C. Commercial Pricing, Quotations & Discounts",
+    "question": "Can you send me an official quotation for the SC-F100 with delivery to Dubai?",
+    "status": "PASS",
+    "elapsed_sec": 0.175,
+    "source": "unified:answer",
+    "reply": "Official pricing and volume quotations for the Epson SureColor SC-F100 Sublimation Printer are provided directly through our sales desk.\n\nDelivery across Dubai and all UAE emirates is a flat AED 10, dispatched within 1 to 2 business days (excluding weekends and public holidays).\n\nFree store pickup at our Dubai showroom is also available (ready in 1 to 2 days). On-site installation is provided for production plotters.\n\nOur sales specialists are available at sales@keplertech.ae or +971 4 323 1008 to prepare your official proposal.",
+    "chips": [
+      "Request Official Quote",
+      "Technical Specifications",
+      "Speak to Specialist"
+    ],
+    "product_cards": [
+      "Epson SureColor SC-F100 Sublimation Printer"
+    ],
+    "consumable_cards": []
+  },
+  {
+    "qid": "C3",
+    "domain": "C. Commercial Pricing, Quotations & Discounts",
+    "question": "What is the price of Epson WF-C878R DWF including VAT?",
+    "status": "PASS",
+    "elapsed_sec": 0.088,
+    "source": "route:model_detail",
+    "reply": "The Epson WorkForce Pro WF-C878R DWF is our departmental A3 WorkForce Pro multifunction printer. It prints at 25 ISO ppm black / 24 ISO ppm colour with an ink yield of up to 86,000 pages black and 50,000 pages colour, recommended for monthly workloads of 1,500 to 10,000 pages.",
+    "chips": [
+      "Compatible Consumables",
+      "Compare with WF-C879R"
+    ],
+    "product_cards": [
+      "Epson WorkForce Pro WF-C878R DWF"
+    ],
+    "consumable_cards": []
+  },
+  {
+    "qid": "C4",
+    "domain": "C. Commercial Pricing, Quotations & Discounts",
+    "question": "Do you offer corporate or bulk discounts for 5 units?",
+    "status": "PASS",
+    "elapsed_sec": 0.204,
+    "source": "unified:answer",
+    "reply": "I note your request for a discount (5 units). Discounts, formal quotations, and custom configurations are handled directly by our sales team, as I cannot approve a discount or confirm a quote.\n\nOur sales specialists are available now to prepare this for you.\n\nPlease provide your name and phone number or email address so our sales team can send your quotation.",
+    "chips": [
+      "Leave Phone Number",
+      "Leave Email Address",
+      "Showroom Hours & Location"
+    ],
+    "product_cards": [],
+    "consumable_cards": []
+  },
+  {
+    "qid": "C5",
+    "domain": "C. Commercial Pricing, Quotations & Discounts",
+    "question": "Is pricing negotiable if we pay by bank transfer?",
+    "status": "PASS",
+    "elapsed_sec": 0.182,
+    "source": "unified:clarify",
+    "reply": "Which model or application are you looking to price?\n\n• Office & Multifunction\n• CAD / Blueprint / GIS\n• Photo & Fine Art\n• Photo Booth / Instant Photo\n• Professional Scanners\n\nPlease select a category or specify a model to view verified pricing.",
+    "chips": [
+      "Office & Multifunction",
+      "CAD / Blueprint / GIS",
+      "Photo & Fine Art",
+      "Photo Booth / Instant Photo",
+      "Professional Scanners"
+    ],
+    "product_cards": [],
+    "consumable_cards": []
+  },
+  {
+    "qid": "C6",
+    "domain": "C. Commercial Pricing, Quotations & Discounts",
+    "question": "Cheapest A3 colour multifunction printer for office",
+    "status": "PASS",
+    "elapsed_sec": 0.076,
+    "source": "qualification:next_question",
+    "reply": "For office multifunction printing with integrated scanning, what is your estimated daily page volume?\n\n• 20–100 pages/day\n• 100–500 pages/day\n• 500+ pages/day",
+    "chips": [
+      "20–100 pages/day",
+      "100–500 pages/day",
+      "500+ pages/day"
+    ],
+    "product_cards": [],
+    "consumable_cards": []
+  },
+  {
+    "qid": "D1",
+    "domain": "D. Consumables, Inks & Media",
+    "question": "I need ink for Epson SC-F100",
+    "status": "PASS",
+    "elapsed_sec": 0.088,
+    "source": "route:consumables:verified_list",
+    "reply": "Here are the verified compatible consumables for the Epson SureColor SC-F100:\n\n• Epson T49N Ink Bottles (140 ml): High-yield dye-sublimation ink bottles in Black, Cyan, Magenta, Yellow ( each).\n• SC-F100 Maintenance Box: User-replaceable ink maintenance tank.",
+    "chips": [
+      "Price of Yellow Ink",
+      "Maintenance Box"
+    ],
+    "product_cards": [],
+    "consumable_cards": [
+      "Epson T49N Dye-Sublimation Inks (140 ml)"
+    ]
+  },
+  {
+    "qid": "D2",
+    "domain": "D. Consumables, Inks & Media",
+    "question": "What is the part number for T49N black ink bottle?",
+    "status": "PASS",
+    "elapsed_sec": 0.09,
+    "source": "route:consumables:t49n_part_number",
+    "reply": "The official part number for the Epson T49N Black ink bottle (140 ml) is `C13T49N100`.\n\nHere are the complete part numbers for the Epson T49N dye-sublimation ink set (compatible with Epson SureColor SC-F100 and SC-F500):\n• Black (140 ml): SKU `C13T49N100`\n• Cyan (140 ml): SKU `C13T49N200`\n• Magenta (140 ml): SKU `C13T49N300`\n• Yellow (140 ml): SKU `C13T49N400`\n• Maintenance Box: SKU `C13S210125`\n\nAll items are in stock with delivery across the UAE (flat ) or free store pickup at our Dubai showroom.",
+    "chips": [
+      "Order T49N Black (C13T49N100)",
+      "Full T49N Ink Set",
+      "SC-F100 Maintenance Box"
+    ],
+    "product_cards": [],
+    "consumable_cards": []
+  },
+  {
+    "qid": "D3",
+    "domain": "D. Consumables, Inks & Media",
+    "question": "Need replacement ribbon and paper roll for Citizen CX-02",
+    "status": "PASS",
+    "elapsed_sec": 14.293,
+    "source": "compound_request:split_execution",
+    "reply": "Got it — you need replacement ribbon and paper roll for your Citizen CX-02. The printer uses Thermal Dye-Sublimation with Ribbon-Save Rewind & Glossy/Matte Control. For the media, you can use either 4x6\" (10x15cm) or 6x8\" (15x20cm) paper rolls, both available as SKU CX2.4x6 and CX2.6X8 respectively.\n\nThese supplies should fit your needs perfectly.",
+    "chips": [],
+    "product_cards": [
+      "Citizen CX-02"
+    ],
+    "consumable_cards": []
+  },
+  {
+    "qid": "D4",
+    "domain": "D. Consumables, Inks & Media",
+    "question": "Maintenance box for WorkForce WF-C878R price",
+    "status": "PASS",
+    "elapsed_sec": 0.084,
+    "source": "route:model_detail",
+    "reply": "The Epson WorkForce Pro WF-C878R DWF is our departmental A3 WorkForce Pro multifunction printer. It prints at 25 ISO ppm black / 24 ISO ppm colour with an ink yield of up to 86,000 pages black and 50,000 pages colour, recommended for monthly workloads of 1,500 to 10,000 pages.",
+    "chips": [
+      "Compatible Consumables",
+      "Compare with WF-C879R"
+    ],
+    "product_cards": [
+      "Epson WorkForce Pro WF-C878R DWF"
+    ],
+    "consumable_cards": []
+  },
+  {
+    "qid": "D5",
+    "domain": "D. Consumables, Inks & Media",
+    "question": "Can I use third-party compatible inks or does it void the warranty?",
+    "status": "PASS",
+    "elapsed_sec": 0.184,
+    "source": "unified:clarify",
+    "reply": "Which printer or scanner model do you need consumables for?\n\nPlease enter your model name, or select from the common options below:\n\n• Epson SC-F500\n• Epson SC-T3100\n• Citizen CX-02\n• Epson SC-P900\n\nPlease enter the model name or select from the options below.",
+    "chips": [
+      "Epson SC-F500",
+      "Epson SC-T3100",
+      "Citizen CX-02",
+      "Epson SC-P900"
+    ],
+    "product_cards": [],
+    "consumable_cards": []
+  },
+  {
+    "qid": "D6",
+    "domain": "D. Consumables, Inks & Media",
+    "question": "List all compatible inks and yields for SC-P900",
+    "status": "PASS",
+    "elapsed_sec": 14.965,
+    "source": "compound_request:split_execution",
+    "reply": "The Epson SureColor SC-P900 with Roll Adapter uses UltraChrome PRO10 Pigment Inks with Black Enhance Overcoat (BEO). The compatible ink cartridges include C13T47A100 Photo Black, C13T47A200 Cyan, C13T47A300 Vivid Magenta, and others. You can find the full list of SKUs on our website if you need more details.",
+    "chips": [],
+    "product_cards": [
+      "Epson SureColor SC-P900 with Roll Adapter"
+    ],
+    "consumable_cards": []
+  },
+  {
+    "qid": "E1",
+    "domain": "E. Office & Enterprise Multifunction Systems",
+    "question": "Printer for my office with 400 pages per day",
+    "status": "PASS",
+    "elapsed_sec": 0.181,
+    "source": "unified:clarify",
+    "reply": "Kepler Tech provides Epson WorkForce Heat-Free printers in both compact A4 desktop workgroup and high-speed A3 departmental formats.\n\nDo you require standard A4 output or large-format A3 output for your office documents?",
+    "chips": [
+      "A4 Output",
+      "A3 Output"
+    ],
+    "product_cards": [],
+    "consumable_cards": []
+  },
+  {
+    "qid": "E2",
+    "domain": "E. Office & Enterprise Multifunction Systems",
+    "question": "A3 colour multifunction printer with scanning and automatic document feeder",
+    "status": "PASS",
+    "elapsed_sec": 0.082,
+    "source": "qualification:next_question",
+    "reply": "For office multifunction printing with integrated scanning, what is your estimated daily page volume?\n\n• 20–100 pages/day\n• 100–500 pages/day\n• 500+ pages/day",
+    "chips": [
+      "20–100 pages/day",
+      "100–500 pages/day",
+      "500+ pages/day"
+    ],
+    "product_cards": [],
+    "consumable_cards": []
+  },
+  {
+    "qid": "E3",
+    "domain": "E. Office & Enterprise Multifunction Systems",
+    "question": "How does the Epson Heat-Free PrecisionCore compare to laser copiers in electricity cost?",
+    "status": "PASS",
+    "elapsed_sec": 3.81,
+    "source": "route:heat_free_advantage",
+    "reply": "The Epson Heat-Free PrecisionCore technology uses up to 85% less energy compared to laser copiers because it doesn’t require the high heat needed for fusing toner. This means lower electricity costs and no warm-up time, as well as fewer replacement parts, reducing maintenance downtime and e-waste.",
+    "chips": [],
+    "product_cards": [],
+    "consumable_cards": []
+  },
+  {
+    "qid": "E4",
+    "domain": "E. Office & Enterprise Multifunction Systems",
+    "question": "Epson WorkForce Enterprise AM-C4000 monthly duty cycle and print speed",
+    "status": "PASS",
+    "elapsed_sec": 0.094,
+    "source": "route:model_detail",
+    "reply": "Here are the verified specifications and key features for the Epson WorkForce Enterprise AM-C4000 (Business A3 — A3 Enterprise Multifunction):\n\n• Category: Business A3 (A3 Enterprise Multifunction)\n• Functions: Print/Scan/Copy (Includes integrated scanner)\n• Maximum Print Width: 13 inches\n• Paper Formats: A3\n• Yield & Capacity: Up to 31,500 pages Black / 28,000 pages Colour (High-Yield Ink Bags (T08H Series))\n• Finishing & Pattern: Plain paper, recycled paper, letterhead, bond paper, and envelopes; automatic double-sided (duplex) printing; automated PrecisionCore nozzle check diagnostic pattern test and head cleaning.\n\n*(Verified from official catalogue: BUSINESS A3 PRINTERS_CATALOG.pdf)*",
+    "chips": [
+      "View Compatible Consumables"
+    ],
+    "product_cards": [
+      "Epson WorkForce Enterprise AM-C4000"
+    ],
+    "consumable_cards": []
+  },
+  {
+    "qid": "E5",
+    "domain": "E. Office & Enterprise Multifunction Systems",
+    "question": "Difference between WF-C878R and WF-C879R dual-scan speeds",
+    "status": "PASS",
+    "elapsed_sec": 5.804,
+    "source": "route:scanner_comparison",
+    "reply": "Got it — you want to know about the dual-scan speeds of the Epson WorkForce Pro WF-C878R and WF-C879R. \n\nThe WF-C878R has a standard automatic reversing ADF scanner that can scan up to 25 pages per minute (ipm). The WF-C879R, on the other hand, features a high-speed single-pass dual-head scanner capable of scanning both sides simultaneously at up to 100 ipm.\n\nIf your office handles lots of double-sided documents and needs fast throughput, the WF-C879R is four times faster for duplex scanning.",
+    "chips": [],
+    "product_cards": [],
+    "consumable_cards": []
+  },
+  {
+    "qid": "F1",
+    "domain": "F. Dye-Sublimation Gifts & Textiles",
+    "question": "Sublimation printer for mugs and t-shirts",
+    "status": "PASS",
+    "elapsed_sec": 0.181,
+    "source": "unified:answer",
+    "reply": "Here is the breakdown:\n\nEpson SureColor SC-F100: Compact A4 desktop dye-sub printer with refillable 140 ml ink tanks, perfect for mugs, phone cases, and small gifts.\n\nHere is the verified A4 desktop dye-sublimation printer:",
+    "chips": [
+      "SC-F100 Specs",
+      "140ml Ink Bottles (T49N)",
+      "Official Quotation"
+    ],
+    "product_cards": [
+      "Epson SureColor SC-F100 Sublimation Printer"
+    ],
+    "consumable_cards": []
+  },
+  {
+    "qid": "F2",
+    "domain": "F. Dye-Sublimation Gifts & Textiles",
+    "question": "Can the SC-F100 print directly onto 100% cotton t-shirts?",
+    "status": "PASS",
+    "elapsed_sec": 0.177,
+    "source": "unified:answer",
+    "reply": "Here is the breakdown:\n\nEpson SureColor SC-F100 Sublimation Printer is an approved official equipment model in our catalogue.\n• Print speed: Approx. 65 sec per A4 sublimation transfer page\n• Resolution: 600 × 1,200 DPI\n• Supported format: a4\n\nWould you like to review full technical specifications or request an official quotation for the Epson SureColor SC-F100 Sublimation Printer?",
+    "chips": [
+      "Technical Specifications",
+      "Compatible Consumables",
+      "Official Quotation"
+    ],
+    "product_cards": [
+      "Epson SureColor SC-F100 Sublimation Printer"
+    ],
+    "consumable_cards": []
+  },
+  {
+    "qid": "F3",
+    "domain": "F. Dye-Sublimation Gifts & Textiles",
+    "question": "What is the difference between SC-F100 A4 desktop and SC-F500 24-inch roll?",
+    "status": "PASS",
+    "elapsed_sec": 0.096,
+    "source": "route:model_detail",
+    "reply": "Here are the verified specifications and key features for the Epson SureColor SC-F100 Sublimation Printer (Dye Sublimation — Dye Sublimation Desktop):\n\n• Category: Dye Sublimation (Dye Sublimation Desktop)\n• Functions: Print (Dedicated print-only)\n• Maximum Print Width: 8 inches\n• Paper Formats: A4\n• Yield & Capacity: 140ml Refill Ink Tank System (Zero cartridge waste) (140ml Refill Ink Bottles (T49N Series))\n• Finishing & Pattern: Dye-sublimation transfer paper finishing for rigid substrates and soft polyester fabrics; roll or auto-sheet loading; automated PrecisionCore nozzle check diagnostic pattern.\n\n*(Verified from official catalogue: DYE SUBLIMATION PRINTERS_CATALOG.pdf)*",
+    "chips": [
+      "View Compatible Consumables"
+    ],
+    "product_cards": [
+      "Epson SureColor SC-F100 Sublimation Printer"
+    ],
+    "consumable_cards": []
+  },
+  {
+    "qid": "F4",
+    "domain": "F. Dye-Sublimation Gifts & Textiles",
+    "question": "Do you sell dye sublimation transfer paper sheets in UAE?",
+    "status": "PASS",
+    "elapsed_sec": 0.077,
+    "source": "route:consumables:transfer_paper",
+    "reply": "Yes, we supply genuine Epson DS Transfer General Purpose Paper Sheets in the UAE:\n\n• A4 Sheets (100 Sheets / Pack): SKU `C13S400078` — Designed for the Epson SureColor SC-F100 for mugs, phone cases, and small merchandise.\n• A3 Sheets (100 Sheets / Pack): SKU `C13S400077` — For larger textile and flatbed transfer production.\n\nWe deliver across Dubai, Abu Dhabi, and all UAE emirates for a flat  (dispatched in 1 to 2 business days), or free store pickup at our Dubai showroom.",
+    "chips": [
+      "Order A4 Transfer Paper",
+      "Epson SC-F100 Inks"
+    ],
+    "product_cards": [],
+    "consumable_cards": []
+  },
+  {
+    "qid": "G1",
+    "domain": "G. Delivery, Showroom & Company Contacts",
+    "question": "Where is your showroom in Dubai?",
+    "status": "PASS",
+    "elapsed_sec": 3.898,
+    "source": "route:business_info:showroom",
+    "reply": "Hello! Our showroom is located at D79, Khalid Bin Waleed Road, Office No. 1, Abdulla Al Awar Building, Dubai, UAE. You can visit us Monday through Saturday during our working hours.\n\nFeel free to stop by if you'd like to see the printers and media in person!",
+    "chips": [
+      "Browse Products",
+      "Delivery Options"
+    ],
+    "product_cards": [],
+    "consumable_cards": []
+  },
+  {
+    "qid": "G2",
+    "domain": "G. Delivery, Showroom & Company Contacts",
+    "question": "Can I visit your Khalid Bin Waleed showroom to see a live print demonstration?",
+    "status": "PASS",
+    "elapsed_sec": 6.11,
+    "source": "route:business_info:showroom",
+    "reply": "Of course, Ali! Our Khalid Bin Waleed showroom would be a great place to see live print demonstrations. You can visit us at D79, Khalid Bin Waleed Road, Office No. 1, Abdulla Al Awar Building, Dubai.\n\nOur working hours are Monday to Friday from 8:30 AM to 5:30 PM and Saturday from 8:30 AM to 1:00 PM. If you have a specific day in mind, feel free to drop by or give us a call at +971 4 323 1008 to schedule a visit.\n\nLooking forward to showing you our printers!",
+    "chips": [
+      "Browse Products",
+      "Delivery Options"
+    ],
+    "product_cards": [],
+    "consumable_cards": []
+  },
+  {
+    "qid": "G3",
+    "domain": "G. Delivery, Showroom & Company Contacts",
+    "question": "What are your opening hours on Saturday?",
+    "status": "PASS",
+    "elapsed_sec": 3.288,
+    "source": "route:business_info:showroom",
+    "reply": "Hello! On Saturdays, we are open from 8:30 AM to 1:00 PM. If you need help with anything specific during those hours, feel free to drop by or give us a call!",
+    "chips": [
+      "Browse Products",
+      "Delivery Options"
+    ],
+    "product_cards": [],
+    "consumable_cards": []
+  },
+  {
+    "qid": "G4",
+    "domain": "G. Delivery, Showroom & Company Contacts",
+    "question": "Do you deliver to Abu Dhabi, Sharjah, and Oman?",
+    "status": "PASS",
+    "elapsed_sec": 0.183,
+    "source": "unified:answer",
+    "reply": "Delivery across Sharjah and all UAE emirates is a flat AED 10, dispatched within 1 to 2 business days (excluding weekends and public holidays).\n\nFree store pickup at our Dubai showroom is also available (ready in 1 to 2 days). On-site installation is provided for production plotters.\n\nWould you like to arrange delivery or pickup for a specific equipment model?",
+    "chips": [
+      "Delivery Fee (AED 10)",
+      "Dispatch Timing",
+      "Free Store Pickup",
+      "Contact Sales Desk"
+    ],
+    "product_cards": [],
+    "consumable_cards": []
+  },
+  {
+    "qid": "G5",
+    "domain": "G. Delivery, Showroom & Company Contacts",
+    "question": "وين معرضكم في دبي وكيف طريقة التواصل؟",
+    "status": "PASS",
+    "elapsed_sec": 7.122,
+    "source": "route:business_info:showroom",
+    "reply": "مرحباً، معرضنا في دبي موجود في العنوان التالي:\n\n📍 دبي: D79، شارع خالد بن الوليد، المكتب رقم 1، بناية عبد الله العawner، دبي، الإمارات العربية المتحدة.\n\nساعات العمل لدينا هي:\n🕒 الاثنين إلى الجمعة: من الساعة 8:30 صباحاً حتى الساعة 5:30 مساءً | السبت: من الساعة 8:30 صباحاً حتى الساعة 1:00 ظهراً | الأحد: مغلق\n\nيمكنك التواصل معنا عبر الهاتف أو البريد الإلكتروني:\n📞 الهاتف: +971 4 323 1008 | +971 55 835 8586\n✉️ البريد الإلكتروني: sales@",
+    "chips": [
+      "Browse Products",
+      "Delivery Options"
+    ],
+    "product_cards": [],
+    "consumable_cards": []
+  },
+  {
+    "qid": "G6",
+    "domain": "G. Delivery, Showroom & Company Contacts",
+    "question": "Shop location kahan hai?",
+    "status": "PASS",
+    "elapsed_sec": 7.152,
+    "source": "route:business_info:showroom",
+    "reply": "مرحباً، مكتبنا وصالة العرض تقع في:\n\n📍  địa chỉ: D79، شارع خالد بن الوليد، المكتب رقم 1، برج عبد الله آل عار، دبي، الإمارات العربية المتحدة.\n🕒  ساعات العمل: من الاثنين إلى الجمعة: 8:30 صباحاً حتى 5:30 مساءً | السبت: 8:30 صباحاً حتى 1:00 ظهراً | الأحد: مغلق (ضريبة القيمة المضافة)\n📞  الهاتف: +971 4 323 1008 | +971 55 835 8586\n✉️  البريد الإلكتروني: sales@keplertech.ae | info@keplert",
+    "chips": [
+      "Browse Products",
+      "Delivery Options"
+    ],
+    "product_cards": [],
+    "consumable_cards": []
+  }
+]
