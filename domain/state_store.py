@@ -326,6 +326,9 @@ class SessionLockManager:
         self.max_idle_seconds = max_idle_seconds
         self._mutex = threading.Lock()
         self._locks: Dict[str, Dict[str, Any]] = {}
+        # (session_id, thread id) -> the exact Lock object that thread acquired, so a
+        # force_reset() that swaps the lock can never cause release() to free someone else's lock.
+        self._held: Dict[Any, Any] = {}
 
     def acquire(self, session_id: str, timeout: Optional[float] = None) -> bool:
         t = timeout if timeout is not None else self.default_timeout
@@ -344,19 +347,23 @@ class SessionLockManager:
             lock = entry["lock"]
 
         acquired = lock.acquire(timeout=t)
-        if not acquired:
-            with self._mutex:
+        with self._mutex:
+            if acquired:
+                self._held[(session_id, threading.get_ident())] = lock
+            else:
                 entry["active_holders"] = max(0, entry["active_holders"] - 1)
         return acquired
 
     def release(self, session_id: str) -> None:
         with self._mutex:
+            lock = self._held.pop((session_id, threading.get_ident()), None)
             entry = self._locks.get(session_id)
             if entry:
                 entry["last_active"] = time.time()
                 entry["active_holders"] = max(0, entry["active_holders"] - 1)
+            if lock is not None:
                 try:
-                    entry["lock"].release()
+                    lock.release()
                 except RuntimeError:
                     pass
 

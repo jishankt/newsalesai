@@ -361,17 +361,12 @@ def chat():
     else:
         session_id = str(uuid.uuid4())
 
-    # Rapid Consecutive WhatsApp Message Aggregation
-    try:
-        from conversation.message_buffer import message_buffer
-        raw_message = message_buffer.get_combined_prompt(session_id, raw_message)
-    except Exception:
-        pass
-
     turn_token = str(uuid.uuid4())
     with _session_turn_mutex:
         _session_active_turns[session_id] = turn_token
-    session_lock_manager.force_reset(session_id)
+    # NOTE: no force_reset here. Registering the new turn token above already marks any
+    # in-flight turn as superseded (it skips its commit); the new turn then waits for the
+    # per-session lock so state read -> process -> save is never run concurrently.
 
     # Rate Limiting Guard: check IP and session limits
     client_ip = get_client_ip(request)
@@ -399,6 +394,13 @@ def chat():
         }), 429
 
     try:
+        # Rapid consecutive message aggregation (web chat): a superseded turn parks its text in
+        # the buffer; once we hold the lock, fold it into this turn so no input is lost.
+        try:
+            from conversation.message_buffer import message_buffer
+            raw_message = message_buffer.get_combined_prompt(session_id, raw_message)
+        except Exception:
+            pass
         return _process_chat_turn(raw_message, session_id, model_name, request_id, session_prefix, turn_start_time, turn_token=turn_token, input_messages=input_messages)
     finally:
         session_lock_manager.release(session_id)
@@ -596,6 +598,11 @@ def _process_chat_turn(raw_message, session_id, model_name, request_id, session_
             latest_turn = _session_active_turns.get(session_id)
             if latest_turn and latest_turn != turn_token:
                 logger.info(f"[{session_prefix}] req_id={request_id} superseded by turn {latest_turn}. Skipping commit.")
+                try:
+                    from conversation.message_buffer import message_buffer
+                    message_buffer.add_message(session_id, raw_message)
+                except Exception:
+                    pass
                 return jsonify({
                     "success": False,
                     "superseded": True,

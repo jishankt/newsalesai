@@ -845,6 +845,7 @@ class PolicyEngine:
         )
         if has_substantive_input:
             state.clarifications_asked[current_topic] = 0
+            state.clarifications_asked["_final_fallback"] = 0
 
         if not has_substantive_input and topic_clarifications >= cls.MAX_CLARIFICATIONS_PER_TOPIC:
             # Prevent looping: Give best-effort verified answer plus specialist handoff
@@ -2034,6 +2035,19 @@ class PolicyEngine:
                 )
 
         # 12. Fallback Clarify - Universally Context-Aware (Never drop to root mid-conversation)
+        # Loop guard: keyed on a dedicated counter (NOT the per-intent topic, which changes turn to turn
+        # on gibberish) and reset whenever a substantive turn is understood (see has_substantive_input).
+        _fb = state.clarifications_asked.get("_final_fallback", 0)
+        if _fb >= cls.MAX_CLARIFICATIONS_PER_TOPIC:
+            state.clarifications_asked["_final_fallback"] = 0
+            return PolicyDecision(
+                action=PolicyAction.NOT_VERIFIED_HANDOFF,
+                reason="Repeated unresolved input; stop re-asking and offer a human specialist.",
+                options_or_chips=["Connect with Sales Specialist", "Official Quotation", "Browse Products"],
+                is_handoff=True,
+                next_step=f"I want to make sure you get the right answer. Our sales specialist can help directly at {OFFICIAL_SUPPORT_EMAIL}, or tell me the printer type or model you have in mind.",
+            )
+        state.clarifications_asked["_final_fallback"] = _fb + 1
         state.clarifications_asked[current_topic] = topic_clarifications + 1
         active_cat = getattr(state, "category", None) or (state.confirmed_slots.get("category") if hasattr(state, "confirmed_slots") else None)
 

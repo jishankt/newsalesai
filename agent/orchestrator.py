@@ -421,6 +421,32 @@ class Orchestrator:
                 resolved_turn = ReferentResolver.resolve_turn(turn_und, unified_state)
                 # 3. Fallback Policy Decision
                 policy_dec = PolicyEngine.decide(resolved_turn, unified_state)
+                # 3b. Universal clarify-loop guard: whatever branch produced a CLARIFY, never ask the
+                # same question more than MAX times in a row on input that added nothing new.
+                try:
+                    from conversation.policy import PolicyAction, PolicyDecision, OFFICIAL_SUPPORT_EMAIL
+                    _ca = unified_state.clarifications_asked
+                    if policy_dec.action == PolicyAction.CLARIFY:
+                        import zlib
+                        _q = zlib.crc32((policy_dec.clarification_question or "").strip().lower().encode()) if policy_dec.clarification_question else 0
+                        if _q and _q == _ca.get("_last_clarify_q"):
+                            _ca["_same_clarify_n"] = _ca.get("_same_clarify_n", 0) + 1
+                        else:
+                            _ca["_same_clarify_n"] = 1
+                        _ca["_last_clarify_q"] = _q
+                        if _ca["_same_clarify_n"] > PolicyEngine.MAX_CLARIFICATIONS_PER_TOPIC:
+                            _ca["_same_clarify_n"] = 0
+                            policy_dec = PolicyDecision(
+                                action=PolicyAction.NOT_VERIFIED_HANDOFF,
+                                reason="Same clarification repeated without new information; hand off.",
+                                options_or_chips=["Connect with Sales Specialist", "Official Quotation", "Browse Products"],
+                                is_handoff=True,
+                                next_step=f"I want to make sure you get the right answer. Our sales specialist can help directly at {OFFICIAL_SUPPORT_EMAIL}, or tell me the printer type or model you have in mind.",
+                            )
+                    else:
+                        _ca["_same_clarify_n"] = 0
+                except Exception as _loop_e:
+                    logger.warning(f"clarify-loop guard skipped: {_loop_e}")
                 # 4. Response Plan & Validation
                 plan = ResponsePlanBuilder.build(policy_dec, resolved_turn, unified_state)
 
@@ -7665,6 +7691,20 @@ class Orchestrator:
             if getattr(state, "question_ledger", None):
                 for q in canonical_turn.questions:
                     state.question_ledger.mark_answered(q.semantic_key, state.turn_count, reply)
+
+        # ── FINAL FAIL-CLOSED GATE (single choke point for every source) ──────────
+        # Every reply, including hardcoded pre-classification/policy text, passes the catalogue
+        # boundary check. Competitor-handling replies legitimately name other brands, so only
+        # those sources are exempt.
+        if reply and not source.startswith(("guardrail:competitor", "route:competitor")):
+            try:
+                _gated, _ok = validate_and_sanitize_catalogue_text(reply, product_cards or [])
+                if not _ok:
+                    logger.warning(f"Final gate replaced reply from source={source}")
+                    reply = _gated
+                    state.last_assistant_response = reply
+            except Exception as _e:
+                logger.error(f"Final gate error (reply kept): {_e}")
 
         from agent.response_composer import ResponseComposer
         if reply:
