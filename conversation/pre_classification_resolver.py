@@ -1100,12 +1100,20 @@ class PreClassificationResolver:
                 active_id = state.get_canonical_focus_id() or "epson-wf-c5890-dwf"
                 p_obj = catalogue_loader.get_by_id(active_id)
                 p_name = p_obj.get("display_name") or p_obj.get("name") if p_obj else "Epson WorkForce Pro WF-C5890 DWF"
-                unit_price = p_obj.get("price", 1656.0) if p_obj else 1656.0
-                total_price = unit_price * new_qty
+                raw_price = p_obj.get("price") if p_obj else 1656.0
+                if isinstance(raw_price, (int, float)):
+                    unit_price = float(raw_price)
+                    total_price = unit_price * new_qty
+                    pricing_lines = (
+                        f"• Unit Price: AED {unit_price:,.2f} (excl. VAT)\n"
+                        f"• Total Amount: **AED {total_price:,.2f} (excl. VAT)**\n\n"
+                    )
+                else:
+                    pricing_lines = "• Commercial Pricing: Official quotation prepared on request\n\n"
+
                 reply = (
                     f"Updated your order to **{new_qty} unit(s)** of the **{p_name}**.\n\n"
-                    f"• Unit Price: AED {unit_price:,.2f} (excl. VAT)\n"
-                    f"• Total Amount: **AED {total_price:,.2f} (excl. VAT)**\n\n"
+                    f"{pricing_lines}"
                     "Delivery across the UAE is flat AED 10 (dispatched in 1–2 business days). Would you like to confirm this order or review payment options?"
                 )
                 return PreClassificationResult(
