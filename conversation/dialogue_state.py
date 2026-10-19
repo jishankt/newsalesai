@@ -143,6 +143,32 @@ class DialogueState(BaseModel):
         if chips is not None:
             self.last_shown_chips = chips
 
+    def save_pending_question(
+        self,
+        question: Any,
+        field_name: Optional[str] = None,
+        expected_type: str = "text",
+        valid_range: Optional[Any] = None,
+        options: Optional[List[Any]] = None,
+    ):
+        """Saves a pending question for referent resolution and slot-filling."""
+        q_text = question if isinstance(question, str) else str(question)
+        opts = []
+        if options:
+            for opt in options:
+                if isinstance(opt, dict):
+                    opts.append(opt)
+                else:
+                    opts.append({"id": str(opt), "label": str(opt), "value": str(opt)})
+        self.pending_question = PendingQuestion(
+            question_id=f"q_{int(time.time()*1000)}",
+            question_text=q_text,
+            topic=field_name or "disambiguation",
+            expected_type=expected_type or "choice",
+            options=opts,
+            turn_asked=self.turn_count,
+        )
+
 
 # ── Generic Referent Resolution Engine ────────────────────────────────────────
 

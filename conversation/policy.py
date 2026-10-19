@@ -572,12 +572,13 @@ class PolicyEngine:
             elif alias_match.is_candidates:
                 cand_names = [c.get("display_name") or c.get("name") or c["id"] for c in alias_match.candidates]
                 clarify_q = f"Did you mean {' or '.join(cand_names)}?"
-                state.save_pending_question(
-                    question=clarify_q,
-                    field_name="disambiguation",
-                    expected_type="product_choice",
-                    options=cand_names,
-                )
+                if hasattr(state, "save_pending_question"):
+                    state.save_pending_question(
+                        question=clarify_q,
+                        field_name="disambiguation",
+                        expected_type="product_choice",
+                        options=cand_names,
+                    )
                 return PolicyDecision(
                     action=PolicyAction.CLARIFY,
                     reason=f"Ambiguous model alias '{unlisted.surface_text}' matched candidates: {cand_names}",
