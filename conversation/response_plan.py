@@ -145,6 +145,7 @@ class ResponsePlanBuilder:
             if decision.active_item_id:
                 c_node = knowledge_graph.nodes.get(decision.active_item_id.upper())
                 if c_node:
+                    c_img = c_node.attributes.get("image_url") or c_node.attributes.get("image")
                     c_cards.append({
                         "card_type": "consumable",
                         "sku": c_node.id,
@@ -152,6 +153,8 @@ class ResponsePlanBuilder:
                         "category": c_node.attributes.get("type", "consumable"),
                         "color": c_node.attributes.get("color"),
                         "product_url": c_node.attributes.get("url") or f"https://www.keplertechllc.com/product/{c_node.id.lower()}",
+                        "image_url": c_img,
+                        "image": c_img,
                         "badges": ["Genuine Kepler Tech Consumable"],
                     })
 

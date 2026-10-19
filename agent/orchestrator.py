@@ -7425,17 +7425,48 @@ class Orchestrator:
                 sanitized_prod_cards.append(c)
         product_cards = sanitized_prod_cards
 
-        # Record newly displayed cards and aliases into state.displayed_product_ids
+        # Record newly displayed cards and aliases into state.displayed_product_ids, and hydrate missing images
         for c in product_cards:
             if isinstance(c, dict):
                 for f in ("id", "sku", "model", "canonical_id"):
                     v = c.get(f)
                     if v and str(v) not in state.displayed_product_ids:
                         state.displayed_product_ids.append(str(v))
-        consumable_cards = [
-            dict(card) if isinstance(card, dict) else card
-            for card in (consumable_cards or [])
-        ]
+                if not (c.get("image_url") or c.get("image")):
+                    from catalog.evidence import knowledge_graph
+                    cid = c.get("id") or c.get("canonical_id") or c.get("sku")
+                    if cid:
+                        node = knowledge_graph.nodes.get(str(cid).lower().strip()) or knowledge_graph.nodes.get(str(cid).upper().strip())
+                        if node and (node.attributes.get("image_url") or node.attributes.get("image")):
+                            img = node.attributes.get("image_url") or node.attributes.get("image")
+                            c["image_url"] = img
+                            c["image"] = img
+
+        hydrated_consumables = []
+        for card in (consumable_cards or []):
+            if isinstance(card, dict):
+                c_card = dict(card)
+                curr_img = c_card.get("image_url") or c_card.get("image")
+                if not curr_img or "Kepler-Logo" in curr_img or curr_img == "/static/img/products/default.png":
+                    sku = c_card.get("sku") or c_card.get("id")
+                    if sku:
+                        from catalog.evidence import knowledge_graph
+                        node = knowledge_graph.nodes.get(str(sku).upper().strip())
+                        if not node and "-" in str(sku):
+                            node = knowledge_graph.nodes.get(str(sku).split("-")[0].upper().strip())
+                        if node:
+                            node_img = node.attributes.get("image_url") or node.attributes.get("image")
+                            if node_img:
+                                c_card["image_url"] = node_img
+                                c_card["image"] = node_img
+                            if not c_card.get("product_url"):
+                                node_url = node.attributes.get("product_url") or node.attributes.get("url") or node.attributes.get("website_url")
+                                if node_url:
+                                    c_card["product_url"] = node_url
+                hydrated_consumables.append(c_card)
+            else:
+                hydrated_consumables.append(card)
+        consumable_cards = hydrated_consumables
 
         # Record ordered list of product codes in the last reply (hardware cards & consumable cards)
         new_shown = []

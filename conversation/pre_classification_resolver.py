@@ -101,6 +101,8 @@ class PreClassificationResolver:
                             "category": ci.get("type", "consumable"),
                             "compatible_printers": [disp_name],
                             "product_url": ci.get("url"),
+                            "image_url": ci.get("image_url") or ci.get("image"),
+                            "image": ci.get("image_url") or ci.get("image"),
                         }
                         c_cards.append(c_card)
                         price_part = f": **{c_card['price_formatted']}**" if c_card.get('price_formatted') else ""
@@ -1254,6 +1256,8 @@ class PreClassificationResolver:
                             "category": ci.get("category", "consumable"),
                             "compatible_printers": [t_name],
                             "product_url": ci.get("url") or f"https://www.keplertechllc.com/product/{ci.get('sku', '')}",
+                            "image_url": ci.get("image_url") or ci.get("image"),
+                            "image": ci.get("image_url") or ci.get("image"),
                         }
                         c_cards.append(c_card)
                         price_part = f" — AED {ci.get('price'):,.2f}" if ci.get("price") else ""
@@ -1632,6 +1636,8 @@ class PreClassificationResolver:
                         "category": ci.get("type", "consumable"),
                         "compatible_printers": [disp_name],
                         "product_url": ci.get("url"),
+                        "image_url": ci.get("image_url") or ci.get("image"),
+                        "image": ci.get("image_url") or ci.get("image"),
                     }
                     c_cards.append(c_card)
                     price_part = f": **{c_card['price_formatted']}**" if c_card.get('price_formatted') else ""
@@ -1714,6 +1720,9 @@ class PreClassificationResolver:
                         "price_formatted": "AED 65.00",
                         "category": "ink",
                         "compatible_printers": ["Epson SureColor SC-F100"],
+                        "image_url": "https://www.keplertechllc.com/wp-content/uploads/2023/07/Dye-Sublimation-Black-T49N100-140mL.webp",
+                        "image": "https://www.keplertechllc.com/wp-content/uploads/2023/07/Dye-Sublimation-Black-T49N100-140mL.webp",
+                        "product_url": "https://www.keplertechllc.com/product/epson-dye-sublimation-black-t49n100-ink/",
                     }
                     c_cards.append(t49n_card)
                     reply = (
@@ -1738,6 +1747,8 @@ class PreClassificationResolver:
                                 "category": ci.get("type", "consumable"),
                                 "compatible_printers": [p_name],
                                 "product_url": ci.get("url"),
+                                "image_url": ci.get("image_url") or ci.get("image"),
+                                "image": ci.get("image_url") or ci.get("image"),
                             }
                             c_cards.append(c_card)
                             price_part = f" — AED {ci.get('price'):,.2f}" if ci.get("price") else ""
