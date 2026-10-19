@@ -25,6 +25,7 @@ class PreClassificationResult:
     consumable_cards: List[Dict[str, Any]] = field(default_factory=list)
     suggested_chips: List[str] = field(default_factory=list)
     source: str = "pre_classification_resolver"
+    comparison_data: Optional[Dict[str, Any]] = None
 
 
 def _convert_arabic_digits(text: str) -> str:
@@ -484,6 +485,27 @@ class PreClassificationResolver:
             )
 
         if re.search(r"^\s*(?:dye[\s-]*sub(?:limation)?|sublimation)\s*$", msg_l):
+            if state.category == "citizen_photo" or (getattr(state, "active_product_id", None) and "citizen" in str(state.active_product_id).lower()):
+                reply = (
+                    "Citizen event photo printers (CZ-01, CX-02, CY-02, CX-02W) use **thermal dye-sublimation transfer technology** "
+                    "with dry ribbon rolls and receiver paper to produce smudge-proof, lab-quality instant prints without liquid ink.\n\n"
+                    "Which Citizen model would you like to review?\n\n"
+                    "• **Citizen CZ-01** (4×6″ ultra-compact, portable)\n"
+                    "• **Citizen CX-02** (4×6″ and 6×8″ event workhorse with ribbon rewind)\n"
+                    "• **Citizen CY-02** (high-capacity 700 prints/roll)"
+                )
+                state.save_pending_question(
+                    question="Which Citizen photo printer format fits your requirements?",
+                    field_name="photo_model",
+                    expected_type="choice",
+                    options=["Citizen CZ-01", "Citizen CX-02", "Citizen CY-02"],
+                )
+                return PreClassificationResult(
+                    handled=True,
+                    reply=reply,
+                    suggested_chips=["Citizen CZ-01", "Citizen CX-02", "Citizen CY-02", "Official Quotation"],
+                    source="qualification:category_prompt",
+                )
             state.category = "dye_sublimation"
             state.requirements["category"] = "dye_sublimation"
             reply = (
@@ -586,13 +608,60 @@ class PreClassificationResolver:
                 )
 
 
+        # ── (d.1) USER OBJECTION & EXCLUSION FILTER (High Priority) ───────────
+        if re.search(r"\b(?:why\s+(?:are\s+you\s+)?sending|why\s+you\s+are\s+sending|i\s+(?:dint|didn't|did\s+not)\s+ask|unnecessary\s+information|only\s+(?:want\s+)?(?:cx-02|cx02))\b", msg_l):
+            cx02 = catalogue_loader.get_by_id("citizen-cx-02")
+            if ("cx" in msg_l or getattr(state, "active_product_id", "") == "citizen-cx-02") and cx02:
+                state.active_product = cx02
+                state.active_product_id = "citizen-cx-02"
+                state.shown_entities = ["citizen-cx-02"]
+                reply_text = (
+                    "My apologies for including extra models! Focusing strictly on the **Citizen CX-02**:\n\n"
+                    "• **Model:** Citizen CX-02 (Commercial Dye-Sublimation Photo Printer)\n"
+                    "• **Supported Formats:** 4×6″ (10×15 cm), 5×7″ (13×18 cm), 6×8″ (15×20 cm)\n"
+                    "• **Print Speed:** ~9.8 seconds for a 4×6″ print\n"
+                    "• **Key Feature:** Ribbon-rewind technology prevents media waste when printing 4×6″ from 6×8″ rolls.\n\n"
+                    "Commercial pricing is prepared by our sales desk based on your volume requirements. Would you like an official quotation for the Citizen CX-02?"
+                )
+                return PreClassificationResult(
+                    handled=True,
+                    reply=reply_text,
+                    product_cards=[cx02],
+                    suggested_chips=["Request CX-02 Quotation", "View CX-02 Consumables", "Delivery Details"],
+                    source="route:objection_focus:cx02",
+                )
+
+        # ── (d.2) CITIZEN DYE-SUBLIMATION TECHNOLOGY CLARIFICATION ───────────
+        is_citizen_sub = (
+            state.category == "citizen_photo"
+            or (getattr(state, "active_product_id", None) and "citizen" in str(state.active_product_id).lower())
+            or any(w in msg_l for w in ["citizen", "cz-01", "cx-02", "cy-02", "cx-02w", "photo booth", "event photo"])
+        ) and not any(w in msg_l for w in ["t-shirt", "mug", "apparel", "textile", "f100", "f500", "soft signage"])
+        if is_citizen_sub and bool(re.search(r"\b(?:dye[-\s]*sub(?:limation)?|is\s+this|called|technology)\b", msg_l)):
+            reply_text = (
+                "Yes, absolutely! Citizen event photo printers (CZ-01, CX-02, CY-02, CX-02W) use **thermal dye-sublimation transfer technology**.\n\n"
+                "Unlike liquid inkjet plotters, they use dry ribbon rolls and receiver paper to produce smudge-proof, water-resistant, lab-quality instant prints with both gloss and matte finishes without changing paper.\n\n"
+                "Would you like specifications or pricing for the **Citizen CX-02** or **CZ-01**?"
+            )
+            chips = ["Citizen CX-02 Details", "Citizen CZ-01 Details", "Official Quotation"]
+            state.category = "citizen_photo"
+            return PreClassificationResult(
+                handled=True,
+                reply=reply_text,
+                suggested_chips=chips,
+                source="route:citizen_photo_tech",
+            )
+
         # ── (d) PRICE-LIKE QUESTIONS DURING PENDING QUESTION ──────────────────
-        is_price_q = bool(
-            re.search(r"\b(?:price\??|how\s+much|what\s+is\s+the\s+price|how\s+much\s+does\s+it\s+cost|pricing|cost)\b", raw_l)
-            or "كم السعر" in raw_l
-            or "سعر" in raw_l
-            or "كم سعر" in raw_l
-            or re.search(r"^\s*price\s*\??\s*$", msg_l)
+        is_price_q = (
+            not bool(re.search(r"\b(?:why\s+(?:are\s+you\s+)?sending|why\s+you\s+are\s+sending|i\s+(?:dint|didn't|did\s+not)\s+ask|unnecessary|how\s+many\s+colou?rs?)\b", msg_l))
+            and (
+                bool(re.search(r"\b(?:price\??|how\s+much|what\s+is\s+the\s+price|how\s+much\s+does\s+it\s+cost|pricing|cost)\b", raw_l))
+                or "كم السعر" in raw_l
+                or "سعر" in raw_l
+                or "كم سعر" in raw_l
+                or re.search(r"^\s*price\s*\??\s*$", msg_l)
+            )
         )
         if is_price_q and (state.pending_question or state.awaiting_field or (state.category == "office_printer" and not state.requirements.get("daily_volume"))):
             price_reply = (
@@ -1437,6 +1506,25 @@ class PreClassificationResolver:
             if len(shown) >= 2:
                 p1 = catalogue_loader.get_by_id(shown[0])
                 p2 = catalogue_loader.get_by_id(shown[1])
+                prods_to_comp = [p for p in (p1, p2) if p]
+                if len(prods_to_comp) >= 2:
+                    from catalog.catalogue_resolver import build_approved_comparison_response
+                    comp_reply, cards, comparison_data = build_approved_comparison_response(
+                        prods_to_comp,
+                        customer_requirements=dict(state.requirements) if state.requirements else None,
+                    )
+                    state.compared_products = prods_to_comp
+                    state.compared_product_ids = [p["id"] for p in prods_to_comp]
+                    state.stage = "comparing"
+                    return PreClassificationResult(
+                        handled=True,
+                        reply=comp_reply,
+                        product_cards=cards,
+                        consumable_cards=[],
+                        suggested_chips=["Request Official Quotation", "View Running Costs", "Compatible Consumables"],
+                        source="route:comparison",
+                        comparison_data=comparison_data,
+                    )
                 n1 = p1.get("display_name") or p1["id"] if p1 else shown[0]
                 n2 = p2.get("display_name") or p2["id"] if p2 else shown[1]
                 comp_reply = (
@@ -1532,6 +1620,136 @@ class PreClassificationResolver:
                     suggested_chips=["Official Quotation", "Compare Ink Yields"],
                     source="route:product_spec_attribute",
                 )
+
+        # ── (b.3) COMPETITOR INQUIRY: DNP PHOTO PRINTERS ──────────────────────
+        if re.search(r"\b(?:dnp|dnp\s+printers?|ds620|qw410|rx1hs)\b", msg_l):
+            reply_text = (
+                "Kepler Tech does not supply DNP printers. However, as an authorized distributor for **Citizen dye-sublimation photo printers**, "
+                "we supply the direct commercial alternatives:\n\n"
+                "• **Citizen CX-02**: The direct commercial equivalent to the DNP DS620, featuring 4×6″ and 6×8″ instant dye-sub printing with ribbon-rewind technology to eliminate media waste.\n"
+                "• **Citizen CZ-01**: Ultra-compact lightweight (5.8 kg) portable event printer, equivalent to the DNP QW410.\n\n"
+                "Both use dry ribbon & paper rolls for smudge-proof, lab-quality instant event photos. Would you like specifications or an official quotation for the Citizen CX-02?"
+            )
+            chips = ["Citizen CX-02 Details", "Citizen CZ-01 Details", "Official Quotation"]
+            state.category = "citizen_photo"
+            cx02 = catalogue_loader.get_by_id("citizen-cx-02")
+            if cx02:
+                state.active_product = cx02
+                state.active_product_id = "citizen-cx-02"
+                state.set_canonical_focus("citizen-cx-02")
+            return PreClassificationResult(
+                handled=True,
+                reply=reply_text,
+                product_cards=[cx02] if cx02 else [],
+                suggested_chips=chips,
+                source="route:competitor_alternative:dnp",
+            )
+
+        # ── (b.4) POS MARKETING MATERIALS / PROMOTIONAL SIGNAGE ───────────────
+        if re.search(r"\bpos\b", msg_l) and any(w in msg_l for w in ["marketing", "material", "poster", "posters", "promotional", "signage", "banner", "graphics"]):
+            reply_text = (
+                "For Point-of-Sale (POS) marketing materials, retail posters, and promotional graphics, we supply the **Epson SureColor T-Series and P-Series** large-format printers:\n\n"
+                "• **Epson SureColor SC-T3100 / SC-T5400**: Fast, vibrant 24″ and 36″ plotters using UltraChrome XD2 pigment inks (smudge- and water-resistant), ideal for POS posters and retail displays.\n"
+                "• **Epson SureColor SC-P6500 / SC-P8500**: Professional production photo and graphics printers with dedicated red ink for rich POP/POS marketing collaterals.\n\n"
+                "What width marketing materials will you be printing (e.g., 24-inch A1 or 36-inch A0)?"
+            )
+            chips = ["24-inch SC-T3100", "36-inch SC-T5400", "Photo Quality SC-P8500"]
+            state.category = "technical_large_format"
+            return PreClassificationResult(
+                handled=True,
+                reply=reply_text,
+                suggested_chips=chips,
+                source="route:pos_marketing_plotters",
+            )
+
+        # ── (b.5) USER OBJECTION & EXCLUSION FILTER ───────────────────────────
+        if re.search(r"\b(?:why\s+(?:are\s+you\s+)?sending|why\s+you\s+are\s+sending|i\s+(?:dint|didn't|did\s+not)\s+ask|unnecessary\s+information|only\s+(?:want\s+)?(?:cx-02|cx02))\b", msg_l):
+            cx02 = catalogue_loader.get_by_id("citizen-cx-02")
+            if ("cx" in msg_l or getattr(state, "active_product_id", "") == "citizen-cx-02") and cx02:
+                state.active_product = cx02
+                state.active_product_id = "citizen-cx-02"
+                state.shown_entities = ["citizen-cx-02"]
+                reply_text = (
+                    "My apologies for including extra models! Focusing strictly on the **Citizen CX-02**:\n\n"
+                    "• **Model:** Citizen CX-02 (Commercial Dye-Sublimation Photo Printer)\n"
+                    "• **Supported Formats:** 4×6″ (10×15 cm), 5×7″ (13×18 cm), 6×8″ (15×20 cm)\n"
+                    "• **Print Speed:** ~9.8 seconds for a 4×6″ print\n"
+                    "• **Key Feature:** Ribbon-rewind technology prevents media waste when printing 4×6″ from 6×8″ rolls.\n\n"
+                    "Commercial pricing is prepared by our sales desk based on your volume requirements. Would you like an official quotation for the Citizen CX-02?"
+                )
+                return PreClassificationResult(
+                    handled=True,
+                    reply=reply_text,
+                    product_cards=[cx02],
+                    suggested_chips=["Request CX-02 Quotation", "View CX-02 Consumables", "Delivery Details"],
+                    source="route:objection_focus:cx02",
+                )
+
+        # ── (b.6) REFERENT INQUIRY RECALL ("which i ask", "check what i ask") ──
+        if re.search(r"\b(?:which\s+i\s+ask|check\s+what\s+i\s+ask|what\s+i\s+asked|what\s+did\s+i\s+ask|as\s+i\s+asked)\b", msg_l):
+            act_pid = getattr(state, "active_product_id", None) or (state.shown_entities[0] if state.shown_entities else None)
+            if act_pid:
+                act_p = catalogue_loader.get_by_id(act_pid)
+                p_disp = act_p.get("display_name") or act_p.get("name") or act_pid if act_p else act_pid
+                reply_text = (
+                    f"Understood! Focusing on the **{p_disp}** that you asked about.\n\n"
+                    "Commercial pricing and formal quotations are prepared by our sales desk based on your volume requirements. "
+                    f"Would you like an official quotation prepared for the **{p_disp}**, or would you like to review its technical specifications?"
+                )
+                return PreClassificationResult(
+                    handled=True,
+                    reply=reply_text,
+                    product_cards=[act_p] if act_p else [],
+                    suggested_chips=[f"Request Quote for {p_disp}", "Technical Specifications", "Speak to Sales Specialist"],
+                    source="route:referent_recall",
+                )
+
+        # ── (b.7) MULTI-PRODUCT COMPARISON INTERCEPT ─────────────────────────
+        from agent.orchestrator import find_mentioned_catalogue_products
+        mentioned_prods = find_mentioned_catalogue_products(msg_l)
+        is_multi_prod_compare = bool(re.search(
+            r"\b(?:compare|comparison|versus|vs|difference|differences|diff|between|both)\b",
+            msg_l
+        ))
+        if len(mentioned_prods) >= 2:
+            from catalog.catalogue_resolver import build_approved_comparison_response
+            comp_reply, cards, comparison_data = build_approved_comparison_response(
+                mentioned_prods[:3],
+                customer_requirements=dict(state.requirements) if state.requirements else None,
+            )
+            state.compared_products = mentioned_prods[:3]
+            state.compared_product_ids = [p["id"] for p in mentioned_prods[:3]]
+            state.shown_entities = [p["id"] for p in mentioned_prods[:3]]
+            state.stage = "comparing"
+            return PreClassificationResult(
+                handled=True,
+                reply=comp_reply,
+                product_cards=cards,
+                consumable_cards=[],
+                suggested_chips=["View Technical Specifications", "Compatible Consumables", "Official Quotation"],
+                source="route:comparison",
+                comparison_data=comparison_data,
+            )
+        elif is_multi_prod_compare and len(mentioned_prods) == 1 and state.active_product and state.active_product.get("id") != mentioned_prods[0].get("id"):
+            prods_to_comp = [state.active_product, mentioned_prods[0]]
+            from catalog.catalogue_resolver import build_approved_comparison_response
+            comp_reply, cards, comparison_data = build_approved_comparison_response(
+                prods_to_comp,
+                customer_requirements=dict(state.requirements) if state.requirements else None,
+            )
+            state.compared_products = prods_to_comp
+            state.compared_product_ids = [p["id"] for p in prods_to_comp]
+            state.shown_entities = [p["id"] for p in prods_to_comp]
+            state.stage = "comparing"
+            return PreClassificationResult(
+                handled=True,
+                reply=comp_reply,
+                product_cards=cards,
+                consumable_cards=[],
+                suggested_chips=["View Technical Specifications", "Compatible Consumables", "Official Quotation"],
+                source="route:comparison",
+                comparison_data=comparison_data,
+            )
 
         # ── (c) MODEL ALIAS OVERRIDE VIA ALIAS_INDEX ─────────────────────────
         # Check if user input names a model code

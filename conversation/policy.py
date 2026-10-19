@@ -886,6 +886,17 @@ class PolicyEngine:
                     options_or_chips=["Request Official Quote", "Delivery Details", "Technical Specifications", "View Other Models"],
                     next_step=f"Understood! Would you like to proceed with an official quotation or delivery details for the **{target.name}**?",
                 )
+            elif getattr(state, "active_product_id", None):
+                from catalog.catalogue_loader import catalogue_loader
+                target_p = catalogue_loader.get_by_id(state.active_product_id)
+                p_disp = target_p.get("display_name") or target_p.get("name") or state.active_product_id if target_p else state.active_product_id
+                return PolicyDecision(
+                    action=PolicyAction.ANSWER,
+                    reason=f"Acknowledged customer confirmation for active target {p_disp}.",
+                    target_entity_id=state.active_product_id,
+                    options_or_chips=["Request Official Quote", "Delivery Details", "Technical Specifications", "View Other Models"],
+                    next_step=f"Understood! Would you like to proceed with an official quotation or delivery details for the **{p_disp}**?",
+                )
             else:
                 return PolicyDecision(
                     action=PolicyAction.ANSWER,

@@ -282,6 +282,7 @@ class Orchestrator:
                 nlp_result=nlp_result,
                 state=state,
                 latency_ms=int((time.time() - start_time) * 1000),
+                comparison_data=getattr(pre_res, "comparison_data", None),
             )
 
         # ── 1b. Canonical Turn Understanding (node_understand) ───────────
@@ -678,6 +679,7 @@ class Orchestrator:
         # ── 1b-3b. Price Deflection & Commercial Policy Guardrail (HIGHEST PRIORITY) ──
         is_price_deflection = (
             canonical_turn.primary_intent != "price_objection"
+            and not bool(re.search(r"\b(?:why\s+(?:are\s+you\s+)?sending|why\s+you\s+are\s+sending|i\s+(?:dint|didn't|did\s+not)\s+ask|unnecessary)\b", msg_l))
             and not bool(re.search(r"\b(?:cost\s*per\s*(?:print|page)|per\s*print\s*cost|running\s*cost|cpp)\b", msg_l))
             and not bool(re.search(r"\b(?:expensive|overpriced|too\s+(?:high|much|costly)|costly)\b", msg_l))
             and (
@@ -696,7 +698,37 @@ class Orchestrator:
                 state.active_product_id = named[0]["id"]
                 state.set_canonical_focus(named[0]["id"])
             p_name = (named[0].get("display_name") if named else None) or (state.active_consumable.get("name") if getattr(state, "active_consumable", None) else None) or (state.active_product.get("display_name") if getattr(state, "active_product", None) else None)
-            reply_text = format_rotating_pricing_redirect(state, p_name)
+            price_text = format_rotating_pricing_redirect(state, p_name)
+
+            has_color_q = bool(re.search(r"\b(?:how\s+many\s+colou?rs?|colou?rs?|ink\s*set)\b", msg_l))
+            has_specs_q = bool(re.search(r"\b(?:resolution|dpi|print\s*speed|speed|speeds|width|dimension|size|features?|specifications?|specs?|duplex|scanner|dual\s*roll|how\s+fast)\b", msg_l))
+
+            reply_text = price_text
+            spec_prods = named
+            if not spec_prods:
+                p_ids = getattr(state, "compared_product_ids", []) or getattr(state, "shown_entities", []) or ([state.active_product_id] if getattr(state, "active_product_id", None) else [])
+                spec_prods = [catalogue_loader.get_by_id(pid) for pid in p_ids if catalogue_loader.get_by_id(pid)]
+            if not spec_prods and getattr(state, "compared_products", None):
+                spec_prods = state.compared_products
+            if not spec_prods and getattr(state, "active_product", None):
+                spec_prods = [state.active_product]
+
+            if has_color_q and spec_prods:
+                lines = ["Here are the official colour and ink specifications:\n"]
+                for sp in spec_prods:
+                    sp_name = sp.get("display_name") or sp.get("name") or sp.get("id")
+                    col_info = sp.get("total_colours") or sp.get("colour_specification") or "UltraChrome Inks"
+                    lines.append(f"• **{sp_name}**: {col_info}")
+                spec_text = "\n".join(lines)
+                reply_text = f"{spec_text}\n\n{price_text}"
+            elif has_specs_q and spec_prods:
+                lines = ["Here are the verified specifications:\n"]
+                for sp in spec_prods:
+                    sp_name = sp.get("display_name") or sp.get("name") or sp.get("id")
+                    lines.append(f"• **{sp_name}**: Speed: {sp.get('print_speed', 'Standard')}; Resolution: {sp.get('dpi', 'Standard DPI')}; Formats: {sp.get('paper_size', 'Standard')}")
+                spec_text = "\n".join(lines)
+                reply_text = f"{spec_text}\n\n{price_text}"
+
             state.last_assistant_response = reply_text
             state.increment_turn()
             return self._build_response(
@@ -1879,7 +1911,34 @@ class Orchestrator:
 
         # ── Agent Planner: Dye Sublimation Request / Frustration Switch ──
         is_negated_sub = bool(re.search(r"\b(?:forget|never\s*mind|not|instead\s*of)\s+(?:dye[-\s]*)?sublimation\b", msg_l))
-        if not is_negated_sub and (canonical_turn.requirements.get("category") == "dye_sublimation" or any(w in msg_l for w in ["dy sublimation", "dye sublimation", "sublimation", "f100", "f500", "t-shirt", "mug"])):
+        is_citizen_sub = (
+            state.category == "citizen_photo"
+            or (getattr(state, "active_product_id", None) and "citizen" in str(state.active_product_id).lower())
+            or any(w in msg_l for w in ["citizen", "cz-01", "cx-02", "cy-02", "cx-02w", "photo booth", "event photo"])
+        ) and not any(w in msg_l for w in ["t-shirt", "mug", "apparel", "textile", "f100", "f500", "soft signage"])
+
+        if is_citizen_sub and bool(re.search(r"\b(?:dye[-\s]*sub(?:limation)?|is\s+this|called|technology)\b", msg_l)):
+            reply_text = (
+                "Yes, absolutely! Citizen event photo printers (CZ-01, CX-02, CY-02, CX-02W) use **thermal dye-sublimation transfer technology**.\n\n"
+                "Unlike liquid inkjet plotters, they use dry ribbon rolls and receiver paper to produce smudge-proof, water-resistant, lab-quality instant prints with both gloss and matte finishes without changing paper.\n\n"
+                "Would you like specifications or pricing for the **Citizen CX-02** or **CZ-01**?"
+            )
+            chips = ["Citizen CX-02 Details", "Citizen CZ-01 Details", "Official Quotation"]
+            state.category = "citizen_photo"
+            state.last_assistant_response = reply_text
+            state.increment_turn()
+            return self._build_response(
+                reply=reply_text,
+                source="route:citizen_photo_tech",
+                product_cards=[],
+                consumable_cards=[],
+                suggested_chips=chips,
+                nlp_result=nlp_result,
+                state=state,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        if not is_negated_sub and not is_citizen_sub and (canonical_turn.requirements.get("category") == "dye_sublimation" or any(w in msg_l for w in ["dy sublimation", "dye sublimation", "sublimation", "f100", "f500", "t-shirt", "mug"])):
             f100 = catalogue_loader.get_by_id("epson-sc-f100")
             f500 = catalogue_loader.get_by_id("epson-sc-f500")
 
@@ -4078,7 +4137,7 @@ class Orchestrator:
                 )
 
             # 5. Memory recall of previous questions ("what i asked about p900", "what did i ask")
-            if any(w in msg_clean for w in ["what i asked", "what did i ask", "my previous question", "what i asked about p900"]):
+            if any(w in msg_clean for w in ["what i asked", "what did i ask", "my previous question", "what i asked about p900", "which i ask", "check what i ask", "as i asked"]):
                 previous = next((h.get("content") for h in reversed(history or []) if h.get("role") == "user" and h.get("content") != raw_message), None)
                 reply_text = (f"Earlier you asked: *\"{previous}\"*." if previous else
                               "Earlier you asked whether the **Epson SureColor SC-P900** can print on T-shirts."
