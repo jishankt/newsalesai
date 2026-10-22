@@ -136,7 +136,9 @@ class ResponsePlanBuilder:
                         "model_family": t_node.attributes.get("model_family") or t_node.name,
                         "display_name": t_node.name,
                         "primary_category": t_node.attributes.get("category"),
-                        "product_url": t_node.attributes.get("url") or f"https://www.keplertechllc.com/product/{t_node.id}",
+                        "product_url": t_node.attributes.get("product_url") or t_node.attributes.get("website_url") or t_node.attributes.get("url") or f"https://www.keplertechllc.com/product/{t_node.id}",
+                        "url": t_node.attributes.get("product_url") or t_node.attributes.get("website_url") or t_node.attributes.get("url") or f"https://www.keplertechllc.com/product/{t_node.id}",
+                        "website_url": t_node.attributes.get("product_url") or t_node.attributes.get("website_url") or t_node.attributes.get("url") or f"https://www.keplertechllc.com/product/{t_node.id}",
                         "image_url": t_node.attributes.get("image_url") or "/static/img/products/default.png",
                         "badges": ["Verified Official Model"],
                     })
@@ -205,22 +207,29 @@ class ResponsePlanBuilder:
                 t_node = knowledge_graph.nodes.get(pid.lower())
                 name_str = t_node.name if t_node else pid
                 cat_str = (t_node.attributes.get("category") if t_node else None) or "Hardware"
-                url_str = (t_node.attributes.get("url") if t_node else None) or f"https://www.keplertechllc.com/product/{pid}"
-                img_str = (t_node.attributes.get("image_url") if t_node else None) or "/static/img/products/default.png"
+                url_str = (t_node.attributes.get("product_url") or t_node.attributes.get("website_url") or t_node.attributes.get("url")) if t_node else None
+                img_str = (t_node.attributes.get("image_url") or t_node.attributes.get("image")) if t_node else None
                 mod_str = (t_node.attributes.get("model_family") if t_node else None) or name_str
 
-                if not t_node:
-                    try:
-                        from catalog.catalogue_loader import catalogue_loader
-                        p_info = catalogue_loader.get_by_id(pid.lower()) or {}
-                        if p_info:
-                            name_str = p_info.get("display_name") or p_info.get("name") or name_str
-                            cat_str = p_info.get("category") or cat_str
-                            url_str = p_info.get("product_url") or url_str
-                            img_str = p_info.get("image_url") or img_str
-                            mod_str = p_info.get("model") or p_info.get("model_family") or mod_str
-                    except Exception:
-                        pass
+                from catalog.catalogue_loader import catalogue_loader
+                p_info = catalogue_loader.get_by_id(pid.lower()) or {}
+                if p_info:
+                    name_str = p_info.get("display_name") or p_info.get("name") or name_str
+                    cat_str = p_info.get("category") or cat_str
+                    url_str = url_str or p_info.get("product_url") or p_info.get("website_url") or p_info.get("url")
+                    img_str = img_str or p_info.get("image_url")
+                    mod_str = p_info.get("model") or p_info.get("model_family") or mod_str
+
+                if not url_str:
+                    from catalog.brochure_resolver import brochure_resolver
+                    b_info = brochure_resolver.get_brochure(pid.lower())
+                    if b_info and b_info.get("url"):
+                        url_str = b_info.get("url")
+
+                if not url_str:
+                    url_str = f"https://www.keplertechllc.com/product/{pid}"
+                if not img_str:
+                    img_str = "/static/img/products/default.png"
 
                 is_primary = (len(cards) == 0)
                 badge = "Primary Recommendation" if is_primary else "Verified Alternative"
@@ -237,6 +246,9 @@ class ResponsePlanBuilder:
                     "primary_category": cat_str,
                     "category": cat_str,
                     "product_url": url_str,
+                    "url": url_str,
+                    "website_url": url_str,
+                    "source_url": url_str,
                     "image_url": img_str,
                     "badges": [badge],
                     "rationale": rationale,
@@ -552,10 +564,15 @@ class ResponsePlanValidator:
         is_structured = (
             ("|" in text and "---" in text)
             or text.count("•") >= 2
+            or text.count("\n•") >= 1
+            or text.count("\n* ") >= 2
+            or text.count("\n- ") >= 2
+            or bool(re.search(r"(?:^|\n)\s*(?:\d+\.|\•|\*|\-)\s+", text))
             or len(text.split("\n\n")) >= 3
+            or len([line for line in text.split("\n") if line.strip()]) >= 3
             or bool(getattr(resolved.understanding, "secondary_intents", []))
             or "@" in text
-            or any(k in text.lower() for k in ["sales desk", "official quote", "official delivery", "flat aed 10", "business days"])
+            or any(k in text.lower() for k in ["sales desk", "official quote", "official delivery", "flat aed 10", "business days", "distinct categories", "categories:"])
         )
         words = text.split()
         if not is_structured and len(words) > 65:

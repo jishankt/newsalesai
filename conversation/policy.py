@@ -173,17 +173,71 @@ class PolicyEngine:
                 next_step=f"You can reach our sales desk directly at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}.",
             )
 
+        # 0.18 Lead Handover Cancellation / Exit
+        if getattr(state, "handover_reason", None) in ("quote_request", "discount_request", "custom_configuration") or getattr(state, "handover_triggered", False):
+            if any(w in raw_l for w in ["cancel", "leave it", "stop", "never mind", "forget it", "no need", "dont want", "don't want"]):
+                state.handover_triggered = False
+                state.handover_reason = None
+                if hasattr(state, "awaiting_field"):
+                    state.awaiting_field = None
+                return PolicyDecision(
+                    action=PolicyAction.ANSWER,
+                    reason="Customer cancelled quote/lead inquiry.",
+                    options_or_chips=["Office Printers", "Citizen Photo Booth", "Document Scanners", "CAD Plotters"],
+                    next_step="No problem! What equipment or supplies would you like to explore instead?",
+                )
+
         # 0.2 Lead Contact Capture (name + phone + email + company)
-        phone_match = re.search(r"(?:\+971|00971|0)(?:5[0124568]|4|2|3|6|7|9)\d{7}\b", und.raw_text)
+        phone_match = re.search(r"(?:\+971|00971|0)?(?:5[0124568]|4|2|3|6|7|9)\d{7}\b", und.raw_text) or re.search(r"(?:\+\d{1,4}[-.\s]*)?\b\d{7,14}\b", und.raw_text)
         email_match = re.search(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", und.raw_text)
-        name_match = re.search(r"(?:my name is|name is|i am|this is)\s+([a-zA-Z]+)", und.raw_text, re.I)
+        name_match = re.search(r"(?:my name is|name is|i am|this is)\s+([a-zA-Z\s]+)", und.raw_text, re.I)
         company_match = re.search(r"(?:from|company|at)\s+([A-Z][a-zA-Z0-9\s]+(?:LLC|Trading|Est|Group|Studio|Prints|Printing)?)", und.raw_text, re.I)
 
-        if phone_match or email_match or (name_match and any(w in raw_l for w in ["number", "phone", "call", "contact", "email", "quote", "quotation"])):
+        is_actively_awaiting_name = (
+            getattr(state, "handover_reason", None) in ("quote_request", "discount_request", "custom_configuration")
+            and not state.confirmed_slots.get("customer_name")
+            and not state.confirmed_slots.get("phone")
+            and not state.confirmed_slots.get("email")
+        )
+
+        bare_name = None
+        if not phone_match and not email_match and is_actively_awaiting_name:
+            words = und.raw_text.strip().split()
+            if 1 <= len(words) <= 3:
+                FORBIDDEN_NAME_WORDS = {
+                    "i", "me", "my", "you", "your", "he", "she", "it", "we", "they",
+                    "need", "want", "look", "looking", "for", "is", "am", "are", "was", "were", "do", "does", "did",
+                    "printer", "printers", "scanner", "scanners", "plotter", "plotters", "copier", "copiers",
+                    "ink", "inks", "consumable", "consumables", "cartridge", "cartridges", "ribbon", "paper", "media",
+                    "office", "commercial", "photo", "cad", "tech", "epson", "citizen", "workforce", "surecolor",
+                    "a4", "a3", "what", "which", "where", "how", "when", "why", "who",
+                    "yes", "no", "ok", "okay", "okey", "fine", "good", "bad", "cancel", "stop", "leave", "help",
+                    "price", "cost", "quote", "quotation", "rate", "specs", "specification", "details",
+                    "everything", "all", "love", "hello", "hi", "hey", "thanks", "thank", "shukran",
+                }
+                words_clean = [w.lower().strip(".,!?:;\"'") for w in words]
+                if not any(w in FORBIDDEN_NAME_WORDS for w in words_clean) and all(re.match(r"^[A-Za-z\u0600-\u06FF\.'\-]+$", w) for w in words):
+                    bare_name = und.raw_text.strip().title()
+
+        if phone_match or email_match or name_match or bare_name:
             phone_str = phone_match.group(0) if phone_match else None
             email_str = email_match.group(0) if email_match else None
-            name_str = name_match.group(1).title() if name_match else "valued customer"
+            name_str = (name_match.group(1).title() if name_match else (bare_name or state.confirmed_slots.get("customer_name") or "valued customer")).strip()
             comp_str = company_match.group(1).strip() if company_match else None
+
+            if name_str and name_str != "valued customer":
+                state.confirmed_slots["customer_name"] = name_str
+            if phone_str:
+                state.confirmed_slots["phone"] = phone_str
+            if email_str:
+                state.confirmed_slots["email"] = email_str
+
+            # Once contact details (phone or email) are provided, clear handover state
+            if phone_str or email_str:
+                state.handover_triggered = False
+                state.handover_reason = None
+                if hasattr(state, "awaiting_field"):
+                    state.awaiting_field = None
 
             lead_id = None
             try:
@@ -199,6 +253,27 @@ class PolicyEngine:
                 )
             except Exception:
                 pass
+
+            if not phone_str and not email_str and bare_name:
+                claim = (
+                    f"Thank you, {name_str}! I have registered your name for the quotation inquiry. "
+                    "Please provide your contact phone number (WhatsApp or mobile) and delivery city in UAE so our sales team can prepare and send your official quotation."
+                )
+                rec = EvidenceRecord(
+                    claim=claim,
+                    verified=True,
+                    status=CompatibilityStatus.VERIFIED_YES,
+                    source_file="persistence/lead_repository.py",
+                    field="lead_capture_name",
+                    entity_ids=[],
+                )
+                return PolicyDecision(
+                    action=PolicyAction.ANSWER,
+                    reason=f"Customer name registered for {name_str}.",
+                    options_or_chips=["Leave Phone Number", "Leave Email Address", "Showroom Hours & Location"],
+                    evidence_records=[rec],
+                    next_step="What is your contact phone number or email address?",
+                )
 
             contact_summary = []
             if phone_str:
@@ -226,6 +301,40 @@ class PolicyEngine:
                 options_or_chips=["Official Quote", "Showroom Location", "Browse Catalogue"],
                 evidence_records=[rec],
                 next_step="Would you like me to note any specific volume requirements or delivery preferences for the sales team?",
+            )
+
+        # 0.25 Category navigation ("other", "another category", "view other categories")
+        if raw_l in ("other", "another", "other category", "another category", "view other categories", "other models", "browse other", "explore other"):
+            claim = (
+                "Here are our main hardware categories at Kepler Tech:\n\n"
+                "• **Office Printers & Multifunction Copiers** (Epson WorkForce Enterprise & Pro)\n"
+                "• **Technical CAD / GIS Large-Format Plotters** (Epson SureColor T-Series)\n"
+                "• **Photo & Fine Art Production Printers** (Epson SureColor P-Series)\n"
+                "• **Commercial Document & Artwork Scanners** (Epson WorkForce & Expression)\n"
+                "• **Event & Photo Booth Dye-Sub Printers** (Citizen CX-02, CY-02, CZ-01)\n"
+                "• **Direct-to-Fabric & Apparel Printers** (Epson SureColor F-Series)\n\n"
+                "Which category would you like to explore?"
+            )
+            rec = EvidenceRecord(
+                claim=claim,
+                verified=True,
+                status=CompatibilityStatus.VERIFIED_YES,
+                source_file="catalog/categories",
+                field="category_navigation",
+                entity_ids=[],
+            )
+            return PolicyDecision(
+                action=PolicyAction.ANSWER,
+                reason="Category navigation requested by customer.",
+                options_or_chips=[
+                    "Office Printers",
+                    "Document Scanners",
+                    "CAD & Technical Plotters",
+                    "Citizen Photo Booth",
+                    "Direct-to-Fabric",
+                ],
+                evidence_records=[rec],
+                next_step="Which category or application best matches your requirements?",
             )
 
         # 0.3 Gratitude ("shukran", "thank you")
@@ -476,7 +585,7 @@ class PolicyEngine:
             )
 
         # 0.7 Mid-Conversation Greeting Continuity
-        if act == DialogueAct.CHITCHAT and any(w in raw_l for w in ["hi", "hello", "hey"]):
+        if act == DialogueAct.CHITCHAT and any(w in raw_l for w in ["hi", "hello", "hey", "hai", "heyy", "hlo", "salam", "namaste", "hola", "marhaba"]):
             if state.turn_count > 0 and (state.category or state.last_shown_products or state.focus_stack):
                 cat_display = state.category.replace("_", " ").title() if state.category else "your equipment requirements"
                 claim = f"Hello! We are currently discussing {cat_display}. Would you like to continue reviewing models, check technical specifications, or explore another category?"
@@ -502,8 +611,8 @@ class PolicyEngine:
             b_opt = resolved.bound_pending_option
             opt_label = str(b_opt.get("label", b_opt.get("id", "")))
             p_data = b_opt.get("product")
-            if p_data or resolved.resolved_target_product:
-                target = resolved.resolved_target_product
+            if p_data or resolved.resolved_target_product or state.get_current_focus("printer"):
+                target = resolved.resolved_target_product or state.get_current_focus("printer") or state.get_current_focus()
                 t_name = target.name if target else opt_label
                 t_id = target.id if target else b_opt.get("id")
                 raw_u = und.raw_text.lower().strip()
@@ -815,6 +924,60 @@ class PolicyEngine:
             or any(p.search(und.raw_text.lower()) for p in TurnUnderstandingExtractor.COMPANY_CAPABILITY_PATTERNS)
         )
         if is_capability and not any(e.entity_type in ("model", "sku") for e in und.entities):
+            raw_low = und.raw_text.lower()
+            if "citizen" in raw_low:
+                state.category = "citizen_photo"
+                state.requirements["category"] = "citizen_photo"
+                cap_claim = (
+                    "Yes, absolutely! **Kepler Tech LLC** is an authorized distributor in the UAE for genuine **Citizen Photo Printers**.\n\n"
+                    "We supply the complete commercial lineup for instant event photography, photo booths, and kiosks:\n\n"
+                    "• **Citizen CZ-01 (4″ Compact)**: Ultra-compact, lightweight portable event printer for 4×6″ instant prints.\n"
+                    "• **Citizen CX-02 (6″ Production Workhorse)**: Flagship commercial event & photo booth printer (4×6″, 5×7″, 6×8″ with ribbon rewind).\n"
+                    "• **Citizen CY-02 (6″ High-Capacity)**: Heavy-duty event printer holding 700 prints per roll for unattended high volume.\n"
+                    "• **Citizen CX-02W (8″ Wide Format)**: Specialized widescreen photo printer for 8×10″ and 8×12″ studio & school portraits.\n\n"
+                    "All models are backed by official manufacturer warranties, local genuine media rolls & ribbons, and our Dubai showroom."
+                )
+                rec = EvidenceRecord(
+                    claim=cap_claim,
+                    verified=True,
+                    status=CompatibilityStatus.VERIFIED_YES,
+                    source_file="catalog/catalogue_products.json",
+                    field="overview",
+                    entity_ids=["citizen-cz-01", "citizen-cx-02", "citizen-cy-02", "citizen-cx-02w"],
+                )
+                return PolicyDecision(
+                    action=PolicyAction.ANSWER,
+                    reason="Delivered specific Citizen brand capability and product lineup.",
+                    options_or_chips=["Citizen CX-02", "Citizen CZ-01", "Citizen CY-02", "Citizen CX-02W", "Request Quotation"],
+                    evidence_records=[rec],
+                    next_step="Which print format or photo booth application are you planning for?",
+                )
+            elif "epson" in raw_low and not ("citizen" in raw_low):
+                cap_claim = (
+                    "Yes, absolutely! **Kepler Tech LLC** is an authorized commercial distributor in the UAE for **Epson Professional & Enterprise Systems**:\n\n"
+                    "• **Technical CAD Plotters (SureColor SC-T Series)**: 24″, 36″, and 44″ precision plotters & MFPs (SC-T3100, SC-T5100, SC-T5405, SC-T3700D, SC-T5700D, SC-T7700D).\n"
+                    "• **Professional Photo & Fine Art (SureColor SC-P Series)**: 13″ to 64″ master 10–12 colour proofers (SC-P700, SC-P900, SC-P5300, SC-P7500, SC-P9500, SC-P20500).\n"
+                    "• **Dye-Sublimation Transfer (SureColor SC-F Series)**: A4 desktop gift printing (SC-F100) and 24″ roll textile production (SC-F500).\n"
+                    "• **Enterprise Heat-Free MFPs (WorkForce Pro & Enterprise)**: High-speed, ultra-low running cost line-head office printers (WF-C5890, EM-C800, AM-C400, AM-C4000, AM-C5000, AM-C6000).\n"
+                    "• **High-Speed Document Scanners**: WorkForce sheetfed (DS-530II, DS-770II, DS-800WN, DS-900WN) and flatbed graphics scanners.\n\n"
+                    "All hardware includes official manufacturer warranty, genuine inks & media, and local Dubai technical support."
+                )
+                rec = EvidenceRecord(
+                    claim=cap_claim,
+                    verified=True,
+                    status=CompatibilityStatus.VERIFIED_YES,
+                    source_file="catalog/catalogue_products.json",
+                    field="overview",
+                    entity_ids=[],
+                )
+                return PolicyDecision(
+                    action=PolicyAction.ANSWER,
+                    reason="Delivered specific Epson brand capability and product lineup.",
+                    options_or_chips=["Technical CAD Plotters", "Photo & Fine Art", "Dye-Sublimation", "Office Printers", "Scanners"],
+                    evidence_records=[rec],
+                    next_step="Which Epson equipment category or application fits your requirements?",
+                )
+
             cap_claim = (
                 "Yes, absolutely. **Kepler Tech LLC** is an authorized distributor in the UAE supplying official "
                 "commercial printing and scanning solutions across 6 key categories:\n\n"
@@ -875,9 +1038,35 @@ class PolicyEngine:
                 ),
             )
 
-        # 3c. Customer Confirmation / Acknowledgment ("thats fine", "fine", "sounds good", "ok", "yes")
+        # 3c. Customer Confirmation / Acknowledgment ("thats fine", "fine", "sounds good", "ok", "yes", "reserve")
         if act == DialogueAct.CONFIRMATION and und.intent in (Intent.OTHER, Intent.CONSUMABLES_LOOKUP):
-            target = resolved.resolved_target_product
+            target = resolved.resolved_target_product or state.get_current_focus("printer") or state.get_current_focus()
+            active_item = resolved.resolved_active_item or state.get_current_focus("consumable")
+            is_reserve = any(w in raw_l for w in ["reserve", "hold", "book"])
+
+            if is_reserve:
+                item_name = active_item.name if active_item else (target.name if target else "your selected item")
+                claim = (
+                    f"I have registered a reservation hold for **{item_name}**! "
+                    "Our commercial team in Dubai will hold available units for your account. "
+                    "You can visit our showroom in Dubai for inspection and immediate collection, or we can arrange direct courier delivery across the UAE."
+                )
+                rec = EvidenceRecord(
+                    claim=claim,
+                    verified=True,
+                    status=CompatibilityStatus.VERIFIED_YES,
+                    source_file="policy/commercial",
+                    field="reservation_hold",
+                    entity_ids=[target.id] if target else [],
+                )
+                return PolicyDecision(
+                    action=PolicyAction.ANSWER,
+                    reason=f"Reservation hold registered for {item_name}.",
+                    options_or_chips=["Showroom Hours & Location", "Request Official Quotation", "Delivery Details", "Contact Sales"],
+                    evidence_records=[rec],
+                    next_step="Would you like showroom location details for collection, or should we prepare an official delivery quotation?",
+                )
+
             if target:
                 return PolicyDecision(
                     action=PolicyAction.ANSWER,
@@ -929,16 +1118,34 @@ class PolicyEngine:
             supp_ids = [c["id"] for c in cards[1:3]] if len(cards) > 1 else []
 
             cat_title = cat.replace('_', ' ').title() if cat else "matching"
-            rec_claim = f"Understood! Here are our recommended {cat_title} models matching your updated specifications:"
             if cards:
-                rec_claim += "\n\n" + "\n".join([f"• **{c.get('title') or c.get('name') or c.get('id')}**" for c in cards[:3]])
+                rec_claim = f"Understood! Here are our recommended {cat_title} models matching your updated specifications:\n\n" + "\n".join([f"• **{c.get('title') or c.get('name') or c.get('id')}**" for c in cards[:3]])
+                options_chips = ["View Technical Specifications", "Compatible Consumables", "Request Official Quotation"]
+                reason_str = "Correction detected from customer; re-running recommendation with updated state."
+            else:
+                raw_low = und.raw_text.lower()
+                if cat == "dye_sublimation" or "sublimation" in raw_low or "dyesub" in raw_low:
+                    rec_claim = (
+                        f"I reviewed our verified catalogue for {cat_title} models matching your updated specifications, "
+                        "but all our official Epson Dye-Sublimation printers belong to the SureColor F-Series "
+                        "(such as the SC-F100 desktop transfer printer and SC-F500 24″ roll production printer).\n\n"
+                        "Would you like to review our verified SureColor F-Series dye-sublimation models, or explore alternative large-format printers?"
+                    )
+                else:
+                    rec_claim = (
+                        f"I reviewed our verified catalogue for {cat_title} models matching your updated specifications, "
+                        "but no models currently meet all of these criteria.\n\n"
+                        "Would you like to review our standard models in this category or adjust your requirements?"
+                    )
+                options_chips = ["View Standard Models", "Consult a Specialist", "Reset Criteria"]
+                reason_str = "Correction detected; no models matched updated criteria; providing consultative catalogue explanation."
 
             return PolicyDecision(
                 action=PolicyAction.ANSWER,
-                reason="Correction detected from customer; re-running recommendation with updated state.",
+                reason=reason_str,
                 target_entity_id=target_id,
                 supporting_product_ids=supp_ids,
-                options_or_chips=["View Technical Specifications", "Compatible Consumables", "Request Official Quotation"],
+                options_or_chips=options_chips,
                 next_step=rec_claim,
             )
 
@@ -1238,6 +1445,11 @@ class PolicyEngine:
         )
         if intent == Intent.RECOMMEND and resolved.resolved_target_product and explicit_model_in_turn:
             target = resolved.resolved_target_product
+            state.confirmed_slots["_leaf_product_id"] = target.id
+            state.confirmed_slots["_flowchart_leaf_reached"] = True
+            state.active_product_id = target.id
+            if hasattr(state, "consume_pending_question"):
+                state.consume_pending_question()
             p_meta = target.metadata or {}
             claim_parts = [f"**{target.name}** is an approved official equipment model in our catalogue."]
             if p_meta.get("print_speed"):
@@ -1285,7 +1497,10 @@ class PolicyEngine:
         canonical_new_cat = cat_map.get(new_cat_raw, new_cat_raw) if new_cat_raw else None
 
         from conversation.product_flows import resolve_flowchart_step, extract_flowchart_requirements
-        flow_reqs = extract_flowchart_requirements(und.raw_text)
+        existing_flow_reqs = dict(state.confirmed_slots)
+        if hasattr(state, "requirements") and isinstance(state.requirements, dict):
+            existing_flow_reqs.update(state.requirements)
+        flow_reqs = extract_flowchart_requirements(und.raw_text, existing_flow_reqs)
 
         # Check if flowchart leaf was already reached in this conversation
         already_at_leaf = bool(state.confirmed_slots.get("_flowchart_leaf_reached"))
@@ -1309,14 +1524,16 @@ class PolicyEngine:
             elif not already_at_leaf and (intent in (Intent.RECOMMEND, Intent.OTHER)):
                 if not resolved.resolved_target_product and not resolved.resolved_active_item:
                     if getattr(state, "category", None) and (
-                        any(c.lower() in und.raw_text.lower() for c in state.last_shown_chips)
+                        any(c.lower() in und.raw_text.lower() or (len(und.raw_text.strip()) >= 3 and und.raw_text.lower().strip().rstrip(":") in c.lower()) for c in state.last_shown_chips)
+                        or (und.raw_text.strip() in ("1", "2", "3", "4", "5") and len(state.last_shown_chips) >= int(und.raw_text.strip()))
                         or und.dialogue_act in (DialogueAct.REJECTION, DialogueAct.CONFIRMATION, DialogueAct.ANSWER_TO_MY_QUESTION)
                         or bool(und.slots)
                     ):
                         is_flowchart_turn = True
         elif already_at_leaf and intent in (Intent.RECOMMEND, Intent.OTHER):
             # Already completed product identification: check what the user wants next
-            leaf_pid = state.confirmed_slots.get("_leaf_product_id") or (resolved.resolved_target_product.id if resolved.resolved_target_product else None)
+            cur_focus = state.get_current_focus("printer")
+            leaf_pid = (resolved.resolved_target_product.id if resolved.resolved_target_product else None) or (cur_focus.id if cur_focus else None) or state.confirmed_slots.get("_leaf_product_id")
             if leaf_pid:
                 raw_l = und.raw_text.lower().strip()
                 is_specs_query = (
@@ -1368,15 +1585,17 @@ class PolicyEngine:
 
         if is_flowchart_turn:
             if canonical_new_cat:
-                is_cad_scanner_feature = (
-                    state.category in ("technical_large_format", "technical_cad", "cad")
-                    and canonical_new_cat == "scanners"
-                    and (
-                        any("scan" in str(c).lower() for c in state.last_shown_chips)
-                        or state.confirmed_slots.get("plotter_width") == 36
+                is_printer_scanner_feature = (
+                    state.category in (
+                        "technical_large_format", "technical_cad", "cad",
+                        "photography_large_format", "photo_fine_art", "photo",
+                        "office_printer", "office_workforce", "office",
+                        "citizen_photo", "dye_sublimation"
                     )
+                    and canonical_new_cat == "scanners"
+                    and not bool(re.search(r"\b(?:switch\s+to|change\s+to|instead|dedicated|standalone|buy\s+a\s+scanner|i\s+(?:need|want)\s+(?:a\s+)?(?:dedicated|standalone|document|flatbed|book|portable)\s*scann?er)\b", und.raw_text.lower()))
                 )
-                if not is_cad_scanner_feature and state.category != canonical_new_cat:
+                if not is_printer_scanner_feature and state.category != canonical_new_cat:
                     # User explicitly stated a new category: switch category and reset stale slots!
                     state.category = canonical_new_cat
                     state.confirmed_slots.clear()
@@ -1697,7 +1916,7 @@ class PolicyEngine:
                 if qty_match:
                     qty_val = int(qty_match.group(1) or qty_match.group(2))
 
-            target = resolved.resolved_target_product
+            target = resolved.resolved_target_product or state.get_current_focus("printer") or state.get_current_focus()
             t_name = target.name if target else None
             if not t_name and state.category:
                 t_name = state.category
@@ -1849,6 +2068,34 @@ class PolicyEngine:
             t_name = target.name if target else "our equipment"
             t_id = target.id if target else None
             raw_l_price = und.raw_text.lower()
+
+            # ── SPECIFIC CONSUMABLE / SKU PRICE INQUIRY ────
+            active_sku_ent = next((e for e in und.entities if e.entity_type == "sku"), None)
+            active_cons = resolved.resolved_active_item or active_sku_ent
+            if active_cons:
+                cid = getattr(active_cons, "normalised_id", getattr(active_cons, "id", str(active_cons)))
+                from catalog.consumable_registry import consumable_registry
+                c_item = consumable_registry.consumables.get(cid.upper()) or consumable_registry.consumables.get(cid)
+                if c_item:
+                    c_price_str = f"AED {c_item.price_aed:,.2f}" if c_item.price_aed else "Price on Request"
+                    c_claim = f"The **{c_item.name}** (SKU: `{c_item.sku}`) is listed at **{c_price_str}** (excl. VAT)."
+                    rec = EvidenceRecord(
+                        claim=c_claim,
+                        verified=True,
+                        status=CompatibilityStatus.VERIFIED_YES,
+                        source_file="catalog/consumable_registry.py",
+                        field="consumable_price",
+                        entity_ids=[c_item.sku],
+                        supporting_data={"price": c_item.price_aed, "sku": c_item.sku},
+                    )
+                    return PolicyDecision(
+                        action=PolicyAction.ANSWER,
+                        reason=f"Quoted verified consumable price for {c_item.name} ({c_item.sku}).",
+                        target_entity_id=c_item.sku,
+                        options_or_chips=["Request Official Quote", "Compatible Printers", "Order Consumables"],
+                        evidence_records=[rec],
+                        next_step=f"Official quotations and tax invoices are issued directly at {OFFICIAL_SUPPORT_EMAIL} or {OFFICIAL_SUPPORT_PHONE}.",
+                    )
 
             # ── MULTI-MODEL PRICING / INVESTMENT INQUIRY ────
             has_explicit_model = any(e.entity_type == "model" for e in und.entities)
@@ -2154,6 +2401,32 @@ class PolicyEngine:
                     next_step="Would you like directions or to schedule an on-site equipment demonstration?",
                 )
 
+        # 11b. Direct Product Page Link & Catalogue Request (Never drop to Fallback Clarify!)
+        raw_low = und.raw_text.lower()
+        if re.search(r"\b(?:exact\s+product\s+link|product\s+link|product\s+page|show\s+(?:the\s+)?(?:product\s+)?catalogue|see\s+the\s+product|view\s+the\s+product|catalogue\s+link|product\s+url|how\s+(?:do\s+i|can\s+i)\s+see)\b", raw_low):
+            active_pid = state.get_canonical_focus_id() or (state.shown_entities[0] if getattr(state, "shown_entities", None) else None)
+            from catalog.catalogue_loader import catalogue_loader
+            p_data = catalogue_loader.get_by_id(active_pid) if active_pid else None
+            if p_data:
+                p_name = p_data.get("display_name") or p_data.get("name") or active_pid
+                url = p_data.get("product_url") or p_data.get("url") or f"https://www.keplertechllc.com/product/{active_pid}/"
+                link_claim = f"Official product link: {url}"
+                rec = EvidenceRecord(
+                    claim=link_claim,
+                    verified=True,
+                    status=CompatibilityStatus.VERIFIED_YES,
+                    source_file="catalog",
+                    field="product_url",
+                    entity_ids=[active_pid],
+                )
+                return PolicyDecision(
+                    action=PolicyAction.ANSWER,
+                    reason="Direct catalogue URL inquiry for active model.",
+                    options_or_chips=["Official Quotation", "Compatible Consumables", "Datasheet & Specs"],
+                    evidence_records=[rec],
+                    next_step=f"Here is the verified product link for the **{p_name}**:\n\n🔗 [{p_name} Official Product Page]({url})\n\nWould you like an official quotation or details on compatible inks and papers?",
+                )
+
         # 12. Fallback Clarify - Universally Context-Aware (Never drop to root mid-conversation)
         # Loop guard: keyed on a dedicated counter (NOT the per-intent topic, which changes turn to turn
         # on gibberish) and reset whenever a substantive turn is understood (see has_substantive_input).
@@ -2196,9 +2469,19 @@ class PolicyEngine:
             chips = ["WorkForce Sheetfed", "Flatbed & Books", "Large Format Graphics", "Official Quotation"]
             step_text = "Please select a scanner type or specify your daily scan volume."
         elif getattr(state, "last_shown_consumables", None) or any(getattr(e, "entity_type", "") == "consumable" for e in getattr(state, "focus_stack", [])):
-            q_text = "Which supplies or ink colours would you like to review?"
-            chips = ["Inks", "Media Rolls / Paper", "Maintenance Box", "Official Quotation"]
-            step_text = "Please enter the specific ink colour, part number, or equipment model."
+            raw_low = und.raw_text.lower()
+            if any(w in raw_low for w in ["which model", "which printer", "prefer", "recommend", "print canvas", "art paper", "machine"]):
+                q_text = (
+                    "For fine art and canvas reproduction, the 12-colour **Epson SureColor SC-P9500** is our recommended model, "
+                    "featuring museum-grade archival UltraChrome PRO12 inks and 99% Pantone gamut. The **SC-P8500D** is a dual-roll production printer "
+                    "optimized for higher-speed commercial photo output."
+                )
+                chips = ["Epson SC-P9500 Specs", "Epson SC-P8500D Specs", "Official Quotation"]
+                step_text = "Would you like full technical specifications or a formal commercial quotation for the SC-P9500?"
+            else:
+                q_text = "Which supplies or ink colours would you like to review?"
+                chips = ["Inks", "Media Rolls / Paper", "Maintenance Box", "Official Quotation"]
+                step_text = "Please enter the specific ink colour, part number, or equipment model."
         else:
             q_text = "Which printing application fits your requirements?" if "print" in und.raw_text.lower() else "How can I best assist you with Kepler Tech printing equipment?"
             chips = ["Technical CAD Plotters", "Professional Photo & Fine Art", "Citizen Photo Booth / Events", "Dye-Sublimation", "Office Printers"]

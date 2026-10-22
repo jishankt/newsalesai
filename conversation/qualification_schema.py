@@ -180,8 +180,14 @@ QUESTIONS_BY_FIELD: Dict[str, Dict[str, Any]] = {
     },
     # Professional Scanners
     "scanner_intent": {
-        "question": "What type of scanner do you need—high-speed business document scanner, high-resolution photo & film scanner, or a versatile hybrid model with both a flatbed and ADF?",
-        "pills": ["Business Documents", "Photo & Film (High-Res)", "Both (Flatbed + ADF)"]
+        "question": "What type of scanner do you need—Business Document, Photo & Artwork, Book & Large-Document, Portable & Mobile, or Flatbed Document Scanner?",
+        "pills": [
+            "Business Document Scanners",
+            "Photo & Artwork Scanners",
+            "Book & Large-Document Scanners",
+            "Portable & Mobile Scanners",
+            "Flatbed Document Scanners"
+        ]
     },
     "scanner_intent_professional": {
         "question": "For professional scanning, do you require a high-resolution A3 graphic & photo/film scanner (Expression 12000XL series) or a heavy-duty A3 production document scanner (WorkForce DS-30000 / DS-32000 series)?",
@@ -253,7 +259,10 @@ def get_missing_mandatory_fields(category: str, requirements: Dict[str, Any]) ->
         if requirements.get("subcategory"):
             return []
         intent = requirements.get("scanner_intent")
-        if intent and intent in ("both", "photo", "business"):
+        if intent and intent in (
+            "both", "photo", "business", "business_document", "photo_artwork",
+            "book_large_document", "portable_mobile", "flatbed_document"
+        ):
             return []
         if intent == "professional":
             return ["scanner_intent_professional"]

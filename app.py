@@ -564,23 +564,33 @@ def _process_chat_turn(raw_message, session_id, model_name, request_id, session_
                 "I apologize for the delay, but our assistant is taking longer than expected to process your request. "
                 "Please try asking again, or let me know if you would like me to connect you with our sales team."
             )
-            orchestrator_res = {
-                "reply": fallback_msg,
-                "message": fallback_msg,
-                "llm_generated_message": fallback_msg,
-                "is_llm_generated": False,
-                "source": "fallback:llm_timeout",
-                "product_cards": [],
-                "consumable_cards": [],
-                "suggested_chips": ["View Technical Specifications", "Talk to Sales Specialist"],
-                "grounding": {"status": "timeout_fallback", "is_grounded": True, "notes": ["LLM timeout fallback"]},
-                "nlp": {"intent": detected_intent, "normalized_text": normalized_msg},
-                "state": state,
-                "retrieved_items": [],
-                "active_agent": "Front Desk",
-            }
+            fallback_source = "fallback:llm_timeout"
+            fallback_chips = ["View Technical Specifications", "Talk to Sales Specialist"]
         else:
-            raise e
+            logger.error(f"[{session_prefix}] Unhandled error in process_turn: {e}", exc_info=True)
+            fallback_msg = (
+                "I apologize, but I encountered an unexpected issue while retrieving those details. "
+                "Our team has been notified. In the meantime, I can connect you directly with a Kepler Tech "
+                "sales specialist to assist you with equipment availability, pricing, or official quotations."
+            )
+            fallback_source = "fallback:orchestrator_exception"
+            fallback_chips = ["Talk to Sales Specialist", "Leave Contact Details", "Showroom Hours & Location"]
+
+        orchestrator_res = {
+            "reply": fallback_msg,
+            "message": fallback_msg,
+            "llm_generated_message": fallback_msg,
+            "is_llm_generated": False,
+            "source": fallback_source,
+            "product_cards": [],
+            "consumable_cards": [],
+            "suggested_chips": fallback_chips,
+            "grounding": {"status": "error_fallback", "is_grounded": True, "notes": [str(e)]},
+            "nlp": {"intent": detected_intent, "normalized_text": normalized_msg},
+            "state": state,
+            "retrieved_items": [],
+            "active_agent": "Front Desk",
+        }
 
     assistant_reply = orchestrator_res["reply"]
     source = orchestrator_res["source"]

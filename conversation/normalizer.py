@@ -558,24 +558,39 @@ def extract_deterministic_requirements(text: str, category: Optional[str] = None
     # ── 7. Scanner Intent & Subcategory Resolution ───────────────────────
     if category in ("scanners", "scanner") or awaiting_field in ("scanner_intent", "scanner_type"):
         if any(k in text_l for k in [
+            "portable", "mobile", "portable & mobile", "portable and mobile", "fieldwork", "compact scanning", "4", "option 4"
+        ]):
+            reqs["scanner_intent"] = "portable"
+            reqs["subcategory"] = "portable_scanners"
+        elif any(k in text_l for k in [
+            "flatbed", "flatbed document", "flatbed scanner", "ds-1660w", "ds-1630", "5", "option 5"
+        ]):
+            reqs["scanner_intent"] = "flatbed"
+            reqs["subcategory"] = "flatbed_scanners"
+        elif any(k in text_l for k in [
+            "book", "large-document", "large document", "book & large", "book and large", "departmental", "high-volume", "3", "option 3"
+        ]):
+            reqs["scanner_intent"] = "book_large"
+            reqs["subcategory"] = "book_large_scanners"
+        elif any(k in text_l for k in [
+            "photo", "photos", "artwork", "photo & artwork", "photo and artwork", "film", "slide", "slides", "negatives", "high-res", "high res",
+            "photo & film", "transparency", "fine art", "photo & film (high-res)", "12000xl", "2", "option 2"
+        ]):
+            reqs["scanner_intent"] = "photo"
+            reqs["subcategory"] = "photo_scanners"
+        elif any(k in text_l for k in [
+            "business", "document", "documents", "business documents", "office",
+            "invoice", "invoices", "contracts", "receipts", "sheetfed", "1", "option 1"
+        ]):
+            reqs["scanner_intent"] = "business"
+            reqs["subcategory"] = "business_scanners"
+        elif any(k in text_l for k in [
             "both", "hybrid", "dual", "flatbed and adf", "flatbed + adf", "both can do",
             "books and documents", "photos and documents", "both (flatbed + adf)", "flatbed with feeder",
             "flatbed and sheetfed"
         ]):
             reqs["scanner_intent"] = "hybrid"
             reqs["subcategory"] = "hybrid_scanners"
-        elif any(k in text_l for k in [
-            "photo", "photos", "film", "slide", "slides", "negatives", "high-res", "high res",
-            "photo & film", "transparency", "fine art", "photo & film (high-res)", "12000xl"
-        ]):
-            reqs["scanner_intent"] = "photo"
-            reqs["subcategory"] = "photo_scanners"
-        elif any(k in text_l for k in [
-            "business", "document", "documents", "business documents", "office",
-            "invoice", "invoices", "contracts", "receipts", "sheetfed", "portable", "mobile"
-        ]):
-            reqs["scanner_intent"] = "business"
-            reqs["subcategory"] = "business_scanners"
 
     return reqs, corrections
 

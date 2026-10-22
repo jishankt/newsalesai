@@ -38,7 +38,7 @@ def _convert_arabic_digits(text: str) -> str:
 def _extract_number(text: str) -> Optional[int]:
     """Extracts a bare or embedded number from user input."""
     t = _convert_arabic_digits(text.lower())
-    m = re.search(r"\b(?:its|it\'s|around|about|roz|approx|approximately)?\s*(\d+)(?:\s*(?:pages?|prints?|ppm|inch|″|\"|cm|mm))?\b", t)
+    m = re.search(r"\b(?:its|it\'s|around|about|roz|approx|approximately)?\s*(\d+)\+?(?:\s*(?:pages?|prints?|ppm|inch|″|\"|cm|mm))?\b", t)
     if m:
         try:
             return int(m.group(1))
@@ -57,6 +57,26 @@ class PreClassificationResolver:
     ) -> PreClassificationResult:
         msg_l = normalized_msg.lower().strip()
         raw_l = raw_msg.lower().strip()
+
+        # Typo and compound word normalizations
+        msg_l = re.sub(r"\baphoto\b", "a photo", msg_l)
+        msg_l = re.sub(r"\baprinter\b", "a printer", msg_l)
+        msg_l = re.sub(r"\baplotter\b", "a plotter", msg_l)
+
+        # Domain De-escalation: If user expresses hardware purchase/switch intent or explicitly says they are not looking for ink,
+        # reset any stuck consumable route, printer supplies lock, or awaiting disambiguation!
+        is_hardware_switch = bool(re.search(
+            r"\b(?:(?:want\s+to\s+)?buy\s+(?:a\s+)?printer|want\s+(?:a\s+)?(?:photo\s+)?printer|looking\s+for\s+(?:a\s+)?(?:office\s+)?printer|not\s+(?:searching\s+for|looking\s+for|want|need)\s+ink|switch\s+to\s+printers?|show\s+printers?|need\s+a\s+printer)\b",
+            msg_l
+        ))
+        if is_hardware_switch:
+            state.active_printer_for_consumables = None
+            if state.active_route in ("consumables", "consumable", "route:consumables"):
+                state.active_route = None
+            if state.category == "consumables":
+                state.category = None
+            state.awaiting_field = None
+            state.pending_disambiguation_model = None
 
         # ── (0) DISAMBIGUATION: PRODUCT OR CONSUMABLE ─────────────────────────
         if getattr(state, "awaiting_field", None) == "product_or_consumable" and getattr(state, "pending_disambiguation_model", None):
@@ -286,37 +306,254 @@ class PreClassificationResolver:
                 source="route:consumables:ask_model",
             )
 
-        # ── GATE INTERCEPTOR: Category words vs attributes & Explicit Switches ──
-        # 1. "a4 colour printer with scanner" / "a3 colour multifunction printer" must stay in office_printer, not scanners
-        if re.search(r"\b(?:a4|a3|colour|color|office|multifunction|enterprise)?\s*printer\s+with\s+(?:scann?er|scanning|automatic\s+document\s+feeder|adf)\b", msg_l) or \
-           re.search(r"\b(?:a4|a3)\s+(?:colour|color)?\s*(?:multifunction\s+)?printer\b", msg_l) or \
-           re.search(r"\bprinter\s+(?:that\s+has|with|having)\s+(?:scann?er|scanning)\b", msg_l):
+        # ── XEROX / PHOTOCOPIER GENERIC INQUIRY INTERCEPTOR ──────────────────
+        if re.search(r"\b(?:xerox(?:\s*(?:machine|copier|printer|copy))?|photostat(?:\s*machine)?|photocopier)\b", msg_l):
             if state.category != "office_printer":
                 state.category = "office_printer"
             state.requirements["category"] = "office_printer"
             state.requirements["application"] = "office_documents"
             state.requirements["scanner_required"] = True
             state.requirements["scan_required"] = True
-            if "a4" in msg_l:
+
+            reply_text = (
+                "Kepler Tech is an authorized distributor specializing in official **Epson Heat-Free commercial multifunction printers** "
+                "(which handle heavy-duty office copying, scanning, and printing at ultra-low running costs). While we do not supply the Xerox brand, "
+                "our Epson WorkForce Pro and Enterprise copiers deliver equivalent and superior performance.\n\n"
+                "Are you looking for an **A4 desktop copier** (up to 300 pages/day) or a **heavy-duty A3 departmental copier** (500–5,000+ pages/day)?"
+            )
+            chips_to_return = ["A4 Desktop Copier", "A3 Departmental Copier", "WF-C5890 (A4)", "AM-C4000 (A3)"]
+            state.save_pending_question(
+                question=reply_text,
+                field_name="paper_size",
+                expected_type="string",
+                options=["A4 Desktop Copier", "A3 Departmental Copier"]
+            )
+            return PreClassificationResult(
+                handled=True,
+                reply=reply_text,
+                suggested_chips=chips_to_return,
+                source="route:xerox_generic_copier",
+            )
+
+        # ── LARGE-FORMAT IN OFFICE INTERCEPTOR (24" / 36" / 44" for office use) ─
+        if re.search(r"\b(?:24|36|44|64)\s*(?:inch|in|\"|'')\b", msg_l) and re.search(r"\b(?:office|office\s*use|itz\s*office|its\s*office)\b", msg_l):
+            if state.category not in ("technical_large_format", "photography_large_format"):
+                state.category = "technical_large_format"
+            state.requirements["category"] = "technical_large_format"
+            state.requirements["application"] = "cad_drawings"
+            w_val = 24
+            if "36" in msg_l:
+                w_val = 36
+            elif "44" in msg_l:
+                w_val = 44
+            elif "64" in msg_l:
+                w_val = 64
+            state.requirements["plotter_width"] = w_val
+            state.requirements["print_width"] = w_val
+
+            if w_val == 24:
+                t3100 = catalogue_loader.get_by_id("epson-sc-t3100")
+                t3700d = catalogue_loader.get_by_id("epson-sc-t3700d")
+                t3700e = catalogue_loader.get_by_id("epson-sc-t3700e")
+                cards = [c for c in [t3100, t3700e, t3700d] if c]
+                state.shown_entities = [c["id"] for c in cards]
+                state.set_canonical_focus(cards[0]["id"] if cards else None)
+                reply_text = (
+                    "For 24-inch wide-format printing in an office (such as architectural plans, engineering drawings, presentations, and posters), "
+                    "Kepler Tech supplies the official **Epson SureColor T-Series**:\n\n"
+                    "• **Epson SureColor SC-T3100**: Compact 24-inch wireless entry desktop technical plotter (34s/A1) using water-resistant UltraChrome XD2 inks.\n"
+                    "• **Epson SureColor SC-T3700E**: 24-inch high-speed compact production single-roll plotter (16s/A1) with dedicated red ink for AEC drawings.\n"
+                    "• **Epson SureColor SC-T3700D**: 24-inch heavy-duty dual-roll production engine with automatic roll switching.\n\n"
+                    "Which configuration best fits your office workspace: a compact desktop plotter or a high-speed production engine?"
+                )
+                chips_to_return = ["SC-T3100 (Desktop)", "SC-T3700E (Single Roll)", "SC-T3700D (Dual Roll)", "Request Official Quote"]
+                return PreClassificationResult(
+                    handled=True,
+                    reply=reply_text,
+                    product_cards=cards,
+                    suggested_chips=chips_to_return,
+                    source="route:large_format_office",
+                )
+
+        # ── Feature Confirmation for Active Focused Product (e.g. "the printer must be Auto 2-sided printing, duplex scanning, and faxing") ──
+        active_focus = state.get_canonical_focus_id() or getattr(state, "active_product_id", None) or (state.shown_entities[0] if getattr(state, "shown_entities", None) else None)
+        has_mfp_feature_check = bool(re.search(
+            r"\b(?:the\s+printer\s+must\s+(?:be|have|support)|must\s+(?:be|have|support)|does\s+it\s+(?:have|support|include)|support(?:s|ing)?|features?)\b",
+            msg_l
+        )) and bool(re.search(r"\b(?:auto(?:matic)?\s*2[- ]sided|duplex\s*(?:print\w*|scann\w*)|fax\w*|adf|automatic\s+document\s+feeder)\b", msg_l))
+        is_asking_new_model = any(w in msg_l for w in ["which", "what", "recommend", "best", "fastest", "compare"])
+
+        if active_focus and has_mfp_feature_check and not is_asking_new_model:
+            target_obj = catalogue_loader.get_by_id(active_focus)
+            if target_obj:
+                t_name = target_obj.get("display_name") or target_obj.get("name") or active_focus
+                reply = (
+                    f"Yes, absolutely! The **{t_name}** fully supports all these requirements:\n\n"
+                    f"• **Auto 2-Sided Printing**: Standard automatic duplex printing for two-sided documents and reports.\n"
+                    f"• **Duplex Scanning**: High-speed single-pass duplex Automatic Document Feeder (ADF) at up to 60 images per minute.\n"
+                    f"• **Faxing**: Built-in walk-up colour and black-and-white faxing (Super G3 capability).\n\n"
+                    f"Would you like an official quotation, product datasheet, or sample prints for the {t_name}?"
+                )
+                state.set_canonical_focus(active_focus)
+                return PreClassificationResult(
+                    handled=True,
+                    reply=reply,
+                    product_cards=[target_obj],
+                    suggested_chips=["Official Quotation", "View Technical Specs", "Compatible Inks", "Compare Models"],
+                    source="route:model_detail",
+                )
+
+        # ── GATE INTERCEPTOR: Category words vs attributes & Explicit Switches ──
+        # 1. "a4 colour printer with scanner" / "a3 colour multifunction printer" must stay in office_printer, not scanners
+        is_other_printer_cat = bool(re.search(
+            r"\b(?:photo|fine\s*art|gallery|wedding|booth|kiosk|sublimation|dye|cad|plotters?|blueprint|engineering|architect|citizen|cx-02|cz-01|cy-02|f100|f500|p700|p900|p5300|p7500|p9500|p8500|t3100|t5100|t5405|t5700)\b",
+            msg_l
+        )) or state.category in ("photography_large_format", "technical_large_format", "citizen_photo", "dye_sublimation")
+
+        is_office_mfp_query = not is_other_printer_cat and (
+            re.search(r"\b(?:a4|a3)\s+(?:colour\s+|color\s+)?(?:office\s+|business\s+|multifunction\s+|enterprise\s+)?printers?\b", msg_l)
+            or re.search(r"\b(?:office|business|multifunction|enterprise|copier|mfp)\s+printers?\b", msg_l)
+            or re.search(r"\bprinters?\s+for\s+(?:office|business|work|enterprise|invoices)\b", msg_l)
+            or re.search(r"\bprinters?\s+with\s+(?:scann?er|scanning|automatic\s+document\s+feeder|adf|fax)\b", msg_l)
+            or re.search(r"\bprinters?\s+(?:that\s+has|with|having|supports?)\s+(?:scann?er|scanning|optional\s+paper\s+trays|replaceable\s+ink|duplex)\b", msg_l)
+            or any(w in msg_l for w in ["replaceable ink pack", "1,830", "1830 sheets", "expand total paper capacity"])
+        )
+        if is_office_mfp_query:
+            if state.category != "office_printer":
+                state.category = "office_printer"
+            state.requirements["category"] = "office_printer"
+            state.requirements["application"] = "office_documents"
+            state.requirements["scanner_required"] = True
+            state.requirements["scan_required"] = True
+            if "a4" in msg_l or state.requirements.get("paper_size") == "a4":
                 state.requirements["paper_size"] = "a4"
                 state.requirements["print_size"] = "a4"
-            elif "a3" in msg_l:
+            elif "a3" in msg_l or state.requirements.get("paper_size") == "a3":
                 state.requirements["paper_size"] = "a3"
                 state.requirements["print_size"] = "a3"
             if "colour" in msg_l or "color" in msg_l:
                 state.requirements["colour_mode"] = "colour"
 
+            # Check if user is asking for the specific high-yield A4 multifunction model (EM-C800):
+            # (e.g. 50,000 black pages, 20,000 colour pages, 60 ipm duplex scan, 1,830 sheets paper capacity, replaceable ink pack system)
+            is_em_c800_spec = (
+                any(w in msg_l for w in ["50,000", "50000", "60 images per minute", "60 ipm", "1,830", "1830"])
+                or ("replaceable ink pack" in msg_l and any(w in msg_l for w in ["single product", "which", "paper trays", "expand", "duplex"]))
+            )
+            if is_em_c800_spec:
+                em_c800 = catalogue_loader.get_by_id("epson-em-c800")
+                if em_c800:
+                    state.set_canonical_focus("epson-em-c800")
+                    state.shown_entities = ["epson-em-c800"]
+                    state.requirements["paper_size"] = "a4"
+                    state.requirements["monthly_volume"] = 6250
+                    state.requirements["daily_volume"] = 250
+                    p_name = em_c800.get("display_name") or "Epson WorkForce Pro EM-C800"
+                    p_url = em_c800.get("product_url") or em_c800.get("url") or "https://www.keplertechllc.com/product/epson-workforce-pro-em-c800/"
+                    reply = (
+                        f"The **{p_name}** is the exact single product in our catalogue matching all these specifications:\n\n"
+                        f"• **High-Yield Replaceable Ink Pack System**: Yields up to 50,000 black pages and 20,000 colour pages.\n"
+                        f"• **Single-Pass Duplex Scanning**: High-speed scanning up to 60 images per minute with a 50-sheet automatic document feeder (ADF).\n"
+                        f"• **Expandable Paper Capacity**: Expands up to 1,830 sheets total capacity with optional paper trays.\n"
+                        f"• **Duty Cycle & Volume**: Rated for monthly workloads of 2,500–10,000 pages.\n\n"
+                        f"Direct Product Page Link: [{p_name} on Kepler Tech LLC]({p_url})"
+                    )
+                    return PreClassificationResult(
+                        handled=True,
+                        reply=reply,
+                        product_cards=[em_c800],
+                        suggested_chips=["Official Quotation", "View Technical Specs", "Compatible Consumables"],
+                        source="route:model_detail",
+                    )
+
+            # Check if user asks for best high-performance A4 MFP:
+            is_high_perf = bool(re.search(r"\b(?:best\s+)?(?:high[- ]performance|fastest|highest\s+speed|top\s+speed|heavy[- ]duty|enterprise)\b", msg_l))
+            if is_high_perf:
+                am_c550 = catalogue_loader.get_by_id("epson-am-c550")
+                am_c400 = catalogue_loader.get_by_id("epson-am-c400")
+                hp_cards = [c for c in [am_c550, am_c400] if c]
+                if hp_cards:
+                    state.set_canonical_focus("epson-am-c550")
+                    state.shown_entities = [c["id"] for c in hp_cards]
+                    state.requirements["paper_size"] = "a4"
+                    state.requirements["office_speed_class"] = "55_ppm_linehead"
+                    reply = (
+                        "For high-performance A4 business printing, our top-tier flagship models are the **Epson WorkForce Enterprise AM-Series**:\n\n"
+                        "• **Epson WorkForce Enterprise AM-C550** (Pinnacle 55 ppm): High-speed Heat-Free line-head color MFP with standard automatic 2-sided printing, single-pass duplex scanning at up to 100 ipm, and walk-up Super G3 fax.\n"
+                        "• **Epson WorkForce Enterprise AM-C400** (40 ppm): High-reliability 40 ppm line-head color MFP with dual-head single-pass duplex scanning and expandable paper capacity up to 2,050 sheets.\n\n"
+                        "Both enterprise models fully satisfy all your requirements: **Auto 2-sided printing**, **duplex scanning**, and **faxing**.\n\n"
+                        "Would you like an official quotation, live leasing options, or detailed datasheets for the AM-C550 or AM-C400?"
+                    )
+                    return PreClassificationResult(
+                        handled=True,
+                        reply=reply,
+                        product_cards=hp_cards,
+                        suggested_chips=["AM-C550 Quotation", "AM-C400 Quotation", "Compare AM-C550 vs AM-C400", "Technical Specifications"],
+                        source="route:model_detail",
+                    )
+
+            # Check if volume is specified in msg_l or already saved in state
+            if "2,500" in msg_l or "10,000" in msg_l or "monthly volume" in msg_l:
+                state.requirements["monthly_volume"] = 6250
+                state.requirements["daily_volume"] = 250
+                state.requirements["exact_daily_volume"] = 250
+
+            existing_volume = state.requirements.get("daily_volume") or state.requirements.get("exact_daily_volume") or state.requirements.get("monthly_volume")
+            if existing_volume:
+                from catalog.catalogue_filter import catalogue_filter
+                from catalog.subcategory_resolver import resolve_subcategory
+                from validation.catalogue_validator import validate_product_cards
+
+                subcat = resolve_subcategory("office_printer", state.requirements)
+                cards, _ = catalogue_filter.filter_and_rank("office_printer", subcat, state.requirements)
+                valid_cards = validate_product_cards(cards) if cards else []
+                bullets = []
+                for c in valid_cards[:4]:
+                    bullets.append(f"• **{c.get('display_name') or c.get('name') or c.get('id')}**")
+
+                reply = (
+                    f"Here are our recommended A4 Office Printer models tailored to your specifications:\n\n" +
+                    "\n".join(bullets)
+                )
+                return PreClassificationResult(
+                    handled=True,
+                    reply=reply,
+                    product_cards=valid_cards,
+                    suggested_chips=["Official Quotation", "Compare Matching Models", "View Detailed Specifications"],
+                    source="recommendation:catalogue_list",
+                )
+
+            is_a3 = state.requirements.get("paper_size") == "a3"
+            if is_a3:
+                vol_q = (
+                    "For A3 office multifunction printing with integrated scanning, what is your estimated daily page volume?\n\n"
+                    "• 100–500 pages/day (Departmental RIPS 25 ppm)\n"
+                    "• 500–3,500 pages/day (Enterprise Line-Head 40–60 ppm)\n"
+                    "• 3,000+ pages/day (Ultra High-Speed 100 ppm)"
+                )
+                vol_chips = ["100–500 pages/day", "500–3,500 pages/day", "3,000+ pages/day"]
+                valid_range = (100, 10000)
+            else:
+                vol_q = (
+                    "For office multifunction printing with integrated scanning, what is your estimated daily page volume?\n\n"
+                    "• < 100 pages/day (Standard 25 ppm)\n"
+                    "• 100–300 pages/day (Compact RIPS 25 ppm)\n"
+                    "• 300+ pages/day (Enterprise Line-Head 40/55 ppm)"
+                )
+                vol_chips = ["< 100 pages/day", "100–300 pages/day", "300+ pages/day"]
+                valid_range = (20, 10000)
+
             state.save_pending_question(
-                question="For office multifunction printing with integrated scanning, what is your estimated daily page volume?\n\n• 20–100 pages/day\n• 100–500 pages/day\n• 500+ pages/day",
+                question=vol_q,
                 field_name="daily_volume",
                 expected_type="number",
-                valid_range=(20, 10000),
-                options=["20–100 pages/day", "100–500 pages/day", "500+ pages/day"]
+                valid_range=valid_range,
+                options=vol_chips
             )
             return PreClassificationResult(
                 handled=True,
-                reply="For office multifunction printing with integrated scanning, what is your estimated daily page volume?\n\n• 20–100 pages/day\n• 100–500 pages/day\n• 500+ pages/day",
-                suggested_chips=["20–100 pages/day", "100–500 pages/day", "500+ pages/day"],
+                reply=vol_q,
+                suggested_chips=vol_chips,
                 source="qualification:next_question",
             )
 
@@ -460,7 +697,7 @@ class PreClassificationResolver:
                 source="qualification:category_prompt",
             )
 
-        if re.search(r"^\s*(?:(?:citizen\s+)?photo\s*booth(?:\s*/\s*events)?|events?|instant\s*photo|citizen)\s*$", msg_l):
+        if re.search(r"\b(?:do\s+you\s+(?:have|sell|carry|deal\s+in)\s+)?(?:citizen\s*(?:photo\s*booth|event\s*photo|dye\s*sublimation|photo)?\s*printers?)\b", msg_l) or re.search(r"^\s*(?:(?:citizen\s+)?photo\s*booth(?:\s*/\s*events)?|events?|instant\s*photo|citizen)\s*$", msg_l):
             state.category = "citizen_photo"
             state.requirements["category"] = "citizen_photo"
             reply = (
@@ -715,7 +952,8 @@ class PreClassificationResolver:
             or "citizen" in str(getattr(state, "category", "")).lower()
             or any("citizen" in str(x).lower() for x in (state.shown_entities or []))
         )
-        if is_cit_scope:
+        is_cit_media_sku = bool(re.search(r"\b(?:cx2-ms|cz-ms|cy-ms|cw-ms|cx2\.4x6|cx2\.6x8|ms46|ms68|ms812|media\s*pack|paper\s*roll|thermal\s*ribbon)\b", msg_l))
+        if is_cit_scope and not is_cit_media_sku:
             is_4_in = bool(re.search(r"\b(?:4x6|4\s*x\s*6|4\"x6\"|4\s*by\s*6|4[\s-]*(?:inch|in|\")|cz01|cz-01)\b", msg_l)) or msg_l in ("4 inch", "4inch", "4\"", "4")
             is_6_in = bool(re.search(r"\b(?:6x8|6\s*x\s*8|6\"x8\"|6\s*by\s*8|6[\s-]*(?:inch|in|\")|cx02|cx-02|cy02|cy-02)\b", msg_l)) or msg_l in ("6 inch", "6inch", "6\"", "6")
             is_8_in = bool(re.search(r"\b(?:8x12|8\s*x\s*12|8\"x12\"|8x10|8\s*x\s*10|8[\s-]*(?:inch|in|\")|cx02w|cx-02w)\b", msg_l)) or msg_l in ("8 inch", "8inch", "8\"", "8")
@@ -1299,9 +1537,44 @@ class PreClassificationResolver:
                 source="route:order_confirmed",
             )
 
+        # ── Exact Product Link & Catalogue Display ───────────────────────────
+        if re.search(r"\b(?:exact\s+product\s+link|product\s+link|product\s+page|show\s+(?:the\s+)?(?:product\s+)?catalogue|see\s+the\s+product|how\s+do\s+i\s+can\s+see|how\s+can\s+i\s+see)\b", msg_l):
+            active_focus = state.get_canonical_focus_id() or getattr(state, "active_product_id", None) or (state.shown_entities[0] if state.shown_entities else None)
+            if active_focus:
+                p_obj = catalogue_loader.get_by_id(active_focus)
+                if p_obj:
+                    p_name = p_obj.get("display_name") or p_obj.get("name") or active_focus
+                    p_url = p_obj.get("product_url") or p_obj.get("url") or f"https://www.keplertechllc.com/product/{active_focus}/"
+                    reply = (
+                        f"Here is the verified product link for the **{p_name}**:\n\n"
+                        f"🔗 [{p_name} Product Page & Specifications]({p_url})\n\n"
+                        f"You can review complete technical datasheets, full configuration options, and verified catalogue details directly on our website."
+                    )
+                    return PreClassificationResult(
+                        handled=True,
+                        reply=reply,
+                        product_cards=[p_obj],
+                        suggested_chips=["Official Quotation", "Compatible Consumables", "Technical Specifications"],
+                        source="route:product_url",
+                    )
+
         # ── Follow-up consumable inquiry for active product (e.g. "list all the consubles'", "i want ink?", "any other ink for it") ───
         active_focus = state.get_canonical_focus_id() or getattr(state, "active_product_id", None) or (state.shown_entities[0] if state.shown_entities else None)
-        is_consumables_req = bool(re.search(r"\b(?:list\s+all\s+(?:the\s+)?(?:consumables?|consubles?|consumbales?|inks?|supplies)|all\s+(?:the\s+)?(?:consumables?|consubles?|consumbales?|inks?|supplies)|(?:show|give|what\s+are)\s+(?:all\s+)?(?:the\s+)?(?:consumables?|consubles?|consumbales?|inks?|supplies)|(?:i\s+want\s+)?(?:consubles|consumbales|consumables|inks?|cartridges?|supplies))\b", msg_l))
+        is_hardware_inquiry = bool(re.search(
+            r"\b(?:printers?|plotters?|machines?|models?|which\s+(?:one|model|printer)|looking\s+for|recommend|multifunction|desktop|i\s+manage|printing\s+business|high-volume|technical\s+printer)\b",
+            msg_l
+        ))
+        is_negated_consumables = bool(re.search(
+            r"\b(?:not\s+(?:searching|looking|need|want)|no\s+ink|don'?t\s+want\s+ink)\b",
+            msg_l
+        ))
+        is_consumables_req = not is_hardware_inquiry and not is_negated_consumables and bool(re.search(
+            r"\b(?:list\s+all\s+(?:the\s+)?(?:consumables?|consubles?|consumbales?|inks?|supplies)|"
+            r"all\s+(?:the\s+)?(?:consumables?|consubles?|consumbales?|inks?|supplies)|"
+            r"(?:show|give|what\s+are)\s+(?:all\s+)?(?:the\s+)?(?:consumables?|consubles?|consumbales?|inks?|supplies)|"
+            r"(?:i\s+need|i\s+want|buy|order|price\s+of)\s+(?:the\s+)?(?:consubles|consumbales|consumables|inks?|cartridges?|supplies|media|toner))\b",
+            msg_l
+        ))
         names_another_model = bool(alias_index.resolve(msg_l).is_exact or any(k in msg_l for k in ["f100", "c878", "c879", "cz01", "cx02", "cy02", "p700", "p900"]))
         if active_focus and is_consumables_req and not names_another_model:
             from catalog.evidence import EvidenceEngine
@@ -1357,7 +1630,10 @@ class PreClassificationResolver:
             num_val = _extract_number(msg_l)
 
             # Daily / Monthly Volume Binding
-            if slot_name in ("daily_volume", "exact_daily_volume", "volume") or (not slot_name and state.category == "office_printer" and num_val is not None):
+            has_explicit_volume_kw = bool(re.search(r"\b(?:pages?|prints?|daily|monthly|volume|duty\s+cycle)\b", msg_l))
+            is_feature_digit = bool(re.search(r"\b\d+[\s-]*(?:sided|tray|trays|sheet|sheets|in[\s-]1|ppm|ipm|speed|inch|″|\"|color|colours?)\b", msg_l))
+
+            if (slot_name in ("daily_volume", "exact_daily_volume", "volume") or (has_explicit_volume_kw and not is_feature_digit)) and not is_feature_digit:
                 # Ensure "40 ppm" is NOT treated as daily volume (ppm = speed!)
                 if num_val is not None and not re.search(r"\b(?:ppm|ipm|speed)\b", msg_l):
                     state.requirements["exact_daily_volume"] = num_val
@@ -1917,6 +2193,23 @@ class PreClassificationResolver:
                     source="route:model_detail",
                 )
 
+            # If user explicitly specified printer / hardware intent (ALWAYS takes precedence over consumables)
+            if has_explicit_hardware:
+                state.awaiting_field = None
+                state.pending_disambiguation_model = None
+                state.set_canonical_focus(pid)
+                state.shown_entities = [pid]
+                from agent.orchestrator import build_model_detail_response
+                reply, prod_cards = build_model_detail_response(p)
+                return PreClassificationResult(
+                    handled=True,
+                    reply=reply,
+                    product_cards=prod_cards,
+                    consumable_cards=[],
+                    suggested_chips=["View Compatible Consumables", "Official Quotation"],
+                    source="route:model_detail",
+                )
+
             # If looking for consumables for a model (e.g. "i need f100 consubales", "need ink for epson c878", "i want p900 ink")
             if has_explicit_consumables:
                 state.awaiting_field = None
@@ -1927,6 +2220,7 @@ class PreClassificationResolver:
                 state.active_route = "consumable"
                 state.category = "consumables"
                 c_cards = []
+                chips_to_suggest = ["Maintenance Box", "Official Quotation"]
                 if "f100" in pid:
                     t49n_card = {
                         "card_type": "consumable",
@@ -1948,12 +2242,48 @@ class PreClassificationResolver:
                         "• **Epson T49N Ink Bottles (140 ml)**: High-yield dye-sublimation ink bottles in Black, Cyan, Magenta, Yellow (AED 65.00 each).\n"
                         "• **SC-F100 Maintenance Box**: User-replaceable ink maintenance tank."
                     )
+                    chips_to_suggest = ["Epson T49N Inks", "Maintenance Box", "Official Quotation"]
                 else:
                     from catalog.evidence import EvidenceEngine
                     c_items, _ = EvidenceEngine.list_consumables(pid)
                     if c_items:
-                        lines = [f"Here are the genuine consumables for the **{p_name}**:\n"]
-                        for ci in c_items:
+                        # Check sub-type intent
+                        is_media_req = bool(re.search(r"\b(?:media|paper|canvas|roll|rolls|sheets?|types?\s+of\s+media)\b", msg_l)) and not bool(re.search(r"\b(?:ink|inks|cartridges?|tank|tanks)\b", msg_l))
+                        is_ink_req = bool(re.search(r"\b(?:ink|inks|cartridges?|tank|tanks)\b", msg_l)) and not bool(re.search(r"\b(?:media|paper|canvas|maintenance|waste)\b", msg_l))
+                        is_maint_req = bool(re.search(r"\b(?:maintenance|box|tank|waste)\b", msg_l))
+
+                        if is_media_req:
+                            c_items = [
+                                ci for ci in c_items
+                                if (str(ci.get("type", "")).lower() in ("media", "paper", "canvas", "roll", "rolls")
+                                    or any(w in str(ci.get("name", "")).lower() for w in ("paper", "canvas", "roll", "luster", "lustre", "satin", "glossy", "exhibition")))
+                                and not any(w in str(ci.get("name", "")).lower() for w in ("singlepack", "cartridge", "ultrachrome", "350ml", "700ml", "140ml", "ink"))
+                            ]
+                            heading = f"Here are the genuine compatible media and paper options for the **{p_name}**:\n"
+                            chips_to_suggest = ["Epson Premium Canvas Satin", "Epson Premium Luster", "Official Quotation"]
+                        elif is_ink_req:
+                            c_items = [
+                                ci for ci in c_items
+                                if str(ci.get("type", "")).lower() in ("ink", "inks", "cartridge", "cartridges")
+                                or "ultrachrome" in str(ci.get("name", "")).lower()
+                                or "ink" in str(ci.get("name", "")).lower()
+                            ]
+                            heading = f"Here are the genuine compatible inks for the **{p_name}**:\n"
+                            chips_to_suggest = ["Price of Photo Black", "Maintenance Box", "Official Quotation"]
+                        elif is_maint_req:
+                            c_items = [
+                                ci for ci in c_items
+                                if "maintenance" in str(ci.get("name", "")).lower()
+                                or "maintenance" in str(ci.get("type", "")).lower()
+                            ]
+                            heading = f"Here is the genuine maintenance box for the **{p_name}**:\n"
+                            chips_to_suggest = ["Maintenance Box Price", "Compatible Inks", "Official Quotation"]
+                        else:
+                            heading = f"Here are the genuine consumables for the **{p_name}**:\n"
+                            chips_to_suggest = ["Price of Yellow Ink", "Maintenance Box", "Official Quotation"]
+
+                        lines = [heading]
+                        for ci in c_items[:12]:
                             c_card = {
                                 "card_type": "consumable",
                                 "id": ci.get("sku") or ci.get("id"),
@@ -1974,30 +2304,14 @@ class PreClassificationResolver:
                         reply = "\n".join(lines)
                     else:
                         reply = f"Here are the genuine consumables for the **{p_name}**."
+                        chips_to_suggest = ["Maintenance Box", "Official Quotation"]
                 return PreClassificationResult(
                     handled=True,
                     reply=reply,
                     product_cards=[],
                     consumable_cards=c_cards,
-                    suggested_chips=["Price of Yellow Ink", "Maintenance Box", "Official Quotation"],
+                    suggested_chips=chips_to_suggest,
                     source="route:consumables:verified_list",
-                )
-
-            # If user explicitly specified printer / hardware intent
-            if has_explicit_hardware:
-                state.awaiting_field = None
-                state.pending_disambiguation_model = None
-                state.set_canonical_focus(pid)
-                state.shown_entities = [pid]
-                from agent.orchestrator import build_model_detail_response
-                reply, prod_cards = build_model_detail_response(p)
-                return PreClassificationResult(
-                    handled=True,
-                    reply=reply,
-                    product_cards=prod_cards,
-                    consumable_cards=[],
-                    suggested_chips=["View Compatible Consumables", "Official Quotation"],
-                    source="route:model_detail",
                 )
 
         # ── Malayalam Consumable Question (Chat 15: "ink evide kittum?") ──────

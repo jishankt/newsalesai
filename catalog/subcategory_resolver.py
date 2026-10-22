@@ -190,39 +190,62 @@ def resolve_subcategory(category: str, requirements: Dict[str, Any]) -> Optional
     if category in ("scanners", "scanner"):
         # Explicit subcategory or intent
         sub = requirements.get("subcategory")
-        if sub in ("business_scanners", "photo_scanners", "hybrid_scanners"):
+        if sub in ("business_scanners", "photo_scanners", "book_large_scanners", "portable_scanners", "flatbed_scanners", "hybrid_scanners"):
             return sub
 
         intent = str(requirements.get("scanner_intent") or requirements.get("scanner_type") or "").lower()
         app = str(requirements.get("application") or "").lower()
         model_req = str(requirements.get("model") or "").lower()
 
-        # 1. Both can do / Hybrid (Flatbed + ADF)
-        # Checked before single photo/business if user mentioned "both" or "photos and documents"
+        # 4. Portable & Mobile Scanners
+        if (
+            "portable" in intent or "mobile" in intent or "fieldwork" in intent
+            or any(k in app for k in ["portable", "mobile", "fieldwork", "compact scanning"])
+            or any(m in model_req for m in ["ds-70", "ds-80w", "ds-310", "ds-360w", "360w", "310", "80w", "ds-70"])
+        ):
+            return "portable_scanners"
+
+        # 5. Flatbed Document Scanners (DS-1660W, DS-1630)
+        if (
+            "flatbed document" in intent or "flatbed scanner" in intent
+            or "originals that benefit from flatbed" in intent
+            or any(m in model_req for m in ["1630", "1660"])
+        ):
+            return "flatbed_scanners"
+
+        # 3. Book & Large-Document Scanners (DS-70000/N, DS-60000/N, DS-30000, DS-32000)
+        if (
+            "book & large" in intent or "book and large" in intent or "large-document" in intent or "large document" in intent
+            or "departmental" in intent or "high-volume workflow" in intent
+            or any(m in model_req for m in ["70000", "60000", "30000", "32000"])
+        ):
+            return "book_large_scanners"
+
+        # Legacy / Dual Hybrid
         if (
             "both" in intent or "hybrid" in intent or "dual" in intent
             or "flatbed and adf" in intent or "adf and flatbed" in intent
-            or "book" in intent or "bound" in intent
-            or any(k in app for k in ["both", "hybrid", "book", "books", "passport", "passports", "bound"])
-            or any(m in model_req for m in ["1630", "1660", "6500", "7500", "60000", "70000"])
+            or "books and documents" in intent or "books and documents" in app
+            or any(k in app for k in ["both", "hybrid", "passport", "passports", "bound"])
+            or any(m in model_req for m in ["6500", "7500"])
         ):
             return "hybrid_scanners"
 
-        # 2. Photo / High-Res / Graphic / Film
+        # 2. Photo & Artwork Scanners
         if (
-            "photo" in intent or "film" in intent or "slide" in intent or "fine_art" in intent
+            "photo" in intent or "artwork" in intent or "film" in intent or "slide" in intent or "fine_art" in intent
             or "graphic" in intent or "transparency" in intent
-            or any(k in app for k in ["photo", "film", "slide", "fine_art", "graphic", "transparency", "negative"])
+            or any(k in app for k in ["photo", "artwork", "film", "slide", "fine_art", "graphic", "transparency", "negative"])
             or "12000" in model_req or "expression" in model_req
         ):
             return "photo_scanners"
 
-        # 3. Business / Document / Office / Sheetfed / Portable
+        # 1. Business Document Scanners
         if (
             "business" in intent or "document" in intent or "office" in intent
-            or "sheetfed" in intent or "portable" in intent or "mobile" in intent
-            or any(k in app for k in ["business", "document", "office", "invoice", "receipt", "contract", "sheetfed", "portable", "mobile"])
-            or any(m in model_req for m in ["900wn", "800wn", "580w", "500w", "970", "870", "790wn", "770", "730n", "530", "410", "30000", "32000", "ds-70", "ds-80w", "ds-310", "ds-360w"])
+            or "sheetfed" in intent or "digitization" in intent
+            or any(k in app for k in ["business", "document", "office", "invoice", "receipt", "contract", "sheetfed"])
+            or any(m in model_req for m in ["900wn", "800wn", "580w", "500w", "970", "870", "790wn", "770", "730n", "530", "410", "7500", "6500"])
         ):
             return "business_scanners"
 

@@ -119,7 +119,7 @@ class TestScannersCatalogue(unittest.TestCase):
         )
         self.assertEqual(
             resolve_subcategory("scanners", {"model": "ds-1630"}),
-            "hybrid_scanners"
+            "flatbed_scanners"
         )
 
         # 3. Business Scanners
@@ -137,20 +137,22 @@ class TestScannersCatalogue(unittest.TestCase):
         )
         self.assertEqual(
             resolve_subcategory("scanners", {"scanner_intent": "portable"}),
-            "business_scanners"
+            "portable_scanners"
         )
 
     def test_05_qualification_flow(self):
-        """When user asks for a generic scanner, mandatory qualification asks for scanner intent."""
+        """When user asks for a generic scanner, mandatory qualification asks for scanner intent across 5 categories."""
         missing = get_missing_mandatory_fields("scanners", {})
         self.assertEqual(missing, ["scanner_intent"])
 
         q = get_next_question("scanners", missing)
         self.assertEqual(q["field"], "scanner_intent")
-        self.assertIn("high-speed business document scanner", q["question"])
-        self.assertIn("Business Documents", q["pills"])
-        self.assertIn("Photo & Film (High-Res)", q["pills"])
-        self.assertIn("Both (Flatbed + ADF)", q["pills"])
+        self.assertIn("Business Document", q["question"])
+        self.assertIn("Business Document Scanners", q["pills"])
+        self.assertIn("Photo & Artwork Scanners", q["pills"])
+        self.assertIn("Book & Large-Document Scanners", q["pills"])
+        self.assertIn("Portable & Mobile Scanners", q["pills"])
+        self.assertIn("Flatbed Document Scanners", q["pills"])
 
         # When intent is provided, no mandatory questions remain
         missing_answered = get_missing_mandatory_fields("scanners", {"scanner_intent": "business"})
@@ -158,20 +160,32 @@ class TestScannersCatalogue(unittest.TestCase):
 
     def test_06_catalogue_filter_by_subcategories(self):
         """Filtering by each subcategory returns the expected certified models."""
-        # Photo
+        # 1. Business Document Scanners (15 models)
+        biz_cards, _ = catalogue_filter.filter_and_rank("scanners", "business_scanners", {})
+        self.assertEqual(len(biz_cards), 15)
+
+        # 2. Photo & Artwork Scanners (2 models)
         photo_cards, _ = catalogue_filter.filter_and_rank("scanners", "photo_scanners", {})
         self.assertEqual(len(photo_cards), 2)
         card_names = {c["name"] for c in photo_cards}
         self.assertTrue(any("12000XL Pro" in name for name in card_names))
         self.assertTrue(any("12000XL Photo" in name for name in card_names))
 
-        # Hybrid ("Both can do")
+        # 3. Book & Large-Document Scanners (6 models)
+        book_cards, _ = catalogue_filter.filter_and_rank("scanners", "book_large_scanners", {})
+        self.assertEqual(len(book_cards), 6)
+
+        # 4. Portable & Mobile Scanners (4 models)
+        portable_cards, _ = catalogue_filter.filter_and_rank("scanners", "portable_scanners", {})
+        self.assertEqual(len(portable_cards), 4)
+
+        # 5. Flatbed Document Scanners (2 models)
+        flatbed_cards, _ = catalogue_filter.filter_and_rank("scanners", "flatbed_scanners", {})
+        self.assertEqual(len(flatbed_cards), 2)
+
+        # Legacy Hybrid ("Both can do" - 10 models)
         hybrid_cards, _ = catalogue_filter.filter_and_rank("scanners", "hybrid_scanners", {})
         self.assertEqual(len(hybrid_cards), 10)
-
-        # Business
-        biz_cards, _ = catalogue_filter.filter_and_rank("scanners", "business_scanners", {})
-        self.assertEqual(len(biz_cards), 17)
 
     def test_07_paper_size_filtering_for_scanners(self):
         """A3 filter on business scanners returns the production A3 sheetfed models (DS-30000, DS-32000)."""

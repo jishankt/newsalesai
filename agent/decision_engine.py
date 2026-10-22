@@ -173,7 +173,8 @@ def decide(understanding: LLMUnderstanding, state: ConversationState, raw_messag
     is_pure_social = not is_product_related and not has_spec_or_correction and not (is_answering_flow and has_spec_or_correction) and (
         (intent in SOCIAL_INTENTS and not is_answering_flow) or
         msg_lower in [
-            "hi", "hello", "hey", "good morning", "good afternoon", "good evening",
+            "hi", "hello", "hey", "hai", "heyy", "hlo", "good morning", "good afternoon", "good evening",
+            "salam", "assalam alaikum", "namaste", "hola", "marhaba",
             "thanks", "thank you", "bye", "goodbye", "see you", "have a nice day", "have a good day"
         ]
     )

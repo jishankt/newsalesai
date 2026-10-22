@@ -81,8 +81,13 @@ class ContextualSlotResolver:
 
         # 1. Scanner / Multifunction Requirement
         if awaiting_field in ("scanner_required", "scan_required"):
-            # Explicit negation phrases ALWAYS mean scanner_required = False
-            is_explicit_negation = any(neg in text_l for neg in [
+            rejects_print_only = bool(re.search(
+                r"\b(?:not|do\s+not\s+want|don'?t\s+want|never|no|without)\s+(?:a\s+)?print(?:ing)?[\s-]only\b",
+                text_l
+            ) or re.search(r"\bprint(?:ing)?[\s-]only\s+(?:is\s+)?not\b", text_l))
+
+            # Explicit negation phrases ALWAYS mean scanner_required = False, EXCEPT when print-only is explicitly rejected!
+            is_explicit_negation = not rejects_print_only and any(neg in text_l for neg in [
                 "print only", "printer only", "just print", "only print",
                 "without scanner", "without scanning", "no scanner", "no scan",
                 "don't need scanner", "dont need scanner", "do not need a scanner",
@@ -94,8 +99,8 @@ class ContextualSlotResolver:
                 return reqs, corrections
 
             # Check affirmative scanner (e.g. "need a scanner", "with scanner", or standalone "scanner", "scan", "mfp", "copier")
-            has_affirmative_scanner = bool(re.search(
-                r"\b(?:i\s+(?:need|want|would\s+like|prefer)|looking\s+for|switch\s+to|show\s+me|with\s+(?:a\s+)?scanner|need\s+(?:a\s+)?scanner|ineed|iwant)\b.*?\b(?:scann?er|scanning)\b",
+            has_affirmative_scanner = rejects_print_only or bool(re.search(
+                r"\b(?:i\s+(?:need|want|would\s+like|prefer)|looking\s+for|switch\s+to|show\s+me|with\s+(?:a\s+)?scanner|need\s+(?:a\s+)?scanner|ineed|iwant|definitely\s+need)\b.*?\b(?:scann?er|scanning)\b",
                 text_l
             )) or any(pos in text_l for pos in [
                 "with scanner", "need scanner", "need a scanner", "integrated scanner",
@@ -458,7 +463,49 @@ class ContextualSlotResolver:
 
         # 12. Scanner Intent / Subcategory
         if awaiting_field in ("scanner_intent", "scanner_intent_professional", "scanner_type", "subcategory") or (category in ("scanners", "scanner") and awaiting_field in ("scanner_intent", "scanner_intent_professional")):
-            # a. Both can do / Hybrid
+            # a. Portable & Mobile
+            if any(k in text_l for k in [
+                "portable", "mobile", "portable & mobile", "portable and mobile", "fieldwork", "compact scanning", "4", "option 4"
+            ]):
+                reqs["scanner_intent"] = "portable"
+                reqs["subcategory"] = "portable_scanners"
+                return reqs, corrections
+
+            # b. Flatbed Document
+            if any(k in text_l for k in [
+                "flatbed", "flatbed document", "flatbed scanner", "ds-1660w", "ds-1630", "5", "option 5"
+            ]):
+                reqs["scanner_intent"] = "flatbed"
+                reqs["subcategory"] = "flatbed_scanners"
+                return reqs, corrections
+
+            # c. Book & Large-Document
+            if any(k in text_l for k in [
+                "book", "large-document", "large document", "book & large", "book and large", "departmental", "high-volume", "3", "option 3"
+            ]):
+                reqs["scanner_intent"] = "book_large"
+                reqs["subcategory"] = "book_large_scanners"
+                return reqs, corrections
+
+            # d. Photo & Artwork
+            if any(k in text_l for k in [
+                "photo", "photos", "artwork", "photo & artwork", "photo and artwork", "film", "slide", "slides", "negatives", "high-res", "high res",
+                "photo & film", "transparency", "fine art", "photo & film (high-res)", "12000xl", "2", "option 2"
+            ]):
+                reqs["scanner_intent"] = "photo"
+                reqs["subcategory"] = "photo_scanners"
+                return reqs, corrections
+
+            # e. Business / Document
+            if any(k in text_l for k in [
+                "business", "document", "documents", "business documents", "office",
+                "invoice", "invoices", "contracts", "receipts", "sheetfed", "1", "option 1"
+            ]):
+                reqs["scanner_intent"] = "business"
+                reqs["subcategory"] = "business_scanners"
+                return reqs, corrections
+
+            # f. Both can do / Hybrid
             if any(k in text_l for k in [
                 "both", "hybrid", "dual", "flatbed and adf", "flatbed + adf", "both can do",
                 "books and documents", "photos and documents", "both (flatbed + adf)", "flatbed with feeder",
@@ -466,24 +513,6 @@ class ContextualSlotResolver:
             ]):
                 reqs["scanner_intent"] = "hybrid"
                 reqs["subcategory"] = "hybrid_scanners"
-                return reqs, corrections
-
-            # b. Photo / Film / High-Res
-            if any(k in text_l for k in [
-                "photo", "photos", "film", "slide", "slides", "negatives", "high-res", "high res",
-                "photo & film", "transparency", "fine art", "photo & film (high-res)", "12000xl"
-            ]):
-                reqs["scanner_intent"] = "photo"
-                reqs["subcategory"] = "photo_scanners"
-                return reqs, corrections
-
-            # c. Business / Document
-            if any(k in text_l for k in [
-                "business", "document", "documents", "business documents", "office",
-                "invoice", "invoices", "contracts", "receipts", "sheetfed", "portable", "mobile"
-            ]):
-                reqs["scanner_intent"] = "business"
-                reqs["subcategory"] = "business_scanners"
                 return reqs, corrections
 
         # 13. Printer Model (Consumables Inquiry Follow-up)

@@ -46,6 +46,7 @@ class DialogueState(BaseModel):
     session_id: str
     turn_count: int = 0
     category: Optional[str] = None
+    active_product_id: Optional[str] = None
     focus_stack: List[SalientEntity] = Field(default_factory=list)
     last_shown_products: List[Dict[str, Any]] = Field(default_factory=list)
     last_shown_consumables: List[Dict[str, Any]] = Field(default_factory=list)

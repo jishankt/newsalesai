@@ -218,7 +218,7 @@ def extract_canonical_turn(
         corrections["category"] = "dye_sublimation"
         if state and getattr(state, "category", None) and state.category != "dye_sublimation":
             corrections["reset_requirements"] = True
-    elif re.search(r"\b(?:office\s*(?:printer|multifunction|mfp)|office\s*use)\b", target_text) and has_switch_cue:
+    elif re.search(r"\b(?:office\s*(?:printer|multifunction|mfp)|office\s*use)\b", target_text) and has_switch_cue and not re.search(r"\b(?:24|36|44|64)\s*(?:inch|in|\"|'')\b", target_text):
         corrections["category"] = "office_printer"
         if state and getattr(state, "category", None) and state.category != "office_printer":
             corrections["reset_requirements"] = True

@@ -41,7 +41,10 @@ SUBCATEGORY_LABELS = {
     "dye_sublimation_desktop": ("Sublimation", "Desktop Sublimation Printer"),
     "dye_sublimation_24_inch": ("Sublimation", "24\" Wide-Format Sublimation Roll Printer"),
     "business_scanners": ("Scanners", "Business Document Scanners"),
-    "photo_scanners": ("Scanners", "High-Resolution Photo Scanners"),
+    "photo_scanners": ("Scanners", "Photo & Artwork Scanners"),
+    "book_large_scanners": ("Scanners", "Book & Large-Document Scanners"),
+    "portable_scanners": ("Scanners", "Portable & Mobile Scanners"),
+    "flatbed_scanners": ("Scanners", "Flatbed Document Scanners"),
     "hybrid_scanners": ("Scanners", "Flatbed & ADF Document/Photo Scanners"),
 }
 
@@ -128,8 +131,34 @@ class CatalogueFilter:
                 filtered = [p for p in cat_filtered if p.get("catalogue") == "photography_and_fine_art" and p.get("max_width_inches", 0) >= 24]
             elif subcategory == "photo_compact_epson":
                 filtered = [p for p in cat_filtered if p.get("catalogue") == "photography_and_fine_art" and p.get("max_width_inches", 0) < 24]
-            elif subcategory == "citizen_photo":
-                filtered = [p for p in valid_products if p.get("catalogue") == "citizen_photo"]
+            elif subcategory in ("business_scanners", "business_document_scanners"):
+                biz_ids = {
+                    "epson-workforce-ds-900wn", "epson-workforce-ds-800wn", "epson-workforce-es-580w",
+                    "epson-workforce-es-500wii", "epson-workforce-ds-970", "epson-workforce-ds-870",
+                    "epson-workforce-ds-790wn", "epson-workforce-ds-770ii", "epson-workforce-ds-730n",
+                    "epson-workforce-ds-530ii", "epson-workforce-ds-410", "epson-workforce-ds-7500",
+                    "epson-workforce-ds-7500n", "epson-workforce-ds-6500", "epson-workforce-ds-6500n",
+                }
+                if str(requirements.get("paper_size", "")).lower() == "a3":
+                    biz_ids = {"epson-workforce-ds-30000", "epson-workforce-ds-32000"}
+                filtered = [p for p in cat_filtered if p.get("id") in biz_ids]
+            elif subcategory in ("photo_scanners", "photo_artwork_scanners"):
+                photo_ids = {"epson-expression-12000xl", "epson-expression-12000xl-pro"}
+                filtered = [p for p in cat_filtered if p.get("id") in photo_ids or p.get("subcategory") == "photo_scanners"]
+            elif subcategory in ("book_large_scanners", "book_large_document_scanners"):
+                large_ids = {
+                    "epson-workforce-ds-70000", "epson-workforce-ds-70000n", "epson-workforce-ds-60000",
+                    "epson-workforce-ds-60000n", "epson-workforce-ds-30000", "epson-workforce-ds-32000",
+                }
+                filtered = [p for p in cat_filtered if p.get("id") in large_ids]
+            elif subcategory in ("portable_scanners", "portable_mobile_scanners"):
+                port_ids = {
+                    "epson-workforce-ds-360w", "epson-workforce-ds-310", "epson-workforce-ds-80w", "epson-workforce-ds-70",
+                }
+                filtered = [p for p in cat_filtered if p.get("id") in port_ids]
+            elif subcategory in ("flatbed_scanners", "flatbed_document_scanners"):
+                flat_ids = {"epson-workforce-ds-1660w", "epson-workforce-ds-1630"}
+                filtered = [p for p in cat_filtered if p.get("id") in flat_ids]
             else:
                 filtered = [p for p in cat_filtered if p.get("subcategory") == subcategory]
         else:
@@ -168,10 +197,11 @@ class CatalogueFilter:
                 elif ps_str in ("a4", "desktop", "cut_sheet") and category == "dye_sublimation":
                     req_width = 8.5
 
-            if req_width is not None and p.get("max_width_inches") is not None:
-                if p["max_width_inches"] != float(req_width):
-                    is_match = False
-                    reasons.append(f"print width {p['max_width_inches']}\" != required {req_width}\"")
+            if category in ("technical_large_format", "photography_large_format", "photo_fine_art", "dye_sublimation"):
+                if req_width is not None and p.get("max_width_inches") is not None:
+                    if p["max_width_inches"] != float(req_width):
+                        is_match = False
+                        reasons.append(f"print width {p['max_width_inches']}\" != required {req_width}\"")
 
             # Scanner Gate
             req_scan = requirements.get("scanner_required")
@@ -428,11 +458,17 @@ class CatalogueFilter:
             match_reasons.append(f"Supports your requested {clean_s} prints")
 
         if p.get("main_category") == "scanners":
-            if sub_key == "photo_scanners":
+            if sub_key in ("photo_scanners", "photo_artwork_scanners"):
                 match_reasons.append("High-resolution photo, fine art & graphic scanning")
+            elif sub_key in ("book_large_scanners", "book_large_document_scanners"):
+                match_reasons.append("Large-format documents, departmental scanning and high-volume workflows")
+            elif sub_key in ("portable_scanners", "portable_mobile_scanners"):
+                match_reasons.append("Compact, mobile scanning for fieldwork and professionals on the go")
+            elif sub_key in ("flatbed_scanners", "flatbed_document_scanners"):
+                match_reasons.append("Documents, books, and originals that benefit from flatbed scanning")
             elif sub_key == "hybrid_scanners":
                 match_reasons.append("Dual flatbed glass & ADF for books, photos, and document stacks")
-            elif sub_key == "business_scanners":
+            elif sub_key in ("business_scanners", "business_document_scanners"):
                 match_reasons.append("High-speed sheetfed document scanning for business workflows")
 
         if not match_reasons:

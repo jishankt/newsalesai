@@ -387,10 +387,12 @@ flowchart TD
 
     %% Scanners
     CAT -->|"Scanning Solutions"| SCN["Professional Scanners"]
-    SCN --> S_TYPE{"Type of Documents?"}
-    S_TYPE -->|"Graphic & Fine Art Film"| M_12000XL["Expression 12000XL / 12000XL Pro"]
-    S_TYPE -->|"Books & Stacks (Hybrid)"| M_HYBRID["WorkForce DS-1630 / DS-6500 / DS-60000 / DS-70000"]
-    S_TYPE -->|"Fast Sheetfed Business"| M_SHEETFED["WorkForce DS-530II / DS-790WN / DS-800WN / DS-32000"]
+    SCN --> S_TYPE{"Scanner Category?"}
+    S_TYPE -->|"1. Business Document Scanners"| M_BIZ["WorkForce DS-900WN / DS-800WN / DS-970 / DS-530II / ES-580W"]
+    S_TYPE -->|"2. Photo & Artwork Scanners"| M_PHOTO["Expression 12000XL / 12000XL Pro"]
+    S_TYPE -->|"3. Book & Large-Document Scanners"| M_LARGE["WorkForce DS-70000 / DS-60000 / DS-30000 / DS-32000"]
+    S_TYPE -->|"4. Portable & Mobile Scanners"| M_MOBILE["WorkForce DS-360W / DS-310 / DS-80W / DS-70"]
+    S_TYPE -->|"5. Flatbed Document Scanners"| M_FLAT["WorkForce DS-1660W / DS-1630"]
           </pre>
         </div>
       </div>
@@ -558,21 +560,31 @@ sequenceDiagram
             <div class="product-desc">24″ wide-format sublimation roll printer for textiles, apparel, jerseys, and rigid substrates.</div>
           </div>
 
-          <!-- Scanners -->
+          <!-- Scanners (5 Categories) -->
           <div class="product-item scanner">
-            <span class="product-cat-tag">Fine Art Scanner</span>
-            <div class="product-name">Expression 12000XL / 12000XL Pro</div>
-            <div class="product-desc">A3 high-resolution 2400 x 4800 dpi scanner with transparency unit for film and negatives.</div>
+            <span class="product-cat-tag">1. Business Document Scanners</span>
+            <div class="product-name">WorkForce DS-900WN / DS-800WN / DS-970 / DS-530II / ES-580W (15 Models)</div>
+            <div class="product-desc">For offices, businesses and everyday document digitization (including DS-900WN, DS-800WN, ES-580W, ES-500WII, DS-970, DS-870, DS-790WN, DS-770 II, DS-730N, DS-530II, DS-410, DS-7500/N, DS-6500/N).</div>
           </div>
           <div class="product-item scanner">
-            <span class="product-cat-tag">Workgroup Document Scanners</span>
-            <div class="product-name">WorkForce DS-530II / DS-790WN / DS-900WN</div>
-            <div class="product-desc">High-speed 35 to 70 ppm sheetfed document scanners with network touchscreen and dual-sided scanning.</div>
+            <span class="product-cat-tag">2. Photo & Artwork Scanners</span>
+            <div class="product-name">Expression 12000XL / Expression 12000XL Pro (2 Models)</div>
+            <div class="product-desc">For photographers, designers, artists and high-resolution image digitization. A3 2400 x 4800 dpi with 3.8 DMax optical density and TPU unit.</div>
           </div>
           <div class="product-item scanner">
-            <span class="product-cat-tag">Production Flatbed Scanners</span>
-            <div class="product-name">WorkForce DS-60000 / DS-70000</div>
-            <div class="product-desc">Heavy-duty A3 flatbed scanners with 200-sheet ADF for archival and corporate records.</div>
+            <span class="product-cat-tag">3. Book & Large-Document Scanners</span>
+            <div class="product-name">WorkForce DS-70000 / DS-60000 / DS-30000 / DS-32000 (6 Models)</div>
+            <div class="product-desc">For large-format documents, departmental scanning and high-volume workflows (DS-70000/N, DS-60000/N, DS-30000, DS-32000).</div>
+          </div>
+          <div class="product-item scanner">
+            <span class="product-cat-tag">4. Portable & Mobile Scanners</span>
+            <div class="product-name">WorkForce DS-360W / DS-310 / DS-80W / DS-70 (4 Models)</div>
+            <div class="product-desc">For mobile professionals, fieldwork and compact scanning requirements (Wi-Fi battery powered, sheet-fed ADF, and USB mobile).</div>
+          </div>
+          <div class="product-item scanner">
+            <span class="product-cat-tag">5. Flatbed Document Scanners</span>
+            <div class="product-name">WorkForce DS-1660W / WorkForce DS-1630 (2 Models)</div>
+            <div class="product-desc">For documents, books and originals that benefit from flatbed scanning with 50-page automatic document feeder.</div>
           </div>
         </div>
       </div>

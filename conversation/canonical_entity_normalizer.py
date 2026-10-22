@@ -348,19 +348,29 @@ class CanonicalEntityNormalizer:
         """
         text_l = text.lower()
 
+        # Check if user explicitly rejects "print only" (e.g., "I do not want a print-only model")
+        rejects_print_only = bool(re.search(
+            r"\b(?:not|do\s+not\s+want|don'?t\s+want|never|no|without)\s+(?:a\s+)?print(?:ing)?[\s-]only\b",
+            text_l
+        ) or re.search(r"\bprint(?:ing)?[\s-]only\s+(?:is\s+)?not\b", text_l))
+
         # Explicit negation first (pre-noun, post-noun, and phrase lists)
-        scanner_negated = bool(
+        raw_negated = bool(
             re.search(r"\b(?:do\s+not\s+need|don'?t\s+need|no\s+need\s+(?:for\s+)?|without|no|not)\b.*?\b(?:scanner|scanning|scan)\b", text_l)
             or re.search(r"\b(?:scanning|scanner|scan)\s+(?:is\s+)?(?:not\s+(?:needed|required|necessary|important|essential)|no\s+need|unnecessary)\b", text_l)
             or any(neg in text_l for neg in [
                 "without scanner", "no scanner", "not scanner", "don't need scanner",
-                "dont need scanner", "print only", "printer only", "only print",
-                "only printer", "printing only", "no scan", "no scanning", "just print", "just printer",
+                "dont need scanner", "no scan", "no scanning",
                 "only need printing", "only need print", "scanner not needed", "scan not needed",
                 "scanner not important", "scanner not necessary", "scanner no need", "scan no need",
                 "actually scan not needed", "actually no scanner", "scanner not critical"
             ])
+            or (not rejects_print_only and any(po in text_l for po in [
+                "print only", "printer only", "only print", "only printer", "printing only", "just print", "just printer"
+            ]))
         )
+
+        scanner_negated = raw_negated and not rejects_print_only
 
         if scanner_negated:
             return {
@@ -373,8 +383,8 @@ class CanonicalEntityNormalizer:
         if cls.is_capability_query(text):
             return None
 
-        scanner_affirmed = bool(
-            re.search(r"\b(?:must\s+have|need|require|requires?|want|include|with)\b.*?\b(?:scanner|scanning|scan)\b", text_l)
+        scanner_affirmed = rejects_print_only or bool(
+            re.search(r"\b(?:must\s+have|need|require|requires?|want|include|with|definitely)\b.*?\b(?:scanner|scanning|scan)\b", text_l)
             or re.search(r"\b(?:scanner|scanning|scan)\s+(?:is\s+)?(?:required|needed|essential|must|included)\b", text_l)
             or any(pos in text_l for pos in [
                 "with scanner", "need scanner", "need a scanner", "scanner required", "built-in scan",

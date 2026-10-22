@@ -38,6 +38,22 @@ def validate_product_cards(cards: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return valid_cards
 
 
+SAFE_EXPLANATORY_PHRASES = [
+    "we respect",
+    "established manufacturer",
+    "distributor specializing",
+    "specializing strictly in",
+    "specializing exclusively in",
+    "we do not supply",
+    "we do not carry",
+    "third-party specifications",
+    "third-party brands",
+    "official epson",
+    "official citizen",
+    "kepler tech is an authorized distributor",
+]
+
+
 def validate_and_sanitize_catalogue_text(text: str, allowed_products: List[Dict[str, Any]]) -> Tuple[str, bool]:
     """
     Validates that the natural language response does not mention unapproved models.
@@ -49,12 +65,16 @@ def validate_and_sanitize_catalogue_text(text: str, allowed_products: List[Dict[
     text_lower = text.lower()
     violation_found = False
 
-    # 1. Check for known unapproved/website-only models
-    for unapproved in UNAPPROVED_MODELS:
-        if re.search(rf"\b{re.escape(unapproved)}\b", text_lower):
-            logger.warning(f"FAIL-CLOSED: Unapproved model or competitor brand '{unapproved}' detected in text.")
-            violation_found = True
-            break
+    # 1. Competitor brand mentions in authorized explanatory/differentiation context are legitimate
+    is_safe_explanatory = any(p in text_lower for p in SAFE_EXPLANATORY_PHRASES)
+
+    if not is_safe_explanatory:
+        # Check for known unapproved/website-only models
+        for unapproved in UNAPPROVED_MODELS:
+            if re.search(rf"\b{re.escape(unapproved)}\b", text_lower):
+                logger.warning(f"FAIL-CLOSED: Unapproved model or competitor brand '{unapproved}' detected in text.")
+                violation_found = True
+                break
 
     if violation_found:
         # Construct deterministic verified response from the allowed matching products

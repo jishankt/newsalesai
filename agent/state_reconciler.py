@@ -58,6 +58,28 @@ class StateReconciler:
         if "category" in understanding.corrections and understanding.corrections["category"]:
             state.category = understanding.corrections["category"]
 
+        # ── 3b. De-escalate Sticky Consumables Category on Model Inquiries ────
+        if getattr(state, "category", "") == "consumables":
+            raw_text_low = str(getattr(understanding, "raw_text", "")).lower()
+            intent_val = getattr(getattr(understanding, "primary_intent", None), "value", str(getattr(understanding, "primary_intent", "")))
+            is_model_inquiry = (
+                intent_val in ("find_printer", "recommend", "compare", "product_info")
+                or any(w in raw_text_low for w in ["which model", "which printer", "prefer to me", "recommend to me", "advisable to print", "machine", "models"])
+            )
+            if is_model_inquiry:
+                target_pid = state.get_canonical_focus_id() if hasattr(state, "get_canonical_focus_id") else None
+                new_cat = "photography_large_format"
+                if target_pid:
+                    try:
+                        from catalog.catalogue_loader import catalogue_loader
+                        prod = catalogue_loader.get_product_by_id(target_pid)
+                        if prod and (prod.get("catalogue") or prod.get("main_category") or prod.get("category")):
+                            new_cat = prod.get("catalogue") or prod.get("main_category") or prod.get("category")
+                    except Exception:
+                        pass
+                state.category = new_cat
+                state.active_route = "recommend"
+
         # ── 4. Update Product Focus ──────────────────────────────────────────
         # If the customer explicitly mentioned products in the latest turn (and not a correction already handled)
         if understanding.mentioned_products and "product" not in understanding.corrections:

@@ -239,33 +239,48 @@ flowchart LR
 
 ---
 
-## 7. Scanning Solutions (`scanners` — All 29 Models)
+## 7. Scanning Solutions (`scanners` — All 29 Models across 5 Categories)
 
 ```mermaid
 flowchart LR
     ROOT["Professional Scanners"] --> SUB{"Select Subcategory"}
 
-    %% Photo Scanners
-    SUB -->|"photo_scanners"| S_PH["Graphic & Fine Art Film"]
-    S_PH --> SC1["Expression 12000XL (A3 Fine Art Flatbed)"]
-    S_PH --> SC2["Expression 12000XL Pro (Includes TPU Film Unit)"]
+    %% 1. Business Document Scanners
+    SUB -->|"1. business_scanners"| S_BUS["Business Document Scanners<br/>For offices & everyday digitization (15 models)"]
+    S_BUS --> SB1["High-Speed Network: DS-900WN, DS-800WN, DS-790WN, DS-730N"]
+    S_BUS --> SB2["Workgroup Duplex: DS-970, DS-870, DS-770 II, DS-530II, DS-410"]
+    S_BUS --> SB3["Wireless Touchscreen: ES-580W, ES-500WII"]
+    S_BUS --> SB4["Heavy-Duty Departmental Flatbed+ADF: DS-7500, DS-7500N, DS-6500, DS-6500N"]
 
-    %% Hybrid Scanners
-    SUB -->|"hybrid_scanners"| S_HY["Books & Stacks (Hybrid Flatbed + ADF)"]
-    S_HY --> SC3["WorkForce DS-1630 / DS-1660W (A4 Flatbed + 50-page ADF)"]
-    S_HY --> SC4["WorkForce DS-6500 / DS-6500N / DS-7500 / DS-7500N (A4 Flatbed + 100-page ADF)"]
-    S_HY --> SC5["WorkForce DS-60000 / DS-60000N / DS-70000 / DS-70000N (A3 Flatbed + 200-page ADF)"]
+    %% 2. Photo & Artwork Scanners
+    SUB -->|"2. photo_scanners"| S_PH["Photo & Artwork Scanners<br/>For photographers & artists (2 models)"]
+    S_PH --> SP1["Expression 12000XL (A3 Photo & Graphics Flatbed)"]
+    S_PH --> SP2["Expression 12000XL Pro (Includes TPU Film Unit)"]
 
-    %% Business Sheetfed Scanners
-    SUB -->|"business_scanners"| S_BIZ["Fast Sheetfed Business"]
-    S_BIZ --> SC6["Mobile / Portable: DS-70, DS-80W, DS-310, DS-360W"]
-    S_BIZ --> SC7["Desktop Workgroup (35–45 ppm): DS-410, DS-530II, ES-500WII, ES-580W"]
-    S_BIZ --> SC8["High-Speed Network (65–90 ppm): DS-730N, DS-770II, DS-790WN, DS-800WN, DS-870, DS-970, DS-900WN"]
-    S_BIZ --> SC9["A3 Production (70–85 ppm): DS-30000, DS-32000"]
+    %% 3. Book & Large-Document Scanners
+    SUB -->|"3. book_large_scanners"| S_BK["Book & Large-Document Scanners<br/>For departmental & large-format (6 models)"]
+    S_BK --> SK1["A3 Flatbed + 200-sheet ADF: DS-70000, DS-70000N (70 ppm)"]
+    S_BK --> SK2["A3 Departmental Flatbed + ADF: DS-60000, DS-60000N (40 ppm)"]
+    S_BK --> SK3["A3 Production Sheetfed: DS-30000 (70 ppm), DS-32000 (90 ppm)"]
+
+    %% 4. Portable & Mobile Scanners
+    SUB -->|"4. portable_scanners"| S_MOB["Portable & Mobile Scanners<br/>For fieldwork & mobile professionals (4 models)"]
+    S_MOB --> SM1["Wi-Fi + Battery + 20-sheet ADF: DS-360W"]
+    S_MOB --> SM2["Sheet-fed + 20-sheet ADF: DS-310"]
+    S_MOB --> SM3["Wireless Mobile (Integrated Battery): DS-80W"]
+    S_MOB --> SM4["Ultra-Compact USB Business: DS-70"]
+
+    %% 5. Flatbed Document Scanners
+    SUB -->|"5. flatbed_scanners"| S_FLAT["Flatbed Document Scanners<br/>For books, passports & originals (2 models)"]
+    S_FLAT --> SF1["WorkForce DS-1660W (Wi-Fi Flatbed + 50-page ADF)"]
+    S_FLAT --> SF2["WorkForce DS-1630 (Flatbed + 50-page ADF)"]
 
     style ROOT fill:#475569,stroke:#334155,color:#ffffff
     style SUB fill:#fef3c7,stroke:#d97706,color:#000000
+    style S_BUS fill:#e2e8f0,stroke:#64748b,color:#0f172a
     style S_PH fill:#e2e8f0,stroke:#64748b,color:#0f172a
-    style S_HY fill:#e2e8f0,stroke:#64748b,color:#0f172a
-    style S_BIZ fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style S_BK fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style S_MOB fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style S_FLAT fill:#e2e8f0,stroke:#64748b,color:#0f172a
 ```
+

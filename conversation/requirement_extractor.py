@@ -208,7 +208,7 @@ class RequirementExtractor:
 CATEGORY_RULES = {
     "technical_cad": [
         "cad", "architect", "blueprint", "engineering drawing",
-        "technical drawing", "plotter", "gis"
+        "technical drawing", "plotter", "plotters", "large format", "wide format", "gis"
     ],
     "photo_booth": [
         "photo booth", "event photo", "instant photo",
@@ -241,9 +241,12 @@ def classify_category(text: str) -> Optional[str]:
 
     # Check negative scanner context first
     has_no_scanner = any(neg in msg_lower for neg in ["no scanner", "without scanner", "not scanner", "don't need scanner", "dont need scanner"])
+    has_large_format = bool(re.search(r"\b(?:24|36|44|64)\s*(?:inch|in|\"|'')\b", msg_lower) or any(p in msg_lower for p in ["plotter", "plotters", "large format", "wide format"]))
 
     for cat, phrases in CATEGORY_RULES.items():
         if cat == "scanner" and has_no_scanner:
+            continue
+        if cat == "office_enterprise" and has_large_format:
             continue
         for phrase in phrases:
             # Word boundary check for acronyms/short words like cad, adf, gis

@@ -828,11 +828,20 @@ class Orchestrator:
             state.category = "scanners"
             state.awaiting_field = "scanner_type"
             reply_text = (
-                "We offer dedicated Epson professional document, photo, and hybrid scanners. "
-                "What type of scanner are you looking for—high-speed business document scanners, "
-                "photo & film scanners, or flatbed + ADF hybrid scanners?"
+                "Kepler Tech supplies specialized Epson scanners across 5 distinct categories:\n\n"
+                "• **Business Document Scanners**: For offices, businesses and everyday document digitization (15 models).\n\n"
+                "• **Photo & Artwork Scanners**: For photographers, designers, artists and high-resolution image digitization (2 models).\n\n"
+                "• **Book & Large-Document Scanners**: For large-format documents, departmental scanning and high-volume workflows (6 models).\n\n"
+                "• **Portable & Mobile Scanners**: For mobile professionals, fieldwork and compact scanning requirements (4 models).\n\n"
+                "• **Flatbed Document Scanners**: For documents, books and originals that benefit from flatbed scanning (2 models)."
             )
-            chips = ["Business Documents", "Photo & Film", "Flatbed + ADF Hybrid"]
+            chips = [
+                "Business Document Scanners",
+                "Photo & Artwork Scanners",
+                "Book & Large-Document Scanners",
+                "Portable & Mobile Scanners",
+                "Flatbed Document Scanners",
+            ]
             state.last_assistant_response = reply_text
             state.last_suggested_chips = chips
             state.increment_turn()
@@ -941,12 +950,20 @@ class Orchestrator:
                 has_media_word = bool(re.search(r"\b(?:paper|media|ribbon)\b", msg_clean))
                 has_maint_word = bool(re.search(r"\b(?:maintenance|box|tank)\b", msg_clean))
                 ink_only = explicit_ink_only or (has_ink_word and not exclude_ink and (exclude_paper or exclude_maint or not (has_media_word or has_maint_word)))
+                explicit_media_only = bool(re.search(r"\b(?:only\s+(?:paper|media|canvas|roll)|(?:paper|media|canvas|roll)\s+only|just\s+(?:paper|media|canvas))\b", msg_clean))
+                media_only = explicit_media_only or (has_media_word and not exclude_paper and not has_ink_word and not has_maint_word)
 
                 if ink_only:
                     c_cards = [
                         card for card in c_cards
                         if str(card.get("category", "")).lower() in ("ink cartridge", "ink", "inks")
                         and not any(k in (card.get("name", "") + " " + card.get("title", "")).lower() for k in ["maintenance", "paper", "roll", "media"])
+                    ]
+                elif media_only:
+                    c_cards = [
+                        card for card in c_cards
+                        if any(k in (card.get("name", "") + " " + card.get("title", "") + " " + str(card.get("category", ""))).lower() for k in ["paper", "roll", "media", "canvas", "luster", "lustre", "matte", "satin"])
+                        and "maintenance" not in (card.get("name", "") + " " + card.get("title", "")).lower()
                     ]
                 if exclude_paper:
                     c_cards = [card for card in c_cards if str(card.get("category", "")).lower() not in ("media & paper", "media", "ribbon")]
@@ -5053,44 +5070,87 @@ class Orchestrator:
 
         # 6b. Comparison Query & Scanner Subcategory Selection Guard
         is_office_or_printer_query = bool(re.search(
-            r"\b(?:office|printers?|printing|plotters?|copiers?|mfp|workforce\s+pro|workforce\s+enterprise|c5890|am-c)\b",
+            r"\b(?:office|printers?|printing|plotters?|photo\s+printer|photo\s+booth|copiers?|mfp|workforce\s+pro|workforce\s+enterprise|c5890|am-c|p700|p900|cz-01|cx-02)\b",
             normalized_msg.lower()
-        )) or state.category == "office_printer"
+        )) or state.category in ("office_printer", "technical_large_format", "photography_large_format", "citizen_photo", "dye_sublimation")
 
         in_scanner_context = (
             state.category in ("scanners", "scanner")
-            or state.awaiting_field in ("scanner_intent", "scanner_intent_professional", "scanner_type", "scan_type")
+            or state.awaiting_field in ("scanner_intent", "scanner_intent_professional", "scanner_type", "scan_type", "subcategory")
+            or getattr(state, "subcategory", "") in ("business_scanners", "photo_scanners", "book_large_scanners", "portable_scanners", "flatbed_scanners", "hybrid_scanners")
+        )
+
+        # In-context pattern: Allows short option phrases when already qualifying scanners
+        scanner_subcat_in_context = (
+            r"\b(?:"
+            r"business\s+documents?|"
+            r"photo\s*(?:&|and)\s*(?:artwork|film)|"
+            r"book\s*(?:&|and)\s*large[- ]?documents?|"
+            r"portable\s*(?:&|and)\s*mobile|"
+            r"flatbed\s+documents?|"
+            r"hybrid\s+scanners?|"
+            r"both\s*\(?flatbed\s*[\+&]\s*adf\)?|flatbed\s*[\+&]\s*adf|flatbed\s+and\s+adf|"
+            r"professional\s+scann?er(?:s|es)?"
+            r")\b"
+        )
+
+        # Out-of-context pattern: MUST explicitly contain the word scanner/scanners
+        scanner_subcat_out_of_context = (
+            r"\b(?:"
+            r"business(?:\s+document)?\s+scann?er(?:s|es)?|"
+            r"photo(?:\s*(?:&|and)?\s*(?:artwork|film))?\s+scann?er(?:s|es)?|"
+            r"book(?:\s*(?:&|and)?\s*large[- ]?document)?\s+scann?er(?:s|es)?|"
+            r"portable(?:\s*(?:&|and)?\s*mobile)?\s+scann?er(?:s|es)?|"
+            r"flatbed(?:\s+document)?\s+scann?er(?:s|es)?|"
+            r"hybrid\s+scann?er(?:s|es)?|"
+            r"dedicated\s+scann?er(?:s|es)?|"
+            r"standalone\s+scann?er(?:s|es)?|"
+            r"professional\s+scann?er(?:s|es)?"
+            r")\b"
         )
 
         is_scanner_type_selection = False
         if not is_office_or_printer_query:
             if in_scanner_context:
                 is_scanner_type_selection = bool(re.search(
-                    r"\b(?:both\s*\(?flatbed\s*[\+&]\s*adf\)?|flatbed\s*[\+&]\s*adf|flatbed\s+and\s+adf|both\s+flatbed\s+and\s+adf|both\s*\(flatbed\s*\+\s*adf\)|business\s+documents?|photo\s*&\s*film|photo\s+and\s+film|photo\s*film|hybrids?|flatbeds?|both\s+options|both\s+types|do\s+you\s+have\s+hybrid|professional\s+scann?er(?:s|es)?|documents?|business|photo|film)\b",
+                    scanner_subcat_in_context,
                     normalized_msg.lower()
-                ))
+                )) or bool(re.match(r"^\s*(?:[1-5]\.?|business|photo|artwork|book|portable|mobile|flatbed|hybrid|both|documents?)\s*[:.]?\s*$", normalized_msg.lower()))
             else:
                 is_scanner_type_selection = bool(re.search(
-                    r"\b(?:both\s*\(?flatbed\s*[\+&]\s*adf\)?|flatbed\s*[\+&]\s*adf|flatbed\s+and\s+adf|both\s+flatbed\s+and\s+adf|both\s*\(flatbed\s*\+\s*adf\)|business\s+document\s+scann?er|photo\s*(?:&|and)?\s*(?:film\s+)?scann?er|hybrid\s+scann?er|flatbed\s+scann?er|professional\s+scann?er(?:s|es)?)\b",
+                    scanner_subcat_out_of_context,
                     normalized_msg.lower()
                 ))
 
         if is_scanner_type_selection:
             state.category = "scanners"
-            if re.search(r"\b(?:both|hybrid|flatbed\s*[\+&]\s*adf|flatbed\s+and\s+adf)\b", normalized_msg.lower()):
+            msg_low = normalized_msg.lower().rstrip(" :.")
+            if any(k in msg_low for k in ["portable", "mobile", "fieldwork", "compact scanning", "4", "option 4"]):
+                state.requirements["scanner_intent"] = "portable_mobile"
+                state.requirements["scanner_type"] = "portable"
+                state.subcategory = "portable_scanners"
+            elif any(k in msg_low for k in ["flatbed", "ds-1660w", "ds-1630", "5", "option 5"]):
+                state.requirements["scanner_intent"] = "flatbed_document"
+                state.requirements["scanner_type"] = "flatbed"
+                state.subcategory = "flatbed_scanners"
+            elif any(k in msg_low for k in ["book", "large-document", "large document", "departmental", "high-volume", "3", "option 3"]):
+                state.requirements["scanner_intent"] = "book_large_document"
+                state.requirements["scanner_type"] = "book_large"
+                state.subcategory = "book_large_scanners"
+            elif any(k in msg_low for k in ["photo", "artwork", "film", "slide", "fine_art", "graphic", "12000xl", "2", "option 2"]):
+                state.requirements["scanner_intent"] = "photo_artwork"
+                state.requirements["scanner_type"] = "photo"
+                state.subcategory = "photo_scanners"
+            elif any(k in msg_low for k in ["business", "document", "sheetfed", "digitization", "1", "option 1"]):
+                state.requirements["scanner_intent"] = "business_document"
+                state.requirements["scanner_type"] = "business"
+                state.subcategory = "business_scanners"
+            elif re.search(r"\b(?:both|hybrid|flatbed\s*[\+&]\s*adf|flatbed\s+and\s+adf)\b", msg_low):
                 state.requirements["scanner_intent"] = "both"
                 state.requirements["scanner_type"] = "both"
                 state.requirements["scan_type"] = "flatbed_adf"
                 state.subcategory = "hybrid_scanners"
-            elif "photo" in normalized_msg.lower() or "film" in normalized_msg.lower():
-                state.requirements["scanner_intent"] = "photo"
-                state.requirements["scanner_type"] = "photo"
-                state.subcategory = "photo_scanners"
-            elif "business" in normalized_msg.lower() or "document" in normalized_msg.lower():
-                state.requirements["scanner_intent"] = "business"
-                state.requirements["scanner_type"] = "business"
-                state.subcategory = "business_scanners"
-            elif "professional" in normalized_msg.lower():
+            elif "professional" in msg_low:
                 state.requirements["scanner_intent"] = "professional"
                 state.requirements.pop("subcategory", None)
                 state.requirements.pop("scanner_type", None)
@@ -6753,11 +6813,17 @@ class Orchestrator:
                 reply_text = format_rotating_opener(f"A3 multifunction printer{'s' if len(valid_cards) != 1 else ''}", state)
             elif subcategory == "photo_64_production" or state.requirements.get("print_width") == 64:
                 reply_text = f"{format_rotating_opener('premier 64-inch production photo & fine art roll printer', state)} (64″ / 162.6 cm is our standard maximum roll width):"
-            elif state.category == "scanners" or subcategory in ("business_scanners", "photo_scanners", "hybrid_scanners") or any(c.get("main_category") == "scanners" for c in valid_cards):
-                if subcategory == "business_scanners":
+            elif state.category == "scanners" or subcategory in ("business_scanners", "photo_scanners", "book_large_scanners", "portable_scanners", "flatbed_scanners", "hybrid_scanners") or any(c.get("main_category") == "scanners" for c in valid_cards):
+                if subcategory in ("business_scanners", "business_document_scanners"):
                     reply_text = format_rotating_opener(f"business document scanner{'s' if len(valid_cards) != 1 else ''}", state)
-                elif subcategory == "photo_scanners":
-                    reply_text = format_rotating_opener(f"high-resolution photo & graphic scanner{'s' if len(valid_cards) != 1 else ''}", state)
+                elif subcategory in ("photo_scanners", "photo_artwork_scanners"):
+                    reply_text = format_rotating_opener(f"photo & artwork scanner{'s' if len(valid_cards) != 1 else ''}", state)
+                elif subcategory in ("book_large_scanners", "book_large_document_scanners"):
+                    reply_text = format_rotating_opener(f"book & large-document scanner{'s' if len(valid_cards) != 1 else ''}", state)
+                elif subcategory in ("portable_scanners", "portable_mobile_scanners"):
+                    reply_text = format_rotating_opener(f"portable & mobile scanner{'s' if len(valid_cards) != 1 else ''}", state)
+                elif subcategory in ("flatbed_scanners", "flatbed_document_scanners"):
+                    reply_text = format_rotating_opener(f"flatbed document scanner{'s' if len(valid_cards) != 1 else ''}", state)
                 elif subcategory == "hybrid_scanners":
                     reply_text = format_rotating_opener(f"hybrid flatbed & ADF scanner{'s' if len(valid_cards) != 1 else ''}", state)
                 else:
@@ -7359,7 +7425,7 @@ class Orchestrator:
                 "qualification:", "route:product_or_consumable", "route:consumables",
                 "route:business_info", "route:product_justification", "route:category_justification",
                 "route:model_detail", "recommendation:", "agent:price_objection",
-                "guardrail:", "unified:"
+                "guardrail:", "unified:", "route:xerox_generic_copier", "route:large_format_office"
             ))
             or any("guest" in str(ch).lower() for ch in (suggested_chips or []))
         )
@@ -7786,7 +7852,7 @@ class Orchestrator:
         # Every reply, including hardcoded pre-classification/policy text, passes the catalogue
         # boundary check. Competitor-handling replies legitimately name other brands, so only
         # those sources are exempt.
-        if reply and not source.startswith(("guardrail:competitor", "route:competitor")):
+        if reply and not source.startswith(("guardrail:competitor", "route:competitor", "route:xerox_generic_copier", "unified:competitor")):
             try:
                 _gated, _ok = validate_and_sanitize_catalogue_text(reply, product_cards or [])
                 if not _ok:

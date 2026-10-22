@@ -259,13 +259,18 @@ def _get_known_skus() -> Dict[str, Dict[str, Any]]:
         from catalog.consumable_registry import consumable_registry
         for sku, item in consumable_registry.consumables.items():
             sku_clean = sku.upper().strip()
-            sku_map[sku_clean] = {
+            entry = {
                 "sku": sku_clean,
                 "name": item.name,
                 "category": item.consumable_type,
                 "color": item.color,
                 "printers": item.compatible_printers,
             }
+            sku_map[sku_clean] = entry
+            # Register parenthetical aliases like (CX2-MS46) or (CX2-MS68)
+            alias_matches = re.findall(r"\(([A-Za-z0-9\-_.]+)\)", item.name)
+            for am in alias_matches:
+                sku_map[am.upper()] = entry
     except Exception as e:
         logger.warning(f"Error loading consumable SKUs: {e}")
 
@@ -327,8 +332,8 @@ class TurnUnderstandingExtractor:
 
     SKU_PATTERN = re.compile(
         r"\b(c1[123][a-z0-9]{5,9}|c13s\d+|c12c\d+|t49n\d?|t49[a-z0-9]*|"
-        r"ifa\s*\d+|olm\s*\d+|cx2\.(?:4x6|6x8)|cy-ms[a-z0-9.\-]*|"
-        r"cz-ms[a-z0-9.\-]*|cx2w\s*812)\b",
+        r"ifa\s*\d+|olm\s*\d+|cx2\.(?:4x6|6x8)|cx2-ms[a-z0-9.\-]*|"
+        r"cw-ms[a-z0-9.\-]*|cy-ms[a-z0-9.\-]*|cz-ms[a-z0-9.\-]*|cx2w\s*812)\b",
         re.I
     )
 
@@ -348,7 +353,7 @@ class TurnUnderstandingExtractor:
         (re.compile(r"\b(the\s+faster\s+one|the\s+wider\s+one|the\s+smaller\s+one|the\s+larger\s+one)\b", re.I), "comparative"),
         # Color / Consumable specific references
         (re.compile(r"\b(same\s+ink|same\s+cartridge|same\s+paper|same\s+media)\b", re.I), "attribute_ref"),
-        (re.compile(r"\b(?:the\s+)?(yellow|cyan|magenta|black|photo\s+black|matte\s+black|light\s+cyan|light\s+magenta|grey|gray)(?:\s+(?:one|ink|cartridge|color|colour))?\b", re.I), "color_ref"),
+        (re.compile(r"\b(?:the\s+)?(yellow|yellw|yelow|yello|cyan|cayan|cyn|cyen|cayn|magenta|magnta|maganta|black|blck|blak|balck|photo\s+black|matte\s+black|light\s+cyan|light\s+magenta|grey|gray)(?:\s+(?:one|ink|cartridge|color|colour))?\b", re.I), "color_ref"),
         (re.compile(r"\b(maintenance\s*box|waste\s*ink\s*box|maintenance\s*tank)\b", re.I), "attribute_ref"),
         # Ellipsis ("for the f100?", "and for f500?", "what about cx-02?")
         (re.compile(r"(?:^|[,;]|\band\b)\s*(?:for\s+(?:the\s+)?|what\s+about\s+(?:the\s+)?|how\s+about\s+(?:the\s+)?)([a-z0-9\-]+)(?:\s*\?)?\s*$", re.I), "ellipsis"),
@@ -357,6 +362,7 @@ class TurnUnderstandingExtractor:
     CONFIRMATION_PATTERNS = [
         re.compile(
             r"^\s*(?:yes|yep|yeah|sure|ok|okay|correct|that'?s\s+right|affirmative|absolutely|indeed|proceed|agree|"
+            r"reserve|reserve\s*it|reserve\s*this|hold\s*it|hold\s*this|book\s*it|book\s*this|reserve\s*one|"
             r"that'?s\s+(?:fine|good|ok|okay|great|cool|clear)|fine(?!\s+art)|sounds\s+good|alright|all\s+right|okey|noted)\b",
             re.I
         ),
@@ -449,6 +455,8 @@ class TurnUnderstandingExtractor:
         re.compile(
             r"\b(?:"
             r"compare|campare|compair|comapre|comparison|differences?|difference\s+between|"
+            r"which\s+(?:will\s+be\s+)?(?:more\s+)?(?:advisable|prefer(?:able)?|better|best|suitable)|"
+            r"which\s+model\s+(?:do\s+)?you\s+(?:prefer|recommend)|"
             r"which\s+(?:one\s+)?(?:is\s+)?(?:better|best|recommended)|"
             r"which\s+(?:one\s+)?to\s+(?:choose|pick|get|buy)|"
             r"which\s+(?:one\s+)?should\s+i\s+(?:choose|pick|get|buy)|"
@@ -482,8 +490,8 @@ class TurnUnderstandingExtractor:
         re.compile(
             r"\b(?:quotations?|quatations?|formal\s*quotes?|request\s*(?:a\s*)?quotes?|send\s*(?:me\s*)?(?:a\s*)?quotes?|"
             r"need\s*(?:a\s*)?quotes?|official\s*quotes?|official\s*quotations?|tax\s*invoice\s*quotes?|"
-            r"i\s*want\s*(?:to\s*)?buy|want\s*to\s*buy|want\s*buy|how\s*to\s*buy|where\s*to\s*buy|"
-            r"can\s*i\s*buy|order\s*this|purchase\s*this|ready\s*to\s*buy|buy\s*this|buy\s*it|purchase\s*it|"
+            r"i\s*want\s*(?:to\s*)?buy\s+(?:this|it|these|one\b|now\b)|ready\s*to\s*buy|how\s*to\s*buy|where\s*to\s*buy|"
+            r"can\s*i\s*buy\s+(?:this|it|now\b)|order\s*this|purchase\s*this|buy\s*this|buy\s*it|purchase\s*it|"
             r"how\s*can\s*i\s*buy|proceed\s*with\s*(?:order|purchase|quote))\b",
             re.I
         ),
@@ -502,6 +510,7 @@ class TurnUnderstandingExtractor:
     SPEC_ATTRIBUTE_PATTERNS = [
         re.compile(
             r"\b(?:specs?|technical\s+specs?|technical\s+specifications?|specifications?|specification|"
+            r"spectro|spectrophotometer|spectroproofer|dual\s*roll|scanner\s*unit|take-up\s*reel|"
             r"details?|features?|functions?|capabilities|print\s+speed|resolution|dpi|dimension|dimensions|"
             r"measurement|measurements|size|how\s+big|weight|how\s+heavy|memory|ram|datasheet|brochure|"
             r"spec\s+sheet|data\s+sheet|pdf|view\s+specs|full\s+specs|product\s*cards?|show\s*(?:the\s*)?card|show\s+product\s+card|"
@@ -741,6 +750,7 @@ class TurnUnderstandingExtractor:
                 "architect", "archtect", "architecture", "drawing", "drawings", "architect drawings",
                 "gis", "cad plotter", "cad plotters", "cad printer", "cad printers", "blueprint", "plotter", "plotters", "large format plotter",
                 "large format plotters", "technical plotter", "technical plotters", "technical printer", "technical printers",
+                "24 inch plotter", "36 inch plotter", "44 inch plotter", "office plotter", "large format office",
                 "مخططات", "طابعة مخططات", "طابعة كاد", "طابعة هندسية", "بلوتر", "بلاتر", "رسومات هندسية", "naksha"
             ],
             "photo_fine_art": [
@@ -789,15 +799,18 @@ class TurnUnderstandingExtractor:
                 if any(w in text_l for w in ["scanner", "scanners", "scanning"]) and not any(p in text_l for p in ["printer", "printers", "plotter"]):
                     continue
             elif cat_id == "office_workforce":
-                # Prepositional location phrases (e.g. "for my office") should not trigger office_workforce
-                # when a specific printer type is already mentioned, but explicit product needs like
-                # "office printer", "office copiers", "office use", "workforce" MUST be preserved!
-                if has_specific_app_match or any(k in text_l for k in ["photo", "fine art", "cad", "blueprint", "plotter", "sublimation", "citizen"]):
-                    prepositional_exclusions = {
-                        "printer for my office", "printer for office", "printers for office",
-                        "for my office", "for our office", "for the office", "in the office", "for office"
-                    }
-                    cat_keywords = [k for k in cat_keywords if k not in prepositional_exclusions]
+                # Prepositional location phrases (e.g. "for my office") or generic usage ("office use")
+                # should NOT trigger office_workforce when large-format roll widths or specific printers are mentioned!
+                has_large_format = bool(re.search(r"\b(?:24|36|44|64)\s*(?:inch|in|\"|'')\b", text_l) or any(k in text_l for k in ["plotter", "plotters", "large format", "wide format"]))
+                if has_specific_app_match or has_large_format or any(k in text_l for k in ["photo", "fine art", "cad", "blueprint", "plotter", "sublimation", "citizen"]):
+                    has_conjunction = bool(re.search(r"\b(?:and\s+also|also|as\s+well\s+as|plus|and)\s+(?:for\s+)?office\b", text_l))
+                    if not has_conjunction:
+                        prepositional_exclusions = {
+                            "printer for my office", "printer for office", "printers for office",
+                            "for my office", "for our office", "for the office", "in the office", "for office",
+                            "office use", "for office use", "itz office use", "its office use"
+                        }
+                        cat_keywords = [k for k in cat_keywords if k not in prepositional_exclusions]
             for kw in cat_keywords:
                 m = re.search(rf"(?:^|\b){re.escape(kw)}(?:\b|$)", text_l)
                 if m:
@@ -1081,6 +1094,8 @@ class TurnUnderstandingExtractor:
             r"^\s*(?:i\s*(?:need|want)\s*(?:to\s*print\s*)?)?[<>]?\s*\d+(?:[–\-]\d+)?\s*(?:[\"”″'’]|inch|in|ppm|pages?|prints?|docs?|sheets?|mm|cm|wide|wider|width|production|mfp|roll|sheet|desktop|kiosk|daily|\/day|per\s*day|\+)(?:\s+(?:wider|wide|production|printer|plotter|scanner|mfp|roll|sheets?))*\s*$",
             r"^\s*(?:tech|technical|technical\s*cad|cad|fine\s*art|photo\s*printer|photo\s*production|production\s*printer|large\s*format|cad\s*plotter|technical\s*cad|dye[\s-]*sub|sublimation|photo\s*booth|office\s*printer|office)\s*$",
             r"^\s*(?:looking\s+for|i\s+need|i\s+want)\s+(?:a\s+)?(?:tech|technical|fine\s*art|photo|cad|office|large\s*format|production)\s*(?:printer|plotter)?\s*$",
+            r"^\s*(?:[1-5]\.?\s*)?(?:business(?:\s+document)?(?:\s+scanners?)?|photo(?:\s*&\s*artwork)?(?:\s+scanners?)?|book(?:\s*&\s*large[- ]?document)?(?:\s+scanners?)?|portable(?:\s*&\s*mobile)?(?:\s+scanners?)?|flatbed(?:\s+document)?(?:\s+scanners?)?|hybrid(?:\s+scanners?)?):?\s*$",
+            r"^\s*(?:business|flatbed|portable|mobile|artwork|large[- ]?document|sheetfed)\s*$",
         ]
         if any(re.search(pat, text_clean) for pat in flow_patterns):
             return DialogueAct.QUESTION, Intent.RECOMMEND, 0.96, ambiguities
@@ -1138,10 +1153,26 @@ class TurnUnderstandingExtractor:
 
         is_hardware_req = any(
             re.search(p, text_l) for p in [
-                r"\b(?:need|want|looking for|buy|recommend|suggest)\s+(?:an?\s+)?(?:office\s+)?(?:printer|plotter|scanner|copier|mfp)\b",
-                r"\b(?:printer|plotter|scanner)\s+for\b",
+                r"\b(?:need|want|looking for|buy|recommend|suggest)\s+(?:an?\s+)?(?:[a-z0-9\-]+\s+){0,4}(?:printer|plotter|scanner|copier|mfp|model|machine)\b",
+                r"\b(?:printer|plotter|scanner|model|machine)\s+for\b",
+                r"\bwhich\s+(?:[a-z0-9\-]+\s+){0,6}(?:model|printer|plotter|scanner|copier|mfp|machine|one)\b",
+                r"\bwhich\s+(?:will\s+be\s+)?(?:more\s+)?(?:advisable|prefer(?:able)?|better|best|recommended)\s+(?:to\s+print|for\s+printing|for)\b",
+                r"\b(?:prefer|recommend)\s+(?:to\s+me|me)\s+(?:to\s+print|for)\b",
+                r"\bmodel\s+(?:do\s+)?you\s+(?:prefer|recommend)\b",
+                r"\b(?:printer|plotter|scanner|mfp|machine)\s+(?:supports?|features?|has|with|having)\b",
+                r"\b(?:the\s+)?printer\s+must\s+(?:be|have|support)\b",
             ]
-        )
+        ) or (any(w in text_l for w in ["replaceable ink pack", "ink pack system"]) and any(w in text_l for w in ["printer", "which", "machine", "trays", "sheets", "feeder", "duplex"]))
+
+        # Broad hardware recommendation query (e.g. "I want to buy a printer", "looking for scanner")
+        models = [e for e in entities if e.entity_type == "model"]
+        skus = [e for e in entities if e.entity_type == "sku"]
+        if is_hardware_req and not (models or skus) and not any(k in text_l for k in ["quotation", "quote", "quatation", "tax invoice", "official quote", "proforma", "discount", "price", "cost"]):
+            return DialogueAct.QUESTION, Intent.RECOMMEND, 0.96, ambiguities
+
+        # Quick navigation prompts ("other", "another", "other category")
+        if text_l in ("other", "another", "other category", "another category", "view other categories", "other models", "browse other", "explore other"):
+            return DialogueAct.QUESTION, Intent.RECOMMEND, 0.96, ambiguities
 
         # Consumable color or attribute reference follow-up (e.g. "black", "cyan", "maintenance box", "the yellow one")
         if any(r.reference_type in ("color_ref", "attribute_ref") for r in refs) and not is_hardware_req:
@@ -1275,8 +1306,8 @@ class TurnUnderstandingExtractor:
             return DialogueAct.QUESTION, Intent.PRODUCT_INFO, 0.90, ambiguities
 
         # Fallback chitchat / greetings
-        if re.search(r"\b(?:hello|hi|hey|good\s*morning|good\s*afternoon|good\s*evening)\b", text_l):
-            if len(text_l.split()) <= 3:
+        if re.search(r"\b(?:hello|hi|hey|hai|heyy|hlo|good\s*morning|good\s*afternoon|good\s*evening|salam|assalam\s*alaikum|namaste|hola|marhaba)\b", text_l):
+            if len(text_l.split()) <= 4:
                 return DialogueAct.CHITCHAT, Intent.OTHER, 0.95, ambiguities
 
         return DialogueAct.QUESTION, Intent.OTHER, 0.60, ["Ambiguous intent, deterministic confidence below 0.70"]
@@ -1501,23 +1532,32 @@ def understand_turn(
 
             # Guard against LLM false-positive OUT_OF_SCOPE
             if det_understanding.dialogue_act == DialogueAct.OUT_OF_SCOPE:
-                has_contact_info = bool(
-                    re.search(r"(?:\+\d{1,4}[-.\s]*)?\b\d{7,14}\b", text)
-                    or re.search(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b", text)
-                )
-                if has_contact_info:
-                    det_understanding.dialogue_act = DialogueAct.ANSWER_TO_MY_QUESTION
-                    det_understanding.intent = Intent.CONTACT_SHOWROOM
+                t_lower = text.lower().strip()
+                if re.search(r"\b(?:hello|hi|hey|hai|heyy|hlo|good\s*morning|good\s*afternoon|good\s*evening|salam|assalam\s*alaikum|namaste|hola|marhaba)\b", t_lower) and len(t_lower.split()) <= 4:
+                    det_understanding.dialogue_act = DialogueAct.CHITCHAT
+                    det_understanding.intent = Intent.OTHER
+                elif t_lower in ("reserve", "reserve it", "reserve this", "hold it", "hold this", "book it", "book this", "reservation"):
+                    det_understanding.dialogue_act = DialogueAct.CONFIRMATION
+                    det_understanding.intent = Intent.OTHER
+                elif t_lower in ("other", "another", "other category", "another category", "view other categories", "other models", "browse other", "explore other"):
+                    det_understanding.dialogue_act = DialogueAct.QUESTION
+                    det_understanding.intent = Intent.RECOMMEND
                 else:
-                    t_lower = text.lower()
+                    has_contact_info = bool(
+                        re.search(r"(?:\+\d{1,4}[-.\s]*)?\b\d{7,14}\b", text)
+                        or re.search(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b", text)
+                    )
                     is_valid_topic = any(
                         k in t_lower for k in [
                             "dubai", "abu dhabi", "sharjah", "uae", "oman", "saudi", "gcc",
                             "delivery", "ship", "pickup", "order", "price", "quote",
+                            "reserve", "hold", "book", "reservation",
+                            "other", "another", "category", "categories",
                             "ink", "inks", "consumable", "consuble", "consumbales", "cartridge", "ribbon",
-                            "black", "cyan", "magenta", "yellow", "grey", "gray", "maintenance box",
-                            "printer", "scanner", "plotter", "plotters", "epson", "citizen", "f100", "c878", "cz01", "cx02",
+                            "black", "blck", "cyan", "cayan", "cyn", "magenta", "magnta", "yellow", "yellw", "yelow", "grey", "gray", "maintenance box",
+                            "printer", "printers", "scanner", "scanners", "plotter", "plotters", "epson", "citizen", "f100", "c878", "cz01", "cx02", "cx2-ms46", "cx2-ms68",
                             "tech", "tach", "teck", "technical", "cad", "photo", "booth", "sublimation", "office", "print",
+                            "business", "flatbed", "portable", "mobile", "document", "artwork", "book", "sheetfed",
                             "pay", "payment", "card", "bank transfer", "transfer", "cod", "cash", "cheque",
                             "repair", "service", "maintenance", "amc", "units", "quantity", "cancel", "warranty", "speed", "ppm",
                             "showroom", "location", "address", "hours", "timing", "timings", "kahan", "evide",
@@ -1533,8 +1573,24 @@ def understand_turn(
                             det_understanding.intent = Intent.SHIPPING_OR_DELIVERY
                         elif any(k in t_lower for k in ["ink", "inks", "consumable", "consuble", "consumbales", "cartridge", "ribbon", "black", "cyan", "magenta", "yellow"]):
                             det_understanding.intent = Intent.CONSUMABLES_LOOKUP
+                        elif any(k in t_lower for k in ["printer", "printers", "scanner", "scanners", "plotter", "plotters", "office", "photo", "cad", "recommend", "need", "want"]):
+                            det_understanding.intent = Intent.RECOMMEND
                         else:
                             det_understanding.intent = Intent.PRODUCT_INFO
+                    elif has_contact_info:
+                        det_understanding.dialogue_act = DialogueAct.ANSWER_TO_MY_QUESTION
+                        det_understanding.intent = Intent.CONTACT_SHOWROOM
+                    else:
+                        NON_NAME_WORDS = {"what", "fine", "ok", "okay", "okey", "yes", "no", "cancel", "stop", "leave", "it", "why", "how", "love", "you", "everything", "all", "is"}
+                        words_clean = [w for w in re.findall(r"[A-Za-z\u0600-\u06FF]+", text) if w]
+                        is_pure_name = (
+                            1 <= len(words_clean) <= 3
+                            and not any(w.lower() in NON_NAME_WORDS for w in words_clean)
+                            and not any(k in t_lower for k in ["cook", "food", "recipe", "weather", "sport", "football", "who are you", "joke", "movie", "song", "poem", "crypto", "bitcoin"])
+                        )
+                        if is_pure_name:
+                            det_understanding.dialogue_act = DialogueAct.ANSWER_TO_MY_QUESTION
+                            det_understanding.intent = Intent.CONTACT_SHOWROOM
     except Exception as e:
         logger.warning(f"Ollama structured understanding error: {e}. Falling back to deterministic result.")
 

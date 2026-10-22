@@ -116,18 +116,19 @@ def extract_flowchart_requirements(text: str, current_reqs: Optional[Dict[str, A
     vol_num_match = (
         re.search(r"\b(\d+)\s*(?:pages?|prints?|drawings?|items?|sheets?|photos?|pics?|docs?|plans?)?\s*(?:a\s*day|per\s*day|daily|\/day)\b", text_l)
         or re.search(r"\b(?:around|about|maybe|approx)?\s*(\d+)\s*(?:pages?|prints?|drawings?|items?|sheets?|photos?|pics?|docs?|plans?)\b", text_l)
-        or re.search(r"^\s*(?:around|about|maybe|approx)?\s*(\d+)\s*$", text_l)
+        or re.search(r"^\s*(?:around|about|maybe|approx)?\s*(\d+)\+?\s*$", text_l)
     )
     if vol_num_match:
         pages = int(vol_num_match.group(1))
-        reqs["daily_pages"] = pages
+        has_plus = "+" in text_l or "more" in text_l or "over" in text_l
+        reqs["daily_pages"] = pages if not has_plus else pages + 50
         if pages < 100:
             reqs["office_speed_class"] = "34_ppm"
             reqs["office_duty_class"] = "standard_mfp"
-        elif pages <= 300:
+        elif pages <= 300 and not has_plus:
             reqs["office_speed_class"] = "25_ppm_rips"
             reqs["office_duty_class"] = "departmental_rips"
-        elif pages <= 800:
+        elif pages <= 800 or has_plus:
             reqs["office_speed_class"] = "40_ppm_linehead"
             reqs["office_duty_class"] = "linehead_40"
         elif pages <= 2000:
@@ -141,9 +142,12 @@ def extract_flowchart_requirements(text: str, current_reqs: Optional[Dict[str, A
         reqs["office_speed_class"] = "34_ppm"
     elif any(k in text_l for k in ["100–300", "100-300", "compact rips", "compact rips 25 ppm", "em-c800", "c800"]):
         reqs["office_speed_class"] = "25_ppm_rips"
-    elif any(k in text_l for k in ["300+", "300 +", "enterprise line-head", "enterprise line head", "300–800", "300-800", "40 ppm", "55 ppm", "am-c400", "am-c4000", "c400", "c4000", "am-c550", "c550"]):
-        reqs["office_speed_class"] = "40_ppm_linehead"
-        reqs["office_duty_class"] = "linehead_40"
+    elif any(k in text_l for k in ["300+", "300 +", "enterprise line-head", "enterprise line head", "300–800", "300-800", "40 ppm", "55 ppm", "am-c400", "am-c4000", "c400", "c4000", "am-c550", "c550", "high-performance", "high performance", "best high-performance", "highest performance", "top performance", "fastest"]):
+        is_55 = any(k in text_l for k in ["55 ppm", "am-c550", "c550", "best", "fastest", "highest"])
+        reqs["office_speed_class"] = "55_ppm_linehead" if is_55 else "40_ppm_linehead"
+        reqs["office_duty_class"] = "linehead_50_60" if is_55 else "linehead_40"
+        if reqs.get("daily_pages") is None or reqs.get("daily_pages") <= 300:
+            reqs["daily_pages"] = 850 if is_55 else 350
     elif any(k in text_l for k in ["100–500", "100-500", "200–500", "200-500", "departmental rips", "wf-c878r", "wf-c879r", "c878", "c879"]):
         reqs["office_duty_class"] = "departmental_rips"
     elif any(k in text_l for k in ["500–3,500", "500-3500", "1,500–3,000", "1500-3000", "line-head 40/50/60", "50 ppm", "60 ppm", "am-c5000", "am-c6000", "c5000", "c6000"]):
@@ -247,13 +251,62 @@ def extract_flowchart_requirements(text: str, current_reqs: Optional[Dict[str, A
     elif any(k in text_l for k in ["24-inch roll apparel", "24-inch", "24 inch", "24inch", "24 roll", "roll", "apparel", "t-shirt", "textiles", "sc-f500", "f500"]) or re.search(r"\b24[\s-]*(?:inch|in|\")?\b", text_l):
         reqs["sublimation_format"] = "24_roll"
 
-    # 7. Scanners
-    if any(k in text_l for k in ["graphic & fine art film", "graphic", "film", "12000xl", "photo scanner"]):
-        reqs["scanner_doc_type"] = "graphic_film"
-    elif any(k in text_l for k in ["books & stacks", "book", "stack", "hybrid", "flatbed", "ds-1630", "ds-6500", "ds-60000", "ds-70000"]):
-        reqs["scanner_doc_type"] = "books_stacks"
-    elif any(k in text_l for k in ["fast sheetfed business", "sheetfed", "ds-530", "ds-790", "ds-800", "ds-32000"]):
-        reqs["scanner_doc_type"] = "sheetfed_business"
+    # 7. Scanners (5 Categories)
+    # 1. Business Document Scanners
+    # 2. Photo & Artwork Scanners
+    # 3. Book & Large-Document Scanners
+    # 4. Portable & Mobile Scanners
+    # 5. Flatbed Document Scanners
+    t_scan = re.sub(r"[:\s]+$", "", text_l).strip()
+
+    # 1. Numbered selection (1 to 5) when picking from scanner menu
+    if t_scan in ("1", "1.", "option 1", "category 1"):
+        reqs["scanner_doc_type"] = "business_doc"
+    elif t_scan in ("2", "2.", "option 2", "category 2"):
+        reqs["scanner_doc_type"] = "photo_artwork"
+    elif t_scan in ("3", "3.", "option 3", "category 3"):
+        reqs["scanner_doc_type"] = "book_large_doc"
+    elif t_scan in ("4", "4.", "option 4", "category 4"):
+        reqs["scanner_doc_type"] = "portable_mobile"
+    elif t_scan in ("5", "5.", "option 5", "category 5"):
+        reqs["scanner_doc_type"] = "flatbed_doc"
+    # 2. Keyword & Chip matching
+    elif any(k in t_scan for k in [
+        "photo & artwork", "photo and artwork", "photo & fine art", "photo scanner", "artwork",
+        "graphic & fine art film", "graphic", "film", "12000xl", "transparency unit", "slides",
+        "photographers, designers, artists", "high-resolution image digitization", "photo"
+    ]):
+        reqs["scanner_doc_type"] = "photo_artwork"
+    elif any(k in t_scan for k in [
+        "book & large-document", "book & large document", "book and large document", "book and large",
+        "large-format documents, departmental scanning and high-volume workflows", "large-document",
+        "large document", "large-format scanner", "departmental scanning", "high-volume workflows",
+        "ds-70000", "70000", "ds-60000", "60000", "ds-30000", "30000", "ds-32000", "32000", "book"
+    ]):
+        reqs["scanner_doc_type"] = "book_large_doc"
+    elif any(k in t_scan for k in [
+        "portable & mobile", "portable and mobile", "portable scanner", "mobile scanner",
+        "mobile professionals, fieldwork and compact scanning requirements", "fieldwork",
+        "compact scanning", "mobile business", "ds-360w", "360w", "ds-310", "310", "ds-80w", "80w", "ds-70", "ds70",
+        "portable", "mobile"
+    ]):
+        reqs["scanner_doc_type"] = "portable_mobile"
+    elif any(k in t_scan for k in [
+        "flatbed document", "flatbed color", "originals that benefit from flatbed",
+        "documents, books and originals that benefit from flatbed scanning", "flatbed scanning",
+        "ds-1660w", "1660w", "ds-1630", "1630", "flatbed"
+    ]):
+        reqs["scanner_doc_type"] = "flatbed_doc"
+    elif any(k in t_scan for k in [
+        "business document", "business scanner", "document digitization", "everyday document digitization",
+        "offices, businesses and everyday document digitization", "fast sheetfed business", "sheetfed",
+        "ds-900wn", "900wn", "ds-800wn", "800wn", "es-580w", "580w", "es-500wii", "500w",
+        "ds-970", "970", "ds-870", "870", "ds-790wn", "790wn", "ds-770", "770", "ds-730n", "730n",
+        "ds-530", "530", "ds-410", "410", "ds-7500", "7500", "ds-6500", "6500", "business", "document"
+    ]):
+        reqs["scanner_doc_type"] = "business_doc"
+    elif any(k in t_scan for k in ["books & stacks", "stack", "hybrid"]):
+        reqs["scanner_doc_type"] = "flatbed_doc"
 
     return reqs
 
@@ -830,44 +883,113 @@ def _resolve_flowchart_step_raw(
     # ─────────────────────────────────────────────────────────────────────────────
     if cat_norm in ("scanners", "scanner", "scanning_solutions"):
         doc_type = reqs.get("scanner_doc_type")
-        if doc_type == "graphic_film":
+        if doc_type in ("business_doc", "sheetfed_business"):
             return FlowchartStep(
                 category="scanners",
-                question="Here is the verified graphic & fine art scanner:",
-                chips=["Expression 12000XL", "12000XL Pro (Film)", "Official Quotation"],
+                question="Here are the verified Business Document Scanners for offices, businesses and everyday document digitization:",
+                chips=["WorkForce DS-900WN", "WorkForce DS-800WN", "WorkForce DS-530II", "WorkForce DS-7500", "Official Quotation"],
+                target_product_id="epson-workforce-ds-900wn",
+                supporting_product_ids=[
+                    "epson-workforce-ds-800wn", "epson-workforce-es-580w", "epson-workforce-es-500wii",
+                    "epson-workforce-ds-970", "epson-workforce-ds-870", "epson-workforce-ds-790wn",
+                    "epson-workforce-ds-770ii", "epson-workforce-ds-730n", "epson-workforce-ds-530ii",
+                    "epson-workforce-ds-410", "epson-workforce-ds-7500", "epson-workforce-ds-7500n",
+                    "epson-workforce-ds-6500", "epson-workforce-ds-6500n",
+                ],
+                explanation=(
+                    "**Business Document Scanners (For offices, businesses and everyday document digitization)**:\n"
+                    "• **High-Speed Network Scanners**: WorkForce DS-900WN (70 ppm / 140 ipm, 11,000 pages/day), DS-800WN (50 ppm / 100 ipm, 8,000 pages/day), DS-790WN, and DS-730N.\n"
+                    "• **High-Capacity Workgroup Scanners**: WorkForce DS-970 (85 ppm / 170 ipm), DS-870 (65 ppm), DS-770 II (45 ppm), DS-530II (35 ppm), and DS-410 (26 ppm).\n"
+                    "• **Touchscreen & Wireless Scanners**: WorkForce ES-580W (10.9 cm touchscreen) and ES-500WII (compact duplex).\n"
+                    "• **Departmental Flatbed + ADF Scanners**: WorkForce DS-7500 / DS-7500N (40 ppm) and DS-6500 / DS-6500N (25 ppm) with 100-page ADF."
+                ),
+                is_leaf=True,
+            )
+        elif doc_type in ("photo_artwork", "graphic_film"):
+            return FlowchartStep(
+                category="scanners",
+                question="Here are the verified Photo & Artwork Scanners for photographers, designers, artists and high-resolution image digitization:",
+                chips=["Expression 12000XL", "Expression 12000XL Pro", "Official Quotation"],
                 target_product_id="epson-expression-12000xl",
                 supporting_product_ids=["epson-expression-12000xl-pro"],
-                explanation="**Epson Expression 12000XL / 12000XL Pro**: A3 graphic arts scanner with 2400 x 4800 dpi resolution, optical density of 3.8 DMax, and transparency unit.",
+                explanation=(
+                    "**Photo & Artwork Scanners (For photographers, designers, artists and high-resolution image digitization)**:\n"
+                    "• **Epson Expression 12000XL Photo Scanner**: High-resolution A3 graphics & photo flatbed scanner (2400 × 4800 dpi, 3.8 Dmax optical density, ReadyScan LED, SilverFast Ai).\n"
+                    "• **Epson Expression 12000XL Pro Photo Scanner**: Includes TPU transparency unit for digitizing 35mm slides, film strips, and medium/large format negatives."
+                ),
                 is_leaf=True,
             )
-        elif doc_type == "books_stacks":
+        elif doc_type == "book_large_doc":
             return FlowchartStep(
                 category="scanners",
-                question="Here are the verified hybrid (flatbed + ADF) document scanners:",
-                chips=["WorkForce DS-1630 (A4)", "WorkForce DS-6500 (A4 Pro)", "WorkForce DS-60000 (A3)", "Official Quotation"],
-                target_product_id="epson-workforce-ds-1630",
-                supporting_product_ids=["epson-workforce-ds-6500", "epson-workforce-ds-60000", "epson-workforce-ds-70000"],
-                explanation="**Epson WorkForce DS-1630 / DS-6500 / DS-60000**: Versatile flatbed scanners equipped with high-capacity ADFs for books, passports, and bound stacks.",
+                question="Here are the verified Book & Large-Document Scanners for large-format documents, departmental scanning and high-volume workflows:",
+                chips=["WorkForce DS-70000 (A3)", "WorkForce DS-60000 (A3)", "WorkForce DS-32000 (Production)", "Official Quotation"],
+                target_product_id="epson-workforce-ds-70000",
+                supporting_product_ids=[
+                    "epson-workforce-ds-70000n", "epson-workforce-ds-60000", "epson-workforce-ds-60000n",
+                    "epson-workforce-ds-30000", "epson-workforce-ds-32000",
+                ],
+                explanation=(
+                    "**Book & Large-Document Scanners (For large-format documents, departmental scanning and high-volume workflows)**:\n"
+                    "• **WorkForce DS-70000 / DS-70000N**: 70 ppm / 140 ipm heavy-duty A3 flatbed scanner with 200-sheet ADF for bound records, books, and corporate archives.\n"
+                    "• **WorkForce DS-60000 / DS-60000N**: 40 ppm / 80 ipm A3 departmental scanner with dual flatbed platen and high-capacity ADF.\n"
+                    "• **WorkForce DS-30000 / DS-32000**: Ultra-fast A3 large-format production sheetfed scanners (up to 90 ppm / 180 ipm) with flexible media handling and ultrasonic double-feed detection."
+                ),
                 is_leaf=True,
             )
-        elif doc_type == "sheetfed_business":
+        elif doc_type == "portable_mobile":
             return FlowchartStep(
                 category="scanners",
-                question="Here are the verified fast sheetfed business scanners:",
-                chips=["WorkForce DS-530II", "WorkForce DS-790WN (Network)", "WorkForce DS-32000 (A3 Production)", "Official Quotation"],
-                target_product_id="epson-workforce-ds-530ii",
-                supporting_product_ids=["epson-workforce-ds-790wn", "epson-workforce-ds-800wn", "epson-workforce-ds-32000"],
-                explanation="**Epson WorkForce DS-530II / DS-790WN / DS-32000**: Ultra-fast sheetfed document scanners scaling from 35 ppm up to 90 ppm / 180 ipm production.",
+                question="Here are the verified Portable & Mobile Scanners for mobile professionals, fieldwork and compact scanning requirements:",
+                chips=["WorkForce DS-360W (Wi-Fi + Battery)", "WorkForce DS-310 (20-sheet ADF)", "WorkForce DS-80W (Wireless)", "WorkForce DS-70 (Ultra-Compact)", "Official Quotation"],
+                target_product_id="epson-workforce-ds-360w",
+                supporting_product_ids=[
+                    "epson-workforce-ds-310", "epson-workforce-ds-80w", "epson-workforce-ds-70",
+                ],
+                explanation=(
+                    "**Portable & Mobile Scanners (For mobile professionals, fieldwork and compact scanning requirements)**:\n"
+                    "• **WorkForce DS-360W**: 25 ppm / 50 ipm duplex portable scanner with built-in rechargeable battery, Wi-Fi, and 20-page ADF (1.3 kg).\n"
+                    "• **WorkForce DS-310**: 25 ppm / 50 ipm sheet-fed portable scanner with 20-page automatic document feeder (1.1 kg).\n"
+                    "• **WorkForce DS-80W**: Ultra-portable wireless scanner with integrated battery scanning in 4 sec/page (300 g).\n"
+                    "• **WorkForce DS-70**: Ultra-compact mobile scanner powered via USB scanning in 5.5 sec/page (270 g)."
+                ),
+                is_leaf=True,
+            )
+        elif doc_type in ("flatbed_doc", "books_stacks"):
+            return FlowchartStep(
+                category="scanners",
+                question="Here are the verified Flatbed Document Scanners for documents, books and originals that benefit from flatbed scanning:",
+                chips=["WorkForce DS-1660W (Wi-Fi)", "WorkForce DS-1630 Flatbed", "Official Quotation"],
+                target_product_id="epson-workforce-ds-1660w",
+                supporting_product_ids=["epson-workforce-ds-1630"],
+                explanation=(
+                    "**Flatbed Document Scanners (For documents, books and originals that benefit from flatbed scanning)**:\n"
+                    "• **WorkForce DS-1660W**: 25 ppm flatbed color scanner with Wi-Fi wireless connectivity, ReadyScan LED, and 50-page automatic document feeder.\n"
+                    "• **WorkForce DS-1630**: Versatile flatbed scanner with 50-page ADF for dual-purpose scanning of bound books, passports, and multi-page stacks."
+                ),
                 is_leaf=True,
             )
         else:
             return FlowchartStep(
                 category="scanners",
-                question="What type of documents or media will you be scanning?",
-                chips=["Fast Sheetfed Business Scanners", "Photo & Fine Art Film Scanners", "Books & Stacks (Hybrid Flatbed+ADF)"],
+                question="What type of scanner do you require?",
+                chips=[
+                    "Business Document Scanners",
+                    "Photo & Artwork Scanners",
+                    "Book & Large-Document Scanners",
+                    "Portable & Mobile Scanners",
+                    "Flatbed Document Scanners",
+                ],
                 target_product_id=None,
                 supporting_product_ids=[],
-                explanation="Kepler Tech supplies specialized Epson scanners ranging from museum-grade graphic film units to heavy-duty batch document scanners.",
+                explanation=(
+                    "Kepler Tech supplies specialized Epson scanners across 5 distinct categories:\n\n"
+                    "• **Business Document Scanners**: For offices, businesses and everyday document digitization (15 models).\n\n"
+                    "• **Photo & Artwork Scanners**: For photographers, designers, artists and high-resolution image digitization (2 models).\n\n"
+                    "• **Book & Large-Document Scanners**: For large-format documents, departmental scanning and high-volume workflows (6 models).\n\n"
+                    "• **Portable & Mobile Scanners**: For mobile professionals, fieldwork and compact scanning requirements (4 models).\n\n"
+                    "• **Flatbed Document Scanners**: For documents, books and originals that benefit from flatbed scanning (2 models)."
+                ),
                 is_leaf=False,
             )
 
